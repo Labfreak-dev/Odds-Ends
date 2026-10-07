@@ -200,6 +200,18 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Intel (v77)
+
+- **Stats**: club leaders (season kills, damage, healing; impact by performance score; MVPs; career kills), single-match **club records** (most damage, knockouts, healing, damage taken, with who and which season; `save.records`), then the old record panel.
+- **Rosters**: every club in the division in table order with its record and three fighters (class and level), so the next rival can be read before the match.
+- **Archive**, with its own tabs:
+  - Classes: discovered by owning a class or facing it in a fight; tap one for its **codex page** (role, trait, base stats, passive, and the whole move pool with categories and cooldowns).
+  - Clubs: met clubs with their crest and class theme.
+  - Champions: the ten named champions, marked when signed.
+  - Relics: found relics with their blurbs; the rest by rarity only.
+  - Systems: how seasons, divisions, level-ups, stamina, market value, facilities and relics work.
+- **Goals**: the achievements list.
+
 ## Champions Cup (v76)
 
 When the last league week is played, the table's top four play a **Champions Cup**: 3v3 semifinals (1st vs 4th, 2nd vs 3rd) and a final, before the season ceremony.

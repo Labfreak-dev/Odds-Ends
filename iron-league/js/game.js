@@ -300,6 +300,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Intel: club leaders and records, every rival roster in the division, and an Archive of classes, clubs, champions, relics and how the game works.",
     "The Champions Cup: when the league closes, its top four play 3v3 knockouts before the ceremony. The winner takes a relic.",
     "Club facilities: Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office and Treasure House.",
     "A trading-floor market: every listing in one list with stats and price, the picked fighter's full card beside it, and filters for affordable, watched, champions and scouted.",
@@ -2611,31 +2612,153 @@
   }
 
   /* ---------- Intel ---------- */
+  let archivePane = "classes";
+  let codexOpen = null;
+
   function intelPanel() {
-    const panes = [["stats", "Stats"], ["archive", "Archive"], ["goals", "Goals"]];
+    const panes = [["stats", "Stats"], ["rosters", "Rosters"], ["archive", "Archive"], ["goals", "Goals"]];
     let body;
     if (intelPane === "archive") body = archiveHtml();
     else if (intelPane === "goals") body = achievementsHtml();
-    else body = clubRecordHtml();
+    else if (intelPane === "rosters") body = rostersIntelHtml();
+    else body = statsIntelHtml();
     return subTabs("intel", intelPane, panes) + body;
   }
 
-  function archiveHtml() {
-    const seen = save.seenClasses || [];
-    const ids = Object.keys(IL.CLASSES);
-    const owned = {};
-    (save.roster || []).forEach(function (f) { owned[f.cls] = true; });
-    const found = ids.filter(function (id) { return owned[id] || seen.indexOf(id) >= 0; }).length;
-    return '<section class="es-card"><header class="archive-head"><h3 class="section">Classes</h3><span class="fine">' + found + ' / ' + ids.length + ' discovered</span></header>' +
-      '<div class="archive-grid">' + ids.map(function (id) {
-        const kit = IL.CLASSES[id];
-        const known = owned[id] || seen.indexOf(id) >= 0;
-        const sheet = IL.defaultSheet ? IL.defaultSheet(id) : "";
-        return '<div class="archive-cell' + (known ? "" : " unknown") + '">' +
-          (known ? '<canvas width="64" height="64" data-key="' + esc(IL.hero.keyOf({ sheet: sheet })) + '" data-anim="idle" data-scale="2" data-foot="4"></canvas>' : '<span class="q">???</span>') +
-          '<b>' + (known ? esc(kit.name) : "Not yet discovered") + '</b></div>';
-      }).join("") + '</div></section>';
+  /* Club leaders this season and all time, plus single-match records. */
+  function statsIntelHtml() {
+    const roster = (save.roster || []).filter(Boolean);
+    function board(title, val, fmt) {
+      const rows = roster.map(function (f) { return { f: f, n: val(f) }; }).filter(function (r) { return r.n > 0; })
+        .sort(function (a, b) { return b.n - a.n; }).slice(0, 5);
+      return '<section class="es-card leader-card"><h3 class="section">' + esc(title) + '</h3>' +
+        (rows.length ? '<ol class="leaders">' + rows.map(function (r, i) {
+          const kit = IL.CLASSES[r.f.cls] || {};
+          return '<li><b>' + (i + 1) + '</b><span class="es-class ' + (ROLE_TONE[kit.role] || "melee") + '">' + esc(kit.name || "") + '</span><span class="ldr-name">' + esc(r.f.name) + '</span><em>' + esc(fmt ? fmt(r.n) : String(Math.round(r.n))) + '</em></li>';
+        }).join("") + '</ol>' : '<p class="fine">Nobody yet.</p>') + '</section>';
+    }
+    const rec = save.records || {};
+    function recRow(key, label) {
+      const r = rec[key];
+      return '<li><span>' + esc(label) + '</span>' + (r ? '<b>' + r.n + '</b><em>' + esc(r.name) + ' · season ' + r.season + '</em>' : '<b>—</b><em></em>') + '</li>';
+    }
+    return '<div class="intel-grid">' +
+      board("Top kills (season)", function (f) { return (f.season && f.season.kos) || 0; }) +
+      board("Top damage (season)", function (f) { return (f.season && f.season.dealt) || 0; }) +
+      board("Top healing (season)", function (f) { return (f.season && f.season.heal) || 0; }) +
+      board("Impact (performance score)", function (f) { return IL.perfScore ? IL.perfScore(f) : 0; }, function (n) { return (IL.perfLabel ? IL.perfLabel(n) + " " : "") + n; }) +
+      board("Most MVPs", function (f) { return f.mvps || 0; }) +
+      board("Career kills", function (f) { return f.kos || 0; }) +
+      '<section class="es-card"><h3 class="section">Club records · one match</h3><ul class="records">' +
+        recRow("dealt", "Most damage") + recRow("kos", "Most knockouts") + recRow("heal", "Most healing") + recRow("taken", "Most damage taken") +
+      '</ul></section>' +
+    '</div>' + clubRecordHtml();
   }
+
+  /* Every club in the division with its record and its three fighters. */
+  function rostersIntelHtml() {
+    return '<div class="intel-rosters">' + sortedClubs().map(function (c, i) {
+      const team = c.you ? fielded(save.roster, 3) : (c.fighters || []).slice(0, 3);
+      return '<section class="es-card intel-club' + (c.you ? " you" : "") + '"><header>' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) +
+        '<h3>' + esc(c.name) + '</h3><span class="fine">' + ordinal(i + 1) + ' · ' + c.w + '-' + c.l + ' · ' + c.pts + ' pts</span></header>' +
+        '<ul class="intel-fighters">' + team.map(function (f) {
+          const kit = IL.CLASSES[f.cls] || {};
+          return '<li><canvas class="es-mface" width="40" height="36" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="3"></canvas>' +
+            '<span><b>' + esc(f.name) + '</b><small>' + esc(kit.name || "") + ' · Lv ' + (f.level || 1) + '</small></span></li>';
+        }).join("") + '</ul></section>';
+    }).join("") + '</div>';
+  }
+
+  function archiveHtml() {
+    const tabs = [["classes", "Classes"], ["clubs", "Clubs"], ["champions", "Champions"], ["relics", "Relics"], ["systems", "Systems"]];
+    const nav = '<nav class="es-subtabs small">' + tabs.map(function (t) {
+      return '<button type="button" class="es-subtab small' + (archivePane === t[0] ? " on" : "") + '" data-archive="' + t[0] + '">' + t[1] + '</button>';
+    }).join("") + '</nav>';
+    let body = "";
+    if (archivePane === "clubs") {
+      const met = {};
+      (save.clubs || []).forEach(function (c) { if (!c.you) met[c.name] = c; });
+      body = '<div class="archive-grid wide">' + IL.CLUBS.filter(function (n) { return n !== save.clubName; }).map(function (n) {
+        const known = met[n] || (save.nemesis && save.nemesis.name === n);
+        const theme = IL.CLUB_THEMES && IL.CLUB_THEMES[n];
+        return '<div class="archive-cell' + (known ? "" : " unknown") + '">' + (known ? crestHtml(n, "md", crestIndexOf(n)) : '<span class="q">???</span>') +
+          '<b>' + (known ? esc(n) : "Not yet met") + '</b>' + (known && theme ? '<small>' + esc(theme.map(function (id) { return (IL.CLASSES[id] || {}).name || id; }).join(" · ")) + '</small>' : '') + '</div>';
+      }).join("") + '</div>';
+    } else if (archivePane === "champions") {
+      const mine = {};
+      (save.roster || []).forEach(function (f) { if (f.champion) mine[f.name] = true; });
+      body = '<div class="archive-grid wide">' + (IL.CHAMPIONS || []).map(function (c) {
+        const kit = IL.CLASSES[c.cls] || {};
+        return '<div class="archive-cell' + (mine[c.name] ? " owned" : "") + '"><span class="q champ">★</span><b>' + esc(c.name) + '</b><small>' + esc(kit.name || "") + (mine[c.name] ? " · signed" : "") + '</small></div>';
+      }).join("") + '</div><p class="fine">Champions come to the market now and then, at a higher price, with tougher bodies and harder hits.</p>';
+    } else if (archivePane === "relics") {
+      const owned = save.relics || [];
+      body = '<div class="archive-grid wide">' + (IL.RELICS || []).map(function (r) {
+        const has = owned.indexOf(r.id) >= 0;
+        return '<div class="archive-cell relic-' + esc(r.rarity) + (has ? "" : " unknown") + '"><span class="q">' + (has ? "◆" : "?") + '</span><b>' + (has ? esc(r.name) : "Not yet found") + '</b>' + (has ? '<small>' + esc(r.blurb) + '</small>' : '<small>' + esc(r.rarity) + '</small>') + '</div>';
+      }).join("") + '</div>';
+    } else if (archivePane === "systems") {
+      const rows = [
+        ["Seasons", "Eight clubs a division play seven league weeks. The top four then play the Champions Cup. The top two go up a division and the bottom two go down."],
+        ["Divisions", IL.DIVISIONS.map(function (d) { return "Div " + d.roman + " " + d.name.replace(" Division", "") + " (rivals from Lv " + d.floor + ", purse ×" + d.purse + ")"; }).join(" · ")],
+        ["Level up", "Each level is two picks: a stat card (the growth style makes one card bigger) and a skill card: a new move, an upgrade to a move, or a passive, from T1 Common to T4 Legendary."],
+        ["Stamina", "League and cup matches tire the squad; the bench rests. Under half, a fighter hits and lasts a little less. The Medical Bay speeds rest."],
+        ["Market value", "Built from hire price, rarity, level, upgrades, performance, stamina and gear. The performance score reads damage, healing, knockouts, wins and MVPs per match."],
+        ["Facilities", "Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office and Treasure House, each bought a rank at a time."],
+        ["Relics", "Club relics ride with everyone (two slots, more with the Treasure House); a fighter relic is worn by one. Two pieces of a set wake a bonus."]
+      ];
+      body = '<dl class="systems">' + rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join("") + '</dl>';
+    } else {
+      const seen = save.seenClasses || [];
+      const ids = Object.keys(IL.CLASSES);
+      const owned = {};
+      (save.roster || []).forEach(function (f) { owned[f.cls] = true; });
+      const found = ids.filter(function (id) { return owned[id] || seen.indexOf(id) >= 0; }).length;
+      body = '<header class="archive-head"><span class="fine">' + found + ' / ' + ids.length + ' discovered · tap a class for its codex page</span></header>' +
+        '<div class="archive-grid">' + ids.map(function (id) {
+          const kit = IL.CLASSES[id];
+          const known = owned[id] || seen.indexOf(id) >= 0;
+          const sheet = IL.defaultSheet ? IL.defaultSheet(id) : "";
+          return '<button type="button" class="archive-cell' + (known ? "" : " unknown") + '"' + (known ? ' data-codex="' + esc(id) + '"' : ' disabled') + '>' +
+            (known ? '<canvas width="64" height="64" data-key="' + esc(IL.hero.keyOf({ sheet: sheet })) + '" data-anim="idle" data-scale="2" data-foot="4"></canvas>' : '<span class="q">???</span>') +
+            '<b class="' + (known ? "es-class " + (ROLE_TONE[kit.role] || "melee") : "") + '">' + (known ? esc(kit.name) : "Not yet discovered") + '</b></button>';
+        }).join("") + '</div>';
+    }
+    return '<section class="es-card" id="archive">' + nav + body + '</section>';
+  }
+
+  /* A class's codex page: role, base stats, trait, passive and its moves. */
+  function codexHtml(id) {
+    const kit = IL.CLASSES[id];
+    if (!kit) return "";
+    const tone = ROLE_TONE[kit.role] || "melee";
+    const trait = kit.trait && IL.TRAITS ? IL.TRAITS[kit.trait] : null;
+    const pool = (IL.poolOf ? IL.poolOf(id) : (kit.abilities || [])).filter(Boolean);
+    const sheet = IL.defaultSheet ? IL.defaultSheet(id) : "";
+    return '<div class="sheet-back" id="codexBack"></div>' +
+      '<aside class="sheet es-detail codex" id="codexSheet" role="dialog" aria-modal="true" aria-labelledby="codexTitle">' +
+        '<header class="es-dhead">' +
+          '<div class="detail-stage"><canvas width="120" height="110" data-key="' + esc(IL.hero.keyOf({ sheet: sheet })) + '" data-anim="cheer" data-scale="3" data-foot="8"></canvas></div>' +
+          '<div class="es-dwho"><h2 id="codexTitle">' + esc(kit.name) + '</h2><p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.role || "") + '</span>' + (trait ? '<span class="es-role">' + esc(trait.name) + '</span>' : '') + '</p>' +
+            '<p class="fine">' + esc(kit.blurb || "") + '</p></div>' +
+          '<div class="es-dvalue"><p><span>Unlock</span><b>' + ((kit.renown || 0) ? kit.renown + " renown" : "Free") + '</b></p></div>' +
+          '<button type="button" class="btn close-x" id="codexClose" aria-label="Close">Close</button>' +
+        '</header>' +
+        '<div class="es-dgrid">' +
+          '<section class="es-card"><h3 class="section">Base stats</h3><ul class="es-dstats">' +
+            [["HP", kit.hp, "drop_water_or_blood"], ["ATK", kit.atk, "sword"], ["DEF", kit.def, "armor_1_body"], ["SPD", kit.speed, "shoes"]].map(function (r) {
+              return '<li><img class="ui-glyph" alt="" src="assets/ui/glyphs/orange_32/' + r[2] + '.png"><span>' + r[0] + '</span><b>' + r[1] + '</b><em></em></li>';
+            }).join("") + '</ul>' +
+            (trait ? '<p class="fine"><b>' + esc(trait.name) + ':</b> ' + esc(trait.blurb || "") + '</p>' : '') +
+            (kit.passive ? '<p class="fine"><b>Passive · ' + esc(kit.passive.name || "") + ':</b> ' + esc(kit.passive.blurb || abilityBlurb(kit.passive.id)) + '</p>' : '') +
+          '</section>' +
+          '<section class="es-card"><h3 class="section">Ability pool</h3><ul class="codex-pool">' + pool.map(function (ab) {
+            return '<li>' + (IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "") + '<span><b>' + esc(ab.name) + '</b><small>' + esc((IL.categoryOf ? IL.categoryOf({ kind: "learn", id: ab.id }) : "") + (ab.cd ? " · " + ab.cd + "s" : "") + (ab.ult ? " · Ultimate" : "")) + '</small><em>' + esc(ab.blurb || abilityBlurb(ab.id)) + '</em></span></li>';
+          }).join("") + '</ul></section>' +
+        '</div>' +
+      '</aside>';
+  }
+
 
   function leagueCardHtml() {
     const done = seasonDone();
@@ -3618,6 +3741,7 @@
       '</main>' +
       (fightMenuOpen ? fightMenuHtml() : '') +
       (!fightMenuOpen && inboxOpen ? inboxHtml() : '') +
+      (!fightMenuOpen && !inboxOpen && codexOpen && hubTab === "intel" ? codexHtml(codexOpen) : '') +
       (!fightMenuOpen && identityOpen ? identityHtml() : '') +
       (!fightMenuOpen && !identityOpen && creditsOpen ? creditsHtml() : '') +
       (!fightMenuOpen && !identityOpen && settingsOpen && !creditsOpen ? settingsHtml() : '') +
@@ -3638,6 +3762,10 @@
     if (hubTab === "market") {
       (save.market || []).forEach(function (row) { if (row && row.fighter) extra.push(row.fighter.parts); });
       ((save.deals && save.deals.offers) || []).forEach(function (o) { if (o && o.fighter) extra.push(o.fighter.parts); });
+    }
+    if (hubTab === "intel") {
+      (save.clubs || []).forEach(function (c) { (c.fighters || []).forEach(function (f) { if (f && f.parts) extra.push(f.parts); }); });
+      Object.keys(IL.CLASSES).forEach(function (id) { if (IL.defaultSheet) extra.push({ sheet: IL.defaultSheet(id) }); });
     }
     if (hubTab === "matches" && save.draft) {
       (save.draft.offer || []).concat(save.draft.picks || []).forEach(function (f) { if (f && f.parts) extra.push(f.parts); });
@@ -4117,6 +4245,10 @@
     bindIdentity();
     bindFightMenu();
     bindInbox();
+    const codexClose = document.getElementById("codexClose");
+    if (codexClose) codexClose.onclick = function () { codexOpen = null; refreshHub(); };
+    const codexBack = document.getElementById("codexBack");
+    if (codexBack) codexBack.onclick = function () { codexOpen = null; refreshHub(); };
     const gear = document.getElementById("settings");
     if (gear) gear.onclick = function () {
       detailId = null;
@@ -4232,6 +4364,10 @@
         refreshHub();
         return;
       }
+      const arch = ev.target.closest("[data-archive]");
+      if (arch) { archivePane = arch.dataset.archive; refreshHub(); return; }
+      const cdx = ev.target.closest("[data-codex]");
+      if (cdx) { codexOpen = cdx.dataset.codex; refreshHub(); return; }
       const mp = ev.target.closest("[data-mpick]");
       if (mp) { marketPick = +mp.dataset.mpick; refreshHub(); return; }
       const mf = ev.target.closest("[data-mfilter]");
@@ -6333,11 +6469,28 @@
     return career;
   }
 
+  /* v77: single-match club records for Intel, and every class faced
+     joins the Archive. */
+  function noteRecord(key, n, name) {
+    if (!(n > 0)) return;
+    if (!save.records || typeof save.records !== "object") save.records = {};
+    const cur = save.records[key];
+    if (!cur || n > cur.n) save.records[key] = { n: Math.round(n), name: name, season: save.season };
+  }
+
   function noteRecords(match, win) {
     const byId = {};
     (save.roster || []).forEach(function (f) { if (f && f.id) byId[f.id] = f; });
+    if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
+    match.units.forEach(function (u) {
+      if (u && u.team !== 0 && u.cls && IL.CLASSES[u.cls] && save.seenClasses.indexOf(u.cls) < 0) save.seenClasses.push(u.cls);
+    });
     match.units.forEach(function (u) {
       if (!u || u.team !== 0) return;
+      noteRecord("dealt", u.dmgDealt || 0, u.name);
+      noteRecord("kos", u.kos || 0, u.name);
+      noteRecord("heal", u.healing || 0, u.name);
+      noteRecord("taken", u.dmgTaken || 0, u.name);
       const f = byId[u.id];
       if (!f) return;
       const career = ensureCareer(f);
@@ -6844,6 +6997,18 @@
       if (document.getElementById("fightMenu")) {
         ev.preventDefault();
         fightMenuOpen = false;
+        refreshHub();
+        return;
+      }
+      if (document.getElementById("codexSheet")) {
+        ev.preventDefault();
+        codexOpen = null;
+        refreshHub();
+        return;
+      }
+      if (document.getElementById("inboxSheet")) {
+        ev.preventDefault();
+        inboxOpen = false;
         refreshHub();
         return;
       }

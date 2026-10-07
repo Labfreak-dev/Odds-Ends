@@ -4567,3 +4567,5 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .lv-slot img, .lv-slot .pixel-icon, .lv-slot .item-icon { margin: 0 !important; }
 /* The result screen's Level up pill stays one line. */
 .res-levelup .lv-badge, .lv-badge { flex: none; white-space: nowrap; }
+/* v87 skill card category pill: one line, its own height, not the row's. */
+.lv-cat { align-self: start; justify-self: start; width: max-content; max-width: 100%; white-space: nowrap; line-height: 1.4; }

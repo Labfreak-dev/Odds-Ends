@@ -931,7 +931,7 @@
     buff: "Buff", rage: "Buff", heal: "Heal", mend: "Heal",
     charge: "Mobility", shadowstep: "Mobility", skirmish: "Mobility",
     multishot: "Damage", pierce: "Damage", bolt: "Damage", fireball: "Damage", lunge: "Damage",
-    debuff: "Control", stun: "Stun", knock: "Push", dot: "Damage/Over time", vial: "Damage/Over time",
+    debuff: "Control", stun: "Stun", knock: "Push", dot: "Over time", vial: "Damage",
     summon: "Summon"
   };
   function categoryOf(card) {

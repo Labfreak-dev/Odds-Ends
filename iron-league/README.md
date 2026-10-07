@@ -201,6 +201,16 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Plain move text (v87)
+
+Skill text was flavor ("A blink to safer ground.", "Always on, for the rest of this fighter's career."). Every move, upgrade and passive now says what it does in numbers, worked out from the arena rules (`moveFacts`, `modFacts`, `talentFacts` in `js/game.js`):
+
+- **Moves** by kind: damage as % ATK and, for a fighter, the ATK value with their rank and Heavy upgrade folded in; areas, bounces, slows (38% slower), stuns, shields (% of max HP), buffs (% more damage, seconds), damage over time (per 0.85 s tick, tick count), summons (HP and ATK share, seconds).
+- **Cooldowns** are the real ones: the listed value × 1.2 (PACE), less ranks and a Swift upgrade. The old cards showed the listed value, about 17% short.
+- **Upgrades** say the effect on that move (Swift shows the cooldown before and after). **Passives** say the effect in play terms (Iron Hide: each point of defense takes 0.35 off every hit).
+- Used on the level-up cards, the new-move screen, the fighter sheet, the Archive codex and the steering bar tooltips.
+- The "Damage/Over time" category is now "Over time" (it wrapped out of its pill), and a thrown flask is "Damage". The clip audit now flags text that spills out of a filled label.
+
 ## Closer rivals early (v86)
 
 A level 6 club could meet level 12-15 rivals: the full six-level swing applied from the start, plus the division floor (Bronze is 8) added on top. Now:

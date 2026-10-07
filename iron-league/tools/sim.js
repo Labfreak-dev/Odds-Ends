@@ -120,7 +120,7 @@ const seenAb = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
   const kit = IL.CLASSES[id];
   const list = kit.abilities || [];
-  if (list.length < 6 || list.length > 8) {
+  if (list.length !== 14) {  // v85: 3 starters, a twin, 4 + 6 learnable
     fails++;
     console.error("pool size", id, list.length);
   }
@@ -1033,6 +1033,34 @@ const topA = IL.growRival(IL.randomFighter(IL.mulberry32(701), "archer"), IL.mul
 const topB = IL.growRival(IL.randomFighter(IL.mulberry32(703), "warrior"), IL.mulberry32(704), 94);
 const topM = runOut(IL.createMatch({ seed: 9, left: [topA], right: [topB], leftName: "A", rightName: "B" }));
 check("a level 100 fight still ends", topM.over);
+/* v85: every new move fires in a real fight without an error. */
+const unfired = [];
+Object.keys(IL.CLASSES).forEach(function (cls, ci) {
+  IL.CLASSES[cls].abilities.filter(function (ab) { return /^x-/.test(ab.id); }).forEach(function (ab, ai) {
+    let used = false;
+    for (let seed = 0; seed < 4 && !used; seed++) {
+      const me = IL.growRival(IL.randomFighter(IL.mulberry32(900 + ci * 31 + ai * 7 + seed), cls), IL.mulberry32(901 + seed), 12);
+      IL.ensureMoves(me);
+      if (me.known.indexOf(ab.id) < 0) me.known.push(ab.id);
+      if (me.learned.indexOf(ab.id) < 0) me.learned.push(ab.id);
+      me.loadout = [ab.id];
+      const pal = IL.growRival(IL.randomFighter(IL.mulberry32(950 + seed), "warrior"), IL.mulberry32(951), 12);
+      const foes = [0, 1].map(function (k) { return IL.growRival(IL.randomFighter(IL.mulberry32(960 + seed * 3 + k), k ? "archer" : "tank"), IL.mulberry32(962 + k), 12); });
+      const m = IL.createMatch({ seed: 70 + seed, left: [me, pal], right: foes, leftName: "A", rightName: "B" });
+      const u = m.units.filter(function (x) { return x.team === 0 && x.cls === cls; })[0];
+      let steps = 0;
+      try {
+        while (!m.over && steps < 9000 && !used) {
+          IL.stepMatch(m, 1 / 60); m.events.length = 0; steps++;
+          if (u && u.banner && u.banner.id === ab.id) used = true;
+        }
+      } catch (e) { unfired.push(ab.id + " threw " + e.message); used = true; }
+    }
+    if (!used) unfired.push(ab.id);
+  });
+});
+if (unfired.length) console.error("moves that never fired:", unfired.join(", "));
+check("every new move fires in a fight", unfired.length === 0);
 check("every class has three skill cards at every level to 100", Object.keys(IL.CLASSES).every(function (cls, ci) {
   const f = IL.randomFighter(IL.mulberry32(800 + ci), cls);
   f.level = 100; f.pendingLevels = 99;

@@ -201,6 +201,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## More moves (v85)
+
+Every class learns six more moves, 162 in all (`MORE2` in `js/kits.js`), so a kit holds 14: three starters, a twin, and ten to learn on level up. They use only kinds the arena already plays and that the class family already uses (blades get cleaves, stuns, bleeds, knockbacks and charges; bows and guns get volleys, piercing shots, slows and rolls; casters get bolts, blasts, drains, summons and guards; supports get mends, guards, team buffs and slows), with numbers inside the bands of the moves already there. Icons come from the move's kind.
+
+A fighter now has ten moves to learn before the pool turns to rank-ups and Hone. The sim equips each new move on its own and checks that it fires in a 2v2 without an error.
+
 ## Levels to 100, rivals that keep pace (v84)
 
 - **Level cap 100** (was 30), Eslabong's ceiling. The xp curve is unchanged (40 × L^1.2 a level), so the climb past 30 is long.

@@ -17,7 +17,8 @@ we keep our own twist.
 | v72 | **Roster tab**: first-team cards, substitutes strip, fighter detail sheet (market value, performance score, profile, combat summary) | shipped |
 | v73 | **Season calendar**: 8-club divisions, 7 league weeks, Division V→I labels (our five tiers kept); Champions Cup moves to v79 | shipped |
 | v74 | **Market tab**: list + detail layout with filters, market value against price, watch stars | shipped |
-| v74b | **Market depth**: offers from rival clubs for your fighters, rival listings, champion auctions | planned |
+| v78 | **Transfers**: rival offers for your fighters (Accept/Decline), rival listings on the market | shipped |
+| v78b | Champion auctions | planned |
 | v75 | **Facilities**: Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office, Treasure House | shipped |
 | v75b | **Club House and staff** (Medic, Scout, Trainer, Treasure Hunter) | planned |
 | v76 | **Fighter depth**: per-stat growth grades (Good / Excellent), personalities with mistake chance, form and injuries, milestone levels | planned |

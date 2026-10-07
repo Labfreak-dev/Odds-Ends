@@ -915,6 +915,35 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 if (band.length) console.error("balance band", band.join(", "));
 check("classes stay in a win band", band.length === 0);
 
+/* v88: every class passive is wired. The same seeded fight is played with
+   the passive and without it; a live rule changes what happens. */
+function printOf(m) {
+  return m.units.map(function (u) { return Math.round(u.dmgDealt || 0) + ":" + Math.round(u.healing || 0) + ":" + Math.round(u.hp); }).join("|") + "@" + m.time.toFixed(2);
+}
+const inert = [];
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const p = IL.CLASSES[id].passive;
+  if (!p || !p.fx) return;
+  let changed = false;
+  for (let sd = 0; sd < 4 && !changed; sd++) {
+    const seed = 7100 + sd * 31 + (IL.hashStr(id) % 97);
+    const on = printOf(fight([id, "warrior", "mage"], ["tank", "archer", "warrior"], seed, 10));
+    const keep = p.fx;
+    p.fx = null;
+    const off = printOf(fight([id, "warrior", "mage"], ["tank", "archer", "warrior"], seed, 10));
+    p.fx = keep;
+    if (on !== off) changed = true;
+  }
+  if (!changed) inert.push(id + " (" + p.id + ")");
+});
+if (inert.length) console.error("passives with no effect:", inert.join(", "));
+check("every class passive changes the fight", inert.length === 0);
+const pvRange = IL.createMatch({ seed: 1, left: [IL.randomFighter(IL.mulberry32(3), "archer")], right: [IL.randomFighter(IL.mulberry32(4), "warrior")], leftName: "A", rightName: "B" });
+check("Long Eye adds 12% range", Math.abs(pvRange.units[0].range - IL.CLASSES.archer.range * 1.12) < 0.01);
+const pvTeam = IL.createMatch({ seed: 1, left: [IL.randomFighter(IL.mulberry32(5), "druid"), IL.randomFighter(IL.mulberry32(6), "bard")], right: [IL.randomFighter(IL.mulberry32(7), "warrior")], leftName: "A", rightName: "B" });
+check("team passives reach every ally and not the foe", pvTeam.units[0].regen >= 3 && pvTeam.units[1].regen >= 3 && pvTeam.units[1].teamDmg === 0.15 && !(pvTeam.units[2].teamDmg) && (pvTeam.units[2].regen || 0) < 3);
+check("every passive has text with a number", Object.keys(IL.CLASSES).every(function (id) { const p = IL.CLASSES[id].passive; return p && /\d/.test(p.blurb || ""); }));
+
 const nameRng = IL.mulberry32(9);
 const madeNames = [];
 for (let i = 0; i < 8; i++) madeNames.push(IL.uniqueName(nameRng, madeNames));

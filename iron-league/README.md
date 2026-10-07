@@ -201,6 +201,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Fixes (v83)
+
+- **New move screen**: after a level-up teaches a move, the "swap it in" slots reused the class names of the level-up loadout strip (38 px boxes), so names and ranks spilled over each other. It now has its own layout: the new move on top, then one full-width row per slot with its icon, name, rank and a Replace button.
+- Level-up screen: the three move icons sit centered in their boxes (an old 12 px padding on the same class left a 12 px content box and pushed each icon down and right). The result screen's **Level up** pill stays on one line.
+- The clip audit now also opens the title, the creator and this screen, opens every fold before checking, and flags text that spills out of the button or framed card around it, icons outside their box, and pill labels that wrap. Run on the v82 styles it reports each of these bugs; on v83 it is clean at all four widths.
+
 ## Progress reset (v82)
 
 Testers had grown far stronger than the game is tuned for, so every save is reset. `WIPE` in `js/game.js` is a save epoch: `persist()` stamps it into the save, and `load()` throws away any save stamped lower and shows a "Fresh start" note on the title. Raise `WIPE` by one to reset everyone again. Friend challenge codes are not saves, so old codes still import.

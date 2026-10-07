@@ -32,6 +32,8 @@ PROBE = r"""
     return rs;
   }
   function visible(el) {
+    const shut = el.closest('details:not([open])');
+    if (shut && !el.closest('summary')) return false;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return false;
     let e = el;
@@ -89,6 +91,26 @@ PROBE = r"""
         a = a.parentElement;
       }
     }
+    // text spilling out of the button or framed card around it (it may
+    // not be clipped, but it lands on whatever sits next to the box)
+    if (!why && cs.position !== 'absolute' && cs.position !== 'fixed') {
+      let a = el.parentElement, inScroll = false;
+      while (a && a !== document.body) {
+        const acs = getComputedStyle(a);
+        if (acs.overflowX === 'auto' || acs.overflowX === 'scroll' || acs.overflowY === 'auto' || acs.overflowY === 'scroll') { inScroll = true; break; }
+        const framed = a.tagName === 'BUTTON' || (parseFloat(acs.borderTopWidth) >= 1 && acs.borderTopStyle !== 'none' && parseFloat(acs.borderLeftWidth) >= 1 && acs.borderLeftStyle !== 'none');
+        if (framed) {
+          const ar = a.getBoundingClientRect();
+          for (const t of trs) {
+            const dx = Math.max(ar.left - t.left, t.right - ar.right), dy = Math.max(ar.top - t.top, t.bottom - ar.bottom);
+            if (dx > 2) { why = 'spills x ' + Math.round(dx) + 'px out of ' + label(a); break; }
+            if (dy > 2) { why = 'spills y ' + Math.round(dy) + 'px out of ' + label(a); break; }
+          }
+          break;
+        }
+        a = a.parentElement;
+      }
+    }
     // a one-line button label with under 10% to spare clips on wider phone fonts (Roboto)
     // (a shrink-to-fit button grows with its label, so only a squeezed one counts)
     if (!why && (el.tagName === 'BUTTON' || el.classList.contains('btn')) && cs.whiteSpace.indexOf('nowrap') >= 0 && trs.length === 1) {
@@ -101,6 +123,32 @@ PROBE = r"""
     // text in a sideways scroller can sit off screen until it is scrolled to
     if (!why && !inX) for (const t of trs) { if (t.right > vw + 1 || t.left < -1) { why = 'off screen x'; break; } }
     if (why) out.push(label(el) + ' "' + text + '": ' + why);
+  }
+  // icons: each pixel icon sits inside the framed box it belongs to
+  for (const ic of root.querySelectorAll('img.pixel-icon, .item-icon:not([hidden])')) {
+    if (!visible(ic)) continue;
+    const r = ic.getBoundingClientRect();
+    let a = ic.parentElement;
+    while (a && a !== document.body) {
+      const acs = getComputedStyle(a);
+      if (acs.overflowX === 'auto' || acs.overflowY === 'auto' || acs.overflowX === 'scroll' || acs.overflowY === 'scroll') break;
+      if (parseFloat(acs.borderTopWidth) >= 1 && acs.borderTopStyle !== 'none' && parseFloat(acs.borderLeftWidth) >= 1 && acs.borderLeftStyle !== 'none') {
+        const ar = a.getBoundingClientRect();
+        const dx = Math.max(ar.left - r.left, r.right - ar.right), dy = Math.max(ar.top - r.top, r.bottom - ar.bottom);
+        if (dx > 1 || dy > 1) out.push('icon in ' + label(a) + ': spills ' + Math.round(Math.max(dx, dy)) + 'px out of its box');
+        break;
+      }
+      a = a.parentElement;
+    }
+  }
+  // a pill or badge label (round ends) wrapping onto two lines
+  for (const el of els) {
+    if (!visible(el)) continue;
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    const rad = parseFloat(cs.borderTopLeftRadius) || 0;
+    if (rad < 10 || rad < r.height / 3) continue;
+    const lines = new Set(textRects(el).map(t => Math.round(t.top)));
+    if (lines.size > 1) out.push(label(el) + ' "' + el.textContent.trim().slice(0, 30) + '": pill label wraps to ' + lines.size + ' lines');
   }
   return [...new Set(out)];
 }
@@ -126,7 +174,7 @@ def seed(page, js):
 
 RICH = """
 raw.tutored = true; raw.gold = 34593; raw.renown = 4690; raw.season = 9;
-raw.roster.forEach((f, i) => { f.level = 18 + i * 3; f.wins = 9; f.losses = 3; f.kos = 14; f.mvps = 2; f.pendingLevels = i === 0 ? 2 : 0; });
+raw.roster.forEach((f, i) => { f.level = 18 + i * 3; f.wins = 9; f.losses = 3; f.kos = 14; f.mvps = 2; f.pendingLevels = i < 2 ? 2 : 0; });
 raw.history = [0,1,2,3,4,5].map(i => ({ mode: 'league', opponent: 'Copper Warden of the Long Name', score: '2–0', win: i % 2 === 0, mvp: 'Labfreak Prime' }));
 raw.marketNews = ['Your scout found a Elementalist.', 'Cass Cinder joined Red Kettle for 222 gold.'];
 raw.offers = [{ id: 'o1', fid: raw.roster[1].id, fname: raw.roster[1].name, club: 'Lowmarket Blades', gold: 1220, season: raw.season, round: raw.round }];
@@ -181,6 +229,21 @@ def states(page):
     page.reload(); page.click("#continue"); page.wait_for_selector("#openGrowth"); page.click("#openGrowth"); page.wait_for_selector("#statChoices"); yield "level up stat", None
     page.locator("[data-stat]").first.click(); page.wait_for_selector("#growthChoices"); yield "level up skill", None
     page.click("#backHub")
+    # the new-move slot screen: level until a skill pick offers a move to learn
+    page.evaluate("() => { const raw = JSON.parse(localStorage.getItem('ironleague.v1')); raw.roster[0].pendingLevels = 12; localStorage.setItem('ironleague.v1', JSON.stringify(raw)); }")
+    page.reload(); page.click("#continue"); page.wait_for_selector("#openGrowth"); page.click("#openGrowth")
+    for _ in range(12):
+        page.wait_for_selector("#statChoices [data-stat], #growthChoices [data-pick], #growthChoices [data-slot], #tabbar")
+        if page.locator("#growthChoices [data-slot]").count() or page.locator("#tabbar").count(): break
+        if page.locator("#statChoices [data-stat]").count(): page.locator("[data-stat]").first.click(); continue
+        learn = page.locator("#growthChoices [data-kind='learn']")
+        (learn if learn.count() else page.locator("#growthChoices [data-pick]")).first.click()
+    if page.locator("#growthChoices [data-slot]").count():
+        yield "new move slots", None
+        page.click("#backHub")
+    else:
+        raise SystemExit("never offered a new move to slot")
+    page.wait_for_selector("#tabbar, #statChoices, #growthChoices", timeout=10000)
     # season end with the Champions Cup pending, then the ceremony
     seed(page, "raw.round = raw.fixtures.length; raw.champs = null; raw.clubs.forEach(c => { c.pts = c.you ? 99 : 0; });")
     yield "champions pending overview", None
@@ -206,13 +269,29 @@ def main():
             # measure with the player's Android font (Roboto), which runs wider
             # than the headless default (Inter); serif falls to DejaVu, wider still
             page.add_init_script(ANDROID_FONT)
-            fresh(page)
-            seed(page, RICH)
             name, seen = "start", 0
             try:
+                # the title and the club creator, before any save exists
+                page.goto(URL, wait_until="domcontentloaded")
+                page.evaluate("() => localStorage.clear()")
+                page.goto(URL, wait_until="domcontentloaded")
+                page.wait_for_selector("#newClub")
+                page.evaluate("() => { const d = document.querySelector('.whats-new'); if (d) d.open = true; }")
+                for name in ("title", "creator"):
+                    if name == "creator": page.click("#newClub"); page.wait_for_selector("#confirm")
+                    page.wait_for_timeout(250)
+                    for hit in page.evaluate(PROBE, None):
+                        findings.setdefault(hit, []).append(f"{w}:{name}")
+                    seen += 1
+                fresh(page)
+                seed(page, RICH)
                 for name, scope in states(page):
                     page.wait_for_timeout(250)
                     hits = page.evaluate(PROBE, scope)
+                    # then again with every fold opened, so folded text is checked too
+                    if page.evaluate("() => { const ds = [...document.querySelectorAll('details:not([open])')]; ds.forEach(d => d.open = true); return ds.length; }"):
+                        page.wait_for_timeout(150)
+                        hits = hits + page.evaluate(PROBE, scope)
                     seen += 1
                     for hit in hits:
                         findings.setdefault(hit, []).append(f"{w}:{name}")

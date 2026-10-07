@@ -5,7 +5,7 @@
   const IL = root.IL = root.IL || {};
 
   /* Bump when an audio file changes so browsers fetch the new one. */
-  const AUDIO_V = 65;
+  const AUDIO_V = 81;
 
   const CUES = {
     hub_loop: { path:"music/hub_loop", cat:"music", vol:0.5, dur:67.219, loop:true },

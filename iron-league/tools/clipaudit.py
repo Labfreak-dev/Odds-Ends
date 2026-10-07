@@ -1,0 +1,230 @@
+"""Clip audit: open every screen, tab, pane and popup at several widths and
+report text that does not fit its box: text past the content box (into a
+button's arrow art), text cut off by an ancestor that clips, and text off
+the screen. Run with the repo served on :8765. Exit 1 on any finding."""
+import json, os, sys
+from playwright.sync_api import sync_playwright
+
+URL = os.environ.get("IL_SMOKE_URL", "http://127.0.0.1:8765/iron-league/")
+SIZES = [(360, 740), (412, 915), (768, 1024), (1280, 800)]
+if os.environ.get("IL_CLIP_WIDTHS"):  # e.g. IL_CLIP_WIDTHS=360,1280 for a quick pass
+    SIZES = [s for s in SIZES if str(s[0]) in os.environ["IL_CLIP_WIDTHS"].split(",")]
+
+PROBE = r"""
+(scope) => {
+  const out = [];
+  const root = scope ? document.querySelector(scope) : document.body;
+  if (!root) return out;
+  const vw = innerWidth, vh = innerHeight;
+  function label(el) {
+    let s = el.tagName.toLowerCase();
+    if (el.id) s += '#' + el.id;
+    else if (el.className && typeof el.className === 'string') s += '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.');
+    return s;
+  }
+  function textRects(el) {
+    const rs = [];
+    for (const n of el.childNodes) {
+      if (n.nodeType !== 3 || !n.nodeValue.trim()) continue;
+      const r = document.createRange(); r.selectNodeContents(n);
+      for (const rr of r.getClientRects()) if (rr.width > 0 && rr.height > 0) rs.push(rr);
+    }
+    return rs;
+  }
+  function visible(el) {
+    const r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return false;
+    let e = el;
+    while (e && e !== document.body) {
+      const cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return false;
+      e = e.parentElement;
+    }
+    return true;
+  }
+  const els = root.querySelectorAll('button, a, .chip, .ctl, h1, h2, h3, h4, p, td, th, li, label, b, strong, em, small, span, dt, dd, summary, .tab');
+  for (const el of els) {
+    if (!visible(el)) continue;
+    if (el.closest('canvas, svg')) continue;
+    const own = [...el.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim());
+    if (!own) continue;
+    const text = el.textContent.trim().replace(/\s+/g, ' ').slice(0, 40);
+    if (!text) continue;
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    const bl = parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
+    const br = parseFloat(cs.borderRightWidth) + parseFloat(cs.paddingRight);
+    const bt = parseFloat(cs.borderTopWidth);
+    const bb = parseFloat(cs.borderBottomWidth);
+    const box = { l: r.left + bl - 1, r: r.right - br + 1, t: r.top + bt - 1, b: r.bottom - bb + 1 };
+    const trs = textRects(el).filter(t => el.contains(document.elementFromPoint(Math.min(vw - 1, Math.max(0, t.left + 1)), Math.min(vh - 1, Math.max(0, t.top + t.height / 2)))) || true);
+    let why = '';
+    // ellipsis or hidden overflow on the element itself
+    if ((cs.overflowX !== 'visible' || cs.textOverflow === 'ellipsis') && el.scrollWidth > el.clientWidth + 1 && cs.whiteSpace.indexOf('nowrap') >= 0) why = 'cut (scroll ' + el.scrollWidth + ' > ' + el.clientWidth + ')';
+    // own text past the content box (border-image arrows count as border)
+    if (!why) for (const t of trs) {
+      if (!el.contains(document.elementFromPoint(Math.min(vw - 1, Math.max(0, t.left + t.width / 2)), Math.min(vh - 1, Math.max(0, t.top + t.height / 2))))) continue;
+      if (t.left < box.l - 1 || t.right > box.r + 1) { why = 'past box x ' + Math.round(Math.max(box.l - t.left, t.right - box.r)) + 'px'; break; }
+      if (cs.borderImageSource && cs.borderImageSource !== 'none' && (t.top < box.t - 1 || t.bottom > box.b + 1)) { why = 'past box y'; break; }
+    }
+    // cut by a clipping ancestor; once inside a scroller on an axis, text
+    // beyond its edge is just scrolled out of view, not clipped
+    let inX = false, inY = false;
+    if (!why) {
+      let a = el.parentElement;
+      while (a && a !== document.body) {
+        const acs = getComputedStyle(a);
+        const scrollsX = (acs.overflowX === 'auto' || acs.overflowX === 'scroll') && a.scrollWidth > a.clientWidth + 1;
+        const scrollsY = (acs.overflowY === 'auto' || acs.overflowY === 'scroll') && a.scrollHeight > a.clientHeight + 1;
+        if (acs.overflowX !== 'visible' || acs.overflowY !== 'visible') {
+          const ar = a.getBoundingClientRect();
+          for (const t of trs) {
+            if (!scrollsX && !inX && (t.left < ar.left - 1 || t.right > ar.right + 1)) { why = 'clipped x by ' + label(a); break; }
+            if (!scrollsY && !inY && (t.top < ar.top - 1 || t.bottom > ar.bottom + 1) && t.bottom > ar.top && t.top < ar.bottom) { why = 'clipped y by ' + label(a); break; }
+          }
+          if (why) break;
+        }
+        if (scrollsX) inX = true;
+        if (scrollsY) inY = true;
+        a = a.parentElement;
+      }
+    }
+    // a one-line button label with under 10% to spare clips on wider phone fonts (Roboto)
+    // (a shrink-to-fit button grows with its label, so only a squeezed one counts)
+    if (!why && (el.tagName === 'BUTTON' || el.classList.contains('btn')) && cs.whiteSpace.indexOf('nowrap') >= 0 && trs.length === 1) {
+      const tw = trs[0].width, had = el.style.width, now = el.getBoundingClientRect().width;
+      el.style.width = 'max-content';
+      const natural = el.getBoundingClientRect().width;
+      el.style.width = had;
+      if (natural > now + 1 && tw * 1.1 > box.r - box.l) why = 'tight label (' + Math.round(tw) + 'px in ' + Math.round(box.r - box.l) + ')';
+    }
+    // text in a sideways scroller can sit off screen until it is scrolled to
+    if (!why && !inX) for (const t of trs) { if (t.right > vw + 1 || t.left < -1) { why = 'off screen x'; break; } }
+    if (why) out.push(label(el) + ' "' + text + '": ' + why);
+  }
+  return [...new Set(out)];
+}
+"""
+
+def fresh(page, cls="warrior"):
+    page.goto(URL, wait_until="domcontentloaded")
+    page.evaluate("() => localStorage.clear()")
+    page.goto(URL, wait_until="domcontentloaded")
+    page.wait_for_selector("#newClub")
+    page.click("#newClub")
+    page.fill("#clubName", "Labfreak Company Long")
+    page.fill("#fighterName", "Labfreak Prime")
+    page.click('[data-class="' + cls + '"]')
+    page.click("#confirm")
+    page.wait_for_selector("#nextMatch", timeout=30000)
+
+def seed(page, js):
+    page.evaluate("(src) => { const raw = JSON.parse(localStorage.getItem('ironleague.v1')); (new Function('raw', src))(raw); localStorage.setItem('ironleague.v1', JSON.stringify(raw)); }", js)
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.wait_for_selector("#tabbar")
+
+RICH = """
+raw.tutored = true; raw.gold = 34593; raw.renown = 4690; raw.season = 9;
+raw.roster.forEach((f, i) => { f.level = 18 + i * 3; f.wins = 9; f.losses = 3; f.kos = 14; f.mvps = 2; f.pendingLevels = i === 0 ? 2 : 0; });
+raw.history = [0,1,2,3,4,5].map(i => ({ mode: 'league', opponent: 'Copper Warden of the Long Name', score: '2–0', win: i % 2 === 0, mvp: 'Labfreak Prime' }));
+raw.marketNews = ['Your scout found a Elementalist.', 'Cass Cinder joined Red Kettle for 222 gold.'];
+raw.offers = [{ id: 'o1', fid: raw.roster[1].id, fname: raw.roster[1].name, club: 'Lowmarket Blades', gold: 1220, season: raw.season, round: raw.round }];
+"""
+
+def states(page):
+    """Yield (name, scope) after driving the page into each state."""
+    k = page.keyboard
+    yield "hub overview", None
+    k.press("2"); yield "matches league", None
+    page.click("[data-pane='matches:cups']"); yield "matches cups", None
+    if page.locator("#enterCup").count() and page.locator("#enterCup:not([disabled])").count():
+        page.click("#enterCup"); yield "matches cups bracket", None
+    page.click("[data-pane='matches:history']"); yield "matches history", None
+    k.press("3"); yield "roster first team", None
+    page.click("[data-pane='roster:gear']"); yield "roster gear", None
+    page.click("[data-pane='roster:relics']"); yield "roster relics", None
+    k.press("4"); yield "club home", None
+    page.locator("[data-pane='club:events']").first.click(); yield "club events week", None
+    for pane in ("endless", "daily", "friend"):
+        page.click("[data-filter-kind='events'][data-filter='" + pane + "']"); yield "club events " + pane, None
+    k.press("4"); page.locator("[data-pane^='club:train']").first.click(); yield "club train", None
+    for pane in ("specs", "tasks", "facilities"):
+        page.click("[data-filter-kind='train'][data-filter='" + pane + "']"); yield "club train " + pane, None
+    k.press("5"); yield "market fighters", None
+    for pane in ("relics", "gear", "deals", "sell"):
+        page.click("[data-filter-kind='market'][data-filter='" + pane + "']"); yield "market " + pane, None
+    k.press("6"); yield "intel stats", None
+    page.click("[data-pane='intel:rosters']"); yield "intel rosters", None
+    page.click("[data-pane='intel:archive']"); yield "intel archive classes", None
+    for pane in ("clubs", "champions", "relics", "systems"):
+        page.click("[data-archive='" + pane + "']"); yield "intel archive " + pane, None
+    page.click("[data-archive='classes']"); page.locator("[data-codex]").first.click(); page.wait_for_selector("#codexSheet"); yield "codex sheet", "#codexSheet"
+    page.click("#codexClose")
+    page.click("[data-pane='intel:goals']"); yield "intel goals", None
+    k.press("1")
+    page.click("#dockInbox"); page.wait_for_selector("#inboxSheet"); yield "events inbox", "#inboxSheet"
+    page.click("#inboxClose")
+    page.click("#settings"); page.wait_for_selector("#settingsSheet"); yield "settings", "#settingsSheet"
+    page.click("#credits"); page.wait_for_selector("#creditsSheet"); yield "credits", "#creditsSheet"
+    page.click("#creditsClose")
+    page.click("#clubIdentity"); page.wait_for_selector("#identitySheet"); yield "identity", "#identitySheet"
+    page.click("#identityClose")
+    k.press("3"); page.locator("[data-detail]").first.click(); page.wait_for_selector("#fighterSheet"); yield "fighter sheet", "#fighterSheet"
+    page.click("#sheetClose")
+    k.press("1"); page.click("#dockFight"); page.wait_for_selector("#fightMenu"); yield "fight menu", "#fightMenu"
+    page.click("#fightGo"); page.wait_for_selector("#versus"); yield "versus", None
+    page.click("#confirmFight"); page.wait_for_selector("#arena"); page.wait_for_timeout(1200); yield "fight hud", None
+    page.evaluate("() => IL.finishNow()"); page.wait_for_selector("#backHub", timeout=15000); page.wait_for_timeout(600); yield "results", "#result"
+    page.click("#backHub"); page.wait_for_selector("#tabbar, #statChoices, #growthChoices", timeout=10000)
+    page.evaluate("() => { const raw = JSON.parse(localStorage.getItem('ironleague.v1')); raw.roster[0].pendingLevels = 2; localStorage.setItem('ironleague.v1', JSON.stringify(raw)); }")
+    page.reload(); page.click("#continue"); page.wait_for_selector("#openGrowth"); page.click("#openGrowth"); page.wait_for_selector("#statChoices"); yield "level up stat", None
+    page.locator("[data-stat]").first.click(); page.wait_for_selector("#growthChoices"); yield "level up skill", None
+    page.click("#backHub")
+    # season end with the Champions Cup pending, then the ceremony
+    seed(page, "raw.round = raw.fixtures.length; raw.champs = null; raw.clubs.forEach(c => { c.pts = c.you ? 99 : 0; });")
+    yield "champions pending overview", None
+    k.press("2"); page.click("[data-pane='matches:cups']"); yield "champions cups pane", None
+    seed(page, "raw.round = raw.fixtures.length; raw.champs = { kind: 'champions', season: raw.season, champion: 'c0', slots: [], pairing: [], winners: [], round: 1 };")
+    yield "season closed overview", None
+    page.click("#openSeason"); page.wait_for_selector("#seasonEnd"); yield "season ceremony", None
+
+ANDROID_FONT = """
+addEventListener('DOMContentLoaded', () => {
+  const st = document.createElement('style');
+  st.textContent = ':root{--ui: Roboto, sans-serif !important}';
+  document.head.appendChild(st);
+});
+"""
+
+def main():
+    findings = {}
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        for w, h in SIZES:
+            page = b.new_page(viewport={"width": w, "height": h})
+            # measure with the player's Android font (Roboto), which runs wider
+            # than the headless default (Inter); serif falls to DejaVu, wider still
+            page.add_init_script(ANDROID_FONT)
+            fresh(page)
+            seed(page, RICH)
+            name, seen = "start", 0
+            try:
+                for name, scope in states(page):
+                    page.wait_for_timeout(250)
+                    hits = page.evaluate(PROBE, scope)
+                    seen += 1
+                    for hit in hits:
+                        findings.setdefault(hit, []).append(f"{w}:{name}")
+            except Exception as e:
+                findings.setdefault("DRIVER after " + name + ": " + str(e)[:400].replace("\n", " | "), []).append(str(w))
+            print(f"{w}x{h}: {seen} screens checked", flush=True)
+            page.close()
+        b.close()
+    for hit, where in sorted(findings.items()):
+        print(hit, "  @", ", ".join(sorted(set(where)))[:220])
+    print(len(findings), "findings")
+    return 1 if findings else 0
+
+if __name__ == "__main__":
+    sys.exit(main())

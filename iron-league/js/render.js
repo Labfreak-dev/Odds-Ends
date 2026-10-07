@@ -109,7 +109,9 @@
       portrait: portrait,
       spriteScale: spriteScale,
       ox: Math.round((view.cssW - drawW) / 2),
-      oy: Math.round((view.cssH - drawH) / 2),
+      /* v81: on a turned phone floor a fighter at the top wall stands with
+         its head and health bar above the floor; keep room for them. */
+      oy: portrait ? Math.round(Math.min(view.cssH - drawH, Math.max((view.cssH - drawH) / 2, 36 * spriteScale / 1.5 + 18))) : Math.round((view.cssH - drawH) / 2),
       drawW: drawW,
       drawH: drawH
     };

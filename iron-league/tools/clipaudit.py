@@ -68,6 +68,9 @@ PROBE = r"""
       if (!el.contains(document.elementFromPoint(Math.min(vw - 1, Math.max(0, t.left + t.width / 2)), Math.min(vh - 1, Math.max(0, t.top + t.height / 2))))) continue;
       if (t.left < box.l - 1 || t.right > box.r + 1) { why = 'past box x ' + Math.round(Math.max(box.l - t.left, t.right - box.r)) + 'px'; break; }
       if (cs.borderImageSource && cs.borderImageSource !== 'none' && (t.top < box.t - 1 || t.bottom > box.b + 1)) { why = 'past box y'; break; }
+      // a filled label (pill, tag, chip): text below or above its own fill
+      const filled = cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent';
+      if (filled && cs.overflowY === 'visible' && (t.top < r.top - 1 || t.bottom > r.bottom + 1)) { why = 'past its fill y ' + Math.round(Math.max(r.top - t.top, t.bottom - r.bottom)) + 'px'; break; }
     }
     // cut by a clipping ancestor; once inside a scroller on an axis, text
     // beyond its edge is just scrolled out of view, not clipped

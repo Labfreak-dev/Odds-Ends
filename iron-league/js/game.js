@@ -310,6 +310,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Clear move text: every skill, upgrade and passive now says exactly what it does, with real damage, durations and cooldowns.",
     "Fairer early seasons: a young club meets rivals one level either way. The swing widens with the club, up to six each way at level 24.",
     "Six new moves for every class, 162 in all: learn them on level up and swap them into a slot. Every kit now has fourteen.",
     "Levels run to 100. Rival clubs keep pace, from six under your level to six over, and level up with you through the season. Maxed moves and passives rank up, then Hone adds stats.",
@@ -921,6 +922,110 @@
     return ABILITY_COPY[id] || "A trick of this kit.";
   }
 
+  /* v87: what a move does, in plain numbers, read from the arena rules
+     (arena.js fireOne and its helpers). f is optional: with a fighter the
+     damage shows as their ATK value too, with their rank and Heavy upgrade. */
+  function moveFacts(ab, f, cls) {
+    if (!ab) return "";
+    const kit = f ? (IL.CLASSES[f.cls] || IL.CLASSES.warrior) : null;
+    const st = f && IL.scaledStats ? IL.scaledStats(f, kit) : null;
+    let mul = 1;
+    if (f) {
+      const r = IL.rankOf ? IL.rankOf(f, ab.id) : 1;
+      if (r > 1) mul *= 1 + (IL.RANK_POW || 0.08) * (r - 1);
+      const sp = f.specs && f.specs[ab.id];
+      if (sp && sp.mod === "heavy" && IL.modValue) mul *= 1 + IL.modValue("heavy", sp.tier) / 100;
+    }
+    function dmg(x) {
+      const p = Math.round(x * mul * 100);
+      return p + "% ATK" + (st ? " (" + Math.max(1, Math.round(st.atk * x * mul)) + ")" : "");
+    }
+    function pct(x) { return Math.round(x * 100) + "%"; }
+    function sec(x) { return (Math.round(x * 10) / 10) + "s"; }
+    const wk = (IL.CLASS_WEAPON && IL.CLASS_WEAPON[(f && f.cls) || cls]) || "";
+    const arrows = wk === "bow" || wk === "crossbow" ? "arrows" : "shots";
+    const arrow = arrows === "arrows" ? "arrow" : "shot";
+    const k = ab.kind;
+    if (k === "cleave") return "Next swing hits the target for " + dmg(1.12) + " and every other enemy in reach for " + dmg(0.55) + ".";
+    if (k === "lunge") return "Next hit is a sure critical: " + dmg(1.06 * 1.55) + ".";
+    if (k === "multishot") return "Fires 3 " + arrows + " in a fan, " + dmg(0.72) + " each.";
+    if (k === "pierce") return "Fires one " + arrow + " for " + dmg(1) + " that goes through one extra enemy.";
+    if (k === "taunt") return "For 3.2s, enemies attack this fighter first.";
+    if (k === "zone") return "Deals " + dmg(0.35) + " to enemies close by and guards for 0.8s: hits taken in that time do 32% damage.";
+    if (k === "nova") return "A blast at the target: " + dmg(ab.power || 0.9) + " to every enemy in the area" + (ab.slow ? ", and they move 38% slower for " + sec(ab.slow) : "") + ".";
+    if (k === "bolt") return "Fires a bolt: " + dmg(ab.power || 0.9) + " to the first enemy it hits.";
+    if (k === "frost") return "A frost blast at the target: " + dmg(1.15) + " to every enemy in the area, and they move 38% slower for 2.1s.";
+    if (k === "fireball") return "Fires a fireball: " + dmg(1.15) + " to the first enemy hit, and it goes through one more.";
+    if (k === "arc") return "Arcs at the target: " + dmg(0.95) + " to every enemy in the area.";
+    if (k === "dot") {
+      const t = ab.dot || 3.2;
+      const ticks = Math.max(1, Math.floor(t / 0.85));
+      return "Hits for " + dmg(0.35) + ", then deals " + dmg(ab.power || 0.25) + " every 0.85s for " + sec(t) + " (" + ticks + " ticks).";
+    }
+    if (k === "shield") {
+      const amt = st && ab.self ? " (" + Math.round(st.hp * (ab.power || 0.1)) + ")" : "";
+      return ab.self ? "A shield on this fighter that absorbs " + pct(ab.power || 0.1) + " of their max HP" + amt + "."
+        : "A shield on the most wounded ally that absorbs " + pct(ab.power || 0.1) + " of that ally's max HP.";
+    }
+    if (k === "buff") return (ab.team ? "Every ally deals " : "This fighter deals ") + pct(ab.power || 0.12) + " more damage for " + sec(ab.time || 3.5) + ".";
+    if (k === "debuff") return "The target moves 38% slower for " + sec(ab.time || 2.2) + ".";
+    if (k === "stun") return "Deals " + dmg(ab.power || 0.4) + " and stuns the target for " + sec(ab.stun || 0.55) + ".";
+    if (k === "knock") return "Deals " + dmg(ab.power || 0.35) + " and knocks the target back.";
+    if (k === "charge") return "Dashes at the target and hits the first enemy in the way for " + dmg(0.55 * 1.7) + ".";
+    if (k === "shadowstep") return "Teleports behind the target, hits for " + dmg(0.55 * 0.35) + ", and the next hit is a sure critical (×1.55).";
+    if (k === "skirmish") return "Dashes past the target and hits the first enemy in the way for " + dmg(0.55 * 0.45) + ".";
+    if (k === "heal") return "Heals the most wounded ally for " + pct(ab.power || 0.16) + " of their max HP plus " + dmg(0.25) + ".";
+    if (k === "mend") return "Channels for 0.6s, then heals the most wounded ally for 20% of their max HP plus " + dmg(0.35) + ".";
+    if (k === "rage") return "Only below 72% HP: for 4s, deals 28% more damage and moves 8% faster.";
+    if (k === "summon") return "Summons a " + (ab.pet || "Familiar") + " for " + sec(ab.life || 6) + " with " + pct(ab.petHp || 0.26) + " of this fighter's max HP and " + pct(ab.petAtk || 0.4) + " of their ATK. One at a time.";
+    if (k === "vial") return "Throws a flask: " + dmg(ab.power || 0.85) + " to the first enemy it hits.";
+    return ab.blurb || abilityBlurb(ab.id);
+  }
+
+  /* The real cooldown in a fight: the listed one × PACE (1.2), less ranks
+     and a Swift upgrade. */
+  function realCd(ab, f) {
+    if (!ab || !ab.cd) return 0;
+    let cd = ab.cd * ((IL.PACE && IL.PACE.abilityCd) || 1);
+    if (f) {
+      const r = IL.rankOf ? IL.rankOf(f, ab.id) : 1;
+      if (r > 1) cd *= Math.max(0.5, 1 - (IL.RANK_CD || 0.06) * (r - 1));
+      const sp = f.specs && f.specs[ab.id];
+      if (sp && sp.mod === "swift" && IL.modValue) cd *= 1 - IL.modValue("swift", sp.tier) / 100;
+    }
+    return Math.round(cd * 10) / 10;
+  }
+
+  function modFacts(mod, tier, ab, f) {
+    const v = IL.modValue(mod, tier);
+    const name = ab ? ab.name : "The move";
+    if (mod === "swift") {
+      const now = realCd(ab, f && Object.assign({}, f, { specs: {} }));
+      return name + "'s cooldown is " + v + "% shorter" + (now ? " (" + now + "s → " + (Math.round(now * (1 - v / 100) * 10) / 10) + "s)" : "") + ".";
+    }
+    if (mod === "heavy") return name + " deals " + v + "% more damage.";
+    if (mod === "vampiric") return name + " heals this fighter for " + v + "% of the damage it deals.";
+    if (mod === "chilling") return "Every enemy " + name + " hits moves 38% slower for " + v + "s.";
+    if (mod === "searing") return "Every hit from " + name + " burns for another " + v + "% of its damage over 3s.";
+    if (mod === "sundering") return "Every enemy " + name + " hits takes " + v + "% more damage from everyone for 3s.";
+    return "";
+  }
+
+  function talentFacts(id, tier) {
+    const v = IL.talentValue(id, tier);
+    if (id === "keen") return "+" + v + "% chance to land a critical hit (×1.55 damage).";
+    if (id === "ironhide") return "+" + v + " defense: every hit taken does " + (Math.round(v * 0.35 * 100) / 100) + " less damage.";
+    if (id === "vigor") return "Regains " + v + " HP every second in a fight.";
+    if (id === "thorns") return "Melee attackers take back " + v + "% of the damage they deal to this fighter.";
+    if (id === "bloodlust") return "Heals " + v + "% of max HP on every knockout.";
+    if (id === "fleet") return "+" + v + "% movement speed.";
+    const t = IL.TALENTS[id];
+    return t ? "+" + v + t.unit + "." : "";
+  }
+
+  IL.moveFacts = moveFacts;
+  IL.realCd = realCd;
+
   function cdText(ab) {
     if (!ab || !ab.cd) return "With each cast";
     const n = Math.round(ab.cd * 10) / 10;
@@ -943,21 +1048,21 @@
     return '<div class="stat"><span class="stat-label">' + glyph + label + '</span><b>' + shown + '</b><div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>';
   }
 
-  function moveMeta(ab, level, learned) {
+  function moveMeta(ab, level, learned, f) {
     const learnedMove = learned && learned.indexOf(ab.id) >= 0;
     const unlock = ab.unlock || 1;
     const locked = !learnedMove && unlock > (level || 1) && unlock <= 7;
     const tags = (ab.tags || []).join(" · ");
     const row = ab.row ? ab.row.charAt(0).toUpperCase() + ab.row.slice(1) : "";
-    const when = locked ? ("Level " + unlock) : cdText(ab);
+    const when = locked ? ("Level " + unlock) : (ab.cd ? "Cooldown " + realCd(ab, f) + "s" : cdText(ab));
     return { locked: locked, line: [when, row, tags].filter(Boolean).join(" · "), tags: ab.tags || [], row: row };
   }
 
-  function abilityItem(ab, level, learned) {
+  function abilityItem(ab, level, learned, f) {
     const frame = IL.abilityIcon ? IL.abilityIcon(ab.id) : "";
     const icon = frame ? iconTag(frame, 32) : "";
-    const meta = moveMeta(ab, level, learned);
-    const blurb = ab.blurb || abilityBlurb(ab.id);
+    const meta = moveMeta(ab, level, learned, f);
+    const blurb = moveFacts(ab, f);
     const tags = meta.tags.map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("");
     return '<li' + (meta.locked ? ' class="locked"' : '') + '>' + icon + '<strong>' + esc(ab.name) + '</strong><span>' + esc(meta.line) + '</span><p>' + tags + (meta.row ? ' <span class="row-name">' + esc(meta.row) + '</span>' : '') + '</p><p>' + esc(blurb) + '</p></li>';
   }
@@ -1550,19 +1655,19 @@
       const ab = byAb[id];
       if (!ab) return "";
       const rk = IL.rankOf ? IL.rankOf(f, id) : 1;
-      return '<div class="loadout-slot' + (loadoutSlot === i ? " on" : "") + '" data-slot="' + i + '">' + (rk > 1 ? '<em class="rank-pip">' + roman(rk) + '</em>' : '') + '<ul class="abilities">' + abilityItem(ab, f.level || 1, f.learned) + '</ul></div>';
+      return '<div class="loadout-slot' + (loadoutSlot === i ? " on" : "") + '" data-slot="' + i + '">' + (rk > 1 ? '<em class="rank-pip">' + roman(rk) + '</em>' : '') + '<ul class="abilities">' + abilityItem(ab, f.level || 1, f.learned, f) + '</ul></div>';
     }).join("");
     const picks = (f.known || []).map(function (id) {
       const ab = byAb[id];
       if (!ab) return "";
       const on = (f.loadout || []).indexOf(id) >= 0;
-      const meta = moveMeta(ab, f.level || 1, f.learned);
+      const meta = moveMeta(ab, f.level || 1, f.learned, f);
       const rk = IL.rankOf ? IL.rankOf(f, id) : 1;
       return '<button type="button" class="chip' + (on ? " on" : "") + '" data-fill="' + esc(id) + '"><b>' + esc(ab.name) + (rk > 1 ? ' ' + roman(rk) : '') + '</b><small>' + esc(meta.line) + '</small></button>';
     }).join("");
     const unlearned = (kit.abilities || []).filter(function (ab) {
       return ab && (f.known || []).indexOf(ab.id) < 0;
-    }).map(function (ab) { return abilityItem(ab, 1, []); }).join("");
+    }).map(function (ab) { return abilityItem(ab, 1, [], f); }).join("");
     const tomes = (save.items || []).filter(function (it) { return it && IL.itemSlot(it) === "tome"; });
     const tomeList = tomes.length
       ? '<h3 class="section">Tomes</h3><ul class="abilities">' + tomes.map(function (it) {
@@ -2825,7 +2930,7 @@
             (kit.passive ? '<p class="fine"><b>Passive · ' + esc(kit.passive.name || "") + ':</b> ' + esc(kit.passive.blurb || abilityBlurb(kit.passive.id)) + '</p>' : '') +
           '</section>' +
           '<section class="es-card"><h3 class="section">Ability pool</h3><ul class="codex-pool">' + pool.map(function (ab) {
-            return '<li>' + (IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "") + '<span><b>' + esc(ab.name) + '</b><small>' + esc((IL.categoryOf ? IL.categoryOf({ kind: "learn", id: ab.id }) : "") + (ab.cd ? " · " + ab.cd + "s" : "") + (ab.ult ? " · Ultimate" : "")) + '</small><em>' + esc(ab.blurb || abilityBlurb(ab.id)) + '</em></span></li>';
+            return '<li>' + (IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "") + '<span><b>' + esc(ab.name) + '</b><small>' + esc((IL.categoryOf ? IL.categoryOf({ kind: "learn", id: ab.id }) : "") + (ab.cd ? " · " + realCd(ab) + "s cooldown" : "") + (ab.ult ? " · Ultimate" : "")) + '</small><em>' + esc(moveFacts(ab, null, kit.id)) + '</em></span></li>';
           }).join("") + '</ul></section>' +
         '</div>' +
       '</aside>';
@@ -5295,7 +5400,7 @@
 
   const CATEGORY_TONE = {
     "AoE": "aoe", "Defense": "def", "Taunt": "def", "Buff": "buff", "Heal": "heal", "Mobility": "mob",
-    "Damage": "dmg", "Control": "ctl", "Stun": "ctl", "Push": "ctl", "Damage/Over time": "dot",
+    "Damage": "dmg", "Control": "ctl", "Stun": "ctl", "Push": "ctl", "Over time": "dot",
     "Summon": "sum", "Passive": "pas", "Upgrade": "upg", "Training": "upg", "Utility": "uti"
   };
 
@@ -5314,30 +5419,26 @@
       const c = STAT_CARD[card.id];
       const gain = statGain(f, card.id, card.pts);
       return wrap(statIcon(card.id), "Hone " + c.name,
-        '<p class="lv-desc"><b class="up">+' + gain + '</b> ' + esc(c.name) + ' on top of the stat pick.</p><p class="lv-desc dim">Training for a fighter who has every move and upgrade.</p>');
+        '<p class="lv-desc"><b class="up">+' + gain + '</b> ' + esc(c.name) + ', permanently, on top of the stat pick.</p><p class="lv-desc dim">Offered once every move, upgrade and passive is taken.</p>');
     }
     if (card.kind === "talent") {
       const t = IL.TALENTS[card.id];
-      const v = IL.talentValue(card.id, card.tier);
       const glyph = { keen: "◎", ironhide: "⛨", vigor: "✚", thorns: "✶", bloodlust: "♥", fleet: "»" }[card.id] || "✦";
       return wrap('<span class="lv-glyph">' + glyph + '</span>', t.name + (card.up ? " · rank up" : ""),
-        '<p class="lv-desc">' + (card.up ? 'Now ' : '') + '<b class="up">+' + v + '</b>' + esc(t.unit) + '.</p><p class="lv-desc dim">' + (card.up ? 'Raises the passive this fighter already has.' : 'Always on, for the rest of this fighter\'s career.') + '</p>');
+        '<p class="lv-desc">' + esc(talentFacts(card.id, card.tier)) + '</p><p class="lv-desc dim">' + (card.up ? 'Replaces the weaker version this fighter has.' : 'Permanent, in every fight.') + '</p>');
     }
     const ab = IL.abilityById(card.id);
     if (!ab) return "";
     const icon = IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 64) : "";
-    const blurb = ab.blurb || abilityBlurb(ab.id);
-    const cd = ab.cd ? (Math.round(ab.cd * 10) / 10) + "s" : "";
     if (card.kind === "spec") {
       const m = IL.MODS[card.mod];
-      const v = IL.modValue(card.mod, card.tier);
       return wrap(icon + '<em class="spec-pip">' + esc(m.name.charAt(0)) + '</em>', m.name + " " + ab.name + (card.up ? " · rank up" : ""),
-        '<p class="lv-desc">' + esc(ab.name) + ' gains <b class="up">' + (card.mod === "chilling" ? v : "+" + v) + '</b>' + esc(m.unit) + '.</p>' +
-        '<p class="lv-desc dim">' + (card.up ? 'Ranks up the upgrade it has.' : 'One upgrade per move, ranked up later.') + (cd ? ' Cooldown ' + cd + '.' : '') + '</p>');
+        '<p class="lv-desc">' + esc(modFacts(card.mod, card.tier, ab, f)) + '</p>' +
+        '<p class="lv-desc dim">' + (card.up ? 'Raises the upgrade ' + esc(ab.name) + ' already has.' : 'A move holds one upgrade; it can be raised later.') + (ab.cd && card.mod !== "swift" ? ' Cooldown ' + realCd(ab, f) + 's.' : '') + '</p>');
     }
     return wrap(icon, ab.name,
-      '<p class="lv-desc">' + esc(blurb) + '</p>' +
-      '<p class="lv-desc dim">' + (ab.ult ? 'Ultimate. ' : '') + (cd ? 'Cooldown ' + cd + '. ' : '') + (f.loadout.length < 3 ? 'Goes into an open slot.' : 'Swap it into a slot after.') + '</p>');
+      '<p class="lv-desc">' + esc(moveFacts(ab, f)) + '</p>' +
+      '<p class="lv-desc dim">' + (ab.ult ? 'Ultimate. ' : '') + (ab.cd ? 'Cooldown ' + realCd(ab, f) + 's. ' : '') + (f.loadout.length < 3 ? 'Goes into an open slot.' : 'You can swap it into a slot next.') + '</p>');
   }
 
   function growthHeader(f, kit, waiting) {
@@ -5468,7 +5569,7 @@
           '<h2>' + esc(f.name) + ' learned ' + esc(ab.name) + '</h2>' +
           '<p class="fine">Put it in a slot now, or keep the loadout. The sheet can swap it any time.</p></div></header>' +
         '<div class="lv-equip-new">' + (IL.abilityIcon ? '<span class="lv-equip-icon">' + iconTag(IL.abilityIcon(ab.id), 40) + '</span>' : '') +
-          '<span class="lv-equip-text"><span class="lv-equip-tag">New</span><b>' + esc(ab.name) + '</b>' + (ab.blurb ? '<span class="fine">' + esc(ab.blurb) + '</span>' : '') + '</span></div>' +
+          '<span class="lv-equip-text"><span class="lv-equip-tag">New</span><b>' + esc(ab.name) + '</b>' + '<span class="fine">' + esc(moveFacts(ab, f)) + (ab.cd ? ' Cooldown ' + realCd(ab, f) + 's.' : '') + '</span>' + '</span></div>' +
         '<h3 class="lv-equip-ask">Swap it in for</h3>' +
         '<div class="lv-equip" id="growthChoices">' + slots + '</div>' +
         '<footer class="lv-foot"><button type="button" class="lv-later" id="backHub">Keep the loadout</button></footer>' +
@@ -5973,7 +6074,7 @@
       '<p class="pilot-who"><span>Steering</span><b>' + esc(u.name) + '</b></p>' +
       '<div class="pilot-keys">' +
         abs.slice(0, 3).map(function (ab, i) {
-          return '<button type="button" class="pilot-ab' + (ab.ult ? " ult" : "") + '" data-pilot-ab="' + i + '" title="' + esc(ab.name + (ab.blurb ? " — " + ab.blurb : "")) + '">' +
+          return '<button type="button" class="pilot-ab' + (ab.ult ? " ult" : "") + '" data-pilot-ab="' + i + '" title="' + esc(ab.name + " — " + moveFacts(ab, null, u && u.cls)) + '">' +
             (IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "") +
             '<span class="pilot-name">' + esc(ab.name) + '</span><kbd>' + keys[i] + '</kbd><i class="pilot-cd"></i></button>';
         }).join("") +

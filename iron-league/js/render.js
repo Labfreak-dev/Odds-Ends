@@ -801,6 +801,13 @@
     paintStands(g, pit, rng, X0, Y0, X1, Y1);
     paintWalls(g, pit, rng);
     paintFloor(g, pit, rng);
+    /* v69: wash the floor toward its base color so cracks and rings read
+       as texture, not as attacks, and fighters stand out. */
+    g.save();
+    g.globalAlpha = 0.36;
+    g.fillStyle = pit.floor;
+    g.fillRect(FLOOR.l, FLOOR.t, FLOOR.r - FLOOR.l, FLOOR.b - FLOOR.t);
+    g.restore();
     const art = { canvas: c };
     Object.keys(artCache).forEach(function (old) { delete artCache[old]; });
     artCache[key] = art;
@@ -980,6 +987,31 @@
   function drawCast(ctx, u, fx) {
     if (!u.cast || !IL.pfx) return;
     IL.pfx.drawTelegraph(ctx, u, fx, u.team === 0 ? "130,210,255" : "255,92,70");
+  }
+
+  /* v69 wind-up: a glint gathers on the weapon before the swing lands,
+     so every hit has a beat of warning, as in Eslabong. */
+  function drawWindup(ctx, u, gy, cam, fx) {
+    const p = Math.min(1, (u.animT || 0) / 0.22);
+    const f = u.facing || 1;
+    const ox = f * 9;
+    const oy = -20;
+    const wx = cam.portrait ? u.x + oy : u.x + ox;
+    const wy = cam.portrait ? gy + ox : gy + oy;
+    const r = 1.5 + p * 3.5;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = "rgba(255,250,230," + (0.35 + 0.6 * p) + ")";
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4 + (fx.t || 0) * 3;
+      const rr = i % 2 ? r * 0.28 : r;
+      if (i === 0) ctx.moveTo(wx + Math.cos(a) * rr, wy + Math.sin(a) * rr);
+      else ctx.lineTo(wx + Math.cos(a) * rr, wy + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawBlock(ctx, u, fx) {
@@ -1167,20 +1199,49 @@
     ctx.closePath();
   }
 
+  /* Ability icons for the overhead pop (Eslabong shows the move's icon
+     over the caster's head instead of its name). */
+  const abilityImgs = {};
+  function abilityImg(id) {
+    if (!id || typeof Image === "undefined" || !IL.abilityIcon) return null;
+    if (abilityImgs[id] !== undefined) return abilityImgs[id];
+    const src = IL.abilityIcon(id);
+    if (!src) { abilityImgs[id] = null; return null; }
+    const img = new Image();
+    img.src = src;
+    abilityImgs[id] = img;
+    return img;
+  }
+
+  /* v69 overheads: one bar per fighter, no level badge (Info has levels).
+     Bars that would overlap in a clump step up a row. Status effects are
+     small glyphs to the right; a fresh ability shows its icon above. */
   function drawOverheads(ctx, heads, cam, fx, match) {
     const s = cam.spriteScale || 1;
     if (!fx.hpLag) fx.hpLag = {};
     const dt = fx.dtLast || 1 / 60;
-    for (let i = 0; i < heads.length; i++) {
-      const h = heads[i];
+    const placed = [];
+    const list = heads.slice().sort(function (a, b) { return b.gy - a.gy; });
+    for (let i = 0; i < list.length; i++) {
+      const h = list[i];
       const u = h.u;
       if (u.hp <= 0) continue;
       const foot = worldToCss(h.x, h.gy, cam);
       const big = u.boss ? 1.5 : 1;
-      const w = Math.round(Math.max(30, Math.min(64, 30 * s)) * big);
-      const hh = s >= 1.5 ? 6 : 5;
+      const w = Math.round(Math.max(28, Math.min(56, 26 * s)) * big);
+      const hh = s >= 1.5 ? 5 : 4;
       const x = Math.round(foot.x - w / 2);
-      const y = Math.round(foot.y - h.bh * s - hh - 6);
+      let y = Math.round(foot.y - h.bh * s - hh - 6);
+      for (let k = 0; k < 3; k++) {
+        let clash = false;
+        for (let q = 0; q < placed.length; q++) {
+          const o = placed[q];
+          if (Math.abs(o.x - x) < (w + o.w) / 2 + 2 && Math.abs(o.y - y) < hh + 4) { clash = true; break; }
+        }
+        if (!clash) break;
+        y -= hh + 5;
+      }
+      placed.push({ x: x, y: y, w: w });
       const frac = Math.max(0, Math.min(1, u.hp / u.maxHp));
       const key = u.id + ":" + u.team;
       let lag = fx.hpLag[key];
@@ -1188,7 +1249,7 @@
       else lag = Math.max(frac, lag - dt * 0.55);
       fx.hpLag[key] = lag;
       ctx.fillStyle = "rgba(6,4,3,0.82)";
-      roundRect(ctx, x - 1.5, y - 1.5, w + 3, hh + 3, 2.5);
+      roundRect(ctx, x - 1.5, y - 1.5, w + 3, hh + 3, 2);
       ctx.fill();
       if (lag > frac) {
         ctx.fillStyle = "rgba(255,236,200,0.75)";
@@ -1215,43 +1276,184 @@
         ctx.fillStyle = "rgba(220,236,255,0.9)";
         ctx.fillRect(x, y - 2.5, w * Math.min(1, u.shield / u.maxHp), 1.5);
       }
-      /* Level badge on the left end. */
-      const lvTxt = String(u.level || 1);
-      ctx.font = "700 9px " + UI_FONT;
-      const bw = Math.max(13, ctx.measureText(lvTxt).width + 6);
-      ctx.fillStyle = ally ? "#1f3a1c" : "#3a1714";
-      roundRect(ctx, x - bw - 2, y - 2.5, bw, hh + 5, 3);
-      ctx.fill();
-      ctx.strokeStyle = ally ? "rgba(155,232,111,0.7)" : "rgba(255,122,98,0.7)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.fillStyle = "#f4ecdf";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(lvTxt, x - bw / 2 - 2, y + hh / 2 + 0.5);
-      drawStatusCss(ctx, u, x + w + 4, y + hh / 2);
+      drawStatusCss(ctx, u, x + w + 6, y + hh / 2, fx.t || 0);
+      drawAbilityPop(ctx, u, foot.x, y - 4);
     }
     ctx.textBaseline = "alphabetic";
   }
 
-  function drawStatusCss(ctx, u, x0, cy) {
+  /* The move's icon in a dark frame, popping in and fading out, with a
+     thin bar under it: cast progress while chanting, else time left. */
+  function drawAbilityPop(ctx, u, cx, bottom) {
+    const b = u.banner;
+    if (!b || !b.id) return;
+    const img = abilityImg(b.id);
+    const p = b.life > 0 ? Math.min(1, b.t / b.life) : 1;
+    const pop = p < 0.12 ? 0.7 + (p / 0.12) * 0.3 : 1;
+    const a = p < 0.8 ? 1 : Math.max(0, 1 - (p - 0.8) / 0.2);
+    const size = Math.round(18 * pop);
+    const x = Math.round(cx - size / 2);
+    const y = Math.round(bottom - size - 4);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "rgba(8,6,4,0.85)";
+    roundRect(ctx, x - 2, y - 2, size + 4, size + 4, 3);
+    ctx.fill();
+    ctx.strokeStyle = b.ult ? "rgba(255,206,92,0.95)" : u.team === 0 ? "rgba(155,232,111,0.8)" : "rgba(255,122,98,0.8)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    if (img && img.complete && img.naturalWidth) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, x, y, size, size);
+    } else {
+      ctx.fillStyle = "#f4ecdf";
+      ctx.font = "700 10px " + UI_FONT;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(b.name || "?").charAt(0), x + size / 2, y + size / 2 + 0.5);
+    }
+    const prog = u.cast && u.cast.dur ? Math.min(1, u.cast.t / u.cast.dur) : 1 - p;
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(x, y + size + 1, size, 2);
+    ctx.fillStyle = "rgba(150,210,255,0.95)";
+    ctx.fillRect(x, y + size + 1, size * prog, 2);
+    ctx.restore();
+  }
+
+  /* Status glyphs, 7 css px: stun stars, slow snowflake, bleed drop,
+     buff arrow, rage flame, vulnerable cracked shield. */
+  function drawStatusCss(ctx, u, x0, cy, t) {
     const marks = [];
-    if (u.bleed && u.bleed.t > 0) marks.push("#7dce6a");
-    if ((u.stun || 0) > 0) marks.push("#f2d15a");
-    if ((u.slow || 0) > 0) marks.push("#8fd0ff");
-    if ((u.buff || 0) > 0) marks.push("#f4ecdf");
-    if ((u.rage || 0) > 0) marks.push("#e07048");
-    if ((u.vuln || 0) > 0) marks.push("#c58cff");
+    if ((u.stun || 0) > 0) marks.push("stun");
+    if ((u.slow || 0) > 0) marks.push("slow");
+    if (u.bleed && u.bleed.t > 0) marks.push("bleed");
+    if ((u.buff || 0) > 0) marks.push("buff");
+    if ((u.rage || 0) > 0) marks.push("rage");
+    if ((u.vuln || 0) > 0) marks.push("vuln");
+    ctx.save();
+    ctx.lineCap = "round";
     for (let i = 0; i < marks.length; i++) {
+      const x = x0 + i * 10;
+      const y = cy;
       ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.beginPath();
-      ctx.arc(x0 + i * 7, cy, 3.2, 0, Math.PI * 2);
+      ctx.arc(x, y, 4.6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = marks[i];
-      ctx.beginPath();
-      ctx.arc(x0 + i * 7, cy, 2.2, 0, Math.PI * 2);
-      ctx.fill();
+      const k = marks[i];
+      if (k === "stun") {
+        ctx.fillStyle = "#ffe066";
+        for (let j = 0; j < 2; j++) {
+          const a = t * 6 + j * Math.PI;
+          star(ctx, x + Math.cos(a) * 2, y + Math.sin(a) * 1.2, 1.8);
+        }
+      } else if (k === "slow") {
+        ctx.strokeStyle = "#a8e2ff";
+        ctx.lineWidth = 1;
+        for (let j = 0; j < 3; j++) {
+          const a = j * Math.PI / 3;
+          ctx.beginPath();
+          ctx.moveTo(x - Math.cos(a) * 3, y - Math.sin(a) * 3);
+          ctx.lineTo(x + Math.cos(a) * 3, y + Math.sin(a) * 3);
+          ctx.stroke();
+        }
+      } else if (k === "bleed") {
+        ctx.fillStyle = "#e8333a";
+        ctx.beginPath();
+        ctx.moveTo(x, y - 3.4);
+        ctx.quadraticCurveTo(x + 3, y + 0.5, x, y + 3);
+        ctx.quadraticCurveTo(x - 3, y + 0.5, x, y - 3.4);
+        ctx.fill();
+      } else if (k === "buff") {
+        ctx.fillStyle = "#ffd76a";
+        ctx.beginPath();
+        ctx.moveTo(x, y - 3.4);
+        ctx.lineTo(x + 3, y);
+        ctx.lineTo(x + 1.1, y);
+        ctx.lineTo(x + 1.1, y + 3);
+        ctx.lineTo(x - 1.1, y + 3);
+        ctx.lineTo(x - 1.1, y);
+        ctx.lineTo(x - 3, y);
+        ctx.closePath();
+        ctx.fill();
+      } else if (k === "rage") {
+        ctx.fillStyle = "#ff7a3a";
+        ctx.beginPath();
+        ctx.moveTo(x, y - 3.6);
+        ctx.quadraticCurveTo(x + 3.2, y, x + 1.6, y + 3);
+        ctx.lineTo(x - 1.6, y + 3);
+        ctx.quadraticCurveTo(x - 3.2, y, x, y - 3.6);
+        ctx.fill();
+        ctx.fillStyle = "#ffe08a";
+        ctx.fillRect(x - 0.7, y + 0.4, 1.4, 2);
+      } else {
+        ctx.strokeStyle = "#c58cff";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 2.6, y - 2.6);
+        ctx.lineTo(x + 2.6, y - 2.6);
+        ctx.lineTo(x + 2.6, y);
+        ctx.lineTo(x, y + 3);
+        ctx.lineTo(x - 2.6, y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 0.6, y - 2.6);
+        ctx.lineTo(x - 0.6, y);
+        ctx.lineTo(x + 0.6, y + 1.6);
+        ctx.stroke();
+      }
     }
+    ctx.restore();
+  }
+
+  function star(ctx, x, y, r) {
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      const rr = i % 2 ? r * 0.4 : r;
+      if (i === 0) ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /* Kill feed, top left of the floor: killer, a cross, the fallen. */
+  function drawFeed(ctx, fx, cam) {
+    const feed = fx.feed;
+    if (!feed || !feed.length) return;
+    const corner = worldToCss(FLOOR.l, FLOOR.t, cam);
+    const left = Math.round(corner.x + 6);
+    let y = Math.round(corner.y + 6);
+    ctx.save();
+    ctx.font = "700 12px " + UI_FONT;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    for (let i = Math.max(0, feed.length - 4); i < feed.length; i++) {
+      const f = feed[i];
+      const a = f.t < 0.2 ? f.t / 0.2 : f.t > f.life - 0.6 ? Math.max(0, (f.life - f.t) / 0.6) : 1;
+      const by = f.by || "The pit";
+      const wBy = ctx.measureText(by).width;
+      const wWho = ctx.measureText(f.who).width;
+      const w = wBy + wWho + 30;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "rgba(8,6,4,0.72)";
+      roundRect(ctx, left, y, w, 18, 4);
+      ctx.fill();
+      ctx.fillStyle = f.byTeam === 0 ? "#9be86f" : f.byTeam === 1 ? "#ff8f78" : "#e8dccb";
+      ctx.fillText(by, left + 7, y + 9);
+      ctx.strokeStyle = "#f4ecdf";
+      ctx.lineWidth = 1.4;
+      const cx = left + 7 + wBy + 8;
+      ctx.beginPath();
+      ctx.moveTo(cx - 3, y + 6); ctx.lineTo(cx + 3, y + 12);
+      ctx.moveTo(cx + 3, y + 6); ctx.lineTo(cx - 3, y + 12);
+      ctx.stroke();
+      ctx.fillStyle = f.team === 0 ? "#9be86f" : "#ff8f78";
+      ctx.fillText(f.who, cx + 8, y + 9);
+      y += 20;
+    }
+    ctx.restore();
   }
 
   function drawNums(ctx, fx, cam) {
@@ -1268,7 +1470,7 @@
       const pop = p < 0.12 ? 1.45 - (p / 0.12) * 0.45 : 1;
       const rise = (n.heal ? 26 : 32) * Math.min(1, p * 1.6);
       const a = p < 0.7 ? 1 : Math.max(0, 1 - (p - 0.7) / 0.3);
-      const base = n.crit ? 19 : n.dodge || n.blocked ? 12 : 14;
+      const base = n.crit ? 21 : n.dodge || n.blocked ? 12 : 15;
       const size = Math.round(base * pop * Math.min(1.3, Math.max(0.9, s / 1.5)));
       const label = n.heal ? "+" + n.n : n.crit ? n.n + "!" : n.dodge ? "Miss" : n.blocked ? (typeof n.n === "number" ? n.n + " blocked" : "Warded") : String(n.n);
       ctx.font = "800 " + size + "px " + UI_FONT;
@@ -1278,27 +1480,10 @@
       const tx = at.x + n.jx;
       const ty = at.y - 8 - rise - (n.dy || 0);
       ctx.strokeText(label, tx, ty);
-      ctx.fillStyle = n.heal ? "#8ef07a" : n.crit ? "#ffd23f" : n.dodge ? "#d9c8ff" : n.blocked ? "#cfd6e6" : (n.team === 0 ? "#ff8f78" : "#fff4e0");
+      ctx.fillStyle = n.heal ? "#8ef07a" : n.crit ? "#ffa62e" : n.dodge ? "#d9c8ff" : n.blocked ? "#cfd6e6" : (n.team === 0 ? "#ff8f78" : "#fff4e0");
       ctx.fillText(label, tx, ty);
     }
     ctx.globalAlpha = 1;
-  }
-
-  function drawStatus(ctx, u, by) {
-    const marks = [];
-    if (u.bleed && u.bleed.t > 0) marks.push("#7dce6a");
-    if ((u.stun || 0) > 0) marks.push("#f2d15a");
-    if ((u.shield || 0) > 0) marks.push("#8eb6e8");
-    if ((u.buff || 0) > 0) marks.push("#f4ecdf");
-    if ((u.rage || 0) > 0) marks.push("#e07048");
-    if (!marks.length) return;
-    const x0 = u.x + 12;
-    for (let i = 0; i < marks.length; i++) {
-      ctx.fillStyle = marks[i];
-      ctx.beginPath();
-      ctx.arc(x0 + i * 5, by + 1.5, 1.6, 0, Math.PI * 2);
-      ctx.fill();
-    }
   }
 
   function noteOverlap(fx, match, bodyW, bodyH) {
@@ -1456,10 +1641,23 @@
       const z = u.z || 0;
       const gy = y - z;
       const lift = z > 2 ? Math.max(0.45, 1 - z / 180) : 1;
+      const turnPit = !!cam.portrait;
+      const shw = (u.hp > 0 ? 8 : 12) * lift;
+      const shh = 3.5 * lift;
       ctx.fillStyle = "rgba(0,0,0," + (0.28 + 0.16 * lift) + ")";
       ctx.beginPath();
-      ctx.ellipse(x, y + 2, (u.hp > 0 ? 8 : 12) * lift, 3.5 * lift, 0, 0, Math.PI * 2);
+      if (turnPit) ctx.ellipse(x - 2, y, shh, shw, 0, 0, Math.PI * 2);
+      else ctx.ellipse(x, y + 2, shw, shh, 0, 0, Math.PI * 2);
       ctx.fill();
+      /* v69 team ring under the feet: green for yours, red for theirs. */
+      if (u.hp > 0 && !u.summon) {
+        ctx.strokeStyle = u.team === 0 ? "rgba(140,232,120,0.62)" : "rgba(255,98,78,0.62)";
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        if (turnPit) ctx.ellipse(x - 2, y, 4.6, 11, 0, 0, Math.PI * 2);
+        else ctx.ellipse(x, y + 2, 11, 4.6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       if (u.iframe > 0 && u.hp > 0) {
         ctx.strokeStyle = "rgba(214, 186, 255, 0.55)";
         ctx.lineWidth = 1;
@@ -1489,6 +1687,7 @@
         ctx.fill();
       }
       drawBlock(ctx, u, fx);
+      if (u.hp > 0 && u.state === "attack" && !u.didSlash && !u.didHit) drawWindup(ctx, u, gy, cam, fx);
       if (u.hp > 0) {
         const bh = bodyH * (u.giant ? 1.15 : 1);
         const bw = bodyW * (u.giant ? 1.15 : 1);
@@ -1523,6 +1722,7 @@
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     drawOverheads(ctx, heads, cam, fx, match);
     drawNums(ctx, fx, cam);
+    drawFeed(ctx, fx, cam);
 
     if (IL.pitFocusId) {
       let named = null;

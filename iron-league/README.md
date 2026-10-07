@@ -188,6 +188,18 @@ The v64 effects drew every cast as stacked flat ellipse rings (the rune, the boo
 
 Every effect is anchored to a floor point plus a screen-space offset, so "up" is up on a turned phone floor too. `fx.js` still loads but no longer spawns strips in the pit. Draw cost stays under 5 ms at the 95th percentile while flooding the pit with effects.
 
+## Clearer fights (v69)
+
+- **Team rings** under every fighter: green for yours, red for theirs. Shadows and rings turn with the phone floor.
+- **Calmer floor**: the baked pit art gets a 36% wash of its own base color, so cracks and the center circle read as texture, not as attacks.
+- **Overheads**: the level badge is gone (levels live in Info). Bars that would overlap in a clump step up a row. Status effects are drawn as glyphs: stun stars, slow snowflake, bleed drop, buff arrow, rage flame, vulnerable cracked shield.
+- **Ability pop**: when a fighter uses a real move, its icon pops over their head with a thin bar (cast progress while chanting), like Eslabong. Basic attacks show nothing.
+- **Wind-up glint**: a star gathers on the weapon before each swing lands.
+- **Kill feed**: top left of the floor, killer then fallen, in team colors.
+- **Kill beat**: a kill slows the live view to 35% for 0.38 s and shakes the pit. Only the view clock changes; the sim does not.
+- **Damage numbers**: a little larger; crits are orange with "!".
+- **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

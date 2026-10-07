@@ -2,6 +2,10 @@
 (function (root) {
   const IL = root.IL = root.IL || {};
   const SAVE_KEY = "ironleague.v1";
+  /* Raise WIPE to reset every player's progress: a save stamped lower is
+     thrown away on the next load. 1 = the October 2026 tester reset. */
+  const WIPE = 1;
+  let wipedNow = false;
   const app = document.getElementById("app");
 
   let save = null;
@@ -69,6 +73,11 @@
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
+      if (data && (data.wipe || 0) < WIPE) {
+        localStorage.removeItem(SAVE_KEY);
+        wipedNow = true;
+        return null;
+      }
       if (!data || data.v !== 1 || !Array.isArray(data.roster) || !data.roster.length) return null;
       if (!Array.isArray(data.clubs) || !Array.isArray(data.fixtures)) return null;
       return IL.migrate(data);
@@ -79,6 +88,7 @@
 
   function persist() {
     try {
+      save.wipe = WIPE;
       localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     } catch (err) {
       /* private mode or a full disk — the match still played */
@@ -300,6 +310,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Fresh start: all progress was reset for a balance pass. Every club begins again in Division V.",
     "The Iron Gate: eight floors once a week, bosses on 5, 7 and 8, health carried floor to floor, a chest at every boss.",
     "Quieter menus: the hub music's ticking hi-hat is gone. Cleaner popups, and Events opens the right page.",
     "Transfers: rival clubs bid for your fighters (accept or decline in Events), and list their own fighters on the market.",
@@ -509,6 +520,7 @@
             '<button type="button" class="btn gold" id="newClub">New club</button>' +
             cont +
           '</div>' +
+          (wipedNow ? '<p class="wipe-note" id="wipeNote">Fresh start: every club was reset for a balance pass. Found a new club to play.</p>' : '') +
           '<p class="fine">Saved on this browser only.</p>' +
           '<details class="whats-new"' + (narrowTitle ? "" : " open") + '>' +
             '<summary>What\'s new</summary>' +

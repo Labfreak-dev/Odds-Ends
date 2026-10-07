@@ -201,6 +201,10 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Progress reset (v82)
+
+Testers had grown far stronger than the game is tuned for, so every save is reset. `WIPE` in `js/game.js` is a save epoch: `persist()` stamps it into the save, and `load()` throws away any save stamped lower and shows a "Fresh start" note on the title. Raise `WIPE` by one to reset everyone again. Friend challenge codes are not saves, so old codes still import.
+
 ## Fixes (v81)
 
 - **Hub music tick**: the hub loop carried a hi-hat every 0.300 s, the "constant ticking" in the menus. Each hit is ducked in the band above 1 kHz and the top end is shelved down by half, all on the loop's own circular spectrum so the seam stays seamless (high-band energy −17 dB). `AUDIO_V` 81 refetches it.

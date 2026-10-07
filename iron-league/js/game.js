@@ -1754,7 +1754,7 @@
       const pct = Math.max(0, Math.min(100, Math.round(100 * (r.current || 0) / Math.max(1, r.goal))));
       const reward = "+" + r.gold + " gold" + (r.renown ? " · +" + r.renown + " renown" : "");
       return '<article class="achieve-row' + (r.done ? " done" : "") + '">' +
-        iconTag(r.icon, 24) +
+        '<span class="achieve-icon">' + iconTag(r.icon, 24) + '</span>' +
         '<div><strong>' + esc(r.name) + '</strong><p class="fine">' + esc(r.blurb) + " · " + esc(reward) + '</p>' +
         '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div></div>' +
         '<b>' + Math.min(r.current || 0, r.goal) + "/" + r.goal + '</b></article>';
@@ -2383,7 +2383,7 @@
     const lineup = yours.map(function (f) {
       const st = IL.staminaOf ? IL.staminaOf(f) : 100;
       const kit = IL.CLASSES[f.cls] || {};
-      return '<li>' + portraitWrap('width="44" height="40" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="4"', f.captain, f) +
+      return '<li><canvas class="es-mface' + (f.captain ? ' cap' : '') + '" width="40" height="36" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="3"></canvas>' +
         '<span class="ov-name">' + esc(f.name) + '</span><small>' + esc(kit.name || "") + ' · Lv ' + (f.level || 1) + '</small>' +
         '<span class="ov-form"><i style="width:' + Math.round(st) + '%"></i></span></li>';
     }).join("");
@@ -2608,7 +2608,7 @@
         '<button type="button" class="es-subtab" data-pane="roster:relics">Relics</button>' +
         '<button type="button" class="es-subtab" data-goto="train">Development</button>' +
       '</nav>' +
-      '<section class="es-subs-wrap"><h3 class="section">Substitutes · ' + subs.length + ' <small class="fine">Drills left this week: ' + left + '</small></h3>' +
+      '<section class="es-subs-wrap"><h3 class="section">Substitutes · ' + subs.length + '</h3><p class="fine es-subs-note">Drills left this week: ' + left + '</p>' +
         '<div class="es-subs" id="benchList">' + (subs.length ? '' : emptyState("The bench is empty.", "The whole club is in the first team.")) + subTiles.join("") + '</div>' +
       '</section>' +
     '</div>';

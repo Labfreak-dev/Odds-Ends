@@ -300,6 +300,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "The Champions Cup: when the league closes, its top four play 3v3 knockouts before the ceremony. The winner takes a relic.",
     "Club facilities: Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office and Treasure House.",
     "A trading-floor market: every listing in one list with stats and price, the picked fighter's full card beside it, and filters for affordable, watched, champions and scouted.",
     "Longer seasons: eight clubs a division and seven league weeks, shown as Division V (Sand) up to Division I (Crown).",
@@ -1879,6 +1880,50 @@
     showHub("overview");
   }
 
+  /* v76 Champions Cup: made when the league closes, played before the
+     ceremony. Ties that do not need you are settled on the spot. */
+  function champsState() {
+    if (!save || !seasonDone() || !IL.startChampionsCup) return null;
+    if (!save.champs || save.champs.season !== save.season) {
+      save.champs = IL.startChampionsCup(save, sortedClubs());
+      if (save.champs) IL.settleCup(save.champs, save.roster, takeRng());
+      persist();
+    }
+    return save.champs;
+  }
+
+  function champsPending() {
+    const c = champsState();
+    return !!(c && !c.champion && IL.cupOpponent(c));
+  }
+
+  function champsName(c) {
+    if (!c || !c.champion) return "";
+    if (c.champion === "you") return save.clubName;
+    const s = (c.slots || []).filter(function (x) { return x.id === c.champion; })[0];
+    if (s) return s.name;
+    const club = clubById(c.champion);
+    return club ? club.name : "";
+  }
+
+  function startChampsFight() {
+    const cup = champsState();
+    const opp = cup && IL.cupOpponent(cup);
+    if (!opp) return;
+    const left = fielded(save.roster, cup.size);
+    if (left.length < Math.min(cup.size, save.roster.length)) { showHub("roster"); return; }
+    openVersus({
+      mode: "champions",
+      left: left,
+      right: (opp.foe.fighters || []).slice(0, cup.size),
+      leftName: save.clubName,
+      rightName: opp.foe.name,
+      size: cup.size,
+      seed: (save.rngSeed ^ (save.season * 1907) ^ ((cup.round + 1) * 31)) >>> 0,
+      returnTab: "overview"
+    });
+  }
+
   function showSeasonEnd() {
     stopLoops();
     hubBed();
@@ -1886,6 +1931,7 @@
     save = save || load();
     if (!save) { showTitle(); return; }
     IL.migrate(save);
+    if (champsPending()) { showHub("overview"); return; }
     const purse = payCeremony();
     const fresh = takeAchievements();
     persist();
@@ -1920,6 +1966,7 @@
           '<p class="res-score">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="res-ko">' + (sorted[place] ? sorted[place].w + 'W · ' + sorted[place].l + 'L · ' + sorted[place].pts + ' pts' : '') + '</span></p>' +
           '<p class="fine">' + esc(cupNote) + '</p>' +
           '<p class="division-move ' + (divisionMove(place).to > IL.divisionOf(save) ? 'up' : divisionMove(place).to < IL.divisionOf(save) ? 'down' : '') + '" id="divisionMove">' + esc(divisionMove(place).text) + '</p>' +
+          (save.champs && save.champs.season === save.season && save.champs.champion ? '<p class="fine champs-line" id="champsLine">Champions Cup: ' + esc(champsName(save.champs)) + (save.champs.champion === "you" ? ' — that is you.' : '.') + '</p>' : '') +
         '</header>' +
         '<div class="res-rewards season-rewards">' +
           (purse ? '<div class="res-tile gold-tile">' + coinIcon("gold") + '<b>+' + purse.gold + '</b><span>gold</span></div>' +
@@ -2160,12 +2207,15 @@
     const done = seasonDone();
     const size = done ? 0 : weekSize(save.round);
     const ready = done || fielded(save.roster, size).length >= size;
+    const champsUp = done && champsPending();
     const day = IL.dayIndex(Date.now());
     const dailyDone = save.daily && save.daily.day === day && save.daily.cleared;
     const inbox = inboxItems().filter(function (x) { return x.act; }).length;
     return '<div class="fight-dock es-dock" id="fightDock">' +
       '<button type="button" class="dock-side" id="dockDaily" data-dock="daily"' + (dailyDone ? ' disabled' : '') + '>' + (dailyDone ? 'Daily done' : 'Daily match') + '</button>' +
-      (done
+      (champsUp
+        ? '<button type="button" class="btn fight dock-main" id="dockFight" data-dock="champs">Champions Cup</button>'
+        : done
         ? '<button type="button" class="btn gold dock-main" id="dockFight" data-dock="season">Season ceremony</button>'
         : '<button type="button" class="btn fight dock-main" id="dockFight" data-dock="' + (ready ? "fight" : "club") + '">' + (ready ? "Next match" : "Pick " + size + " fighters") + '</button>') +
       '<button type="button" class="dock-side" id="dockInbox" data-dock="inbox">Events' + (inbox ? '<em class="dock-badge">' + inbox + '</em>' : '') + '</button>' +
@@ -2293,9 +2343,21 @@
         '<span class="ov-name">' + esc(f.name) + '</span><small>' + esc(kit.name || "") + ' · Lv ' + (f.level || 1) + '</small>' +
         '<span class="ov-form"><i style="width:' + Math.round(st) + '%"></i></span></li>';
     }).join("");
+    const champs = done ? champsState() : null;
+    const champOpp = champs && !champs.champion ? IL.cupOpponent(champs) : null;
     const next = done
-      ? '<section class="es-card ov-next" id="nextCard"><p class="eyebrow">League</p><h3>Season ' + save.season + ' closed</h3>' +
-          '<button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></section>'
+      ? (champOpp
+        ? '<section class="es-card ov-next champs" id="nextCard"><p class="eyebrow">Champions Cup · ' + (champs.round >= 1 ? "Final" : "Semifinal") + ' · 3v3</p>' +
+            '<div class="ov-vs">' +
+              '<div class="ov-side">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<b>' + esc(save.clubName) + '</b></div>' +
+              '<span class="vs">vs</span>' +
+              '<div class="ov-side">' + crestHtml(champOpp.foe.name, "md", crestIndexOf(champOpp.foe.name)) + '<b>' + esc(champOpp.foe.name) + '</b></div>' +
+            '</div>' +
+            '<p class="fine">The league\'s top four play it out before the ceremony. The winner takes a relic.</p>' +
+            '<div class="ov-actions"><button type="button" class="btn fight" id="champsFight">Fight</button></div></section>'
+        : '<section class="es-card ov-next" id="nextCard"><p class="eyebrow">League</p><h3>Season ' + save.season + ' closed</h3>' +
+            (champs && champs.champion ? '<p class="fine">Champions Cup: ' + esc(champsName(champs)) + '.</p>' : '') +
+            '<button type="button" class="btn gold" id="openSeasonBanner">Open the ceremony</button></section>')
       : '<section class="es-card ov-next" id="nextCard">' +
           '<p class="eyebrow">Next match · Week ' + (save.round + 1) + ' · ' + size + 'v' + size + '</p>' +
           '<div class="ov-vs">' +
@@ -2341,7 +2403,7 @@
   function matchesPanel() {
     const panes = [["league", "League"], ["cups", "Cups"], ["history", "History"]];
     let body;
-    if (matchesPane === "cups") body = cupPanel();
+    if (matchesPane === "cups") body = champsBlock() + cupPanel();
     else if (matchesPane === "history") body = historyHtml();
     else body = leaguePane();
     return subTabs("matches", matchesPane, panes) + body;
@@ -2364,6 +2426,13 @@
       cal.push('<li class="' + (r === save.round ? "now" : "") + '"><span class="wk">W' + (r + 1) + '</span>' + (foe ? crestHtml(foe.name, "sm", clubCrest(foe)) + '<span>vs ' + esc(foe.name) + '</span>' : '<span>—</span>') + '<em>' + weekSize(r) + 'v' + weekSize(r) + '</em>' + res + '</li>');
     }
     if (save.cup && !save.cup.champion) cal.push('<li class="cup"><span class="wk">Cup</span><span>' + esc("Cup bracket is open") + '</span></li>');
+    const champsRow = seasonDone() ? champsState() : null;
+    let champsText = "Champions Cup · the top four, 3v3 knockouts";
+    if (champsRow) {
+      const o = !champsRow.champion ? IL.cupOpponent(champsRow) : null;
+      champsText = champsRow.champion ? "Champions Cup won by " + champsName(champsRow) : o ? "Champions Cup · " + (champsRow.round >= 1 ? "final" : "semifinal") + " vs " + o.foe.name : "Champions Cup · being played";
+    }
+    cal.push('<li class="cup' + (champsRow && !champsRow.champion ? " now" : "") + '"><span class="wk">CC</span><span>' + esc(champsText) + '</span></li>');
     cal.push('<li class="cup"><span class="wk">End</span><span>Season ceremony · promotion and relegation</span></li>');
     return '<div class="es-split">' +
       '<section class="es-card"><h3 class="section">' + esc(IL.DIVISIONS[tierNow].name) + ' · League standings</h3>' +
@@ -3411,14 +3480,15 @@
       '<em>' + (winName ? esc(winName) + " through" : "Yet to fight") + '</em></div>';
   }
 
-  function cupMarkup(cup) {
+  function cupMarkup(cup, boardId) {
     if (!cup) return "";
+    const bid = boardId || "bracketBoard";
     const champName = cup.champion
       ? ((cup.slots || []).filter(function (s) { return s.id === cup.champion; })[0] || {}).name || cup.champion
       : "";
     const champ = champName ? ("<p class='banner'>Cup champion: " + esc(champName) + "</p>") : "";
     if (cup.tree && cup.tree.semis) {
-      return '<div class="bracket" id="bracketBoard">' +
+      return '<div class="bracket" id="' + bid + '">' +
         '<div class="bracket-col"><p class="eyebrow">Semi</p>' + cup.tree.semis.map(tieCard).join("") + '</div>' +
         '<div class="bracket-col"><p class="eyebrow">Final</p>' + tieCard(cup.tree.final) + '</div>' +
       '</div>' + champ;
@@ -3431,7 +3501,16 @@
       const mark = win ? (" · " + (cup.slots.filter(function (s) { return s.id === win; })[0] || {}).name + " through") : "";
       return "<li>" + esc(label + mark) + "</li>";
     }).join("");
-    return '<div class="bracket" id="bracketBoard"><ol>' + rows + '</ol></div>' + champ;
+    return '<div class="bracket" id="' + bid + '"><ol>' + rows + '</ol></div>' + champ;
+  }
+
+  function champsBlock() {
+    const c = seasonDone() ? champsState() : null;
+    if (!c) return '<section class="es-card"><h3 class="section">Champions Cup</h3><p class="fine">When the league closes, its top four play 3v3 knockouts before the ceremony: 1st vs 4th, 2nd vs 3rd, then the final. The winner takes a relic.</p></section>';
+    return '<section class="es-card" id="champsCard"><h3 class="section">Champions Cup · Season ' + c.season + '</h3>' +
+      cupMarkup(c, "champsBoard") +
+      (!c.champion && IL.cupOpponent(c) ? '<button type="button" class="btn fight" id="champsFight">Fight the ' + (c.round >= 1 ? "final" : "semifinal") + '</button>' : '') +
+    '</section>';
   }
 
   function cupPanel() {
@@ -3938,6 +4017,7 @@
         if (b.dataset.dock === "fight") openFightMenu();
         else if (b.dataset.dock === "season") showSeasonEnd();
         else if (b.dataset.dock === "daily") beginDaily();
+        else if (b.dataset.dock === "champs") startChampsFight();
         else if (b.dataset.dock === "inbox") { detailId = null; inboxOpen = true; refreshHub(); }
         else showHub("roster");
         return;
@@ -3954,6 +4034,8 @@
     if (leagueFight) leagueFight.onclick = function () { startFight(); };
     const leagueCeremony = document.getElementById("leagueCeremony");
     if (leagueCeremony) leagueCeremony.onclick = function () { showSeasonEnd(); };
+    const champsBtn = document.getElementById("champsFight");
+    if (champsBtn) champsBtn.onclick = function () { startChampsFight(); };
     const openSeasonBanner = document.getElementById("openSeasonBanner");
     if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
@@ -6300,7 +6382,39 @@
     let xp = win ? 22 : 8;
     let headline = win ? "The pit is yours" : "They walk out";
     let relicNote = "";
-    if (mode === "cup") {
+    if (mode === "champions") {
+      const cup = save.champs;
+      const opp = cup && IL.cupOpponent(cup);
+      const wasFinal = cup && cup.round >= 1;
+      if (opp) IL.noteCupResult(cup, opp.pair, win ? "you" : opp.foe.id);
+      if (cup) {
+        IL.resolveOtherPairs(cup, save.roster, takeRng());
+        IL.advanceCup(cup);
+        IL.settleCup(cup, save.roster, takeRng());
+      }
+      xp = win ? 30 : 12;
+      if (!win) {
+        gold = wasFinal ? 80 : 40;
+        renown = wasFinal ? 14 : 7;
+        headline = wasFinal ? "The Champions final slips away" : "Out of the Champions Cup";
+      } else if (cup && cup.champion === "you") {
+        gold = 160;
+        renown = 30;
+        xp = 40;
+        save.tokens = (save.tokens || 0) + 1;
+        save.champsWon = (save.champsWon || 0) + 1;
+        headline = "Champions of the " + IL.DIVISIONS[IL.divisionOf(save)].name;
+        const relic = IL.offerRelic(save, takeRng());
+        if (relic) {
+          relicNote = " Relic: " + relic.name + ".";
+          holdClubRelic(relic);
+        }
+      } else {
+        gold = 50;
+        renown = 9;
+        headline = "Through to the Champions final";
+      }
+    } else if (mode === "cup") {
       const cup = save.cup;
       const opp = cup && IL.cupOpponent(cup);
       const wasFinal = cup && cup.round >= 1;
@@ -6491,7 +6605,7 @@
     });
     /* v75 Barracks: the bench takes a share of the lineup's match XP. */
     const share = IL.benchShare ? IL.benchShare(save) : 0;
-    if (share > 0 && xp > 0 && (mode === "league" || mode === "cup")) {
+    if (share > 0 && xp > 0 && (mode === "league" || mode === "cup" || mode === "champions")) {
       const inFight = {};
       fight.left.forEach(function (f) { if (f) inFight[f.id] = true; });
       (save.roster || []).forEach(function (f) { if (!inFight[f.id]) IL.grantXp(f, Math.max(1, Math.round(xp * share))); });
@@ -6506,8 +6620,8 @@
     save.renown = (save.renown || 0) + renown;
     let loot = null;
     const eventLoot = (mode === "boss" && win) || (mode === "horde" && win) || (mode === "daily" && win) || (mode === "gauntlet" && win && !save.gauntlet);
-    if (mode === "league" || mode === "chaos" || (mode === "cup" && win) || eventLoot) {
-      const bag = mode === "cup" ? "cup" : (win ? "win" : "loss");
+    if (mode === "league" || mode === "chaos" || ((mode === "cup" || mode === "champions") && win) || eventLoot) {
+      const bag = mode === "cup" || mode === "champions" ? "cup" : (win ? "win" : "loss");
       loot = IL.rollLoot(takeRng(), bag);
       if (!Array.isArray(save.items)) save.items = [];
       save.items.push(loot);
@@ -6537,7 +6651,7 @@
         );
       }
     });
-    const restLine = (mode === "league" || mode === "cup") ? tireAndRest(fight.left) : "";
+    const restLine = (mode === "league" || mode === "cup" || mode === "champions") ? tireAndRest(fight.left) : "";
     let marketLines = [];
     if (mode === "league" || mode === "cup") {
       marketLines = IL.turnMarket(save, takeRng(), rosterAvoid());
@@ -6556,6 +6670,8 @@
       }
     } else if (mode === "cup") {
       nextLine = save.cup && save.cup.champion ? "The bracket is finished." : "The bracket is waiting on the cup screen.";
+    } else if (mode === "champions") {
+      nextLine = champsPending() ? "The Champions final is next." : "The Champions Cup is over: " + (champsName(save.champs) || "—") + ". The ceremony is open.";
     } else if (mode === "draft") {
       const st = save.draft && save.draft.stage;
       nextLine = st === "sign" ? "Sign one of your picks on the cup tab." : st === "bracket" ? "The draft final is waiting on the cup tab." : "The draft is over. Your picks go home.";
@@ -6629,7 +6745,7 @@
     };
     document.getElementById("backHub").onclick = function () {
       IL.currentMatch = null;
-      if (mode === "league" && seasonDone()) showSeasonEnd();
+      if ((mode === "league" || mode === "champions") && seasonDone()) showSeasonEnd();
       else if (mode === "cup") showCup();
       else showHub(fight.returnTab || "club");
     };

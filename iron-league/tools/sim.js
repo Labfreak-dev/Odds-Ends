@@ -1022,6 +1022,16 @@ check("levels come slower than the old flat 40", IL.xpFloor(10) > 9 * 40 * 2);
 const rookieMv = IL.randomFighter(IL.mulberry32(41), "warrior");
 const vetMv = Object.assign(JSON.parse(JSON.stringify(rookieMv)), { level: 10, wins: 12, losses: 3, kos: 20, mvps: 4, career: { dealt: 4000, heal: 0, taken: 900, kos: 20, moves: {} } });
 check("market value grows with level and a record", IL.marketValue(vetMv) > IL.marketValue(rookieMv) * 2 && IL.marketValue(rookieMv) >= 20);
+const ccTable = [0, 1, 2, 3, 4].map(function (i) {
+  return i === 2 ? { id: "you", name: "Us", you: true } : { id: "c" + i, name: "Club " + i, you: false, fighters: [0, 1, 2].map(function (k) { return IL.randomFighter(IL.mulberry32(90 + i * 3 + k), "warrior"); }) };
+});
+const cc = IL.startChampionsCup({ clubName: "Us", season: 3 }, ccTable);
+check("champions cup seeds 1v4 and 2v3", cc && cc.size === 3 && cc.slots[0].id === "c0" && cc.slots[1].id === "c3" && cc.slots[2].id === "you" && cc.slots[3].id === "c1" && cc.season === 3);
+IL.settleCup(cc, [], IL.mulberry32(5));
+check("the tie without you is settled and yours waits", cc.winners[0] && !cc.winners[1] && !cc.champion && IL.cupOpponent(cc).foe.id === "c1");
+const ccOut = IL.startChampionsCup({ clubName: "Us", season: 3 }, ccTable.slice(0, 2).concat(ccTable.slice(3)).concat([{ id: "c9", name: "Club 9", you: false, fighters: ccTable[0].fighters }]));
+IL.settleCup(ccOut, [], IL.mulberry32(6));
+check("a cup without you plays to a champion", !!ccOut.champion && ccOut.champion !== "you");
 const facSave = { facilities: { hq: 2, barracks: 1, infirmary: 2, scout: 2, treasury: 1 } };
 check("facilities scale the club", IL.rosterCap(facSave) === IL.ROSTER_CAP + 4 && Math.abs(IL.benchShare(facSave) - 0.15) < 1e-9 && IL.restBonus(facSave) === 12 && IL.scoutOdds(facSave) === 1 && IL.clubRelicSlots(facSave) === 3 && IL.rosterCap({}) === IL.ROSTER_CAP);
 const facMig = IL.migrate({ clubName: "F", roster: [{ id: "a", cls: "warrior" }], facilities: { hq: 9, yard: 5 } });

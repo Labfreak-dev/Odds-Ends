@@ -303,7 +303,10 @@
   const CLUBS = ["Ashveil Company", "Red Kettle", "Lowmarket Blades", "Cinder Pact", "North Wharf", "Glass Orchard", "Mudgate Crew", "Harrow and Coil", "Salt Stair", "Penny Standard", "Bright Rust", "Hollow Lantern", "Copper Warden", "Mile End", "Soot Choir", "Gutter Saint", "Amber Yoke", "Third Bell"];
 
   /* Five-match season. Sizes cover 1v1, 2v2 and 3v3. */
-  const SEASON_SIZES = [3, 2, 3, 1, 3];
+  /* v73: an 8-club league, one round robin, seven weeks. Squad size per
+     week; an older save keeps the length of its own fixture list. */
+  const SEASON_SIZES = [3, 2, 3, 1, 3, 2, 3];
+  const LEAGUE_CLUBS = 8;
   const PARTY_CAP = 3;
 
   const HIRE_COST = 70;
@@ -725,6 +728,7 @@
   IL.LAST = LAST;
   IL.CLUBS = CLUBS;
   IL.SEASON_SIZES = SEASON_SIZES;
+  IL.LEAGUE_CLUBS = LEAGUE_CLUBS;
   IL.PARTY_CAP = PARTY_CAP;
   IL.HIRE_COST = HIRE_COST;
   IL.START_GOLD = START_GOLD;

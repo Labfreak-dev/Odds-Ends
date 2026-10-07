@@ -804,7 +804,7 @@ def check_empty_bench(page):
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
           const ids = raw.lineup || [];
           raw.roster = raw.roster.filter(f => ids.indexOf(f.id) >= 0);
-          raw.round = 5;
+          raw.round = (raw.fixtures || []).length || 7;
           localStorage.setItem('ironleague.v1', JSON.stringify(raw));
         }"""
     )
@@ -835,7 +835,7 @@ def check_season(page, label, shot_dir):
     page.evaluate(
         """() => {
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
-          raw.round = 5;
+          raw.round = (raw.fixtures || []).length || 7;
           raw.roster.forEach((f, i) => {
             f.season = { dealt: 40 - i, taken: 10 + i * 5, heal: i === 2 ? 18 : 1, kos: i === 0 ? 4 : 1 };
           });
@@ -1091,7 +1091,7 @@ def sweep_frames(browser, shot_dir):
     page.evaluate(
         """() => {
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
-          raw.round = 5;
+          raw.round = (raw.fixtures || []).length || 7;
           raw.clubs.forEach((c, i) => { c.w = 4 - Math.min(i, 4); c.l = Math.min(i, 4); c.pts = (4 - Math.min(i, 4)) * 3; });
           localStorage.setItem('ironleague.v1', JSON.stringify(raw));
         }"""
@@ -1430,7 +1430,7 @@ def qa_gate(browser, shot_dir):
         page.evaluate(
             """() => {
               const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
-              raw.round = 5;
+              raw.round = (raw.fixtures || []).length || 7;
               raw.clubs.forEach((c, i) => { c.w = 4 - Math.min(i, 4); c.l = Math.min(i, 4); c.pts = (4 - Math.min(i, 4)) * 3; });
               localStorage.setItem('ironleague.v1', JSON.stringify(raw));
             }"""

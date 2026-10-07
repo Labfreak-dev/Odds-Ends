@@ -200,6 +200,13 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Season calendar (v73)
+
+- A division is now **8 clubs** playing one round robin: **7 league weeks** (squads 3, 2, 3, 1, 3, 2, 3). The top two go up and the bottom two go down, as before.
+- Everything reads the length of the season from its fixture list (`seasonWeeks`, `weekSize`, `seasonDone` in game.js), so a save in the middle of an old 5-week season finishes it and starts the new format next season.
+- Divisions keep our five tiers but read Eslabong-style in the header: Div V · Sand, IV · Iron, III · Bronze, II · Silver, I · Crown.
+- "Unbeaten" now means a full season without a loss, whatever its length.
+
 ## Roster (v72)
 
 - **First team**: one card per fielded fighter: name, level (with a ▲ when picks wait), class badge colored by role, stamina bar, HP/ATK/DEF/SPD, the three move icons plus talents, a gear column (weapon, armor, trinket, worn relic), a behavior button (tactic · personality; tap cycles the tactic), and Captain / Set captain plus the lineup chip. Empty slots show for the week's squad size.

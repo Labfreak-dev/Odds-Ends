@@ -301,6 +301,7 @@
   /* ---------- title ---------- */
   const TITLE_NEWS = [
     "The Iron Gate: eight floors once a week, bosses on 5, 7 and 8, health carried floor to floor, a chest at every boss.",
+    "Quieter menus: the hub music's ticking hi-hat is gone. Cleaner popups, and Events opens the right page.",
     "Transfers: rival clubs bid for your fighters (accept or decline in Events), and list their own fighters on the market.",
     "Intel: club leaders and records, every rival roster in the division, and an Archive of classes, clubs, champions, relics and how the game works.",
     "The Champions Cup: when the league closes, its top four play 3v3 knockouts before the ceremony. The winner takes a relic.",
@@ -2126,12 +2127,12 @@
     else if (d && d.stage === "bracket" && d.cup && IL.cupOpponent(d.cup)) out.push({ tab: "cup", label: "Draft tie vs " + IL.cupOpponent(d.cup).foe.name });
     else if (d && d.stage === "sign") out.push({ tab: "cup", label: "Draft · sign a pick" });
     const week = IL.weekIndex(Date.now());
-    if (!(save.weekClear && save.weekClear.week === week)) out.push({ tab: "events", label: "Weekly event" });
+    if (!(save.weekClear && save.weekClear.week === week)) out.push({ tab: "events:week", label: "Weekly event" });
     const day = IL.dayIndex(Date.now());
-    if (!(save.daily && save.daily.day === day && save.daily.cleared)) out.push({ tab: "events", label: "Daily challenge" });
-    if (save.endlessRun) out.push({ tab: "events", label: "Endless · wave " + (save.endlessRun.wave || 1) });
-    if (save.gateRun) out.push({ tab: "club", label: "Iron Gate · floor " + save.gateRun.floor });
-    else if (gateOpen()) out.push({ tab: "club", label: "Iron Gate" });
+    if (!(save.daily && save.daily.day === day && save.daily.cleared)) out.push({ tab: "events:daily", label: "Daily challenge" });
+    if (save.endlessRun) out.push({ tab: "events:endless", label: "Endless · wave " + (save.endlessRun.wave || 1) });
+    if (save.gateRun) out.push({ tab: "club:home", label: "Iron Gate · floor " + save.gateRun.floor });
+    else if (gateOpen()) out.push({ tab: "club:home", label: "Iron Gate" });
     return out;
   }
 
@@ -2218,7 +2219,7 @@
     const dailyDone = save.daily && save.daily.day === day && save.daily.cleared;
     const inbox = inboxItems().filter(function (x) { return x.act; }).length;
     return '<div class="fight-dock es-dock" id="fightDock">' +
-      '<button type="button" class="dock-side" id="dockDaily" data-dock="daily"' + (dailyDone ? ' disabled' : '') + '>' + (dailyDone ? 'Daily done' : 'Daily match') + '</button>' +
+      '<button type="button" class="dock-side" id="dockDaily" data-dock="daily"' + (dailyDone ? ' disabled' : '') + '>' + (dailyDone ? 'Daily <span class="dock-long">done</span>' : 'Daily <span class="dock-long">match</span>') + '</button>' +
       (champsUp
         ? '<button type="button" class="btn fight dock-main" id="dockFight" data-dock="champs">Champions Cup</button>'
         : done
@@ -2286,7 +2287,7 @@
         : x.kind === "go" ? '<button type="button" class="ctl" data-inbox-go="' + esc(x.tab) + '">Open ›</button>'
         : x.kind === "offer" ? offerButtons(x.oid)
         : x.kind === "season" ? '<button type="button" class="ctl" data-inbox-season="1">Open ›</button>' : '';
-      return '<li class="inbox-row ' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
+      return '<li class="inbox-row ib-' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
     }
     return '<div class="sheet-back" id="inboxBack"></div>' +
       '<aside class="sheet inbox-sheet" id="inboxSheet" role="dialog" aria-modal="true" aria-labelledby="inboxTitle">' +
@@ -2296,6 +2297,7 @@
         (acts.length ? '<ul class="inbox">' + acts.map(row).join("") + '</ul>' : '<p class="fine">Nothing waits on you.</p>') +
         '<h3 class="section">Feed</h3>' +
         (news.length ? '<ul class="inbox">' + news.map(row).join("") + '</ul>' : '<p class="fine">No news yet.</p>') +
+        '<button type="button" class="btn ghost inbox-done" id="inboxDone">Close</button>' +
       '</aside>';
   }
 
@@ -2305,6 +2307,7 @@
     const close = function () { inboxOpen = false; refreshHub(); };
     document.getElementById("inboxBack").onclick = close;
     document.getElementById("inboxClose").onclick = close;
+    document.getElementById("inboxDone").onclick = close;
     box.onclick = function (ev) {
       const lv = ev.target.closest("[data-inbox-level]");
       if (lv) { inboxOpen = false; levelFocus = lv.dataset.inboxLevel; showGrowth(); return; }
@@ -2342,8 +2345,8 @@
         '<span class="coin" title="Renown">' + coinIcon("renown") + '<b>' + (save.renown || 0) + '</b></span>' +
         '<span class="coin" title="Cup tokens">' + coinIcon("token") + '<b>' + (save.tokens || 0) + '</b></span>' +
         (done ? '<button type="button" class="btn gold" id="openSeason">Ceremony</button>' : '') +
-        '<button type="button" class="icon-btn menu-btn" id="settings" aria-label="Menu" title="Menu">Menu</button>' +
       '</div>' +
+      '<button type="button" class="icon-btn menu-btn" id="settings" aria-label="Menu" title="Menu">Menu</button>' +
     '</header>';
   }
 
@@ -3009,7 +3012,7 @@
     return '<div class="es-market">' +
       '<div class="es-mtools">' +
         '<div class="es-mchips">' + chips.map(function (c) {
-          return '<button type="button" class="es-subtab small' + (marketFilter === c[0] ? " on" : "") + '" data-mfilter="' + c[0] + '">' + c[1] + (c[2] ? '<em class="es-count">' + c[2] + '</em>' : '') + '</button>';
+          return '<button type="button" class="es-subtab small' + (marketFilter === c[0] ? " on" : "") + '" data-mfilter="' + c[0] + '">' + c[1] + (c[2] ? ' <em class="es-count">' + c[2] + '</em>' : '') + '</button>';
         }).join("") + '</div>' +
         '<div class="hub-actions market-tools"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh · ' + IL.REFRESH_COST + 'g</button>' + scoutPicker() + '</div>' +
       '</div>' +
@@ -3365,7 +3368,7 @@
           '<p>' + esc(ev.blurb) + '</p>' +
           '<p class="fine">' + esc(ev.reward) + '</p>' +
           (on
-            ? '<button type="button" class="btn fight" id="startEvent"' + (cleared ? " disabled" : "") + '>' + (cleared ? "Cleared this week" : "Enter") + '</button>'
+            ? '<button type="button" class="btn fight" id="startEvent"' + (cleared ? " disabled" : "") + '>' + (cleared ? "Cleared ✓" : "Enter") + '</button>'
             : '<p class="fine">Back on another week.</p>') +
         '</article>';
       }).join("");
@@ -3650,7 +3653,7 @@
       const through = tie.winner && side.id === tie.winner ? " through" : "";
       const you = side.you ? " you" : "";
       const idx = side.you ? (save && save.crest) : crestIndexOf(side.name);
-      return '<span class="club-line' + you + through + '">' + crestHtml(side.name, "sm", idx, side.you ? save.plate : undefined) + esc(side.name) + '</span>';
+      return '<span class="club-line' + you + through + '">' + crestHtml(side.name, "sm", idx, side.you ? save.plate : undefined) + '<span class="club-name">' + esc(side.name) + '</span></span>';
     };
     const yours = (tie.a && tie.a.you) || (tie.b && tie.b.you);
     return '<div class="tie' + (yours ? " yours" : "") + '">' + mark(tie.a) + mark(tie.b) +
@@ -3748,6 +3751,15 @@
     const freshAchieve = takeAchievements();
     let want = tab;
     let aliased = false;
+    /* "events:daily", "club:home", "matches:cups": a tab and the page in it. */
+    if (typeof want === "string" && want.indexOf(":") > 0) {
+      const bits = want.split(":");
+      if (bits[0] === "events") { eventPane = bits[1]; want = "events"; }
+      else if (bits[0] === "club") { clubPane = bits[1]; want = "club"; aliased = true; }
+      else if (bits[0] === "matches") { matchesPane = bits[1]; want = "matches"; aliased = true; }
+      else if (bits[0] === "roster") { rosterPane = bits[1]; want = "roster"; aliased = true; }
+      else want = bits[0];
+    }
     if (typeof want === "string" && TAB_ALIAS[want]) {
       aliased = true;
       const al = TAB_ALIAS[want];

@@ -44,6 +44,7 @@ for f in iron-league/js/*.js; do node --check "$f"; done
 node iron-league/tools/sim.js
 python3 iron-league/tools/check-clothes.py # battler sheets, bow and gun columns
 python3 iron-league/tools/smoke.py
+python3 iron-league/tools/clipaudit.py      # text that does not fit, 4 widths
 ```
 
 `smoke.py` launches Google Chrome when it is installed and falls back to Playwright's bundled Chromium otherwise.
@@ -199,6 +200,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Kill beat**: a kill slows the live view to 35% for 0.38 s and shakes the pit. Only the view clock changes; the sim does not.
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
+
+## Fixes (v81)
+
+- **Hub music tick**: the hub loop carried a hi-hat every 0.300 s, the "constant ticking" in the menus. Each hit is ducked in the band above 1 kHz and the top end is shelved down by half, all on the loop's own circular spectrum so the seam stays seamless (high-band energy −17 dB). `AUDIO_V` 81 refetches it.
+- **Events**: feed rows used the class `result`, which the result overlay also uses, so each row became a full-screen panel and pushed Close away. Rows now use `ib-<kind>`. Links open the right page (`events:daily`, `events:week`, `events:endless`, `club:home`) and the popup has a pinned header and a Close at the bottom.
+- **Popups** are plain dark panels with a gold rim and a pinned header instead of the scroll frame.
+- Captain medallion clips the sprite to its ring; market filter counts sit inside their chips; NEXT MATCH fits on a 360 px phone; the cleared weekly event reads "Cleared ✓".
+- Arena: on a phone the floor sits low enough that a fighter at the top wall stays below the HUD, and the hazard banner fades after a few seconds.
+- **Clip audit** (`tools/clipaudit.py`): opens 46 screens (every tab, pane, popup, fight, level-up and season-end state) at 360, 412, 768 and 1280 px in Roboto, the Android font, and flags text cut by an ellipsis, past its box (into a button's arrow art), clipped by a parent, or off screen. It found 26 problems, all fixed: the phone header now runs crest + name + Menu, then the week, then purse + Ceremony; club and fighter names wrap instead of "La…"; the dock button wraps a long label ("Champions Cup", "Season ceremony"); standings columns read whole at tablet width. Run it with the repo served on :8765 (`IL_CLIP_WIDTHS=360` for a quick pass); it exits 1 on any finding.
 
 ## Iron Gate (v79)
 

@@ -4096,7 +4096,7 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
 .ov-star h3 { margin: 2px 0; font-family: var(--display); color: #ffd27a; }
 .inbox { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .inbox-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: #1a140f; border: 1px solid #2f251b; border-radius: 4px; }
-.inbox-row.level, .ov-action .inbox-row { border-left: 3px solid #e0b25a; }
+.inbox-row.ib-level, .inbox-row.ib-offer, .ov-action .inbox-row { border-left: 3px solid #e0b25a; }
 /* Matches */
 .es-board td, .es-board th { padding: 6px 6px; }
 .es-board td.up { color: #9be86f; }
@@ -4434,4 +4434,106 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
   table.board.es-board:not([id="resultTable"]) th:nth-child(3), table.board.es-board:not([id="resultTable"]) td:nth-child(3) { width: 3.4em; text-align: center; }
   table.board.es-board:not([id="resultTable"]) th:nth-child(5), table.board.es-board:not([id="resultTable"]) td:nth-child(5) { width: 2.8em; text-align: center; }
   table.board.es-board:not([id="resultTable"]) th:nth-child(6), table.board.es-board:not([id="resultTable"]) td:nth-child(6) { width: 4.6em; text-align: left; padding-left: 6px; }
+}
+/* Events inbox: the header stays put while the list scrolls. */
+#inboxSheet .sheet-head { position: sticky; top: 0; z-index: 5; background: #17120e; }
+.inbox-done { width: 100%; margin-top: 14px; }
+/* v81: captain medallion clips the sprite to the ring at every size. */
+.portrait-frame.round canvas { border-radius: 50%; clip-path: circle(closest-side at 50% 50%); }
+.es-fc-id .portrait-frame { width: 64px; padding: 7px; }
+.es-fc-id .portrait-frame.round { padding: 9px; }
+/* Market filter counts sit inside the chip, not over its edge. */
+.es-count { position: static; display: inline-block; margin-left: 6px; vertical-align: 1px; line-height: 16px; }
+/* NEXT MATCH fits between the chevrons on a phone. */
+.es-dock .dock-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) {
+  .es-dock .dock-main { font-size: 13px; letter-spacing: 0.02em; border-width: 0 18px !important; border-image-width: 0 18px !important; padding: 0 4px; }
+}
+@media (max-width: 420px) {
+  .es-dock .dock-long { display: none; }
+  .es-dock .dock-side { padding: 8px 10px; font-size: 11px; letter-spacing: 0.04em; }
+}
+.es-dock #dockInbox .dock-badge { left: auto; right: -9px; }
+
+/* ---------- v81 popups, Eslabong-style ----------
+   A plain dark panel with a gold rim instead of the scroll frame (its
+   header band read as an empty bar). The header stays pinned while the
+   body scrolls, so Close is always in reach. */
+.sheet {
+  border: 2px solid #8a6a3a !important;
+  border-image: none !important;
+  border-radius: 8px !important;
+  background: linear-gradient(#221a13, #16110d) !important;
+  padding: 0 16px 24px !important;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.0), 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+.sheet > .sheet-head, .sheet > .es-dhead {
+  position: sticky; top: 0; z-index: 6;
+  margin: 0 -16px 10px; padding: 12px 16px 10px;
+  background: linear-gradient(#2a2017, #221a13);
+  border-bottom: 1px solid #5a4630;
+  align-items: center;
+}
+.sheet-head .eyebrow { margin: 0; }
+.sheet-head h2 { font-size: 26px; color: #f2e2c4; }
+.sheet .btn.close-x { width: 40px; height: 40px; min-height: 40px; background-size: 40px 40px; }
+.sheet-back { background: rgba(6, 4, 3, 0.7) !important; }
+.fight-menu .fm-card { background: #1a140f; border: 1px solid #3f3122; border-radius: 6px; }
+.fight-menu .fm-list li { background: #1a140f; border: 1px solid #3f3122; border-radius: 4px; }
+@media (min-width: 641px) {
+  .sheet:not(.es-detail) { top: 3vh !important; bottom: 3vh !important; right: 2vw !important; }
+}
+@media (max-width: 640px) {
+  .sheet { border-radius: 10px 10px 0 0 !important; border-bottom: 0 !important; left: 0; right: 0; }
+  .sheet-head h2 { font-size: 22px; }
+}
+@media (max-width: 640px) {
+  .es-dhead .detail-stage .portrait-frame { width: 92px; padding: 10px 9px 12px; }
+  .es-dhead { gap: 8px; }
+}
+/* v81: the pit-event note shows, then gets out of the way of the floor. */
+.fight-screen .hazard-line { animation: hazard-fade 6s ease forwards; background: rgba(42, 33, 24, 0.92); }
+@keyframes hazard-fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .fight-screen .hazard-line { animation: hazard-fade 6s steps(1, end) forwards; } }
+/* Sheet header without bleed, so it never pokes past the panel. */
+.sheet > .sheet-head, .sheet > .es-dhead { margin: 0 0 10px !important; padding: 12px 0 10px !important; }
+
+/* ---------- v81 clip audit (tools/clipaudit.py, measured in Roboto) ----------
+   Header: Menu sits outside the purse so the purse can wrap under the week
+   on a phone; the club name wraps instead of dropping to "La…". */
+.es-head { grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-areas: "crest club week purse menu"; }
+.es-head .crest-btn { grid-area: crest; }
+.es-head .es-club { grid-area: club; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.1; max-width: 16em; }
+.es-head .es-week { grid-area: week; }
+.es-head .es-purse { grid-area: purse; }
+.es-head .menu-btn { grid-area: menu; flex-shrink: 0; }
+.es-purse > * { flex-shrink: 0; }
+#openSeason { min-height: 34px; height: 34px; padding: 0 14px; font: 800 13px var(--ui); letter-spacing: 0.04em; white-space: nowrap; }
+@media (max-width: 860px) {
+  .es-head { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "crest club purse menu" "week week week week"; }
+  .es-head .es-club { max-width: none; }
+}
+@media (max-width: 560px) {
+  .es-head { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "crest club menu" "week week week" "purse purse purse"; row-gap: 4px; }
+  .es-head .es-purse { justify-content: center; flex-wrap: wrap; }
+  .es-head .es-club { font-size: 18px; }
+}
+/* The big dock button wraps a long label onto two lines, never cuts it. */
+.es-dock .dock-main { white-space: normal !important; overflow: visible; text-overflow: clip; line-height: 1.05; min-width: 260px !important; }
+@media (max-width: 560px) {
+  .es-dock .dock-main { min-width: 0 !important; font-size: 13px; }
+}
+/* Names wrap instead of ending in an ellipsis. */
+.ov-name, .ldr-name, .es-mname b { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.15; }
+.es-mstar { width: 34px; flex: none; padding: 0; }
+.set-pill { padding: 0 14px; }
+/* Bracket and standings club lines keep a long name inside the cell. */
+.club-line .club-name, td.club-cell .club-name { min-width: 0; }
+/* Standings between phone and desktop: wider stat columns than the 22px
+   phone rule so Form and W-L read whole. */
+@media (min-width: 561px) and (max-width: 799px) {
+  table.board.es-board:not([id="resultTable"]) th:nth-child(3), table.board.es-board:not([id="resultTable"]) td:nth-child(3) { width: 3.6em; }
+  table.board.es-board:not([id="resultTable"]) th:nth-child(4), table.board.es-board:not([id="resultTable"]) td:nth-child(4) { width: 3em; }
+  table.board.es-board:not([id="resultTable"]) th:nth-child(5), table.board.es-board:not([id="resultTable"]) td:nth-child(5) { width: 2.8em; }
+  table.board.es-board:not([id="resultTable"]) th:nth-child(6), table.board.es-board:not([id="resultTable"]) td:nth-child(6) { width: 5.4em; padding-left: 8px; }
 }

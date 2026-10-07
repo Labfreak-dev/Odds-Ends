@@ -850,6 +850,50 @@
     };
   }
 
+  /* v76 Champions Cup, after Eslabong: when the league closes, its top
+     four play 3v3 knockouts, 1st vs 4th and 2nd vs 3rd, then a final.
+     A club that missed the top four sees it played out on its own. */
+  function startChampionsCup(save, table) {
+    const top = (table || []).slice(0, 4);
+    if (top.length < 4) return null;
+    function side(c) {
+      return c.you
+        ? { id: "you", name: save.clubName, you: true, fighters: null }
+        : { id: c.id, name: c.name, you: false, fighters: (c.fighters || []).slice() };
+    }
+    const seeds = [top[0], top[3], top[1], top[2]].map(side);
+    return {
+      kind: "champions",
+      season: save.season,
+      size: 3,
+      round: 0,
+      slots: seeds,
+      pairing: [[0, 1], [2, 3]],
+      winners: [null, null],
+      champion: null,
+      claimed: false,
+      tree: {
+        semis: [
+          { a: sideSnap(seeds[0]), b: sideSnap(seeds[1]), winner: null },
+          { a: sideSnap(seeds[2]), b: sideSnap(seeds[3]), winner: null }
+        ],
+        final: { a: null, b: null, winner: null }
+      }
+    };
+  }
+
+  /* Play every tie that does not need you, round by round. */
+  function settleCup(cup, roster, rng) {
+    let guard = 0;
+    while (cup && !cup.champion && guard < 4) {
+      resolveOtherPairs(cup, roster, rng);
+      if (cupOpponent(cup)) break;
+      advanceCup(cup);
+      guard++;
+    }
+    return cup;
+  }
+
   function sideSnap(side) {
     if (!side) return null;
     return { id: side.id, name: side.name, you: !!side.you };
@@ -1742,6 +1786,8 @@
   IL.rarityName = rarityName;
   IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;
+  IL.startChampionsCup = startChampionsCup;
+  IL.settleCup = settleCup;
   IL.perfScore = perfScore;
   IL.perfLabel = perfLabel;
   IL.marketValue = marketValue;

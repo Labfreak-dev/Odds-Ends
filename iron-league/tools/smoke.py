@@ -805,6 +805,7 @@ def check_empty_bench(page):
           const ids = raw.lineup || [];
           raw.roster = raw.roster.filter(f => ids.indexOf(f.id) >= 0);
           raw.round = (raw.fixtures || []).length || 7;
+          raw.champs = { kind: "champions", season: raw.season, champion: "c0", slots: [], pairing: [], winners: [], round: 1 };
           localStorage.setItem('ironleague.v1', JSON.stringify(raw));
         }"""
     )
@@ -832,10 +833,34 @@ def check_achievements(page, label):
 
 
 def check_season(page, label, shot_dir):
+    # v76: a top-four club gets the Champions Cup before the ceremony.
     page.evaluate(
         """() => {
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
           raw.round = (raw.fixtures || []).length || 7;
+          raw.champs = null;
+          raw.clubs.forEach(c => { c.pts = c.you ? 99 : 0; });
+          localStorage.setItem('ironleague.v1', JSON.stringify(raw));
+        }"""
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.click("#continue")
+    page.wait_for_selector("#champsFight")
+    if page.locator("#dockFight[data-dock='champs']").count() < 1:
+        raise SystemExit(label + " dock does not offer the Champions Cup")
+    page.click("#openSeason")
+    page.wait_for_selector("#champsFight")
+    if page.locator("#seasonEnd").count():
+        raise SystemExit(label + " ceremony opened before the Champions Cup")
+    page.click("#champsFight")
+    page.wait_for_selector("#versus")
+    page.click("#versusBack")
+    page.wait_for_selector("#champsFight")
+    page.evaluate(
+        """() => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          raw.round = (raw.fixtures || []).length || 7;
+          raw.champs = { kind: "champions", season: raw.season, champion: "c0", slots: [], pairing: [], winners: [], round: 1 };
           raw.roster.forEach((f, i) => {
             f.season = { dealt: 40 - i, taken: 10 + i * 5, heal: i === 2 ? 18 : 1, kos: i === 0 ? 4 : 1 };
           });
@@ -1093,6 +1118,7 @@ def sweep_frames(browser, shot_dir):
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
           raw.round = (raw.fixtures || []).length || 7;
           raw.clubs.forEach((c, i) => { c.w = 4 - Math.min(i, 4); c.l = Math.min(i, 4); c.pts = (4 - Math.min(i, 4)) * 3; });
+          raw.champs = { kind: "champions", season: raw.season, champion: "c0", slots: [], pairing: [], winners: [], round: 1 };
           localStorage.setItem('ironleague.v1', JSON.stringify(raw));
         }"""
     )
@@ -1432,6 +1458,7 @@ def qa_gate(browser, shot_dir):
               const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
               raw.round = (raw.fixtures || []).length || 7;
               raw.clubs.forEach((c, i) => { c.w = 4 - Math.min(i, 4); c.l = Math.min(i, 4); c.pts = (4 - Math.min(i, 4)) * 3; });
+          raw.champs = { kind: "champions", season: raw.season, champion: "c0", slots: [], pairing: [], winners: [], round: 1 };
               localStorage.setItem('ironleague.v1', JSON.stringify(raw));
             }"""
         )

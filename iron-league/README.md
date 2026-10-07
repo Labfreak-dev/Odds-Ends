@@ -200,6 +200,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Champions Cup (v76)
+
+When the last league week is played, the table's top four play a **Champions Cup**: 3v3 semifinals (1st vs 4th, 2nd vs 3rd) and a final, before the season ceremony.
+
+- If you are in it, Overview leads with the tie and the bottom bar's NEXT MATCH becomes **Champions Cup**; the ceremony waits until you are out or have won. Ties that do not involve you are settled by strength (`IL.settleCup`).
+- If you missed the top four, it is played out on its own and the result shows on the calendar, the Cups pane and the ceremony.
+- Purse: semifinal win 50g / 9 renown, semifinal loss 40 / 7, final loss 80 / 14, champion 160 / 30, +1 cup token and a relic. Every tie pays 30 XP a fighter for a win (40 for the title) and tires the squad like a league match.
+- `save.champs` holds the bracket for the season (`kind: "champions"`), built by `IL.startChampionsCup(save, sortedTable)`.
+
 ## Facilities (v75)
 
 Seven facilities, bought a rank at a time with gold (Club tab ▸ Facilities):

@@ -23,7 +23,8 @@ we keep our own twist.
 | v76 | **Fighter depth**: per-stat growth grades (Good / Excellent), personalities with mistake chance, form and injuries, milestone levels | planned |
 | v77 | **Relics v2**: two slots per fighter (second at level 10), Common / Rare / Legendary, chests, relic market rotation | planned |
 | v78 | **Intel tab**: league leaders, records, Codex of classes / clubs / relics with discovery | planned |
-| v79 | **Activities**: Champions Cup for the league's top four, Iron Gate (8 floors, bosses on 5/7/8), Tournament Center, Draft Cup rework, Hall of Legends, Academy 3v3 | planned |
+| v76 | **Champions Cup** for the league's top four before the ceremony | shipped |
+| v79 | **Activities**: Iron Gate (8 floors, bosses on 5/7/8), Tournament Center, Draft Cup rework, Hall of Legends, Academy 3v3 | planned |
 | v80 | **Matches as series** and bigger squads (league 5v5 in rounds), formations and opening moves | planned |
 
 ## System map

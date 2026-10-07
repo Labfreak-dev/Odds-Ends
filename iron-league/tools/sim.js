@@ -577,11 +577,19 @@ const f = IL.randomFighter(IL.mulberry32(2), "warrior");
 IL.grantXp(f, IL.xpFloor(3));
 check("grant queues a pick per level", f.level === 3 && f.pendingLevels === 2);
 const offer = IL.levelOffer(f);
-check("a level-up rolls two stat points and offers three skill cards", offer.cards.length === 3 && Object.keys(offer.roll).reduce(function (n, k) { return n + offer.roll[k]; }, 0) === 2);
+check("a level-up offers four stat cards and three skill cards", offer.cards.length === 3 && offer.stats.length === 4 && offer.stats.every(function (s) { return s.pts >= 2 && s.pts <= 3; }));
+check("growth style makes its best stat the biggest card", (function () {
+  const b = IL.randomFighter(IL.mulberry32(5), "warrior");
+  b.style = "bruiser";
+  const st = IL.statOffer(b);
+  const hp = st.filter(function (x) { return x.key === "hp"; })[0];
+  return hp.pts === 3 && hp.good && st.every(function (x) { return x.pts <= 3; });
+})());
+check("every skill card has a category", offer.cards.every(function (c) { return !!IL.categoryOf(c); }));
 check("the same offer comes back on reload", JSON.stringify(IL.levelOffer(f)) === JSON.stringify(offer));
 check("every card has a rarity", offer.cards.every(function (c) { return c.tier >= 0 && c.tier <= 3; }));
-const rollBefore = JSON.stringify(offer.roll);
-check("a pick spends the level and banks the roll", !!IL.applyLevelPick(f, 0) && f.pendingLevels === 1 && JSON.stringify(f.rolls) === JSON.stringify(Object.assign({ hp: 0, atk: 0, def: 0, spd: 0 }, JSON.parse(rollBefore))));
+const atkCard = offer.stats.filter(function (x) { return x.key === "atk"; })[0];
+check("a pick spends the level and banks the chosen stat", !!IL.applyLevelPick(f, 0, "atk") && f.pendingLevels === 1 && f.rolls.atk === atkCard.pts && f.rolls.hp === 0 && f.rolls.def === 0 && f.rolls.spd === 0);
 
 function fight(leftCls, rightCls, seed, level) {
   const n = Math.max(leftCls.length, rightCls.length);
@@ -1009,7 +1017,7 @@ const lvlSave = { division: 0, roster: [{ level: 12 }, { level: 11 }, { level: 1
 check("rivals match the club level", [0, 1, 2, 3, 4].every(function (i) { return Math.abs(IL.rivalLevel(lvlSave, i) - 11) <= 1; }));
 check("the division floor holds rivals up", IL.rivalLevel({ division: 4, roster: [{ level: 3 }] }, 1) >= 16);
 const grown = IL.growRival(IL.randomFighter(IL.mulberry32(77), "archer"), IL.mulberry32(78), 10);
-check("a grown rival took its level-ups", grown.level === 10 && grown.pendingLevels === 0 && (grown.growth || []).length === 9 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) === 18);
+check("a grown rival took its level-ups", grown.level === 10 && grown.pendingLevels === 0 && (grown.growth || []).length === 9 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) >= 18 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) <= 27);
 check("levels come slower than the old flat 40", IL.xpFloor(10) > 9 * 40 * 2);
 check("higher divisions pay more", IL.seasonPurse(0, 4).gold > IL.seasonPurse(0, 0).gold * 2);
 function grownTrio(seed, lv) {

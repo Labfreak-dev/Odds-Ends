@@ -275,6 +275,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Level up like the mercenary leagues: choose one of four stats, then one of three skills marked by category and tier.",
     "Clearer fights: team rings underfoot, ability icons over heads, status icons, a kill feed, wind-up glints, and a calmer floor.",
     "New hit effects: chunky pixel blood and sparks, white hit flashes, fire craters, sky lightning, and dash afterimages.",
     "Slower on screen: the whole pit plays at 80% speed, so walks, swings, casts and rolls move slower.",
@@ -4348,65 +4349,122 @@
 
   const RARITY_CLASS = ["common", "rare", "epic", "legendary"];
 
-  function rollPreview(f, roll) {
+  /* v70 level up, after Eslabong: first "Choose a stat" (four cards,
+     take one), then "Choose a skill" (three cards with a category pill
+     and a tier). The stat waits in memory until the skill is taken, so
+     Later drops nothing. */
+  let growthStat = null;
+
+  const STAT_CARD = {
+    hp: { name: "HP", stat: "hp", verb: "Increase max health by", tone: "hp" },
+    atk: { name: "ATK", stat: "atk", verb: "Increase attack by", tone: "atk" },
+    def: { name: "DEF", stat: "def", verb: "Increase defense by", tone: "def" },
+    spd: { name: "SPD", stat: "speed", verb: "Increase movement speed by", tone: "spd" }
+  };
+
+  /* Pixel-style stat icons, drawn as SVG so they stay crisp. */
+  function statIcon(key) {
+    const px = function (cells, color) {
+      return cells.map(function (c) { return '<rect x="' + c[0] + '" y="' + c[1] + '" width="' + (c[2] || 1) + '" height="1" fill="' + color + '"/>'; }).join("");
+    };
+    let body = "";
+    if (key === "hp") {
+      body = px([[2, 3, 3], [7, 3, 3], [1, 4, 5], [6, 4, 5], [1, 5, 10], [1, 6, 10], [2, 7, 8], [3, 8, 6], [4, 9, 4], [5, 10, 2]], "#e8333a") +
+        px([[2, 4, 2], [2, 5, 1]], "#ff8a8a");
+    } else if (key === "atk") {
+      body = px([[10, 1, 1], [9, 2, 2], [8, 3, 2], [7, 4, 2], [6, 5, 2], [5, 6, 2]], "#d9e3f2") +
+        px([[10, 2, 1], [9, 3, 1], [8, 4, 1], [7, 5, 1]], "#8fa3c2") +
+        px([[2, 6, 2], [3, 7, 3], [4, 8, 1], [2, 9, 2], [1, 10, 2]], "#b88a52");
+    } else if (key === "def") {
+      body = px([[2, 1, 8], [1, 2, 10], [1, 3, 10], [1, 4, 10], [1, 5, 10], [2, 6, 8], [2, 7, 8], [3, 8, 6], [4, 9, 4], [5, 10, 2]], "#3d8be0") +
+        px([[3, 2, 3], [2, 3, 2], [2, 4, 1]], "#a8d4ff");
+    } else {
+      body = px([[3, 1, 3], [3, 2, 3], [3, 3, 3], [3, 4, 3], [3, 5, 3], [3, 6, 4], [2, 7, 7], [2, 8, 8], [2, 9, 8]], "#5cc45a") +
+        px([[9, 3, 2], [9, 5, 2], [10, 7, 1]], "#b8f0a0") + px([[2, 9, 8]], "#2f7a32");
+    }
+    return '<svg class="lv-stat-icon" viewBox="0 0 12 12" width="44" height="44" shape-rendering="crispEdges" aria-hidden="true">' + body + '</svg>';
+  }
+
+  function statGain(f, key, pts) {
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
     const now = IL.scaledStats(f, kit);
     const rolls = Object.assign({ hp: 0, atk: 0, def: 0, spd: 0 }, f.rolls || {});
-    Object.keys(roll).forEach(function (k) { rolls[k] += roll[k]; });
+    rolls[key] += pts;
     const next = IL.scaledStats(Object.assign({}, f, { rolls: rolls }), kit);
-    return [["hp", "HP", "hp"], ["atk", "ATK", "atk"], ["def", "DEF", "def"], ["spd", "SPD", "speed"]].map(function (r) {
-      const from = Math.round(now[r[2]]);
-      const to = Math.round(next[r[2]]);
-      return { key: r[0], label: r[1], pts: roll[r[0]] || 0, from: from, to: to };
-    });
+    const k = STAT_CARD[key].stat;
+    const d = next[k] - now[k];
+    return key === "def" ? Math.round(d * 10) / 10 : Math.max(1, Math.round(d));
   }
+
+  const CATEGORY_TONE = {
+    "AoE": "aoe", "Defense": "def", "Taunt": "def", "Buff": "buff", "Heal": "heal", "Mobility": "mob",
+    "Damage": "dmg", "Control": "ctl", "Stun": "ctl", "Push": "ctl", "Damage/Over time": "dot",
+    "Summon": "sum", "Passive": "pas", "Upgrade": "upg", "Utility": "uti"
+  };
 
   function skillCardHtml(f, card, i) {
     const rar = RARITY_CLASS[card.tier] || "common";
-    const rname = (IL.RARITY[card.tier] || IL.RARITY[0]).name;
-    const pick = '<button type="button" class="btn gold lv-pick" data-pick="' + i + '" data-kind="' + card.kind + '">Choose</button>';
-    const head = function (tag, icon, title, sub) {
-      return '<p class="lv-tag"><span class="rarity-gem"></span>' + esc(rname) + ' · ' + esc(tag) + '</p>' +
-        '<div class="lv-icon">' + icon + '</div>' +
-        '<h3>' + esc(title) + '</h3>' + (sub ? '<p class="lv-sub">' + sub + '</p>' : '');
+    const R = IL.RARITY[card.tier] || IL.RARITY[0];
+    const cat = IL.categoryOf ? IL.categoryOf(card) : "Utility";
+    const top = '<p class="lv-cat ' + (CATEGORY_TONE[cat] || "uti") + '">' + esc(cat) + '</p>' +
+      '<p class="lv-tier ' + rar + '">' + esc((R.tier || "T1") + " " + R.name) + '</p>';
+    const wrap = function (icon, title, lines) {
+      return '<button type="button" class="lv-card skill es ' + rar + '" data-pick="' + i + '" data-kind="' + card.kind + '" data-tier="' + card.tier + '">' +
+        top + '<div class="lv-icon big">' + icon + '</div>' +
+        '<h3>' + esc(title) + '</h3>' + lines + '<span class="lv-choose">Choose skill</span></button>';
     };
     if (card.kind === "talent") {
       const t = IL.TALENTS[card.id];
       const v = IL.talentValue(card.id, card.tier);
       const glyph = { keen: "◎", ironhide: "⛨", vigor: "✚", thorns: "✶", bloodlust: "♥", fleet: "»" }[card.id] || "✦";
-      return '<article class="lv-card skill ' + rar + '" data-tier="' + card.tier + '">' +
-        head("Talent", '<span class="lv-glyph">' + glyph + '</span>', t.name, "Always on") +
-        '<p class="lv-big"><b class="up">+' + v + '</b>' + esc(t.unit) + '</p>' +
-        '<p class="lv-blurb">Kept for the rest of this fighter\'s career.</p>' + pick + '</article>';
+      return wrap('<span class="lv-glyph">' + glyph + '</span>', t.name,
+        '<p class="lv-desc"><b class="up">+' + v + '</b>' + esc(t.unit) + '.</p><p class="lv-desc dim">Always on, for the rest of this fighter\'s career.</p>');
     }
     const ab = IL.abilityById(card.id);
     if (!ab) return "";
-    const icon = IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 48) : "";
-    const tags = (ab.tags || []).map(function (t) { return '<span class="tag">' + esc(t) + '</span>'; }).join("");
+    const icon = IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 64) : "";
     const blurb = ab.blurb || abilityBlurb(ab.id);
-    const cd = ab.cd ? (Math.round(ab.cd * 10) / 10) + "s" : "Each cast";
+    const cd = ab.cd ? (Math.round(ab.cd * 10) / 10) + "s" : "";
     if (card.kind === "spec") {
       const m = IL.MODS[card.mod];
       const v = IL.modValue(card.mod, card.tier);
-      const slot = f.loadout.indexOf(ab.id);
-      const newCd = card.mod === "swift" && ab.cd ? (Math.round(ab.cd * (1 - v / 100) * 10) / 10) + "s" : "";
-      return '<article class="lv-card skill ' + rar + '" data-tier="' + card.tier + '">' +
-        head("Specialization", icon + '<em class="spec-pip">' + esc(m.name.charAt(0)) + '</em>', m.name + " " + ab.name, esc(ab.name) + ' becomes ' + esc(m.name.toLowerCase()) + (slot >= 0 ? ' · slot ' + (slot + 1) : '')) +
-        '<p class="lv-big"><b class="up">' + (card.mod === "chilling" ? v : "+" + v) + '</b>' + esc(m.unit) + '</p>' +
-        (newCd ? '<p class="lv-delta"><span>Cooldown</span><b>' + cd + '</b><i>→</i><b class="up">' + newCd + '</b></p>' : '<p class="lv-delta"><span>Cooldown</span><b>' + cd + '</b></p>') +
-        '<p class="lv-tags">' + tags + '</p><p class="lv-blurb">' + esc(blurb) + ' One specialization per move.</p>' + pick + '</article>';
+      return wrap(icon + '<em class="spec-pip">' + esc(m.name.charAt(0)) + '</em>', m.name + " " + ab.name,
+        '<p class="lv-desc">' + esc(ab.name) + ' gains <b class="up">' + (card.mod === "chilling" ? v : "+" + v) + '</b>' + esc(m.unit) + '.</p>' +
+        '<p class="lv-desc dim">One upgrade per move.' + (cd ? ' Cooldown ' + cd + '.' : '') + '</p>');
     }
-    return '<article class="lv-card skill ' + rar + '" data-tier="' + card.tier + '">' +
-      head("New move", icon, ab.name, ab.ult ? "Ultimate" : (ab.row ? esc(ab.row.charAt(0).toUpperCase() + ab.row.slice(1)) : "")) +
-      '<p class="lv-delta"><span>Cooldown</span><b class="up">' + cd + '</b></p>' +
-      '<p class="lv-tags">' + tags + '</p><p class="lv-blurb">' + esc(blurb) + '</p>' +
-      '<p class="fine">' + (f.loadout.length < 3 ? 'Goes into an open slot.' : 'Swap it into a slot right after.') + '</p>' + pick + '</article>';
+    return wrap(icon, ab.name,
+      '<p class="lv-desc">' + esc(blurb) + '</p>' +
+      '<p class="lv-desc dim">' + (ab.ult ? 'Ultimate. ' : '') + (cd ? 'Cooldown ' + cd + '. ' : '') + (f.loadout.length < 3 ? 'Goes into an open slot.' : 'Swap it into a slot after.') + '</p>');
+  }
+
+  function growthHeader(f, kit, waiting) {
+    const slots = [0, 1, 2].map(function (k) {
+      const id = (f.loadout || [])[k];
+      if (!id) return '<li class="lv-slot empty">+</li>';
+      const sp = f.specs && f.specs[id];
+      const ab = IL.abilityById(id);
+      return '<li class="lv-slot" title="' + esc((sp ? IL.MODS[sp.mod].name + " " : "") + (ab ? ab.name : id)) + '">' +
+        (IL.abilityIcon ? iconTag(IL.abilityIcon(id), 30) : "") + (sp ? '<em class="spec-pip">' + esc(IL.MODS[sp.mod].name.charAt(0)) + '</em>' : '') + '</li>';
+    }).join("");
+    const talents = (f.talents || []).map(function (t) {
+      return '<li class="lv-slot talent ' + (RARITY_CLASS[t.tier] || "common") + '" title="' + esc(IL.TALENTS[t.id].name) + '">' + esc(IL.TALENTS[t.id].name.charAt(0)) + '</li>';
+    }).join("");
+    const style = IL.STYLES[IL.styleOf(f)];
+    return '<header class="lv-head es">' +
+      '<div class="lv-portrait">' + portraitWrap('width="96" height="84" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="cheer" data-scale="2" data-foot="6"', f.captain, f) + '</div>' +
+      '<div class="lv-who">' +
+        '<h2>' + esc(f.name) + '</h2>' +
+        '<p class="lv-class">' + esc(kit.name) + ' · <span class="style-chip" title="' + esc(style.blurb) + '">' + esc(style.name) + ' growth</span></p>' +
+        '<p class="lv-level">Level ' + (f.level || 1) + (waiting > 1 ? ' <span class="fine">· ' + waiting + ' picks waiting</span>' : '') + '</p>' +
+      '</div>' +
+      '<ul class="lv-slots">' + slots + talents + '</ul>' +
+    '</header>';
   }
 
   function showGrowth() {
     stopLoops();
     const queue = levelQueue();
-    if (!queue.length && !levelEquip) { levelFocus = null; showHub(); return; }
+    if (!queue.length && !levelEquip) { levelFocus = null; growthStat = null; showHub(); return; }
     hubBed();
     app.onclick = null;
     if (levelEquip) { showLevelEquip(); return; }
@@ -4414,59 +4472,54 @@
     const f = queue[0];
     if (IL.ensureMoves) IL.ensureMoves(f);
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-    const st = IL.scaledStats(f, kit);
     const offer = IL.levelOffer(f);
-    const style = IL.STYLES[IL.styleOf(f)];
     const waiting = queue.reduce(function (n, x) { return n + (x.pendingLevels || 0); }, 0);
-    const rows = rollPreview(f, offer.roll);
-    const statCost = IL.rerollCost(f, "stat");
+    const chosen = growthStat && growthStat.fid === f.id ? growthStat.key : null;
     const skillCost = IL.rerollCost(f, "skill");
-    const moves = (f.loadout || []).map(function (id) {
-      const ab = IL.abilityById(id);
-      if (!ab) return "";
-      const sp = f.specs && f.specs[id];
-      return '<li>' + (IL.abilityIcon ? iconTag(IL.abilityIcon(id), 24) : "") + '<span>' + esc((sp ? IL.MODS[sp.mod].name + " " : "") + ab.name) + '</span></li>';
-    }).join("");
-    const talents = (f.talents || []).map(function (t) {
-      return '<li class="talent ' + (RARITY_CLASS[t.tier] || "common") + '"><span>' + esc(IL.TALENTS[t.id].name) + '</span></li>';
-    }).join("");
-    app.innerHTML =
-      '<main class="lv-screen v2" id="growth">' +
-        '<header class="lv-head">' +
-          '<div class="lv-portrait">' + portraitWrap('width="120" height="104" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="cheer" data-scale="2" data-foot="8"', f.captain, f) + '</div>' +
-          '<div class="lv-who">' +
-            '<p class="eyebrow">Level up' + (waiting > 1 ? ' · ' + waiting + ' waiting' : '') + '</p>' +
-            '<h2>' + esc(f.name) + ' <span class="lv-badge">Lv ' + (f.level || 1) + '</span></h2>' +
-            '<p class="fine">' + esc(kit.name) + ' · <span class="style-chip" title="' + esc(style.blurb) + '">' + esc(style.name) + ' growth</span></p>' +
-            '<ul class="lv-loadout">' + moves + talents + '</ul>' +
-          '</div>' +
-        '</header>' +
-        '<section class="lv-roll" id="statRoll">' +
-          '<header><p class="eyebrow">Stat roll</p><span class="fine">' + esc(style.name) + ': ' + esc(style.blurb) + '</span></header>' +
-          '<div class="roll-rows">' + rows.map(function (r) {
-            return '<div class="roll-row' + (r.pts ? ' up' : '') + '"><span>' + r.label + '</span><b>' + r.from + '</b>' +
-              (r.pts ? '<i>→</i><b class="up">' + r.to + '</b><em>+' + r.pts + '</em>' : '<i></i><b class="same">' + r.from + '</b>') + '</div>';
-          }).join("") + '</div>' +
-          '<button type="button" class="ctl lv-reroll" id="rerollStats"' + (save.gold < statCost ? ' disabled' : '') + '>Reroll stats · ' + statCost + 'g</button>' +
-        '</section>' +
-        '<p class="lv-hint">Choose one skill. The stat roll above comes with it.</p>' +
-        '<div class="lv-cards" id="growthChoices">' + offer.cards.map(function (c, i) { return skillCardHtml(f, c, i); }).join("") + '</div>' +
+    let body;
+    if (!chosen) {
+      body =
+        '<h2 class="lv-title">Choose a stat</h2>' +
+        '<div class="lv-cards stats" id="statChoices">' + offer.stats.map(function (st) {
+          const c = STAT_CARD[st.key];
+          const gain = statGain(f, st.key, st.pts);
+          return '<button type="button" class="lv-card stat es ' + c.tone + '" data-stat="' + st.key + '">' +
+            statIcon(st.key) +
+            '<p class="lv-stat-name">' + c.name + (st.good ? ' <span class="lv-good">Growth</span>' : '') + '</p>' +
+            '<p class="lv-stat-gain">+' + gain + ' ' + c.name + '</p>' +
+            '<p class="lv-desc">' + c.verb + ' ' + gain + '.</p>' +
+            '<span class="lv-choose">Choose stat</span>' +
+          '</button>';
+        }).join("") + '</div>' +
+        '<footer class="lv-foot"><button type="button" class="lv-later" id="backHub">Later</button></footer>';
+    } else {
+      const st = offer.stats.filter(function (x) { return x.key === chosen; })[0];
+      const c = STAT_CARD[chosen];
+      body =
+        '<h2 class="lv-title">Choose a skill</h2>' +
+        '<p class="lv-chosen">Stat chosen: <b>+' + statGain(f, chosen, st.pts) + ' ' + c.name + '</b> <button type="button" class="link" id="changeStat">Change</button></p>' +
+        '<div class="lv-cards skills" id="growthChoices">' + offer.cards.map(function (card, i) { return skillCardHtml(f, card, i); }).join("") + '</div>' +
         '<footer class="lv-foot">' +
-          '<button type="button" class="lv-later" id="rerollSkills"' + (save.gold < skillCost ? ' disabled' : '') + '>Reroll skills · ' + skillCost + 'g</button>' +
-          '<button type="button" class="lv-later" id="backHub">Decide later</button>' +
-        '</footer>' +
-      '</main>';
+          '<button type="button" class="lv-later" id="rerollSkills"' + (save.gold < skillCost ? ' disabled' : '') + '>Reroll · ' + skillCost + 'g</button>' +
+          '<button type="button" class="lv-later" id="backHub">Later</button>' +
+        '</footer>';
+    }
+    app.innerHTML = '<main class="lv-screen v3" id="growth">' + growthHeader(f, kit, waiting) + body + '</main>';
     mountIcons(app);
     bootCards();
-    document.getElementById("backHub").onclick = function () { levelFocus = null; showHub(); };
-    document.getElementById("rerollStats").onclick = function () {
-      if (save.gold < statCost) { pitSound("error"); return; }
-      save.gold -= statCost;
-      f.statRerolls = (f.statRerolls || 0) + 1;
-      levelFocus = f.id;
-      persist();
-      showGrowth();
-    };
+    document.getElementById("backHub").onclick = function () { levelFocus = null; growthStat = null; showHub(); };
+    if (!chosen) {
+      document.getElementById("statChoices").onclick = function (ev) {
+        const btn = ev.target.closest("[data-stat]");
+        if (!btn) return;
+        pitSound("click");
+        growthStat = { fid: f.id, key: btn.dataset.stat };
+        levelFocus = f.id;
+        showGrowth();
+      };
+      return;
+    }
+    document.getElementById("changeStat").onclick = function () { growthStat = null; levelFocus = f.id; showGrowth(); };
     document.getElementById("rerollSkills").onclick = function () {
       if (save.gold < skillCost) { pitSound("error"); return; }
       save.gold -= skillCost;
@@ -4478,8 +4531,9 @@
     document.getElementById("growthChoices").onclick = function (ev) {
       const btn = ev.target.closest("[data-pick]");
       if (!btn) return;
-      const card = IL.applyLevelPick(f, +btn.dataset.pick);
+      const card = IL.applyLevelPick(f, +btn.dataset.pick, chosen);
       if (!card) return;
+      growthStat = null;
       pitSound("purchase");
       if (card.kind === "learn" && f.loadout.indexOf(card.id) < 0) levelEquip = { fid: f.id, id: card.id };
       persist();

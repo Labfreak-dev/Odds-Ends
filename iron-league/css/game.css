@@ -3938,3 +3938,87 @@ tr.nemesis td:first-child { box-shadow: inset 3px 0 0 var(--copper); }
 .division-key .key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 6px; }
 .division-key .key.promo { background: #8fd06f; }
 .division-key .key.releg { background: #e06a52; }
+
+/* ---------- level up v3 (v70): Eslabong's two picks ---------- */
+.lv-screen.v3 { max-width: 980px; }
+.lv-screen.v3 .lv-head.es {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  padding: 12px 16px; margin-bottom: 14px;
+}
+.lv-screen.v3 .lv-who h2 { margin: 0; font-family: var(--display); font-size: 24px; color: #ffd27a; }
+.lv-screen.v3 .lv-class { margin: 2px 0 0; color: #e8dccb; font-size: 14px; }
+.lv-screen.v3 .lv-level { margin: 4px 0 0; font: 800 14px var(--ui); letter-spacing: 0.06em; color: #ffcf5a; text-transform: uppercase; }
+.lv-slots { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; justify-content: flex-end; }
+.lv-slot {
+  position: relative; width: 38px; height: 38px; display: grid; place-items: center;
+  background: #120e0b; border: 1px solid #5a4630; border-radius: 4px; color: #a8957a; font: 700 15px var(--ui);
+}
+.lv-slot.empty { border-style: dashed; color: #7a6650; }
+.lv-slot.talent { font-size: 13px; color: #f4ecdf; }
+.lv-slot .spec-pip { position: absolute; right: -4px; bottom: -4px; }
+.lv-title { text-align: center; margin: 6px 0 12px; font-family: var(--display); font-size: 28px; color: #f2d48a; letter-spacing: 0.02em; }
+.lv-title::after { content: ""; display: block; width: 180px; height: 2px; margin: 8px auto 0; background: linear-gradient(90deg, transparent, #c9973f, transparent); }
+.lv-chosen { text-align: center; margin: -4px 0 12px; color: #d8c8b0; font-size: 14px; }
+.lv-chosen b { color: #9be86f; }
+.lv-chosen .link { background: none; border: 0; color: #ffcf5a; text-decoration: underline; cursor: pointer; font: inherit; padding: 0 0 0 6px; }
+.lv-cards.stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.lv-card.es {
+  appearance: none; font: inherit; color: inherit; cursor: pointer; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 12px 12px; border-radius: 6px; border: 1px solid #5a4630;
+  background: linear-gradient(#2a211a, #1a140f); transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.lv-card.es:hover, .lv-card.es:focus-visible { transform: translateY(-3px); border-color: #e0b25a; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); outline: none; }
+.lv-card.stat.es.hp { background: linear-gradient(#4a1d1b, #24110f); border-color: #7a3430; }
+.lv-card.stat.es.atk { background: linear-gradient(#2f2f3a, #18171d); border-color: #55556a; }
+.lv-card.stat.es.def { background: linear-gradient(#1c2f52, #0f1829); border-color: #34558a; }
+.lv-card.stat.es.spd { background: linear-gradient(#20402a, #0f1f14); border-color: #3a6e44; }
+.lv-stat-icon { image-rendering: pixelated; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.5)); }
+.lv-stat-name { margin: 0; font: 800 15px var(--ui); color: #ffcf5a; letter-spacing: 0.06em; }
+.lv-good { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 9px; background: #2f5a2a; color: #c8f5b0; font: 700 10px var(--ui); letter-spacing: 0.04em; vertical-align: 2px; }
+.lv-stat-gain { margin: 0; font: 800 26px var(--ui); color: #ffd98a; }
+.lv-card.es .lv-desc { margin: 0; color: #f4ecdf; font-size: 14px; line-height: 1.35; }
+.lv-card.es .lv-desc.dim { color: #b8a78f; font-size: 12.5px; }
+.lv-card.es .up { color: #9be86f; }
+.lv-choose { margin-top: auto; padding-top: 6px; color: #e0b25a; font: 700 13px var(--ui); }
+.lv-card.skill.es { border-top-width: 1px; min-height: 290px; }
+.lv-card.skill.es.rare { border-color: #3f8a4e; background: linear-gradient(#26301f, #161a12); }
+.lv-card.skill.es.epic { border-color: #6a4fb0; background: linear-gradient(#2a2238, #17121f); }
+.lv-card.skill.es.legendary { border-color: #c9973f; background: linear-gradient(#3a2c18, #1d150c); box-shadow: 0 0 0 1px rgba(255, 180, 58, 0.35), 0 6px 26px rgba(255, 180, 58, 0.2); }
+.lv-cat { margin: 0; padding: 3px 10px; border-radius: 4px; font: 800 12px var(--ui); letter-spacing: 0.08em; text-transform: uppercase; color: #1a120c; background: #c9b79a; }
+.lv-cat.aoe { background: #e0a94a; }
+.lv-cat.dmg { background: #e2724e; }
+.lv-cat.dot { background: #c75a7a; color: #fff2f4; }
+.lv-cat.mob { background: #9a7ae0; color: #f6f0ff; }
+.lv-cat.def { background: #5a8ed8; color: #f0f6ff; }
+.lv-cat.heal { background: #6cc46a; }
+.lv-cat.buff { background: #e8c95a; }
+.lv-cat.ctl { background: #b06ad8; color: #fbf0ff; }
+.lv-cat.sum { background: #7a6ad0; color: #f4f0ff; }
+.lv-cat.pas { background: #6fb3b0; }
+.lv-cat.upg { background: #d0884a; }
+.lv-cat.uti { background: #6fb0a0; }
+.lv-tier { margin: 0; font: 700 14px var(--ui); color: #f4ecdf; }
+.lv-tier.rare { color: #6fe08a; }
+.lv-tier.epic { color: #b88cff; }
+.lv-tier.legendary { color: #ffc94a; }
+.lv-icon.big { width: 76px; height: 76px; display: grid; place-items: center; position: relative; background: transparent; border: 0; }
+.lv-icon.big img, .lv-icon.big .icon { width: 72px; height: 72px; image-rendering: pixelated; }
+.lv-icon.big .lv-glyph { font-size: 40px; color: #ffd27a; }
+.lv-card.skill.es h3 { margin: 2px 0 0; font-family: var(--display); font-size: 21px; color: #f2c86a; }
+.lv-screen.v3 .lv-foot { gap: 10px; }
+@media (max-width: 720px) {
+  .lv-screen.v3 .lv-head.es { grid-template-columns: auto minmax(0, 1fr); padding: 10px; gap: 10px; }
+  .lv-screen.v3 .lv-slots { grid-column: 1 / -1; justify-content: flex-start; }
+  .lv-cards.stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .lv-cards.skills { grid-template-columns: minmax(0, 1fr); }
+  .lv-card.es { display: flex; padding: 12px 10px; }
+  .lv-card.es > * { grid-column: auto; }
+  .lv-card.skill.es { min-height: 0; display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 10px; text-align: left; align-items: start; }
+  .lv-card.skill.es .lv-icon.big { grid-column: 1; grid-row: 1 / span 5; width: 60px; height: 60px; }
+  .lv-card.skill.es .lv-icon.big img, .lv-card.skill.es .lv-icon.big .icon { width: 56px; height: 56px; }
+  .lv-card.skill.es > :not(.lv-icon) { grid-column: 2; justify-self: start; }
+  .lv-stat-gain { font-size: 21px; }
+  .lv-title { font-size: 23px; }
+}
+.lv-slot img, .lv-slot .pixel-icon, .lv-slot .item-icon { width: 30px !important; height: 30px !important; margin: 0; display: block; image-rendering: pixelated; }

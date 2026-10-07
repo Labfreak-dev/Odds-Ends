@@ -200,6 +200,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Level up v3 (v70)
+
+Rebuilt after Eslabong's two-step pick:
+
+1. **Choose a stat**: four tinted cards (HP red, ATK steel, DEF blue, SPD green) with a pixel icon, the exact gain ("+6 HP") and one plain line. The growth style sets the size of each card: the style's best stat is worth 3 roll points and is marked *Growth*, its second 2.5, the rest 2. Balanced is 2.5 everywhere. Point values are unchanged (`ROLL_VALUE`).
+2. **Choose a skill**: three cards, each with a category pill (AoE, Damage, Mobility, Defense, Heal, Buff, Control, Stun, Push, Summon, Passive, Upgrade, Utility), a tier line (T1 Common, T2 Uncommon, T3 Rare, T4 Legendary), a big icon, a gold name, and a short description. Reroll costs gold; Later keeps the level waiting.
+
+The chosen stat waits in memory until the skill is taken, and "Change" goes back. The header shows the fighter, class, growth style, level, and their three move slots (with a "+" for an empty slot) and talents. Rivals take their style's best stat (`applyLevelPick(f, i)` with no stat key). Stat rerolls are gone because the stat is now a choice.
+
 ## Not in this build
 
 Clip usage is in `ANIM.md`.

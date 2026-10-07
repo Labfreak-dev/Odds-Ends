@@ -690,12 +690,30 @@
      cards with a rarity. A skill is a new move, a specialization that
      changes one equipped move, or a talent. Both parts can be rerolled
      for gold. Everything is seeded so a reload shows the same screen. */
+  /* v70: Eslabong-style tier names. ids stay for saves and css. */
   const RARITY = [
-    { id: "common", name: "Common", w: 62 },
-    { id: "rare", name: "Rare", w: 28 },
-    { id: "epic", name: "Epic", w: 9 },
-    { id: "legendary", name: "Legendary", w: 1 }
+    { id: "common", name: "Common", tier: "T1", w: 62 },
+    { id: "rare", name: "Uncommon", tier: "T2", w: 28 },
+    { id: "epic", name: "Rare", tier: "T3", w: 9 },
+    { id: "legendary", name: "Legendary", tier: "T4", w: 1 }
   ];
+  /* The category pill on a skill card, from the move's kind. */
+  const CATEGORY = {
+    cleave: "AoE", nova: "AoE", frost: "AoE", arc: "AoE",
+    shield: "Defense", zone: "Defense", taunt: "Taunt",
+    buff: "Buff", rage: "Buff", heal: "Heal", mend: "Heal",
+    charge: "Mobility", shadowstep: "Mobility", skirmish: "Mobility",
+    multishot: "Damage", pierce: "Damage", bolt: "Damage", fireball: "Damage", lunge: "Damage",
+    debuff: "Control", stun: "Stun", knock: "Push", dot: "Damage/Over time", vial: "Damage/Over time",
+    summon: "Summon"
+  };
+  function categoryOf(card) {
+    if (!card) return "Utility";
+    if (card.kind === "talent") return "Passive";
+    if (card.kind === "spec") return "Upgrade";
+    const ab = IL.abilityById ? IL.abilityById(card.id) : null;
+    return (ab && CATEGORY[ab.kind]) || "Utility";
+  }
   const MODS = {
     swift: { name: "Swift", vals: [12, 18, 25, 33], unit: "% shorter cooldown", any: true },
     heavy: { name: "Heavy", vals: [15, 22, 30, 40], unit: "% more power", any: true },
@@ -727,6 +745,30 @@
     return 0;
   }
 
+  /* v70 stat pick, Eslabong's "Choose stat": four cards, take one. A
+     fighter's growth style decides how big each card is: its best stat
+     is worth 3 points, its second 2.5, the rest 2. Balanced is 2.5
+     everywhere. */
+  const STAT_KEYS = ["hp", "atk", "def", "spd"];
+  function statOffer(f) {
+    const w = (IL.STYLES[IL.styleOf(f)] || IL.STYLES.balanced).w;
+    const ranked = STAT_KEYS.slice().sort(function (a, b) { return w[b] - w[a]; });
+    const flat = w[ranked[0]] === w[ranked[3]];
+    return STAT_KEYS.map(function (k) {
+      let pts = 2;
+      if (flat) pts = 2.5;
+      else if (k === ranked[0]) pts = 3;
+      else if (k === ranked[1] && w[k] > w[ranked[2]]) pts = 2.5;
+      return { key: k, pts: pts, good: !flat && k === ranked[0] };
+    });
+  }
+
+  function bestStat(f) {
+    const offer = statOffer(f);
+    return offer.reduce(function (b, s) { return s.pts > b.pts ? s : b; }, offer[0]).key;
+  }
+
+  /* The v64 random roll, kept for old growth logs and tools. */
   function statRoll(f) {
     const rng = rollRng(f, "roll" + (f.statRerolls || 0));
     const w = (IL.STYLES[IL.styleOf(f)] || IL.STYLES.balanced).w;
@@ -801,7 +843,7 @@
   }
 
   function levelOffer(f) {
-    return { roll: statRoll(f), cards: skillOffer(f) };
+    return { stats: statOffer(f), cards: skillOffer(f) };
   }
 
   function rerollCost(f, part) {
@@ -809,13 +851,20 @@
     return part === "stat" ? 10 + lv * 4 : 15 + lv * 5;
   }
 
-  function applyLevelPick(f, index) {
+  /* One level: the stat card picked (statKey, or the style's best when
+     none is given, as rivals do) and one skill card. */
+  function applyLevelPick(f, index, statKey) {
     if (!f || !(f.pendingLevels > 0)) return null;
     const offer = levelOffer(f);
     const card = offer.cards[index];
     if (!card) return null;
+    const key = STAT_KEYS.indexOf(statKey) >= 0 ? statKey : bestStat(f);
+    const stat = offer.stats.filter(function (s) { return s.key === key; })[0];
+    const roll = { hp: 0, atk: 0, def: 0, spd: 0 };
+    roll[key] = stat ? stat.pts : 2;
+    offer.roll = roll;
     if (!f.rolls || typeof f.rolls !== "object") f.rolls = { hp: 0, atk: 0, def: 0, spd: 0 };
-    Object.keys(offer.roll).forEach(function (k) { f.rolls[k] = (f.rolls[k] || 0) + offer.roll[k]; });
+    Object.keys(roll).forEach(function (k) { f.rolls[k] = (f.rolls[k] || 0) + roll[k]; });
     if (card.kind === "learn") {
       if (!teachMove(f, card.id)) return null;
       if (f.loadout.length < 3) f.loadout.push(card.id);
@@ -993,6 +1042,8 @@
   IL.statRoll = statRoll;
   IL.rerollCost = rerollCost;
   IL.RARITY = RARITY;
+  IL.statOffer = statOffer;
+  IL.categoryOf = categoryOf;
   IL.MODS = MODS;
   IL.TALENTS = TALENTS;
   IL.modValue = modValue;

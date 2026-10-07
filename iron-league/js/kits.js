@@ -469,6 +469,233 @@
     kit.abilities = kit.abilities.concat(MORE[id]);
   });
 
+  /* v85: six more moves a kit, learned on level up. Same kinds and number
+     bands as the moves each kit already has. */
+  const MORE2 = {
+    warrior: [
+      M("x-warrior-hew", "Hew", "cleave", 10.4, "slash", null, [], "A wide two-handed hew."),
+      M("x-warrior-pommel", "Pommel", "stun", 11, "slash", null, [], "The pommel to the jaw. A short stun.", { stun: 0.4, power: 0.3, reach: 42 }),
+      M("x-warrior-war-cry", "War Cry", "buff", 12, "spark", null, [], "The line hits harder for a moment.", { power: 0.1, time: 3.5, team: true }),
+      M("x-warrior-shield-slam", "Shield Slam", "knock", 10, "slash", null, [], "A shield slam that throws them back.", { force: 190, power: 0.28 }),
+      M("x-warrior-gash", "Gash", "dot", 8.6, "slash", null, [], "A deep cut that keeps bleeding.", { power: 0.2, dot: 2.8, reach: 46 }),
+      M("x-warrior-catch-breath", "Catch Breath", "heal", 12, "plasma", null, [], "Breath back and a little health.", { power: 0.12 })
+    ],
+    archer: [
+      M("x-archer-volley", "Volley", "multishot", 10.5, "shot", null, [], "Three arrows into the crowd."),
+      M("x-archer-barbed-shot", "Barbed Shot", "dot", 8.8, "shot", null, [], "An arrow that keeps them bleeding.", { power: 0.22, dot: 3, reach: 210 }),
+      M("x-archer-long-draw", "Long Draw", "pierce", 11, "shot", null, [], "A full draw that goes through."),
+      M("x-archer-hamstring", "Hamstring", "debuff", 9.4, "shot", null, [], "A shot at the legs. They slow down.", { reach: 280, time: 2.2 }),
+      M("x-archer-fall-back", "Fall Back", "skirmish", 9.2, "dash", null, [], "A step back and a shot."),
+      M("x-archer-blinding-shot", "Blinding Shot", "stun", 11, "shot", null, [], "A flash arrow. A short daze.", { stun: 0.4, power: 0.25, reach: 200 })
+    ],
+    mage: [
+      M("x-mage-arcane-bolt", "Arcane Bolt", "bolt", 9, "bolt", null, [], "A straight bolt of raw mana.", { power: 0.8, reach: 220 }),
+      M("x-mage-ember-rain", "Ember Rain", "nova", 12, "boom", null, [], "Embers fall on a cluster.", { power: 0.7, radius: 60 }),
+      M("x-mage-slow-field", "Slow Field", "nova", 12.5, "plasma", null, [], "A field that slows whoever stands in it.", { power: 0.55, radius: 62, slow: 1.6 }),
+      M("x-mage-blink", "Blink", "shadowstep", 10, "smoke", null, [], "A blink to safer ground."),
+      M("x-mage-mana-leech", "Mana Leech", "dot", 8.6, "smoke", null, [], "A thread that drains them.", { power: 0.24, dot: 3, reach: 210 }),
+      M("x-mage-silence", "Silence", "debuff", 9.6, "spark", null, [], "A word that stalls their next move.", { reach: 260, time: 2 })
+    ],
+    tank: [
+      M("x-tank-bulwark-step", "Bulwark Step", "zone", 12, "orbit", null, [], "Plants and holds the ground."),
+      M("x-tank-clang", "Clang", "stun", 11, "orbit", null, [], "The shield rings. Everyone near is dazed.", { stun: 0.45, power: 0.25, reach: 52 }),
+      M("x-tank-grit", "Grit", "shield", 11, "plasma", null, [], "A guard on themselves.", { power: 0.1, self: true }),
+      M("x-tank-challenge", "Challenge", "taunt", 10, "spark", null, [], "Calls every foe to them."),
+      M("x-tank-ram", "Ram", "charge", 11, "dash", null, [], "Runs straight through the line."),
+      M("x-tank-iron-shove", "Iron Shove", "knock", 9.6, "slash", null, [], "A shove that clears the front.", { force: 200, power: 0.25 })
+    ],
+    rogue: [
+      M("x-rogue-backstab", "Backstab", "lunge", 8, "slash", null, [], "In behind and a quick stab."),
+      M("x-rogue-caltrops", "Caltrops", "debuff", 9.2, "smoke", null, [], "Spikes on the floor. They slow.", { reach: 200, time: 2 }),
+      M("x-rogue-hemorrhage", "Hemorrhage", "dot", 8.4, "slash", null, [], "A cut that opens and keeps bleeding.", { power: 0.22, dot: 3, reach: 46 }),
+      M("x-rogue-throwing-knife", "Throwing Knife", "vial", 7.6, "shot", null, [], "A knife thrown at range.", { reach: 200, power: 0.65 }),
+      M("x-rogue-sap", "Sap", "stun", 11, "slash", null, [], "A blow to the head. A short stun.", { stun: 0.45, power: 0.25, reach: 42 }),
+      M("x-rogue-tumble", "Tumble", "skirmish", 9, "dash", null, [], "A roll out of reach.")
+    ],
+    lancer: [
+      M("x-lancer-skewer", "Skewer", "lunge", 8.4, "slash", null, [], "A long thrust at the nearest."),
+      M("x-lancer-gallop", "Gallop", "charge", 10.5, "dash", null, [], "A running charge down the line."),
+      M("x-lancer-hook", "Hook", "knock", 9.6, "slash", null, [], "Hooks and drags them off balance.", { force: 180, power: 0.28 }),
+      M("x-lancer-pike-wall", "Pike Wall", "zone", 12, "orbit", null, [], "The spear set against the rush."),
+      M("x-lancer-rend-point", "Rend Point", "dot", 8.6, "slash", null, [], "The point twists in the wound.", { power: 0.2, dot: 2.8, reach: 52 }),
+      M("x-lancer-rally-horn", "Rally Horn", "buff", 12, "spark", null, [], "The line steps up together.", { power: 0.1, time: 3.5, team: true })
+    ],
+    berserker: [
+      M("x-berserker-frenzy", "Frenzy", "buff", 10, "spark", null, [], "Blood up. They hit harder for a moment.", { power: 0.12, time: 4, self: true }),
+      M("x-berserker-cleaver", "Cleaver", "cleave", 9.8, "slash", null, [], "A wild swing through everyone in front."),
+      M("x-berserker-headbutt", "Headbutt", "stun", 11, "slash", null, [], "A headbutt. A short stun.", { stun: 0.45, power: 0.3, reach: 42 }),
+      M("x-berserker-bloodletting", "Bloodletting", "dot", 8.2, "slash", null, [], "Every cut keeps bleeding.", { power: 0.22, dot: 3, reach: 46 }),
+      M("x-berserker-bull-rush", "Bull Rush", "charge", 10.5, "dash", null, [], "Straight in, whatever is in the way."),
+      M("x-berserker-stomp", "Stomp", "knock", 10, "slash", null, [], "A stomp that throws them back.", { force: 190, power: 0.3 })
+    ],
+    healer: [
+      M("x-healer-renew", "Renew", "heal", 8, "plasma", null, [], "A quick mend on the worst wound.", { power: 0.14 }),
+      M("x-healer-sanctuary", "Sanctuary", "shield", 11, "orbit", null, [], "A guard on the most wounded ally.", { power: 0.1 }),
+      M("x-healer-blessing", "Blessing", "buff", 12, "spark", null, [], "The team hits harder for a moment.", { power: 0.1, time: 3.5, team: true }),
+      M("x-healer-smite", "Smite", "bolt", 9, "bolt", null, [], "A bolt of light at the nearest foe.", { power: 0.75, reach: 200 }),
+      M("x-healer-soothe", "Soothe", "debuff", 9.6, "spark", null, [], "A calm that slows their hands.", { reach: 240, time: 2 }),
+      M("x-healer-cleanse", "Cleanse", "heal", 12, "plasma", null, [], "A deep mend.", { power: 0.16 })
+    ],
+    assassin: [
+      M("x-assassin-ambush", "Ambush", "lunge", 8, "slash", null, [], "Out of nowhere, a stab."),
+      M("x-assassin-wolfsbane", "Wolfsbane", "dot", 8.4, "smoke", null, [], "A slow poison that keeps biting.", { power: 0.24, dot: 3.4, reach: 48 }),
+      M("x-assassin-shuriken", "Shuriken", "vial", 7.4, "shot", null, [], "A star thrown at range.", { reach: 210, power: 0.65 }),
+      M("x-assassin-choke", "Choke", "stun", 11, "slash", null, [], "A grip at the throat. A short stun.", { stun: 0.45, power: 0.25, reach: 42 }),
+      M("x-assassin-mist-step", "Mist Step", "shadowstep", 9.4, "smoke", null, [], "Gone in a puff of mist."),
+      M("x-assassin-mark-for-death", "Mark for Death", "debuff", 9.2, "spark", null, [], "The mark slows them for the kill.", { reach: 260, time: 2.2 })
+    ],
+    ranger: [
+      M("x-ranger-hunter-s-shot", "Hunter's Shot", "pierce", 11, "shot", null, [], "A shot that goes through."),
+      M("x-ranger-rain-of-arrows", "Rain of Arrows", "multishot", 10.5, "shot", null, [], "Arrows over the crowd."),
+      M("x-ranger-thorn-arrow", "Thorn Arrow", "dot", 8.8, "shot", null, [], "A thorned arrow that keeps cutting.", { power: 0.22, dot: 3, reach: 210 }),
+      M("x-ranger-bear-trap", "Bear Trap", "stun", 11, "slash", null, [], "A trap snaps shut. A short stun.", { stun: 0.45, power: 0.25, reach: 200 }),
+      M("x-ranger-retreat", "Retreat", "skirmish", 9.2, "dash", null, [], "Back out of reach."),
+      M("x-ranger-wolf-call", "Wolf Call", "summon", 14, "smoke", null, [], "A wolf answers the call.", { pet: "Hound", petHp: 0.22, petAtk: 0.34, life: 5.5 })
+    ],
+    battlemage: [
+      M("x-battlemage-thunder-blade", "Thunder Blade", "cleave", 10, "bolt", null, [], "A charged swing through the front."),
+      M("x-battlemage-spark-burst", "Spark Burst", "nova", 12, "boom", null, [], "Sparks burst around them.", { power: 0.7, radius: 58 }),
+      M("x-battlemage-static-bolt", "Static Bolt", "bolt", 9, "bolt", null, [], "A short bolt of lightning.", { power: 0.75, reach: 160 }),
+      M("x-battlemage-rune-guard", "Rune Guard", "shield", 11, "orbit", null, [], "A rune guard on themselves.", { power: 0.1, self: true }),
+      M("x-battlemage-jolt", "Jolt", "stun", 11, "bolt", null, [], "A jolt. A short stun.", { stun: 0.4, power: 0.3, reach: 52 }),
+      M("x-battlemage-surge", "Surge", "charge", 10.5, "dash", null, [], "A surge forward.")
+    ],
+    shieldbearer: [
+      M("x-shieldbearer-shield-wall", "Shield Wall", "zone", 12, "orbit", null, [], "The wall goes up and holds."),
+      M("x-shieldbearer-rim-strike", "Rim Strike", "stun", 11, "slash", null, [], "The shield rim to the face.", { stun: 0.45, power: 0.3, reach: 42 }),
+      M("x-shieldbearer-cover", "Cover", "shield", 11, "orbit", null, [], "A guard on the most wounded ally.", { power: 0.1 }),
+      M("x-shieldbearer-push-back", "Push Back", "knock", 9.6, "slash", null, [], "A push that buys room.", { force: 200, power: 0.25 }),
+      M("x-shieldbearer-hold-fast", "Hold Fast", "taunt", 10, "spark", null, [], "Draws every foe to the shield."),
+      M("x-shieldbearer-shield-charge", "Shield Charge", "charge", 11, "dash", null, [], "Runs in behind the shield.")
+    ],
+    skirmisher: [
+      M("x-skirmisher-sling", "Sling", "vial", 7.4, "shot", null, [], "A stone from the sling.", { reach: 210, power: 0.65 }),
+      M("x-skirmisher-bola", "Bola", "debuff", 9.2, "shot", null, [], "A bola that slows their legs.", { reach: 260, time: 2.2 }),
+      M("x-skirmisher-dart", "Dart", "dot", 8.4, "shot", null, [], "A dart that keeps stinging.", { power: 0.2, dot: 2.8, reach: 200 }),
+      M("x-skirmisher-scatter", "Scatter", "multishot", 10.5, "shot", null, [], "A spray of shot."),
+      M("x-skirmisher-dodge", "Dodge", "shadowstep", 9.4, "smoke", null, [], "A quick dodge away."),
+      M("x-skirmisher-flash-pot", "Flash Pot", "stun", 11, "boom", null, [], "A pot that flashes. A short daze.", { stun: 0.4, power: 0.25, reach: 200 })
+    ],
+    duelist: [
+      M("x-duelist-thrust", "Thrust", "lunge", 8, "slash", null, [], "A fast thrust at the nearest."),
+      M("x-duelist-parry", "Parry", "shield", 11, "plasma", null, [], "A parry stance on themselves.", { power: 0.1, self: true }),
+      M("x-duelist-disarm", "Disarm", "stun", 11, "slash", null, [], "A twist that knocks the blade away.", { stun: 0.45, power: 0.25, reach: 42 }),
+      M("x-duelist-cut-and-run", "Cut and Run", "skirmish", 9, "dash", null, [], "A cut and a step out."),
+      M("x-duelist-bleed-out", "Bleed Out", "dot", 8.4, "slash", null, [], "A thin cut that keeps bleeding.", { power: 0.22, dot: 3, reach: 46 }),
+      M("x-duelist-bravado", "Bravado", "buff", 10, "spark", null, [], "They hit harder for a moment.", { power: 0.12, time: 3.5, self: true })
+    ],
+    elementalist: [
+      M("x-elementalist-magma", "Magma", "nova", 12, "boom", null, [], "The ground boils under a cluster.", { power: 0.7, radius: 60 }),
+      M("x-elementalist-lightning", "Lightning", "bolt", 9, "bolt", null, [], "A bolt from above.", { power: 0.8, reach: 220 }),
+      M("x-elementalist-frostbite", "Frostbite", "nova", 12.5, "plasma", null, [], "A cold that slows a cluster.", { power: 0.55, radius: 62, slow: 1.6 }),
+      M("x-elementalist-stone-skin", "Stone Skin", "shield", 11, "orbit", null, [], "Stone on themselves.", { power: 0.1, self: true }),
+      M("x-elementalist-tremor", "Tremor", "stun", 11, "boom", null, [], "The ground jumps. A short daze.", { stun: 0.4, power: 0.3, reach: 52 }),
+      M("x-elementalist-wildfire", "Wildfire", "dot", 8.6, "boom", null, [], "A fire that keeps burning.", { power: 0.24, dot: 3.2, reach: 210 })
+    ],
+    monk: [
+      M("x-monk-flurry", "Flurry", "cleave", 9.6, "slash", null, [], "A flurry of fists through the front."),
+      M("x-monk-pressure-point", "Pressure Point", "stun", 11, "spark", null, [], "A finger to the nerve. A short stun.", { stun: 0.5, power: 0.3, reach: 42 }),
+      M("x-monk-still-mind", "Still Mind", "shield", 11, "orbit", null, [], "A calm guard on themselves.", { power: 0.1, self: true }),
+      M("x-monk-crane-step", "Crane Step", "shadowstep", 9.4, "dash", null, [], "A light step aside."),
+      M("x-monk-chi-wave", "Chi Wave", "heal", 10, "plasma", null, [], "A wave that mends the worst wound.", { power: 0.14 }),
+      M("x-monk-sweep-kick", "Sweep Kick", "knock", 10, "slash", null, [], "A low sweep that throws them back.", { force: 180, power: 0.28 })
+    ],
+    necromancer: [
+      M("x-necromancer-corpse-fire", "Corpse Fire", "nova", 12, "smoke", null, [], "A green fire bursts among them.", { power: 0.7, radius: 58 }),
+      M("x-necromancer-drain", "Drain", "dot", 8.6, "smoke", null, [], "Life drained a little at a time.", { power: 0.26, dot: 3.2, reach: 210 }),
+      M("x-necromancer-skeleton", "Skeleton", "summon", 14, "smoke", null, [], "Another bone stands up.", { pet: "Bone", petHp: 0.22, petAtk: 0.34, life: 5.5 }),
+      M("x-necromancer-bone-spear", "Bone Spear", "bolt", 9, "bolt", null, [], "A spear of bone at the nearest.", { power: 0.8, reach: 220 }),
+      M("x-necromancer-terror", "Terror", "stun", 11, "smoke", null, [], "A dread that freezes them.", { stun: 0.4, power: 0.25, reach: 200 }),
+      M("x-necromancer-bone-armor", "Bone Armor", "shield", 11, "orbit", null, [], "Bone plates on themselves.", { power: 0.1, self: true })
+    ],
+    paladin: [
+      M("x-paladin-holy-strike", "Holy Strike", "cleave", 10, "spark", null, [], "A blessed swing through the front."),
+      M("x-paladin-consecrate", "Consecrate", "zone", 12, "orbit", null, [], "Holy ground they will not leave."),
+      M("x-paladin-divine-light", "Divine Light", "heal", 10, "plasma", null, [], "Light mends the worst wound.", { power: 0.14 }),
+      M("x-paladin-judgment", "Judgment", "bolt", 9, "bolt", null, [], "A bolt of judgment at range.", { power: 0.75, reach: 180 }),
+      M("x-paladin-valor", "Valor", "buff", 12, "spark", null, [], "The team hits harder for a moment.", { power: 0.1, time: 3.5, team: true }),
+      M("x-paladin-shield-of-faith", "Shield of Faith", "shield", 11, "orbit", null, [], "A guard on the most wounded ally.", { power: 0.1 })
+    ],
+    druid: [
+      M("x-druid-moonfire", "Moonfire", "dot", 8.6, "plasma", null, [], "Moonlight that keeps burning.", { power: 0.22, dot: 3, reach: 210 }),
+      M("x-druid-wild-growth", "Wild Growth", "heal", 10, "plasma", null, [], "Leaves close the worst wound.", { power: 0.14 }),
+      M("x-druid-starfall", "Starfall", "nova", 12, "bolt", null, [], "Stars fall on a cluster.", { power: 0.7, radius: 60 }),
+      M("x-druid-vine-whip", "Vine Whip", "knock", 10, "slash", null, [], "A vine lashes and throws them back.", { force: 180, power: 0.28 }),
+      M("x-druid-spirit-bear", "Spirit Bear", "summon", 14, "smoke", null, [], "A bear spirit fights beside them.", { pet: "Familiar", petHp: 0.24, petAtk: 0.36, life: 6 }),
+      M("x-druid-oak-skin", "Oak Skin", "shield", 11, "orbit", null, [], "Bark on the most wounded ally.", { power: 0.1 })
+    ],
+    bard: [
+      M("x-bard-ballad", "Ballad", "heal", 10, "plasma", null, [], "A verse that mends the worst wound.", { power: 0.14 }),
+      M("x-bard-dirge", "Dirge", "debuff", 9.6, "spark", null, [], "A slow song that drags them.", { reach: 260, time: 2.2 }),
+      M("x-bard-crescendo", "Crescendo", "nova", 12, "spark", null, [], "A note that bursts among them.", { power: 0.65, radius: 58 }),
+      M("x-bard-lullaby", "Lullaby", "stun", 11, "spark", null, [], "A lullaby. A short sleep.", { stun: 0.45, power: 0.2, reach: 200 }),
+      M("x-bard-march", "March", "buff", 12, "spark", null, [], "The team hits harder for a moment.", { power: 0.1, time: 4, team: true }),
+      M("x-bard-harmony", "Harmony", "shield", 11, "orbit", null, [], "A guard on the most wounded ally.", { power: 0.1 })
+    ],
+    gunslinger: [
+      M("x-gunslinger-quickshot", "Quickshot", "vial", 7, "shot", null, [], "A fast shot from the hip.", { reach: 210, power: 0.65 }),
+      M("x-gunslinger-ricochet", "Ricochet", "multishot", 10.5, "shot", null, [], "Shots that bounce through the crowd."),
+      M("x-gunslinger-armor-pierce", "Armor Pierce", "pierce", 11, "shot", null, [], "A round that goes through."),
+      M("x-gunslinger-kneecap", "Kneecap", "debuff", 9.2, "shot", null, [], "A shot at the knee. They slow.", { reach: 280, time: 2.2 }),
+      M("x-gunslinger-smoke-round", "Smoke Round", "stun", 11, "smoke", null, [], "A round that bursts in smoke. A short daze.", { stun: 0.4, power: 0.25, reach: 200 }),
+      M("x-gunslinger-duck-and-cover", "Duck and Cover", "skirmish", 9, "dash", null, [], "Down and out of the line.")
+    ],
+    warlock: [
+      M("x-warlock-shadow-bolt", "Shadow Bolt", "bolt", 9, "bolt", null, [], "A bolt of shadow.", { power: 0.8, reach: 220 }),
+      M("x-warlock-agony", "Agony", "dot", 8.4, "smoke", null, [], "A pain that keeps biting.", { power: 0.26, dot: 3.4, reach: 210 }),
+      M("x-warlock-hellfire", "Hellfire", "nova", 12, "boom", null, [], "Fire bursts among them.", { power: 0.7, radius: 60 }),
+      M("x-warlock-dark-pact", "Dark Pact", "shield", 11, "orbit", null, [], "A dark guard on themselves.", { power: 0.1, self: true }),
+      M("x-warlock-fel-imp", "Fel Imp", "summon", 14, "smoke", null, [], "Another imp answers.", { pet: "Imp", petHp: 0.22, petAtk: 0.36, life: 5.5 }),
+      M("x-warlock-howl-of-terror", "Howl of Terror", "stun", 11, "smoke", null, [], "A shriek that freezes them.", { stun: 0.4, power: 0.25, reach: 200 })
+    ],
+    samurai: [
+      M("x-samurai-iai-slash", "Iai Slash", "lunge", 8, "slash", null, [], "A draw and cut in one."),
+      M("x-samurai-crescent", "Crescent", "cleave", 10, "slash", null, [], "A crescent cut through the front."),
+      M("x-samurai-focus", "Focus", "buff", 10, "spark", null, [], "A breath. They hit harder for a moment.", { power: 0.12, time: 3.5, self: true }),
+      M("x-samurai-hilt-strike", "Hilt Strike", "stun", 11, "slash", null, [], "The hilt to the jaw. A short stun.", { stun: 0.45, power: 0.25, reach: 42 }),
+      M("x-samurai-wind-step", "Wind Step", "shadowstep", 9.4, "dash", null, [], "A step like the wind."),
+      M("x-samurai-deep-cut", "Deep Cut", "dot", 8.6, "slash", null, [], "A cut that keeps bleeding.", { power: 0.22, dot: 3, reach: 46 })
+    ],
+    spearmaiden: [
+      M("x-spearmaiden-javelin", "Javelin", "vial", 7.6, "shot", null, [], "A spear thrown at range.", { reach: 210, power: 0.7 }),
+      M("x-spearmaiden-whirling-spear", "Whirling Spear", "cleave", 10, "slash", null, [], "The spear spun through the front."),
+      M("x-spearmaiden-impale", "Impale", "dot", 8.6, "slash", null, [], "The point stays in the wound.", { power: 0.22, dot: 3, reach: 52 }),
+      M("x-spearmaiden-shield-maiden", "Shield Maiden", "shield", 11, "orbit", null, [], "A guard on the most wounded ally.", { power: 0.1 }),
+      M("x-spearmaiden-pole-vault", "Pole Vault", "charge", 10.5, "dash", null, [], "Over the line on the spear."),
+      M("x-spearmaiden-war-song", "War Song", "buff", 12, "spark", null, [], "The team hits harder for a moment.", { power: 0.1, time: 3.5, team: true })
+    ],
+    summoner: [
+      M("x-summoner-wisp", "Wisp", "summon", 14, "smoke", null, [], "A wisp joins the fight.", { pet: "Familiar", petHp: 0.22, petAtk: 0.34, life: 5.5 }),
+      M("x-summoner-spirit-lash", "Spirit Lash", "dot", 8.6, "smoke", null, [], "A spirit that keeps biting.", { power: 0.22, dot: 3, reach: 210 }),
+      M("x-summoner-astral-burst", "Astral Burst", "nova", 12, "plasma", null, [], "Light bursts among them.", { power: 0.7, radius: 58 }),
+      M("x-summoner-spirit-chains", "Spirit Chains", "stun", 11, "spark", null, [], "Spirit chains. A short hold.", { stun: 0.45, power: 0.2, reach: 200 }),
+      M("x-summoner-mend-link", "Mend Link", "heal", 10, "plasma", null, [], "The bond mends the worst wound.", { power: 0.14 }),
+      M("x-summoner-phase", "Phase", "shadowstep", 9.4, "smoke", null, [], "A phase out of reach.")
+    ],
+    alchemist: [
+      M("x-alchemist-firebomb", "Firebomb", "nova", 12, "boom", null, [], "A bomb bursts among them.", { power: 0.7, radius: 60 }),
+      M("x-alchemist-frost-flask", "Frost Flask", "nova", 12.5, "plasma", null, [], "A flask that slows a cluster.", { power: 0.55, radius: 62, slow: 1.6 }),
+      M("x-alchemist-toxic-cloud", "Toxic Cloud", "dot", 8.4, "smoke", null, [], "A cloud that keeps burning.", { power: 0.24, dot: 3.2, reach: 200 }),
+      M("x-alchemist-elixir", "Elixir", "heal", 10, "plasma", null, [], "An elixir for the worst wound.", { power: 0.14 }),
+      M("x-alchemist-glue-pot", "Glue Pot", "debuff", 9.2, "shot", null, [], "A pot of glue. They slow.", { reach: 240, time: 2.2 }),
+      M("x-alchemist-flashbang", "Flashbang", "stun", 11, "boom", null, [], "A bang and a flash. A short daze.", { stun: 0.4, power: 0.25, reach: 200 })
+    ],
+    beastmaster: [
+      M("x-beastmaster-falcon", "Falcon", "summon", 14, "smoke", null, [], "A falcon dives in.", { pet: "Familiar", petHp: 0.2, petAtk: 0.38, life: 5 }),
+      M("x-beastmaster-gore", "Gore", "dot", 8.4, "slash", null, [], "A goring cut that keeps bleeding.", { power: 0.22, dot: 3, reach: 46 }),
+      M("x-beastmaster-trample", "Trample", "knock", 10, "slash", null, [], "A charge that throws them back.", { force: 200, power: 0.3 }),
+      M("x-beastmaster-beast-call", "Beast Call", "buff", 12, "spark", null, [], "The pack hits harder for a moment.", { power: 0.1, time: 3.5, team: true }),
+      M("x-beastmaster-pounce", "Pounce", "charge", 10.5, "dash", null, [], "A leap in beside the pack."),
+      M("x-beastmaster-roar", "Roar", "stun", 11, "spark", null, [], "A roar that freezes them.", { stun: 0.4, power: 0.25, reach: 52 })
+    ]
+  };
+
+  Object.keys(MORE2).forEach(function (id) {
+    const kit = CLASSES[id];
+    if (!kit || !kit.abilities) return;
+    kit.abilities = kit.abilities.concat(MORE2[id]);
+  });
+
   /* One more option per class. Same kind, cooldown, and numbers as a move
      the kit already has, so the fight stays in the same band. The name is
      new, and a recruit may equip it instead of the original. */

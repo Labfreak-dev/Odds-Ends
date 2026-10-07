@@ -76,6 +76,7 @@ we keep our own twist.
 - **v84**: cap 100 like Eslabong; upgrades and passives rank up to legendary,
   then Hone cards add stats, so every level still has a pick. Rival clubs sit
   six under to six over the club level and level with it through the season.
+- **v85**: six more moves a class (14 a kit), learned on level up.
 
 ### Economy
 - **Eslabong**: Gold (league win 750-1,500 by division, draw 500, loss 300),

@@ -310,6 +310,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Six new moves for every class, 162 in all: learn them on level up and swap them into a slot. Every kit now has fourteen.",
     "Levels run to 100. Rival clubs keep pace, from six under your level to six over, and level up with you through the season. Maxed moves and passives rank up, then Hone adds stats.",
     "Fresh start: all progress was reset for a balance pass. Every club begins again in Division V.",
     "The Iron Gate: eight floors once a week, bosses on 5, 7 and 8, health carried floor to floor, a chest at every boss.",

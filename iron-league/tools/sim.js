@@ -1022,6 +1022,10 @@ check("levels come slower than the old flat 40", IL.xpFloor(10) > 9 * 40 * 2);
 const rookieMv = IL.randomFighter(IL.mulberry32(41), "warrior");
 const vetMv = Object.assign(JSON.parse(JSON.stringify(rookieMv)), { level: 10, wins: 12, losses: 3, kos: 20, mvps: 4, career: { dealt: 4000, heal: 0, taken: 900, kos: 20, moves: {} } });
 check("market value grows with level and a record", IL.marketValue(vetMv) > IL.marketValue(rookieMv) * 2 && IL.marketValue(rookieMv) >= 20);
+const facSave = { facilities: { hq: 2, barracks: 1, infirmary: 2, scout: 2, treasury: 1 } };
+check("facilities scale the club", IL.rosterCap(facSave) === IL.ROSTER_CAP + 4 && Math.abs(IL.benchShare(facSave) - 0.15) < 1e-9 && IL.restBonus(facSave) === 12 && IL.scoutOdds(facSave) === 1 && IL.clubRelicSlots(facSave) === 3 && IL.rosterCap({}) === IL.ROSTER_CAP);
+const facMig = IL.migrate({ clubName: "F", roster: [{ id: "a", cls: "warrior" }], facilities: { hq: 9, yard: 5 } });
+check("facility ranks clamp to their max", facMig.facilities.hq === 3 && facMig.facilities.yard === 2 && facMig.facilities.treasury === 0);
 check("an unplayed fighter is unproven", IL.perfScore(rookieMv) === 0 && IL.perfLabel(0) === "Unproven" && IL.perfScore(vetMv) > 150);
 check("higher divisions pay more", IL.seasonPurse(0, 4).gold > IL.seasonPurse(0, 0).gold * 2);
 function grownTrio(seed, lv) {

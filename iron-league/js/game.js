@@ -283,7 +283,7 @@
       '<span class="coin">' + coinIcon("gold") + '<b>' + save.gold + '</b> gold</span>' +
       '<span class="coin">' + coinIcon("renown") + '<b>' + (save.renown || 0) + '</b> renown</span>' +
       '<span class="coin">' + coinIcon("token") + '<b>' + tokens + '</b> cup ' + (tokens === 1 ? "token" : "tokens") + '</span>' +
-      '<span class="coin"><i class="ico ico-roster" aria-hidden="true"></i><b>' + (save.roster || []).length + "/" + IL.ROSTER_CAP + '</b> roster</span>' +
+      '<span class="coin"><i class="ico ico-roster" aria-hidden="true"></i><b>' + (save.roster || []).length + "/" + IL.rosterCap(save) + '</b> roster</span>' +
       '<span class="coin"><i class="ico ico-relic" aria-hidden="true"></i><b>' + eq.length + "/2</b> relics" + (eq.length ? " · " + esc(eq.map(function (r) { return r.name; }).join(", ")) : "") + '</span>' +
     '</div>';
   }
@@ -300,6 +300,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Club facilities: Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office and Treasure House.",
     "A trading-floor market: every listing in one list with stats and price, the picked fighter's full card beside it, and filters for affordable, watched, champions and scouted.",
     "Longer seasons: eight clubs a division and seven league weeks, shown as Division V (Sand) up to Division I (Crown).",
     "Roster cards like the mercenary leagues: stats, moves, gear and behavior per fighter, and a full sheet with market value and performance score.",
@@ -788,7 +789,7 @@
       if (err) err.textContent = "Not enough gold.";
       return;
     }
-    if (save.roster.length >= IL.ROSTER_CAP) {
+    if (save.roster.length >= IL.rosterCap(save)) {
       btn.disabled = false;
       pitSound("error");
       if (err) err.textContent = "The bench is full.";
@@ -1833,7 +1834,7 @@
         f.stamina = Math.max(0, was - IL.STAMINA_COST);
         if (f.stamina < 50) worn.push(f.name.split(" ")[0]);
       } else {
-        f.stamina = Math.min(IL.STAMINA_MAX, was + IL.STAMINA_REST);
+        f.stamina = Math.min(IL.STAMINA_MAX, was + IL.STAMINA_REST + (IL.restBonus ? IL.restBonus(save) : 0));
         if (f.stamina > was) rested++;
       }
     });
@@ -2480,7 +2481,7 @@
     const cards = first.map(function (f) { return esFighterCard(f, size); });
     for (let i = first.length; i < want; i++) cards.push('<article class="es-fcard empty"><p>Empty slot</p><small>Field a substitute below.</small></article>');
     const subTiles = subs.map(function (f) { return esSubTile(f, size); });
-    for (let i = save.roster.length; i < IL.ROSTER_CAP; i++) subTiles.push('<article class="es-sub empty"><span class="es-ghost"></span><b>Empty</b></article>');
+    for (let i = save.roster.length; i < IL.rosterCap(save); i++) subTiles.push('<article class="es-sub empty"><span class="es-ghost"></span><b>Empty</b></article>');
     const pilot = !!(save.settings && save.settings.pilot);
     const left = save.trainsLeft || 0;
     return '<div id="fighterList" class="es-team">' +
@@ -2519,9 +2520,18 @@
         clubTile("events", "Fight a friend", "Share a code", "Send your party as a code, or fight theirs.", "gold", "PvP") +
       '</section>' +
       '<section><h3 class="section">Facilities</h3>' +
-        clubTile("train", "Training yard", "Rank " + (fac.yard || 0), "More drills each week.", "teal", "LV " + ((fac.yard || 0) + 1)) +
-        clubTile("train", "Hall", "Rank " + (fac.hall || 0), "Drills give more XP.", "purple", "LV " + ((fac.hall || 0) + 1)) +
-        clubTile("train", "Infirmary", "Rank " + (fac.infirmary || 0), "Cheaper drills, faster rest.", "green", "LV " + ((fac.infirmary || 0) + 1)) +
+        (IL.FACILITIES || []).map(function (def, k) {
+          const lv = fac[def.id] || 0;
+          const tones = ["gold", "teal", "purple", "red", "green", "blue", "steel"];
+          const now = def.id === "hq" ? IL.rosterCap(save) + " roster slots"
+            : def.id === "yard" ? (IL.drillCap ? IL.drillCap(save) : 2) + " drills a week"
+            : def.id === "hall" ? (IL.drillXp ? IL.drillXp(save) : 12) + " xp a drill"
+            : def.id === "barracks" ? Math.round((IL.benchShare ? IL.benchShare(save) : 0) * 100) + "% bench XP"
+            : def.id === "infirmary" ? "+" + (IL.restBonus ? IL.restBonus(save) : 0) + " rest · drills " + (IL.drillCost ? IL.drillCost(save) : 16) + "g"
+            : def.id === "scout" ? Math.round((IL.scoutOdds ? IL.scoutOdds(save) : 0.45) * 100) + "% scout hits"
+            : def.id === "treasury" ? IL.clubRelicSlots(save) + " club relic slots" : "";
+          return clubTile("train:facilities", def.name, now, def.blurb, tones[k % tones.length], lv >= def.max ? "MAX" : "LV " + (lv + 1));
+        }).join("") +
       '</section>' +
       '<section><h3 class="section">Services</h3>' +
         clubTile("train", "Drills", (save.trainsLeft || 0) + " left this week", "Raise a stat on a bench fighter.", "red", "Train") +
@@ -2680,7 +2690,7 @@
       scouted: all.filter(function (r) { return r.scouted; }).length
     };
     const chips = [["all", "All", 0], ["affordable", "Affordable", counts.affordable], ["watch", "Watchlist", counts.watch], ["champions", "Champions", counts.champions], ["scouted", "Scouted", counts.scouted]];
-    const full = save.roster.length >= IL.ROSTER_CAP;
+    const full = save.roster.length >= IL.rosterCap(save);
     const list = rows.map(function (x) {
       const r = x.row;
       const f = r.fighter;
@@ -2758,7 +2768,7 @@
         '<div class="hub-actions market-tools"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh · ' + IL.REFRESH_COST + 'g</button>' + scoutPicker() + '</div>' +
       '</div>' +
       (save.marketNews && save.marketNews.length ? '<ul class="market-news" id="marketNews">' + save.marketNews.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join("") + '</ul>' : '') +
-      '<p class="fine es-pulse">Mercenary board · ' + all.length + ' listings · roster ' + save.roster.length + '/' + IL.ROSTER_CAP + ' · the board turns over after league and cup matches; watch up to ' + IL.WATCH_CAP + ' to keep them.</p>' +
+      '<p class="fine es-pulse">Mercenary board · ' + all.length + ' listings · roster ' + save.roster.length + '/' + IL.rosterCap(save) + ' · the board turns over after league and cup matches; watch up to ' + IL.WATCH_CAP + ' to keep them.</p>' +
       '<div class="es-msplit">' +
         '<div class="es-mlist" id="marketCards">' +
           '<div class="es-mhead"><span></span><span>Name</span><span>HP</span><span>ATK</span><span>DEF</span><span>SPD</span><span>Class</span><span>Price</span><span></span></div>' +
@@ -2837,7 +2847,7 @@
       if (offer.kind === "fighter") {
         const f = offer.fighter;
         const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-        const full = save.roster.length >= IL.ROSTER_CAP;
+        const full = save.roster.length >= IL.rosterCap(save);
         const cant = gone || broke || full;
         return '<article class="card roster-row' + (cant ? " cant-afford" : " buyable") + '">' +
           portraitWrap('width="72" height="64" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
@@ -2952,7 +2962,7 @@
         '</article>';
       }).join("");
       body = '<section id="facilityBoard"><h3 class="section">Facilities</h3>' +
-        '<p class="fine">The yard adds a drill. The hall adds xp. The infirmary lowers the price.</p>' +
+        '<p class="fine">Every rank is bought once and kept. Headquarters adds roster slots; Barracks feeds the bench; the Treasure House holds more club relics.</p>' +
         '<div class="dense-grid">' + cards + '</div></section>';
     } else if (trainPane === "specs") {
       const points = save.specPoints || 0;
@@ -3204,7 +3214,7 @@
       '</button>';
     }).join("");
     return '<div id="relicPane">' +
-      '<p class="fine relic-count">' + (save.equipped || []).length + ' of 2 club slots · ' + wornCount + ' worn · ' + (save.relics || []).length + ' owned</p>' +
+      '<p class="fine relic-count">' + (save.equipped || []).length + ' of ' + IL.clubRelicSlots(save) + ' club slots · ' + wornCount + ' worn · ' + (save.relics || []).length + ' owned</p>' +
       '<div class="relic-filters">' +
         '<select id="relicStatus" aria-label="Status">' + selectOptions(relicStatus, [["all", "All relics"], ["owned", "Owned"], ["missing", "Missing"], ["club", "Club"], ["fighter", "Fighter"]]) + '</select>' +
         '<select id="relicRarity" aria-label="Rarity">' + selectOptions(relicRarity, [["all", "Any rarity"], ["common", "Common"], ["uncommon", "Uncommon"], ["rare", "Rare"], ["legendary", "Legendary"]]) + '</select>' +
@@ -4081,7 +4091,7 @@
         const bits = pane.dataset.pane.split(":");
         if (bits[0] === "matches") matchesPane = bits[1];
         else if (bits[0] === "roster") rosterPane = bits[1];
-        else if (bits[0] === "club") clubPane = bits[1];
+        else if (bits[0] === "club") { clubPane = bits[1]; if (bits[2]) trainPane = bits[2]; }
         else if (bits[0] === "intel") intelPane = bits[1];
         refreshHub();
         return;
@@ -4553,7 +4563,7 @@
     const offer = save.deals && save.deals.offers && save.deals.offers[index];
     if (!offer || offer.stock < 1 || save.gold < offer.cost) { pitSound("error"); return; }
     if (offer.kind === "fighter") {
-      if (save.roster.length >= IL.ROSTER_CAP) { pitSound("error"); return; }
+      if (save.roster.length >= IL.rosterCap(save)) { pitSound("error"); return; }
       const fighter = offer.fighter;
       IL.hero.compose(fighter.parts).then(function () {
         save.gold -= offer.cost;
@@ -4660,7 +4670,7 @@
     if (!relic || relic.scope === "fighter") return;
     if (!Array.isArray(save.equipped)) save.equipped = [];
     if (save.equipped.indexOf(relic.id) >= 0) return;
-    if (save.equipped.length < 2) save.equipped.push(relic.id);
+    if (save.equipped.length < IL.clubRelicSlots(save)) save.equipped.push(relic.id);
   }
 
   function toggleEquip(id) {
@@ -4671,7 +4681,7 @@
     const at = eq.indexOf(id);
     let wore = false;
     if (at >= 0) eq.splice(at, 1);
-    else if (eq.length < 2) { eq.push(id); wore = true; }
+    else if (eq.length < IL.clubRelicSlots(save)) { eq.push(id); wore = true; }
     else { eq.splice(0, 1, id); wore = true; }
     persist();
     showHub("relics", true);
@@ -4741,7 +4751,7 @@
   function hireFromMarket(index) {
     const row = save.market[index];
     if (!row || row.locked) { pitSound("error"); return; }
-    if (save.gold < row.cost || save.roster.length >= IL.ROSTER_CAP) { pitSound("error"); return; }
+    if (save.gold < row.cost || save.roster.length >= IL.rosterCap(save)) { pitSound("error"); return; }
     const fighter = row.fighter;
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= row.cost;
@@ -4792,7 +4802,7 @@
     const d = save.draft;
     if (!d || d.stage !== "sign") return;
     const f = d.picks.filter(function (p) { return p.id === id; })[0];
-    if (!f || save.roster.length >= IL.ROSTER_CAP) { pitSound("error"); return; }
+    if (!f || save.roster.length >= IL.rosterCap(save)) { pitSound("error"); return; }
     IL.hero.compose(f.parts).then(function () {
       delete f.drafted;
       f.stamina = IL.STAMINA_MAX;
@@ -4874,7 +4884,7 @@
         (d.cup ? cupMarkup(d.cup) : '') + picked;
     }
     if (d.stage === "sign") {
-      const full = save.roster.length >= IL.ROSTER_CAP;
+      const full = save.roster.length >= IL.rosterCap(save);
       return head +
         '<p class="banner" id="draftStatus">Draft champions. Sign one of the three for free' + (full ? " — the roster is full, so sell someone first or let them go." : ".") + '</p>' +
         '<div class="cards dense-grid">' + d.picks.map(function (f) {
@@ -6479,6 +6489,13 @@
       if (kit && IL.scaledStats) statBefore[f.id] = IL.scaledStats(f, kit);
       IL.grantXp(f, xp);
     });
+    /* v75 Barracks: the bench takes a share of the lineup's match XP. */
+    const share = IL.benchShare ? IL.benchShare(save) : 0;
+    if (share > 0 && xp > 0 && (mode === "league" || mode === "cup")) {
+      const inFight = {};
+      fight.left.forEach(function (f) { if (f) inFight[f.id] = true; });
+      (save.roster || []).forEach(function (f) { if (!inFight[f.id]) IL.grantXp(f, Math.max(1, Math.round(xp * share))); });
+    }
     const tally = resultTable(match, xpBefore, before);
     if (tally.mvp && tally.mvp.team === 0) {
       const star = fighterById(tally.mvp.id);

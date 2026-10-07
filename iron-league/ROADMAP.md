@@ -18,7 +18,8 @@ we keep our own twist.
 | v73 | **Season calendar**: 8-club divisions, 7 league weeks, Division V→I labels (our five tiers kept); Champions Cup moves to v79 | shipped |
 | v74 | **Market tab**: list + detail layout with filters, market value against price, watch stars | shipped |
 | v74b | **Market depth**: offers from rival clubs for your fighters, rival listings, champion auctions | planned |
-| v75 | **Club tab**: Activities / Facilities / Services grid; Headquarters (roster cap), Barracks, Medical Bay, Scouting Office, Treasure House, Club House + staff | planned |
+| v75 | **Facilities**: Headquarters, Training Grounds, Time Chamber, Barracks, Medical Bay, Scouting Office, Treasure House | shipped |
+| v75b | **Club House and staff** (Medic, Scout, Trainer, Treasure Hunter) | planned |
 | v76 | **Fighter depth**: per-stat growth grades (Good / Excellent), personalities with mistake chance, form and injuries, milestone levels | planned |
 | v77 | **Relics v2**: two slots per fighter (second at level 10), Common / Rare / Legendary, chests, relic market rotation | planned |
 | v78 | **Intel tab**: league leaders, records, Codex of classes / clubs / relics with discovery | planned |

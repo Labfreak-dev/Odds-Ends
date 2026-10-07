@@ -110,10 +110,16 @@
   const TRAIN_COST = 16;
   const TRAIN_XP = 12;
   const TRAIN_CAP = 2;
+  /* v75 club facilities, after Eslabong. Each rank is bought with gold
+     on the Club tab. */
   const FACILITIES = [
-    { id: "yard", name: "Training yard", blurb: "One more drill each round.", max: 2, costs: [80, 180] },
-    { id: "hall", name: "Lecture hall", blurb: "Each drill teaches a little more.", max: 2, costs: [70, 160] },
-    { id: "infirmary", name: "Infirmary", blurb: "Drills cost less gold.", max: 2, costs: [60, 140] }
+    { id: "hq", name: "Headquarters", blurb: "Two more roster slots a rank.", max: 3, costs: [120, 260, 480], group: "core" },
+    { id: "yard", name: "Training Grounds", blurb: "One more drill each week.", max: 2, costs: [80, 180], group: "train" },
+    { id: "hall", name: "Time Chamber", blurb: "Each drill teaches a little more.", max: 2, costs: [70, 160], group: "train" },
+    { id: "barracks", name: "Barracks", blurb: "The bench takes 15% of the lineup's match XP a rank.", max: 3, costs: [90, 200, 360], group: "train" },
+    { id: "infirmary", name: "Medical Bay", blurb: "Drills cost less, and the bench rests 6 more stamina a rank.", max: 2, costs: [60, 140], group: "care" },
+    { id: "scout", name: "Scouting Office", blurb: "Scouting finds the wanted class more often; rank 2 always does.", max: 2, costs: [100, 220], group: "market" },
+    { id: "treasury", name: "Treasure House", blurb: "One more club relic slot a rank.", max: 2, costs: [150, 320], group: "market" }
   ];
   const GEAR_REROLL = 20;
   const STOCK_N = 4;
@@ -484,6 +490,11 @@
   }
 
   function drillCap(data) { return TRAIN_CAP + facilityRank(data, "yard"); }
+  function rosterCap(data) { return (IL.ROSTER_CAP || 8) + 2 * facilityRank(data, "hq"); }
+  function benchShare(data) { return 0.15 * facilityRank(data, "barracks"); }
+  function restBonus(data) { return 6 * facilityRank(data, "infirmary"); }
+  function scoutOdds(data) { const r = facilityRank(data, "scout"); return r >= 2 ? 1 : 0.45 + 0.3 * r; }
+  function clubRelicSlots(data) { return 2 + facilityRank(data, "treasury"); }
   function drillXp(data) { return TRAIN_XP + facilityRank(data, "hall") * 4; }
   function drillCost(data) { return Math.max(8, TRAIN_COST - facilityRank(data, "infirmary") * 4); }
 
@@ -563,6 +574,11 @@
   IL.drillBonus = drillBonus;
   IL.DRILL_RANK_CAP = DRILL_RANK_CAP;
   IL.facilityById = facilityById;
+  IL.rosterCap = rosterCap;
+  IL.benchShare = benchShare;
+  IL.restBonus = restBonus;
+  IL.scoutOdds = scoutOdds;
+  IL.clubRelicSlots = clubRelicSlots;
   IL.GEAR_REROLL = GEAR_REROLL;
   IL.blankGear = blankGear;
   IL.makeItem = makeItem;

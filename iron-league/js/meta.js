@@ -1260,19 +1260,34 @@
   }
 
   /* Rivals track the club level. Each rival club sits on its own swing
-     (six under to six over) and its fighters vary one either way around it;
-     never under the division floor. slot = the club, k = the fighter. */
+     and its fighters vary one either way around it; never under the
+     division floor. slot = the club, k = the fighter.
+     v86: the swing grows with the club. A young club meets rivals one
+     level either way; the full six under to six over opens at level 24
+     (one more step every four levels), and the per-fighter wobble at 12. */
   const RIVAL_SWING = [-6, -4, -2, 0, 2, 4, 6];
   const RIVAL_JITTER = [0, -1, 1];
+  /* The division floor lifts a young club's rivals, but by two levels at
+     most: a level 6 club promoted into Bronze (floor 8) meets level 8,
+     not 8 plus the swing. */
+  function rivalBase(data) {
+    const club = clubLevel(data);
+    return Math.max(club, Math.min(DIVISIONS[divisionOf(data)].floor, club + 2));
+  }
+  function swingCap(base) {
+    return Math.max(1, Math.min(6, Math.floor(base / 4)));
+  }
   function rivalLevel(data, slot, k) {
-    const base = Math.max(DIVISIONS[divisionOf(data)].floor, clubLevel(data));
-    const lv = base + RIVAL_SWING[Math.abs(slot | 0) % RIVAL_SWING.length] + RIVAL_JITTER[Math.abs(k | 0) % RIVAL_JITTER.length];
-    return Math.max(1, Math.min(IL.LEVEL_CAP || 100, lv));
+    const base = rivalBase(data);
+    const swing = Math.round(RIVAL_SWING[Math.abs(slot | 0) % RIVAL_SWING.length] * swingCap(base) / 6);
+    const jitter = base >= 12 ? RIVAL_JITTER[Math.abs(k | 0) % RIVAL_JITTER.length] : 0;
+    return Math.max(1, Math.min(IL.LEVEL_CAP || 100, base + swing + jitter));
   }
   function rivalRange(data) {
-    const base = Math.max(DIVISIONS[divisionOf(data)].floor, clubLevel(data));
+    const base = rivalBase(data);
     const cap = IL.LEVEL_CAP || 100;
-    return [Math.max(1, Math.min(cap, base - 7)), Math.max(1, Math.min(cap, base + 7))];
+    const reach = swingCap(base) + (base >= 12 ? 1 : 0);
+    return [Math.max(1, Math.min(cap, base - reach)), Math.max(1, Math.min(cap, base + reach))];
   }
 
   /* A rival takes the same level-ups a player fighter does: a stat roll
@@ -1312,6 +1327,14 @@
       c.fighters.forEach(function (f, k) {
         if (!f) return;
         const want = rivalLevel(data, s, k);
+        /* v86: a rival made under the old, wider swing (or before the club
+           lost a strong fighter) sits well over its target. Rebuild its
+           growth from level 1 at the target; name, look and gear stay. */
+        if ((f.level || 1) > want + 2) {
+          ["known", "learned", "loadout", "rolls", "specs", "talents", "growth", "ranks", "levelsTaken", "pendingLevels", "statRerolls", "skillRerolls", "pendingMoves"].forEach(function (key) { delete f[key]; });
+          f.level = 1;
+          f.xp = 0;
+        }
         if ((f.level || 1) >= want) return;
         let h = 2166136261;
         const key = String(f.id || f.name || k) + ":" + want;
@@ -1565,6 +1588,7 @@
     if (GATE_BOSSES[floor]) {
       const boss = makeBoss(rng, base + 1);
       boss.name = GATE_BOSSES[floor];
+      boss.level = 1;  /* growRival levels up from where the fighter stands */
       if (IL.growRival) IL.growRival(boss, rng, base + 1);
       boss.boss = true;
       return { boss: boss, adds: squadOf(rng, floor === 8 ? 2 : 1, base) };

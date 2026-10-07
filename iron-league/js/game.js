@@ -5445,17 +5445,21 @@
     if (!f || !ab) { levelEquip = null; afterLevelPick(); return; }
     const slots = f.loadout.map(function (id, i) {
       const cur = IL.abilityById(id);
-      return '<button type="button" class="lv-slot" data-slot="' + i + '">' +
-        '<span class="eyebrow">Slot ' + (i + 1) + (i === 2 ? ' · ultimate' : '') + '</span>' +
-        (IL.abilityIcon ? iconTag(IL.abilityIcon(id), 32) : "") +
-        '<b>' + esc(cur ? cur.name : "—") + '</b><span class="fine">Rank ' + roman(IL.rankOf(f, id)) + ' · replace</span></button>';
+      return '<button type="button" class="lv-equip-slot" data-slot="' + i + '">' +
+        '<span class="lv-equip-icon">' + (IL.abilityIcon ? iconTag(IL.abilityIcon(id), 32) : "") + '</span>' +
+        '<span class="lv-equip-text"><span class="lv-equip-tag">Slot ' + (i + 1) + (i === 2 ? ' · ultimate' : '') + '</span>' +
+        '<b>' + esc(cur ? cur.name : "Empty") + '</b>' + (cur ? '<span class="fine">Rank ' + roman(IL.rankOf(f, id)) + '</span>' : '') + '</span>' +
+        '<span class="lv-equip-go">Replace</span></button>';
     }).join("");
     app.innerHTML =
       '<main class="lv-screen" id="growth">' +
         '<header class="lv-head"><div class="lv-who"><p class="eyebrow">New move</p>' +
           '<h2>' + esc(f.name) + ' learned ' + esc(ab.name) + '</h2>' +
           '<p class="fine">Put it in a slot now, or keep the loadout. The sheet can swap it any time.</p></div></header>' +
-        '<div class="lv-slots" id="growthChoices">' + slots + '</div>' +
+        '<div class="lv-equip-new">' + (IL.abilityIcon ? '<span class="lv-equip-icon">' + iconTag(IL.abilityIcon(ab.id), 40) + '</span>' : '') +
+          '<span class="lv-equip-text"><span class="lv-equip-tag">New</span><b>' + esc(ab.name) + '</b>' + (ab.blurb ? '<span class="fine">' + esc(ab.blurb) + '</span>' : '') + '</span></div>' +
+        '<h3 class="lv-equip-ask">Swap it in for</h3>' +
+        '<div class="lv-equip" id="growthChoices">' + slots + '</div>' +
         '<footer class="lv-foot"><button type="button" class="lv-later" id="backHub">Keep the loadout</button></footer>' +
       '</main>';
     mountIcons(app);

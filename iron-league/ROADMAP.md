@@ -25,7 +25,8 @@ we keep our own twist.
 | v77 | **Relics v2**: two slots per fighter (second at level 10), Common / Rare / Legendary, chests, relic market rotation | planned |
 | v77 | **Intel tab**: club leaders, records, rival rosters, Archive (classes with codex pages, clubs, champions, relics, systems) | shipped |
 | v76 | **Champions Cup** for the league's top four before the ceremony | shipped |
-| v79 | **Activities**: Iron Gate (8 floors, bosses on 5/7/8), Tournament Center, Draft Cup rework, Hall of Legends, Academy 3v3 | planned |
+| v79 | **Iron Gate**: 8 floors a week, bosses on 5/7/8, chests | shipped |
+| v79b | Tournament Center, Hall of Legends, Academy 3v3 | planned |
 | v80 | **Matches as series** and bigger squads (league 5v5 in rounds), formations and opening moves | planned |
 
 ## System map

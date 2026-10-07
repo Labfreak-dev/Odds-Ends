@@ -300,6 +300,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "The Iron Gate: eight floors once a week, bosses on 5, 7 and 8, health carried floor to floor, a chest at every boss.",
     "Transfers: rival clubs bid for your fighters (accept or decline in Events), and list their own fighters on the market.",
     "Intel: club leaders and records, every rival roster in the division, and an Archive of classes, clubs, champions, relics and how the game works.",
     "The Champions Cup: when the league closes, its top four play 3v3 knockouts before the ceremony. The winner takes a relic.",
@@ -981,6 +982,7 @@
   }
 
   function fightBed(spec) {
+    if (spec.mode === "gate") return "boss";
     if (spec.mode === "chaos" || spec.mode === "endless" || spec.mode === "king") return "endless";
     if (spec.mode === "boss") return "boss";
     const people = [];
@@ -2128,6 +2130,8 @@
     const day = IL.dayIndex(Date.now());
     if (!(save.daily && save.daily.day === day && save.daily.cleared)) out.push({ tab: "events", label: "Daily challenge" });
     if (save.endlessRun) out.push({ tab: "events", label: "Endless · wave " + (save.endlessRun.wave || 1) });
+    if (save.gateRun) out.push({ tab: "club", label: "Iron Gate · floor " + save.gateRun.floor });
+    else if (gateOpen()) out.push({ tab: "club", label: "Iron Gate" });
     return out;
   }
 
@@ -2617,6 +2621,14 @@
       (badge ? '<em class="tile-badge">' + esc(badge) + '</em>' : '') + '</button>';
   }
 
+  function gateTile() {
+    const run = save.gateRun;
+    const line = run ? "Floor " + run.floor + " of " + IL.GATE_FLOORS + " · run in progress" : gateOpen() ? "Open this week · best " + (save.gateBest || 0) + "/" + IL.GATE_FLOORS + " floors" : "Cleared this week · best " + (save.gateBest || 0) + "/" + IL.GATE_FLOORS;
+    return '<button type="button" class="es-tile steel" id="gateTile"' + (!run && !gateOpen() ? ' disabled' : '') + '>' +
+      '<span class="tile-text"><b>Iron Gate</b><small>' + esc(line) + '</small><span>Eight floors, bosses on 5, 7 and 8. Health carries over; every boss drops a chest.</span></span>' +
+      '<em class="tile-badge">' + (run ? "GO" : "PVE") + '</em></button>';
+  }
+
   function clubHomePanel() {
     if (clubPane === "events") return subTabs("club", "events", [["home", "‹ Club"], ["events", "Activities"]]) + eventsPanel();
     if (clubPane === "train") return subTabs("club", "train", [["home", "‹ Club"], ["train", "Training"]]) + trainingPanel();
@@ -2625,6 +2637,7 @@
     return '<div class="es-club-grid">' +
       '<section><h3 class="section">Activities</h3>' +
         clubTile("events", "Weekly event", ev ? ev.name : "This week", "Boss, gauntlet, horde, king or mirror. A new one each week.", "blue", "PvE") +
+        gateTile() +
         clubTile("events", "Endless pit", "Best wave " + ((save.endless && save.endless.best) || 0), "Waves until you fall. A relic every fifth.", "steel", "PvE") +
         clubTile("events", "Daily challenge", "A seeded pair", "One fight a day for a purse.", "purple", "Daily") +
         clubTile("events", "Fight a friend", "Share a code", "Send your party as a code, or fight theirs.", "gold", "PvP") +
@@ -4203,6 +4216,8 @@
     if (leagueFight) leagueFight.onclick = function () { startFight(); };
     const leagueCeremony = document.getElementById("leagueCeremony");
     if (leagueCeremony) leagueCeremony.onclick = function () { showSeasonEnd(); };
+    const gateBtn = document.getElementById("gateTile");
+    if (gateBtn) gateBtn.onclick = function () { beginGate(); };
     const champsBtn = document.getElementById("champsFight");
     if (champsBtn) champsBtn.onclick = function () { startChampsFight(); };
     const openSeasonBanner = document.getElementById("openSeasonBanner");
@@ -5712,6 +5727,50 @@
     });
   }
 
+  /* ---------- v79 Iron Gate ---------- */
+  function gateOpen() {
+    return !(save.gateWeek === IL.weekIndex(Date.now()) && !save.gateRun);
+  }
+
+  function beginGate() {
+    if (!save.gateRun) {
+      if (!gateOpen()) return;
+      save.gateRun = { floor: 1, hp: {}, week: IL.weekIndex(Date.now()), chests: 0 };
+      save.gateWeek = save.gateRun.week;
+    }
+    persist();
+    return launchGateFloor();
+  }
+
+  function launchGateFloor() {
+    const run = save.gateRun;
+    if (!run) return;
+    const party = withFractions(eventParty(), run.hp);
+    if (!party.length) { endGate(); showHub("club"); return; }
+    const rng = takeRng();
+    const spec = IL.gateFloor(save, rng, run.floor);
+    const seed = ((save.rngSeed ^ (run.floor * 7919) ^ (run.week || 0)) >>> 0) || 1;
+    if (spec.boss) {
+      return launchMatch({
+        mode: "gate", left: party, right: [spec.boss], extra: spec.adds, bossAdds: spec.adds,
+        leftName: save.clubName, rightName: spec.boss.name + " · Floor " + run.floor, size: party.length,
+        seed: seed, returnTab: "club"
+      });
+    }
+    return launchMatch({
+      mode: "gate", left: party, right: spec.foes,
+      leftName: save.clubName, rightName: "Iron Gate · Floor " + run.floor, size: party.length,
+      seed: seed, returnTab: "club"
+    });
+  }
+
+  function endGate() {
+    const run = save.gateRun;
+    if (run) save.gateBest = Math.max(save.gateBest || 0, (run.floor || 1) - 1);
+    save.gateRun = null;
+    persist();
+  }
+
   function beginEndless() {
     if (!save.endlessRun || typeof save.endlessRun.wave !== "number") save.endlessRun = { wave: 1, hp: {} };
     persist();
@@ -6743,6 +6802,42 @@
       gold = win ? 20 : 8;
       renown = win ? 2 : 1;
       headline = win ? (friend + " falls") : (friend + " holds");
+    } else if (mode === "gate") {
+      const run = save.gateRun || { floor: 1, hp: {}, chests: 0 };
+      const floor = run.floor || 1;
+      const bossFloor = !!IL.GATE_BOSSES[floor];
+      xp = win ? 10 + floor * 2 : 6;
+      renown = win ? (bossFloor ? 4 : 1) : 1;
+      if (win) {
+        gold = 10 + floor * 4;
+        headline = bossFloor ? IL.GATE_BOSSES[floor] + " falls" : "Floor " + floor + " cleared";
+        if (bossFloor) {
+          const chest = IL.gateChest(save, takeRng(), floor);
+          gold += chest.gold;
+          run.chests = (run.chests || 0) + 1;
+          if (chest.relic) {
+            const relic = IL.relicById(chest.relic);
+            if (relic) { holdClubRelic(relic); relicNote = " Chest: " + chest.gold + " gold and " + relic.name + "."; }
+          } else {
+            if (chest.item) { if (!Array.isArray(save.items)) save.items = []; save.items.push(chest.item); }
+            relicNote = " Chest: " + chest.gold + " gold" + (chest.item ? " and " + IL.itemName(chest.item) : "") + ".";
+          }
+        }
+        run.hp = hpFractions(match);
+        run.floor = floor + 1;
+        save.gateRun = run;
+        if (floor >= IL.GATE_FLOORS) {
+          headline = "The Iron Gate is broken";
+          save.gateClears = (save.gateClears || 0) + 1;
+          renown += 10;
+          endGate();
+          save.gateBest = IL.GATE_FLOORS;
+        }
+      } else {
+        gold = 4 + floor * 2;
+        headline = "Turned back on floor " + floor;
+        endGate();
+      }
     } else if (mode === "endless") {
       const run = save.endlessRun || { wave: 1, hp: {} };
       if (win) {
@@ -6873,6 +6968,8 @@
     } else if (mode === "draft") {
       const st = save.draft && save.draft.stage;
       nextLine = st === "sign" ? "Sign one of your picks on the cup tab." : st === "bracket" ? "The draft final is waiting on the cup tab." : "The draft is over. Your picks go home.";
+    } else if (mode === "gate") {
+      nextLine = save.gateRun ? "Floor " + save.gateRun.floor + " of " + IL.GATE_FLOORS + " is next" + (IL.GATE_BOSSES[save.gateRun.floor] ? ": " + IL.GATE_BOSSES[save.gateRun.floor] + "." : ". Health carries over.") : "The Iron Gate opens again next week.";
     } else if (mode === "endless" && win && save.endlessRun) {
       const mod = IL.endlessMod(save.endlessRun.wave);
       nextLine = "Wave " + save.endlessRun.wave + " is next." + (mod ? " Modifier: " + mod.name + ". " + mod.blurb : "");
@@ -6924,8 +7021,8 @@
       '<div class="result-actions">' +
         (levelUps ? '<button type="button" class="btn gold" id="pickPerk">Level up · ' + levelUps + '</button>' : '') +
         ((mode === "endless" && win && save.endlessPick && save.endlessPick.length) ? relicPickHtml() : '') +
-        (((mode === "endless" && win && !(save.endlessPick && save.endlessPick.length)) || (mode === "gauntlet" && win && save.gauntlet))
-          ? '<button type="button" class="btn fight" id="nextWave">' + (mode === "gauntlet" ? "Next fight" : "Next wave") + '</button>' : '') +
+        (((mode === "endless" && win && !(save.endlessPick && save.endlessPick.length)) || (mode === "gauntlet" && win && save.gauntlet) || (mode === "gate" && win && save.gateRun))
+          ? '<button type="button" class="btn fight" id="nextWave">' + (mode === "gauntlet" ? "Next fight" : mode === "gate" ? "Floor " + save.gateRun.floor : "Next wave") + '</button>' : '') +
         '<button type="button" class="btn ' + (levelUps ? 'ghost res-continue' : 'primary') + '" id="backHub">' + (fight.returnTab === "events" ? "Back to events" : fight.returnTab === "cup" ? "Back to compete" : "Continue") + '</button>' +
       '</div>';
     bootCards(match.units.map(function (u) { return u && u.parts; }));
@@ -6951,6 +7048,7 @@
     if (nextWave) nextWave.onclick = function () {
       IL.currentMatch = null;
       if (mode === "gauntlet") launchGauntletStep();
+      else if (mode === "gate") launchGateFloor();
       else launchEndlessWave();
     };
     box.querySelectorAll("[data-keep-relic]").forEach(function (btn) {

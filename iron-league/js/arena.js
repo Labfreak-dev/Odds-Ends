@@ -1193,6 +1193,17 @@
     }
   }
 
+  /* A shot flies in the floor plane lifted to body height. Keep the lift
+     (from the shooter's feet at launch, to the aim point at the end) so a
+     turned phone floor can draw it from the hand the sprite shows. */
+  function liftShot(p, u, endX, endY, dist) {
+    if (!p || !u) return;
+    p.sx = p.x; p.sy = p.y;
+    p.l0x = p.x - u.x; p.l0y = p.y - u.y;
+    p.l1x = endX; p.l1y = endY;
+    p.sd = Math.max(1, dist || Math.hypot(p.vx, p.vy) * (p.life || 1));
+  }
+
   function tryShot(m, u) {
     if (!onSwingFrame(u) || u.didHit) return;
     u.didHit = true;
@@ -1200,7 +1211,10 @@
     face(u, t);
     const aimX = t ? t.x + t.vx * 0.14 : u.x + u.facing * 240;
     const aimY = t ? t.y - 14 + t.vy * 0.14 : u.y - 14;
-    const hand = IL.weapons && IL.weapons.worldHand ? IL.weapons.worldHand(u, 4) : null;
+    /* Sprites are drawn at one world unit per pixel (render SCALE 1; a
+       giant 1.15), so the bow hand is too. It was 4, which put the arrow
+       four times too far out from the archer. */
+    const hand = IL.weapons && IL.weapons.worldHand ? IL.weapons.worldHand(u, u.giant ? 1.15 : 1) : null;
     const ox = hand ? hand.x : u.x + u.facing * 18;
     const oy = hand ? hand.y : u.y - (u.z || 0) - 18;
     const bullet = (u.weaponKind || (IL.CLASS_WEAPON && IL.CLASS_WEAPON[u.cls])) === "gun";
@@ -1233,6 +1247,7 @@
         snd: bullet ? "hit_bullet" : "hit_arrow",
         srcTag: u.swingTag ? { id: u.swingTag.id, name: u.swingTag.name } : null
       });
+      liftShot(m.shots[m.shots.length - 1], u, 0, -14, d);
       m.stats.shots++;
     }
     u.pierceBoost = 0;
@@ -1324,6 +1339,7 @@
             spell: "spell_" + school + "_impact",
             srcTag: u.swingTag ? { id: u.swingTag.id, name: u.swingTag.name } : null
           });
+          liftShot(m.shots[m.shots.length - 1], u, u.facing * 16, -16);
           m.stats.shots++;
           fx(m, "bolt", u.x + u.facing * 20, u.y - 16, { size: 140, facing: u.facing });
         }
@@ -1354,6 +1370,7 @@
         spell: "spell_" + school + "_impact",
         srcTag: u.swingTag ? { id: u.swingTag.id, name: u.swingTag.name } : null
       });
+      liftShot(m.shots[m.shots.length - 1], u, u.facing * 16, -16);
       m.stats.shots++;
       fx(m, paint, u.x + u.facing * 18, u.y - 16, { size: 150, facing: u.facing });
       return;
@@ -1835,6 +1852,7 @@
       snd: flask ? null : "hit_bullet",
       srcTag: { id: ab.id, name: ab.name }
     });
+    liftShot(m.shots[m.shots.length - 1], u, 0, -14, d);
     m.stats.shots++;
     fx(m, ab.fx || "boom", ox, oy, { size: 90, facing: u.facing });
   }

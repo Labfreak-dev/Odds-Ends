@@ -73,6 +73,9 @@ we keep our own twist.
 - **Iron League today (v70)**: cap 30; every level is a stat card and a skill
   card (new move, upgrade, or passive).
 - **Our way**: keep a pick every level (fights are shorter, seasons faster).
+- **v84**: cap 100 like Eslabong; upgrades and passives rank up to legendary,
+  then Hone cards add stats, so every level still has a pick. Rival clubs sit
+  six under to six over the club level and level with it through the season.
 
 ### Economy
 - **Eslabong**: Gold (league win 750-1,500 by division, draw 500, loss 300),

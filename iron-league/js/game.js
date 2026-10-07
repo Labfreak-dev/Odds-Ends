@@ -165,7 +165,7 @@
       const fighters = [0, 1, 2].map(function (k) {
         const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
         if (IL.dressRival) IL.dressRival(fighter, rng, tier);
-        IL.growRival(fighter, rng, IL.rivalLevel(save, i + k));
+        IL.growRival(fighter, rng, IL.rivalLevel(save, i, k));
         return fighter;
       });
       const str = fighters.reduce(function (s, f) {
@@ -173,7 +173,7 @@
       }, 0) / 3;
       if (IL.dedupeNames) IL.dedupeNames(fighters);
       if (IL.separateLooks) IL.separateLooks(fighters);
-      clubs.push({ id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, fighters: fighters });
+      clubs.push({ id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, swing: i, fighters: fighters });
     });
     save.clubs = clubs;
     save.round = 0;
@@ -310,6 +310,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Levels run to 100. Rival clubs keep pace, from six under your level to six over, and level up with you through the season. Maxed moves and passives rank up, then Hone adds stats.",
     "Fresh start: all progress was reset for a balance pass. Every club begins again in Division V.",
     "The Iron Gate: eight floors once a week, bosses on 5, 7 and 8, health carried floor to floor, a chest at every boss.",
     "Quieter menus: the hub music's ticking hi-hat is gone. Cleaner popups, and Events opens the right page.",
@@ -1747,6 +1748,7 @@
         else if (g.kind === "learn") { const ab = IL.abilityById(g.id); text = rar + "move · " + (ab ? ab.name : g.id); }
         else if (g.kind === "spec") { const ab = IL.abilityById(g.id); text = rar + (IL.MODS[g.mod] ? IL.MODS[g.mod].name : g.mod) + " " + (ab ? ab.name : g.id); }
         else if (g.kind === "talent") { text = rar + "talent · " + (IL.TALENTS[g.id] ? IL.TALENTS[g.id].name : g.id); }
+        else if (g.kind === "hone") { text = "Hone · " + (STAT_CARD[g.id] ? STAT_CARD[g.id].name : g.id); }
         else { const st = IL.STAT_STEP && IL.STAT_STEP[g.id]; text = (st ? st.name + " · " + st.stat : g.id); }
         if (g.roll) text += " · " + Object.keys(g.roll).filter(function (k) { return g.roll[k]; }).map(function (k) { return "+" + g.roll[k] + " " + k.toUpperCase(); }).join(" ");
         return '<li><span class="lv-badge">Lv ' + (g.level || 1) + '</span>' + esc(text) + '</li>';
@@ -2117,7 +2119,7 @@
             : clubView === "history" ? historyHtml()
             : clubView === "goals" ? achievementsHtml()
             : '<section class="panel-frame"><h3 class="section">Standings · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</h3>' +
-                '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals near Lv ' + IL.rivalLevel(save, 1) + '</p>' +
+                '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals Lv ' + IL.rivalRange(save).join('–') + '</p>' +
                 '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
               '</section>') +
         '</div>' +
@@ -2496,7 +2498,7 @@
     cal.push('<li class="cup"><span class="wk">End</span><span>Season ceremony · promotion and relegation</span></li>');
     return '<div class="es-split">' +
       '<section class="es-card"><h3 class="section">' + esc(IL.DIVISIONS[tierNow].name) + ' · League standings</h3>' +
-        '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals near Lv ' + IL.rivalLevel(save, 1) + '</p>' +
+        '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals Lv ' + IL.rivalRange(save).join('–') + '</p>' +
         '<table class="board es-board"><thead><tr><th>#</th><th>Team</th><th>W-L</th><th>+/-</th><th>Pts</th><th>Form</th></tr></thead><tbody>' + rows + '</tbody></table></section>' +
       '<section class="es-card"><h3 class="section">Season calendar</h3><ol class="es-calendar">' + cal.join("") + '</ol></section>' +
     '</div>';
@@ -3759,6 +3761,7 @@
     save = save || load();
     if (!save) { showTitle(); return; }
     IL.migrate(save);
+    if (IL.keepRivalsUp && IL.keepRivalsUp(save)) persist();
     ensureMarket();
     const freshAchieve = takeAchievements();
     let want = tab;
@@ -5291,7 +5294,7 @@
   const CATEGORY_TONE = {
     "AoE": "aoe", "Defense": "def", "Taunt": "def", "Buff": "buff", "Heal": "heal", "Mobility": "mob",
     "Damage": "dmg", "Control": "ctl", "Stun": "ctl", "Push": "ctl", "Damage/Over time": "dot",
-    "Summon": "sum", "Passive": "pas", "Upgrade": "upg", "Utility": "uti"
+    "Summon": "sum", "Passive": "pas", "Upgrade": "upg", "Training": "upg", "Utility": "uti"
   };
 
   function skillCardHtml(f, card, i) {
@@ -5305,12 +5308,18 @@
         top + '<div class="lv-icon big">' + icon + '</div>' +
         '<h3>' + esc(title) + '</h3>' + lines + '<span class="lv-choose">Choose skill</span></button>';
     };
+    if (card.kind === "hone") {
+      const c = STAT_CARD[card.id];
+      const gain = statGain(f, card.id, card.pts);
+      return wrap(statIcon(card.id), "Hone " + c.name,
+        '<p class="lv-desc"><b class="up">+' + gain + '</b> ' + esc(c.name) + ' on top of the stat pick.</p><p class="lv-desc dim">Training for a fighter who has every move and upgrade.</p>');
+    }
     if (card.kind === "talent") {
       const t = IL.TALENTS[card.id];
       const v = IL.talentValue(card.id, card.tier);
       const glyph = { keen: "◎", ironhide: "⛨", vigor: "✚", thorns: "✶", bloodlust: "♥", fleet: "»" }[card.id] || "✦";
-      return wrap('<span class="lv-glyph">' + glyph + '</span>', t.name,
-        '<p class="lv-desc"><b class="up">+' + v + '</b>' + esc(t.unit) + '.</p><p class="lv-desc dim">Always on, for the rest of this fighter\'s career.</p>');
+      return wrap('<span class="lv-glyph">' + glyph + '</span>', t.name + (card.up ? " · rank up" : ""),
+        '<p class="lv-desc">' + (card.up ? 'Now ' : '') + '<b class="up">+' + v + '</b>' + esc(t.unit) + '.</p><p class="lv-desc dim">' + (card.up ? 'Raises the passive this fighter already has.' : 'Always on, for the rest of this fighter\'s career.') + '</p>');
     }
     const ab = IL.abilityById(card.id);
     if (!ab) return "";
@@ -5320,9 +5329,9 @@
     if (card.kind === "spec") {
       const m = IL.MODS[card.mod];
       const v = IL.modValue(card.mod, card.tier);
-      return wrap(icon + '<em class="spec-pip">' + esc(m.name.charAt(0)) + '</em>', m.name + " " + ab.name,
+      return wrap(icon + '<em class="spec-pip">' + esc(m.name.charAt(0)) + '</em>', m.name + " " + ab.name + (card.up ? " · rank up" : ""),
         '<p class="lv-desc">' + esc(ab.name) + ' gains <b class="up">' + (card.mod === "chilling" ? v : "+" + v) + '</b>' + esc(m.unit) + '.</p>' +
-        '<p class="lv-desc dim">One upgrade per move.' + (cd ? ' Cooldown ' + cd + '.' : '') + '</p>');
+        '<p class="lv-desc dim">' + (card.up ? 'Ranks up the upgrade it has.' : 'One upgrade per move, ranked up later.') + (cd ? ' Cooldown ' + cd + '.' : '') + '</p>');
     }
     return wrap(icon, ab.name,
       '<p class="lv-desc">' + esc(blurb) + '</p>' +

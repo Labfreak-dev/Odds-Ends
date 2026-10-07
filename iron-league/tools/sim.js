@@ -1014,8 +1014,34 @@ const curveAgain = IL.migrate(JSON.parse(JSON.stringify(curveSave)));
 check("the xp move runs once", curveAgain.roster[0].xp === curveSave.roster[0].xp);
 check("an old high club is seated in a high division", curveSave.division >= 2 && IL.migrate({ clubName: "New", roster: [{ id: "n1", cls: "warrior", name: "New Hand", level: 1, xp: 0 }] }).division === 0);
 const lvlSave = { division: 0, roster: [{ level: 12 }, { level: 11 }, { level: 10 }, { level: 2 }] };
-check("rivals match the club level", [0, 1, 2, 3, 4].every(function (i) { return Math.abs(IL.rivalLevel(lvlSave, i) - 11) <= 1; }));
-check("the division floor holds rivals up", IL.rivalLevel({ division: 4, roster: [{ level: 3 }] }, 1) >= 16);
+const rivalLvls = [];
+for (let c = 0; c < 7; c++) for (let k = 0; k < 3; k++) rivalLvls.push(IL.rivalLevel(lvlSave, c, k));
+check("rivals track the club level within seven", rivalLvls.every(function (lv) { return Math.abs(lv - 11) <= 7; }));
+check("rivals swing at least six each way", Math.min.apply(null, rivalLvls) <= 11 - 6 && Math.max.apply(null, rivalLvls) >= 11 + 6);
+check("the division floor holds the middle rival up", IL.rivalLevel({ division: 4, roster: [{ level: 3 }] }, 3, 0) >= 16);
+check("the level cap is 100", IL.LEVEL_CAP === 100 && IL.xpLevel(IL.xpFloor(100) + 1e6) === 100);
+const capSave = { division: 0, roster: [{ level: 100 }, { level: 100 }, { level: 100 }] };
+check("rivals of a maxed club stay at the cap", IL.rivalLevel(capSave, 6, 2) === 100 && IL.rivalLevel(capSave, 0, 1) === 93);
+const tall = IL.growRival(IL.randomFighter(IL.mulberry32(91), "warrior"), IL.mulberry32(92), 60);
+check("a rival grows past the old 40-pick guard", tall.level === 60 && tall.pendingLevels === 0 && (tall.growth || []).length === 59);
+const keepSave = { division: 0, roster: [{ level: 10 }, { level: 10 }, { level: 10 }], clubs: [{ you: true }] };
+for (let c = 0; c < 7; c++) keepSave.clubs.push({ id: "c" + c, swing: c, fighters: [0, 1, 2].map(function (k) { return IL.growRival(IL.randomFighter(IL.mulberry32(500 + c * 3 + k)), IL.mulberry32(600 + c * 3 + k), IL.rivalLevel(keepSave, c, k)); }) });
+keepSave.roster.forEach(function (f) { f.level = 20; });
+IL.keepRivalsUp(keepSave);
+check("rivals catch up when the club levels mid-season", keepSave.clubs.slice(1).every(function (c) { return c.fighters.every(function (f, k) { return f.level === IL.rivalLevel(keepSave, c.swing, k) && f.pendingLevels === 0 && (f.growth || []).length === f.level - 1; }); }));
+const topA = IL.growRival(IL.randomFighter(IL.mulberry32(701), "archer"), IL.mulberry32(702), 100);
+const topB = IL.growRival(IL.randomFighter(IL.mulberry32(703), "warrior"), IL.mulberry32(704), 94);
+const topM = runOut(IL.createMatch({ seed: 9, left: [topA], right: [topB], leftName: "A", rightName: "B" }));
+check("a level 100 fight still ends", topM.over);
+check("every class has three skill cards at every level to 100", Object.keys(IL.CLASSES).every(function (cls, ci) {
+  const f = IL.randomFighter(IL.mulberry32(800 + ci), cls);
+  f.level = 100; f.pendingLevels = 99;
+  for (let i = 0; i < 99; i++) {
+    if (IL.levelOffer(f).cards.length !== 3) return false;
+    if (!IL.applyLevelPick(f, i % 3)) return false;
+  }
+  return f.pendingLevels === 0 && f.growth.length === 99 && f.talents.every(function (t) { return t.tier <= 3; }) && new Set(f.talents.map(function (t) { return t.id; })).size === f.talents.length;
+}));
 const grown = IL.growRival(IL.randomFighter(IL.mulberry32(77), "archer"), IL.mulberry32(78), 10);
 check("a grown rival took its level-ups", grown.level === 10 && grown.pendingLevels === 0 && (grown.growth || []).length === 9 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) >= 18 && Object.keys(grown.rolls).reduce(function (n, k) { return n + grown.rolls[k]; }, 0) <= 27);
 check("levels come slower than the old flat 40", IL.xpFloor(10) > 9 * 40 * 2);

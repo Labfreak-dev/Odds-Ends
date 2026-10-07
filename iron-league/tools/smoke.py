@@ -908,8 +908,10 @@ def check_season(page, label, shot_dir):
           return { lv: lv, club: Math.max(IL.DIVISIONS[IL.divisionOf(raw)].floor, IL.clubLevel(raw)) };
         }"""
     )
-    # v65+: rivals match the club's level (or the division floor), one either way.
-    if not level["lv"] or min(level["lv"]) < max(1, level["club"] - 1) or max(level["lv"]) > level["club"] + 1 or max(level["lv"]) < level["club"]:
+    # v84: rivals sit on the club's level (or the division floor), each club
+    # on its own swing from six under to six over (one more either way per fighter).
+    lv, club = level["lv"], level["club"]
+    if not lv or min(lv) < max(1, club - 7) or max(lv) > club + 7 or max(lv) < club + 5 or min(lv) > max(1, club - 5):
         raise SystemExit(label + " rivals did not match the club: " + str(level))
 
 

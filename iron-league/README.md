@@ -200,6 +200,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Iron Gate (v79)
+
+An eight-floor run on the Club tab, after Eslabong's Iron Gate. One run a week (a run in progress carries on into the next week).
+
+- Floors 1-4 and 6 are squads that grow from 1 to 3 fighters; floors 5, 7 and 8 are bosses: **Gate Warden**, **Iron Jailer**, **The Gatekeeper** (with adds). Foes start at the club's level and rise a level every two floors.
+- Health carries floor to floor (like the endless pit); the party is the fielded lineup.
+- A floor pays 10 + 4×floor gold and 10 + 2×floor XP each. Every boss drops a **chest** (24-69 gold, more on higher floors, and a relic 40% of the time, else an item). Breaking the gate adds 10 renown.
+- Best floor is kept (`save.gateBest`); clears count in `save.gateClears`. `IL.gateFloor(save, rng, floor)` and `IL.gateChest`.
+
 ## Transfers (v78)
 
 - **Offers**: after a league or cup week, a rival in your division may bid for one of your fighters (never the captain; level 2+ or a win to their name), at 1.15–1.7× market value. At most two offers stand; each lasts a week. They show under Action required on Overview and in the Events inbox with **Accept** / **Decline**. Accepting pays the gold, returns their gear to the bag and posts the transfer to the market news.

@@ -1519,6 +1519,30 @@
     return squadOf(rng, 2, Math.max(1, level || 1));
   }
 
+  /* v79 Iron Gate, after Eslabong: eight floors, bosses on 5, 7 and 8.
+     Health carries floor to floor; a chest pays out at every boss. One
+     run a week. Foes rise from the club's level. */
+  const GATE_FLOORS = 8;
+  const GATE_BOSSES = { 5: "Gate Warden", 7: "Iron Jailer", 8: "The Gatekeeper" };
+
+  function gateFloor(save, rng, floor) {
+    const base = Math.max(1, (IL.clubLevel ? IL.clubLevel(save) : 1) + Math.floor((floor - 1) / 2));
+    if (GATE_BOSSES[floor]) {
+      const boss = makeBoss(rng, base + 1);
+      boss.name = GATE_BOSSES[floor];
+      if (IL.growRival) IL.growRival(boss, rng, base + 1);
+      boss.boss = true;
+      return { boss: boss, adds: squadOf(rng, floor === 8 ? 2 : 1, base) };
+    }
+    return { foes: squadOf(rng, Math.min(3, 1 + Math.floor(floor / 2)), base) };
+  }
+
+  function gateChest(save, rng, floor) {
+    const c = openChest(rng, save.relics || []);
+    c.gold = Math.round(c.gold * (1 + floor * 0.15));
+    return c;
+  }
+
   function endlessMod(wave) {
     if (!wave || wave % 5 !== 0) return null;
     return ENDLESS_MODS[(Math.floor(wave / 5) - 1) % ENDLESS_MODS.length];
@@ -1827,6 +1851,10 @@
   IL.rarityName = rarityName;
   IL.RARITY_MULT = RARITY_MULT;
   IL.sellValue = sellValue;
+  IL.GATE_FLOORS = GATE_FLOORS;
+  IL.GATE_BOSSES = GATE_BOSSES;
+  IL.gateFloor = gateFloor;
+  IL.gateChest = gateChest;
   IL.rollOffers = rollOffers;
   IL.rivalListing = rivalListing;
   IL.startChampionsCup = startChampionsCup;

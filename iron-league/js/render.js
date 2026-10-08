@@ -1408,6 +1408,8 @@
     if ((u.buff || 0) > 0) marks.push("buff");
     if ((u.rage || 0) > 0) marks.push("rage");
     if ((u.vuln || 0) > 0) marks.push("vuln");
+    if ((u.root || 0) > 0) marks.push("root");
+    if ((u.silence || 0) > 0) marks.push("silence");
     ctx.save();
     ctx.lineCap = "round";
     for (let i = 0; i < marks.length; i++) {
@@ -1453,6 +1455,21 @@
         ctx.lineTo(x - 3, y);
         ctx.closePath();
         ctx.fill();
+      } else if (k === "root") {
+        ctx.strokeStyle = "#7fd36a";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y + 3); ctx.quadraticCurveTo(x - 1, y - 1, x - 2.4, y - 3.2);
+        ctx.moveTo(x, y + 3); ctx.lineTo(x, y - 3.4);
+        ctx.moveTo(x + 3, y + 3); ctx.quadraticCurveTo(x + 1, y - 1, x + 2.4, y - 3.2);
+        ctx.stroke();
+      } else if (k === "silence") {
+        ctx.strokeStyle = "#e6e0ff";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.moveTo(x - 2.2, y + 2.2); ctx.lineTo(x + 2.2, y - 2.2);
+        ctx.stroke();
       } else if (k === "rage") {
         ctx.fillStyle = "#ff7a3a";
         ctx.beginPath();

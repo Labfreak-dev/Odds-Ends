@@ -298,6 +298,8 @@
     if (u.pv.cdCut) u.abilityCdMul *= 1 - u.pv.cdCut;
     u.feintT = 0;
     u.firstShotDone = false;
+    /* v96 evolved moves: { moveId: "root" | "drain" | "chain" | "silence" | "lasting" | "shared" }. */
+    u.evos = !fighter.summon && fighter.evos && typeof fighter.evos === "object" ? Object.assign({}, fighter.evos) : null;
     return u;
   }
 
@@ -776,6 +778,7 @@
     /* Locomotion only. Damage, cooldowns, and cast times are untouched.
        Both fronts already close the gap in a couple of seconds at kit speed. */
     let s = u.speed * PACE.move;
+    if (u.root > 0) return 0;
     if (u.slow > 0) s *= 0.62;
     if (u.rage > 0) s *= 1.08;
     return s;
@@ -1155,6 +1158,26 @@
       else if (spec.mod === "sundering") { dst.vuln = 3; dst.vulnAmt = Math.max(dst.vuln > 0 ? dst.vulnAmt || 0 : 0, v / 100); }
       else if (spec.mod === "searing") dst.bleed = { t: 3, acc: 0, dmg: Math.max(1, Math.round(dmg * v / 100 / 3.5)), src: src.id, tag: tag ? { id: tag.id, name: tag.name } : null };
     }
+    /* v96 evolved moves add their effect to every hit the move lands. */
+    if (src && src.evos && src.team !== dst.team && !opt.dot && !opt.evoed && !opt.reflected) {
+      const erid = (opt.tag && opt.tag.id) || (src.swingTag && src.swingTag.id);
+      const evo = erid && src.evos[erid];
+      if (evo === "root") dst.root = Math.max(dst.root || 0, 1.2);
+      else if (evo === "silence") silenceUnit(m, dst, 1.5);
+      else if (evo === "drain" && src.hp > 0) {
+        const was = src.hp;
+        src.hp = Math.min(src.maxHp, src.hp + dmg * 0.3 * (m.time > (m.suddenAt || SUDDEN_AT) ? 0.5 : 1));
+        src.healing = (src.healing || 0) + (src.hp - was);
+      } else if (evo === "chain") {
+        const skip = {};
+        skip[dst.id] = true;
+        const e = nextFoe(m, src.team, dst, 140, skip);
+        if (e) {
+          m.events.push({ type: "beam", x: dst.x, y: dst.y - 18, x2: e.x, y2: e.y - 18, kind: "bolt" });
+          deal(m, src, e, dmg * 0.5 + e.def * 0.35, { tag: { id: erid }, evoed: true, silent: true });
+        }
+      }
+    }
     if (!opt.dot && src && dst.thorns > 0 && src.hp > 0 && !opt.spell && Math.hypot(src.x - dst.x, src.y - dst.y) < 90) {
       deal(m, dst, src, dmg * dst.thorns, { dot: true, silent: true });
     }
@@ -1493,7 +1516,9 @@
         resolveNovaBolt(m, u, c);
       } else if (c.kind === "mend") {
         const ally = m.units.filter(function (e) { return e.id === c.targetId; })[0];
-        healUnit(m, u, ally || u, Math.round((ally || u).maxHp * 0.2 + u.atk * 0.35));
+        const amt = Math.round((ally || u).maxHp * 0.2 + u.atk * 0.35);
+        healUnit(m, u, ally || u, amt);
+        if (c.abId) evoSupport(m, u, ally || u, { id: c.abId }, amt, "heal");
         fx(m, "plasma", c.x, c.y, { size: 150 });
       } else {
         m.stats.casts++;
@@ -2189,6 +2214,60 @@
   /* forced: a move the player ordered (or a scripted cast); the
      autobattle judgment below (wait for a group, redirect to a caster)
      never overrides it. */
+  /* v96 shared helpers for the new mechanics. */
+  function silenceUnit(m, e, time) {
+    e.silence = Math.max(e.silence || 0, time);
+    if (e.cast && e.cast.ability) {
+      e.cast = null;
+      e.state = "idle";
+      e.anim = idleClip(e);
+      e.actT = 0;
+      m.events.push({ type: "dmg", x: e.x, y: e.y - 52, n: "Silenced", team: e.team });
+    }
+  }
+  function pullUnit(m, u, e, gap) {
+    const dx = e.x - u.x;
+    const dy = e.y - u.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const stop = (u.radius || 14) + (e.radius || 14) + (gap || 10);
+    if (d <= stop + 4) return;
+    e.pullTo = { x: u.x + dx / d * stop, y: u.y + dy / d * stop, t: 0.45 };
+    e.stun = Math.max(e.stun || 0, 0.3);
+    e.cast = e.cast && e.cast.ability ? null : e.cast;
+    m.events.push({ type: "beam", x: u.x, y: u.y - 22, x2: e.x, y2: e.y - 18, kind: "pull" });
+  }
+  function nextFoe(m, team, from, r, skip) {
+    let best = null;
+    let bd = r;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === team || e.hp <= 0 || skip[e.id]) continue;
+      const d = Math.hypot(e.x - from.x, e.y - from.y);
+      if (d <= bd) { bd = d; best = e; }
+    }
+    return best;
+  }
+  function evoSupport(m, u, ally, ab, amount, kind) {
+    const evo = u.evos && u.evos[ab.id];
+    if (!evo || !ally) return;
+    if (evo === "lasting") ally.hot = { t: 3, rate: ally.maxHp * 0.04 };
+    else if (evo === "shared") {
+      let best = null;
+      let ratio = 1.01;
+      for (let i = 0; i < m.units.length; i++) {
+        const a = m.units[i];
+        if (a.team !== u.team || a.hp <= 0 || a === ally) continue;
+        const r = a.hp / a.maxHp;
+        if (r < ratio) { ratio = r; best = a; }
+      }
+      if (!best) return;
+      if (kind === "shield") {
+        best.shield += Math.round(amount * 0.5);
+        fx(m, "orbit", best.x, best.y - 18, { size: 120 });
+      } else healUnit(m, u, best, amount * 0.5);
+    }
+  }
+
   function fireOne(m, u, t, dist, ab, forced) {
     if (!u.pv) u.pv = {};
     const reach = u.range + (t ? t.radius : 0);
@@ -2271,12 +2350,15 @@
       if (!ally) return "skip";
       if (ab.kind === "heal") {
         u.swingTag = { id: ab.id, name: ab.name };
-        healUnit(m, u, ally, Math.round(ally.maxHp * (ab.power || 0.16) + u.atk * 0.25));
+        const amt = Math.round(ally.maxHp * (ab.power || 0.16) + u.atk * 0.25);
+        healUnit(m, u, ally, amt);
+        evoSupport(m, u, ally, ab, amt, "heal");
         fx(m, paint, ally.x, ally.y - 16, { size: 140 });
         spend(u, ab);
         return finish(posed(u, ab));
       }
       startMend(m, u, ally, ab.cd);
+      if (u.cast) u.cast.abId = ab.id;
       spend(u, ab);
       return finish("go");
     }
@@ -2332,7 +2414,9 @@
     if (ab.kind === "shield") {
       let ally = u;
       if (!ab.self) ally = lowestAlly(m, u) || u;
-      ally.shield += Math.round(ally.maxHp * (ab.power || 0.1) * (1 + (u.pv.shieldMul || 0)));
+      const sh = Math.round(ally.maxHp * (ab.power || 0.1) * (1 + (u.pv.shieldMul || 0)));
+      ally.shield += sh;
+      evoSupport(m, u, ally, ab, sh, "shield");
       spend(u, ab);
       m.stats.abilities++;
       cue(m, "shield_up");
@@ -2410,6 +2494,140 @@
       m.stats.abilities++;
       return finish(posed(u, ab));
     }
+    /* v96 new mechanics. Pull prefers an enemy caster, archer or support. */
+    if (ab.kind === "pull") {
+      let e = t;
+      let best = -1;
+      for (let i = 0; i < m.units.length; i++) {
+        const c = m.units[i];
+        if (c.team === u.team || c.hp <= 0 || c.summon) continue;
+        const d = Math.hypot(c.x - u.x, c.y - u.y);
+        if (d < 90 || d > (ab.reach || 280)) continue;
+        const back = c.role === "cast" || c.role === "kite" || c.role === "support" ? 100 : 0;
+        const v = back - d * 0.1;
+        if (v > best) { best = v; e = c; }
+      }
+      if (!e || best < -1e8 || Math.hypot(e.x - u.x, e.y - u.y) < 90 || Math.hypot(e.x - u.x, e.y - u.y) > (ab.reach || 280)) return "skip";
+      spend(u, ab);
+      m.stats.abilities++;
+      u.swingTag = { id: ab.id, name: ab.name };
+      pullUnit(m, u, e, 10);
+      deal(m, u, e, Math.round(u.atk * (ab.power || 0.3)), { tag: u.swingTag });
+      fx(m, paint, e.x, e.y - 16, { size: 130 });
+      return finish(posed(u, ab));
+    }
+    if (ab.kind === "root" && t && dist <= (ab.reach || 220)) {
+      t.root = Math.max(t.root || 0, ab.time || 1.6);
+      spend(u, ab);
+      m.stats.abilities++;
+      u.swingTag = { id: ab.id, name: ab.name };
+      deal(m, u, t, Math.round(u.atk * (ab.power || 0.2)), { tag: u.swingTag });
+      m.events.push({ type: "dmg", x: t.x, y: t.y - 52, n: "Rooted", team: t.team });
+      fx(m, "smoke", t.x, t.y - 4, { size: 120, ground: true });
+      return finish(posed(u, ab));
+    }
+    if (ab.kind === "silence" && t) {
+      let e = null;
+      for (let i = 0; i < m.units.length; i++) {
+        const c = m.units[i];
+        if (c.team === u.team || c.hp <= 0 || !c.cast || !c.cast.ability) continue;
+        if (Math.hypot(c.x - u.x, c.y - u.y) <= (ab.reach || 260)) { e = c; break; }
+      }
+      if (!e && dist <= (ab.reach || 260) && (t.role === "cast" || t.role === "support" || t.role === "hybrid")) e = t;
+      if (!e && !forced && m.time < 18) return "skip";
+      e = e || (dist <= (ab.reach || 260) ? t : null);
+      if (!e) return "skip";
+      spend(u, ab);
+      m.stats.abilities++;
+      u.swingTag = { id: ab.id, name: ab.name };
+      silenceUnit(m, e, ab.time || 2.5);
+      deal(m, u, e, Math.round(u.atk * (ab.power || 0.15)), { tag: u.swingTag });
+      fx(m, paint, e.x, e.y - 30, { size: 120 });
+      return finish(posed(u, ab));
+    }
+    if (ab.kind === "chain" && t && dist <= (ab.reach || u.range + 60)) {
+      spend(u, ab);
+      m.stats.abilities++;
+      u.swingTag = { id: ab.id, name: ab.name };
+      const hit = {};
+      let from = u;
+      let cur = t;
+      let mul = ab.power || 0.6;
+      for (let j = 0; j <= (ab.jumps || 2) && cur; j++) {
+        m.events.push({ type: "beam", x: from.x, y: from.y - 22, x2: cur.x, y2: cur.y - 18, kind: "bolt" });
+        fx(m, "bolt", cur.x, cur.y - 16, { size: 120 });
+        hit[cur.id] = true;
+        deal(m, u, cur, Math.round(u.atk * mul), { tag: u.swingTag, spell: "spell_lightning_impact", silent: j > 0 });
+        from = cur;
+        cur = nextFoe(m, u.team, cur, 150, hit);
+        mul *= 0.75;
+      }
+      cue(m, "spell_lightning_impact");
+      return finish(posed(u, ab));
+    }
+    if (ab.kind === "drain" && t && dist <= (ab.reach || 220)) {
+      spend(u, ab);
+      m.stats.abilities++;
+      u.swingTag = { id: ab.id, name: ab.name };
+      const before = t.hp;
+      deal(m, u, t, Math.round(u.atk * (ab.power || 0.55)), { tag: u.swingTag, spell: "spell_shadow_impact" });
+      const took = Math.max(0, before - Math.max(0, t.hp));
+      if (took > 0) healUnit(m, u, u, took);
+      m.events.push({ type: "beam", x: t.x, y: t.y - 18, x2: u.x, y2: u.y - 22, kind: "drain" });
+      return finish(posed(u, ab));
+    }
+    if (ab.kind === "revive") {
+      if (u.raised) return "skip";
+      let e = null;
+      for (let i = 0; i < m.units.length; i++) {
+        const c = m.units[i];
+        if (c.team === u.team && c !== u && c.hp <= 0 && !c.summon && !c.wasRaised) { e = c; break; }
+      }
+      if (!e) return "skip";
+      u.raised = true;
+      e.wasRaised = true;
+      e.hp = Math.max(1, Math.round(e.maxHp * (ab.power || 0.3)));
+      e.alive = true;
+      e.state = "idle";
+      e.anim = idleClip(e);
+      e.animT = 0;
+      e.actT = 0;
+      e.iframe = 1;
+      e.bleed = null;
+      e.stun = 0;
+      e.root = 0;
+      e.silence = 0;
+      spend(u, ab);
+      m.stats.abilities++;
+      u.healing = (u.healing || 0) + e.hp;
+      m.events.push({ type: "heal", x: e.x, y: e.y - 48, n: "Raised", team: e.team });
+      m.events.push({ type: "beam", x: u.x, y: u.y - 22, x2: e.x, y2: e.y - 18, kind: "revive" });
+      cue(m, "heal_chime");
+      fx(m, "plasma", e.x, e.y - 16, { size: 170 });
+      return finish(posed(u, ab));
+    }
+    if (ab.kind === "homing" && t && dist <= (ab.reach || 320) && dist >= 60) {
+      spend(u, ab);
+      m.stats.abilities++;
+      u.swingTag = { id: ab.id, name: ab.name };
+      const dx = t.x - u.x;
+      const dy = t.y - u.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const spell = ab.row === "spell";
+      m.shots.push({
+        x: u.x + u.facing * 16, y: u.y - 18,
+        vx: -dy / d * 140 + dx / d * 230, vy: dx / d * 140 * (u.facing || 1) * 0.6 + dy / d * 230,
+        team: u.team, dmg: Math.round(u.atk * (ab.power || 1)),
+        r: 9, life: 2.4, src: u.id, trail: [], drop: 0, pierce: 0, hit: {},
+        home: t.id, speed: 360, bolt: spell,
+        spell: spell ? "spell_arcane_impact" : null,
+        snd: spell ? null : "hit_arrow",
+        srcTag: { id: ab.id, name: ab.name }
+      });
+      m.stats.shots++;
+      cue(m, spell ? "spell_arcane_cast" : "bow_release");
+      return finish(posed(u, ab));
+    }
     return "skip";
   }
 
@@ -2434,6 +2652,7 @@
 
   function tryClassAbility(m, u, t, dist) {
     if (u.summon) return false;
+    if (u.silence > 0) return false;
     const list = unlockedAbs(u);
     for (let i = list.length - 1; i >= 0; i--) {
       const ab = list[i];
@@ -2808,6 +3027,25 @@
       if (!p.trail) p.trail = [];
       p.trail.push({ x: p.x, y: p.y });
       if (p.trail.length > 8) p.trail.shift();
+      if (p.home) {
+        let tgt = null;
+        for (let j = 0; j < m.units.length; j++) if (m.units[j].id === p.home && m.units[j].team !== p.team && m.units[j].hp > 0) tgt = m.units[j];
+        if (!tgt) {
+          tgt = nextFoe(m, p.team, p, 9999, {});
+          if (tgt) p.home = tgt.id;
+        }
+        if (tgt) {
+          const want = Math.atan2(tgt.y - 16 - p.y, tgt.x - p.x);
+          const have = Math.atan2(p.vy, p.vx);
+          let diff = want - have;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          const turn = Math.max(-7 * dt, Math.min(7 * dt, diff));
+          const sp = p.speed || 360;
+          p.vx = Math.cos(have + turn) * sp;
+          p.vy = Math.sin(have + turn) * sp;
+        }
+      }
       p.vy += (p.drop || 0) * dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
@@ -2984,6 +3222,22 @@
       }
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);
+      if (u.root > 0) u.root = Math.max(0, u.root - dt);
+      if (u.silence > 0) u.silence = Math.max(0, u.silence - dt);
+      if (u.pullTo) {
+        const px = u.pullTo.x - u.x;
+        const py = u.pullTo.y - u.y;
+        const pd = Math.hypot(px, py);
+        const step = 900 * dt;
+        u.pullTo.t -= dt;
+        if (pd <= step || u.pullTo.t <= 0 || u.hp <= 0) { if (pd <= step) { u.x = u.pullTo.x; u.y = u.pullTo.y; } u.pullTo = null; }
+        else { u.x += px / pd * step; u.y += py / pd * step; u.vx = 0; u.vy = 0; }
+      }
+      if (u.hot && u.hp > 0) {
+        u.hot.t -= dt;
+        u.hp = Math.min(u.maxHp, u.hp + u.hot.rate * dt * (m.time > (m.suddenAt || SUDDEN_AT) ? 0.5 : 1));
+        if (u.hot.t <= 0) u.hot = null;
+      }
       if (u.vuln > 0) u.vuln = Math.max(0, u.vuln - dt);
       if (u.feintT > 0) u.feintT = Math.max(0, u.feintT - dt);
       if (u.hp > 0 && u.regen) u.hp = Math.min(u.maxHp, u.hp + u.regen * dt);
@@ -3116,6 +3370,7 @@
   IL.createMatch = createMatch;
   IL.stepMatch = stepMatch;
   IL._deal = deal; /* tools/sim.js only */
+  IL._fire = fireOne; /* tools/sim.js only */
   IL.PACE = PACE;
   IL.SUDDEN_AT = SUDDEN_AT;
   IL.pilotAbs = pilotAbs;

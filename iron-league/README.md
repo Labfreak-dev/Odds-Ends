@@ -201,6 +201,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Polish pass (v98)
+
+The last batch of the Eslabong parity plan.
+
+- **Area moves** tactic row on the fighter sheet, after Eslabong's AOE efficiency setting: 2 or more (the default and the old behavior), Anyone, or 3 or more. It applies to cleaves and blasts, and fires anyway once fewer foes are left.
+- **Season Impact**: each fighter keeps season Impact, assists, deaths and games played. Intel adds boards for Top Impact, Impact a match and Top assists. Fighter of the week on the Overview shows the MVP's Impact.
+- **Evolution marks**: an evolved move's loadout card carries a ★ tag with the evolution's name.
+- **Relics**: Unequip all, beside Auto-equip.
+
 ## Menus: match preview and breakdown (v97)
 
 Batch 6 of the Eslabong parity plan.

@@ -1570,6 +1570,21 @@ check("Line matches the default start", fLine.every(function (u, i) { return Mat
 check("Spearhead starts the front line further forward", fSpear[0].x > fLine[0].x + 40 && Math.abs(fSpear[1].x - fLine[1].x) < 1);
 check("Spread widens the line, and home moves with it", Math.abs(fSpread[2].y - fSpread[0].y) > Math.abs(fLine[2].y - fLine[0].y) * 1.6 && fSpread[0].homeY === fSpread[0].y);
 
+/* v98 Area moves tactic. */
+check("the Area moves row defaults to 2 or more", IL.normAi({}).aoe === "two" && IL.normAi({ aoe: "any" }).aoe === "any" && IL.normAi({ aoe: "bogus" }).aoe === "two");
+function aoeFire(aoe) {
+  const f = IL.randomFighter(IL.mulberry32(800), "warrior"); f.id = "ao"; f.level = 10; f.ai = { aoe: aoe };
+  const foes = ["warrior", "warrior", "warrior"].map(function (c, i) { const e = IL.randomFighter(IL.mulberry32(810 + i), c); e.id = "e" + i; return e; });
+  const m = IL.createMatch({ seed: 800, left: [f], right: foes, mode: "friendly" });
+  m.engage = 0;
+  const u = m.units[0];
+  u.x = 300; u.y = 300; u.cool = 0;
+  m.units[1].x = 330; m.units[1].y = 300;
+  m.units[2].x = 700; m.units[3].x = 760;
+  return IL._fire(m, u, m.units[1], 30, IL.abilityById("cleave"));
+}
+check("Anyone cleaves a lone foe; 2 or more holds", aoeFire("any") === "go" && aoeFire("two") === "skip" && aoeFire("three") === "skip");
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

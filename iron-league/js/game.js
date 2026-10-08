@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Polish: a new Area moves tactic (Anyone, 2 or more, 3 or more), season Impact and assists on the Intel boards, evolution marks on move cards, and Unequip all for relics.",
     "Before and after the fight: pick a formation and read a scouting report on the rival before the pit. Results now show K/D/A and an Impact score for both sides. Save three lineups on the Party board, and filter the Events feed.",
     "Abilities v2: new moves that pull, root, silence, chain lightning, drain life, raise a fallen ally, and fire shots that follow their target. At level 20 and 50 each fighter evolves a move, choosing one of two new effects.",
     "Relics v2: every relic shows its exact numbers and its own roll (85% to 115%). Fighters wear two relics from level 10. Four named legendaries (Phoenix Feather, Bloodvine Ring, Mirror Aegis, Blink Stone), relics that teach a move, a stall that restocks every week, and Auto-equip.",
@@ -1712,7 +1713,8 @@
       const ab = byAb[id];
       if (!ab) return "";
       const rk = IL.rankOf ? IL.rankOf(f, id) : 1;
-      return '<div class="loadout-slot' + (loadoutSlot === i ? " on" : "") + '" data-slot="' + i + '">' + (rk > 1 ? '<em class="rank-pip">' + roman(rk) + '</em>' : '') + '<ul class="abilities">' + abilityItem(ab, f.level || 1, f.learned, f) + '</ul></div>';
+      const evo = f.evos && f.evos[id] && IL.EVOS && IL.EVOS[f.evos[id]];
+      return '<div class="loadout-slot' + (loadoutSlot === i ? " on" : "") + '" data-slot="' + i + '">' + (rk > 1 ? '<em class="rank-pip">' + roman(rk) + '</em>' : '') + (evo ? '<em class="evo-pip" title="Evolved: ' + esc(evo.name) + '. ' + esc(evo.text) + '">★ ' + esc(evo.name) + '</em>' : '') + '<ul class="abilities">' + abilityItem(ab, f.level || 1, f.learned, f) + '</ul></div>';
     }).join("");
     const picks = (f.known || []).map(function (id) {
       const ab = byAb[id];
@@ -2721,7 +2723,7 @@
           '<section class="es-card"><h3 class="section">Standings · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</h3><ol class="ov-table">' + top + '</ol>' +
             '<button type="button" class="text-btn" data-goto="matches">Full table ›</button></section>' +
           seasonModsHtml() + seasonGoalsHtml() +
-          (star ? '<section class="es-card ov-star"><p class="eyebrow">Fighter of the week</p><h3>' + esc(star.mvp) + '</h3><p class="fine">MVP against ' + esc(star.opponent) + ', ' + esc(star.score) + '.</p></section>' : '') +
+          (star ? '<section class="es-card ov-star"><p class="eyebrow">Fighter of the week</p><h3>' + esc(star.mvp) + '</h3><p class="fine">MVP against ' + esc(star.opponent) + ', ' + esc(star.score) + '.' + (star.mvpImpact ? ' Impact ' + star.mvpImpact + '.' : '') + '</p></section>' : '') +
           '<section class="es-card"><h3 class="section">Feed</h3>' + (feed.length ? '<ul class="ov-feed">' + feed.slice(0, 6).map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join("") + '</ul>' : '<p class="fine">Results and market news show up here.</p>') + '</section>' +
         '</div>' +
       '</div>';
@@ -3092,7 +3094,10 @@
       board("Top kills (season)", function (f) { return (f.season && f.season.kos) || 0; }) +
       board("Top damage (season)", function (f) { return (f.season && f.season.dealt) || 0; }) +
       board("Top healing (season)", function (f) { return (f.season && f.season.heal) || 0; }) +
-      board("Impact (performance score)", function (f) { return IL.perfScore ? IL.perfScore(f) : 0; }, function (n) { return (IL.perfLabel ? IL.perfLabel(n) + " " : "") + n; }) +
+      board("Top Impact (season)", function (f) { return (f.season && f.season.impact) || 0; }) +
+      board("Impact a match (season)", function (f) { return f.season && f.season.games ? Math.round(f.season.impact / f.season.games) : 0; }) +
+      board("Top assists (season)", function (f) { return (f.season && f.season.assists) || 0; }) +
+      board("Performance score", function (f) { return IL.perfScore ? IL.perfScore(f) : 0; }, function (n) { return (IL.perfLabel ? IL.perfLabel(n) + " " : "") + n; }) +
       board("Most MVPs", function (f) { return f.mvps || 0; }) +
       board("Career kills", function (f) { return f.kos || 0; }) +
       '<section class="es-card"><h3 class="section">Club records · one match</h3><ul class="records">' +
@@ -3947,7 +3952,8 @@
     }).join("");
     return '<div id="relicPane">' +
       '<div class="relic-top"><p class="fine relic-count">' + (save.equipped || []).length + ' of ' + IL.clubRelicSlots(save) + ' club slots · ' + wornCount + ' worn · ' + (save.relics || []).length + ' owned · a second fighter slot opens at level ' + IL.RELIC_SLOT2_LV + '</p>' +
-        '<button type="button" class="btn ghost" id="autoRelics"' + ((save.relics || []).length ? '' : ' disabled') + '>Auto-equip</button></div>' +
+        '<div class="relic-tools"><button type="button" class="btn ghost" id="autoRelics"' + ((save.relics || []).length ? '' : ' disabled') + '>Auto-equip</button>' +
+        '<button type="button" class="btn ghost" id="clearRelics"' + ((save.equipped || []).length || Object.keys(bag.wearerOf).length ? '' : ' disabled') + '>Unequip all</button></div></div>' +
       '<div class="relic-filters">' +
         '<select id="relicStatus" aria-label="Status">' + selectOptions(relicStatus, [["all", "All relics"], ["owned", "Owned"], ["missing", "Missing"], ["club", "Club"], ["fighter", "Fighter"]]) + '</select>' +
         '<select id="relicRarity" aria-label="Rarity">' + selectOptions(relicRarity, [["all", "Any rarity"], ["common", "Common"], ["uncommon", "Uncommon"], ["rare", "Rare"], ["legendary", "Legendary"]]) + '</select>' +
@@ -5145,6 +5151,14 @@
   function bindRelicSheet() {
     const autoBtn = document.getElementById("autoRelics");
     if (autoBtn) autoBtn.onclick = autoEquipRelics;
+    const clearBtn = document.getElementById("clearRelics");
+    if (clearBtn) clearBtn.onclick = function () {
+      save.equipped = [];
+      (save.roster || []).forEach(function (f) { if (f) { f.relic = null; f.relic2 = null; } });
+      persist();
+      showHub("relics", true);
+      showNote("Every relic is back in the chest.");
+    };
     const status = document.getElementById("relicStatus");
     const rarity = document.getElementById("relicRarity");
     const setSel = document.getElementById("relicSet");
@@ -7212,7 +7226,11 @@
       opponent: opponent,
       score: (match.kills[0] || 0) + "–" + foe,
       win: !!win,
-      mvp: mvpName || "—"
+      mvp: mvpName || "—",
+      mvpImpact: (function () {
+        const star = match.units.filter(function (u) { return u.team === 0 && u.name === mvpName; })[0];
+        return star ? impactOf(star) : 0;
+      })()
     });
     save.history = save.history.slice(0, 10);
   }
@@ -7283,6 +7301,11 @@
       else f.losses = (f.losses || 0) + 1;
       f.kos = (f.kos || 0) + (u.kos || 0);
       if (!f.season) f.season = { dealt: 0, taken: 0, heal: 0, kos: 0 };
+      /* v98 season Impact, assists and deaths, for the Intel boards. */
+      f.season.impact = (f.season.impact || 0) + impactOf(u);
+      f.season.assists = (f.season.assists || 0) + (u.assists || 0);
+      f.season.deaths = (f.season.deaths || 0) + (u.deaths || 0);
+      f.season.games = (f.season.games || 0) + 1;
       f.season.dealt += u.dmgDealt || 0;
       f.season.taken += u.dmgTaken || 0;
       f.season.heal += u.healing || 0;

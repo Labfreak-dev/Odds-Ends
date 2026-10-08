@@ -161,23 +161,45 @@
     if (nemesisName && rivals.indexOf(nemesisName) < 0 && rivals.length) {
       rivals[rivals.length - 1] = nemesisName;
     }
+    /* v106 named teams take some rival places, never the nemesis's. */
+    const named = IL.eligibleNamed ? IL.eligibleNamed(save).slice() : [];
+    const namedWant = Math.min(named.length, IL.divisionOf(save) >= 1 ? 3 : 2);
+    const namedPicked = [];
+    while (namedPicked.length < namedWant && named.length) namedPicked.push(named.splice(Math.floor(rng() * named.length), 1)[0]);
+    namedPicked.forEach(function (t, k) {
+      for (let j = 0; j < rivals.length; j++) {
+        if (rivals[j] !== nemesisName && !IL.namedTeam(rivals[j])) { rivals[j] = t.name; break; }
+      }
+    });
     const clubs = [{ id: "you", name: save.clubName, you: true, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: 1 }];
     /* v65: rivals match the club's level (one either way, never under the
        division floor), wear division gear, and take real level-ups. */
     const tier = IL.divisionOf(save);
     rivals.forEach(function (name, i) {
-      const fighters = [0, 1, 2].map(function (k) {
+      const team = IL.namedTeam ? IL.namedTeam(name) : null;
+      /* v106 four fighters a club: one on the bench to rest. */
+      const fighters = team ? IL.namedFighters(save, team, rng, function (k) { return IL.rivalLevel(save, i, k); }) : [0, 1, 2, 3].map(function (k) {
         const fighter = IL.themedFighter ? IL.themedFighter(rng, name) : IL.randomFighter(rng);
         if (IL.dressRival) IL.dressRival(fighter, rng, tier);
         IL.growRival(fighter, rng, IL.rivalLevel(save, i, k));
         return fighter;
       });
-      const str = fighters.reduce(function (s, f) {
+      const str = fighters.slice(0, 3).reduce(function (s, f) {
         return s + (f.cls === "tank" ? 1.12 : f.cls === "mage" ? 1.06 : 1);
-      }, 0) / 3;
+      }, 0) / 3 * (team ? 1.05 : 1);
       if (IL.dedupeNames) IL.dedupeNames(fighters);
       if (IL.separateLooks) IL.separateLooks(fighters);
-      clubs.push({ id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, swing: i, fighters: fighters });
+      const club = { id: "c" + i, name: name, you: false, w: 0, l: 0, pts: 0, pf: 0, pa: 0, str: str, swing: i, fighters: fighters };
+      if (IL.dressRivalRelics) IL.dressRivalRelics(club, rng, tier);
+      if (team) {
+        club.named = true;
+        club.leader = team.leader;
+        club.style = team.style;
+        club.formation = team.formation;
+        const sigRelic = team.relic && IL.relicById(team.relic);
+        if (sigRelic && sigRelic.scope !== "fighter" && club.equipped.indexOf(sigRelic.id) < 0) club.equipped.unshift(sigRelic.id);
+      }
+      clubs.push(club);
     });
     save.clubs = clubs;
     save.round = 0;
@@ -331,6 +353,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Named rivals: twelve handcrafted clubs with leaders, styles and signature moves. Every rival now has a bench, wears relics, rests tired fighters, and the better ones prepare against your last three lineups.",
     "Ability costs and friendly fire: spells spend mana and physical moves spend stamina. Blasts now catch allies too, and a new Friendly fire tactic decides how careful each fighter is.",
     "League matches are now best of three. Between rounds you see the score and can change the formation.",
     "The Academy: send young fighters to a weekly 3v3 youth league that costs no week and no stamina. Wins earn Development Tomes, which lift a fighter to the club's average level.",
@@ -2260,7 +2283,7 @@
     const rival = nextRival();
     const size = !seasonDone() ? weekSize(save.round) : 0;
     const yours = size ? fielded(save.roster, size) : [];
-    const theirs = rival && size ? rival.fighters.slice(0, size) : [];
+    const theirs = rival && size ? IL.rivalPick(rival, size) : [];
     const partyReady = !size || yours.length >= size;
     const done = seasonDone();
     const table = sortedClubs().map(function (c, i) {
@@ -2368,7 +2391,7 @@
     const rival = done ? null : nextRival();
     const size = done ? 0 : weekSize(save.round);
     const yours = size ? fielded(save.roster, size) : [];
-    const theirs = rival && size ? rival.fighters.slice(0, size) : [];
+    const theirs = rival && size ? IL.rivalPick(rival, size) : [];
     const ready = !size || yours.length >= size;
     function names(list) {
       return '<ul class="preview-names">' + list.map(function (f) {
@@ -3242,7 +3265,7 @@
   /* Every club in the division with its record and its three fighters. */
   function rostersIntelHtml() {
     return '<div class="intel-rosters">' + sortedClubs().map(function (c, i) {
-      const team = c.you ? fielded(save.roster, 3) : (c.fighters || []).slice(0, 3);
+      const team = c.you ? fielded(save.roster, 3) : IL.rivalPick(c, 3);
       return '<section class="es-card intel-club' + (c.you ? " you" : "") + '"><header>' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) +
         '<h3>' + esc(c.name) + '</h3><span class="fine">' + ordinal(i + 1) + ' · ' + c.w + '-' + c.l + ' · ' + c.pts + ' pts</span></header>' +
         '<ul class="intel-fighters">' + team.map(function (f) {
@@ -4791,6 +4814,9 @@
       const rank = sortedClubs().indexOf(club) + 1;
       lines.push(rank + (rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th") + " in the league · " + club.w + " won, " + club.l + " lost · " + club.pts + " pts");
     }
+    if (club && club.named) lines.push("Named team, led by " + club.leader + ". " + club.style);
+    if (spec.prep) lines.push("Rival preparations: " + spec.prep);
+    if (club && club.equipped && club.equipped.length) lines.push("Club relics: " + club.equipped.map(function (id) { const r = IL.relicById(id); return r ? r.name : id; }).join(", "));
     const met = (save.history || []).filter(function (h) { return h && h.opponent === spec.rightName; }).slice(0, 3);
     if (met.length) lines.push("Last met: " + met.map(function (h) { return (h.win ? "won " : "lost ") + (h.score || ""); }).join(", "));
     const rows = right.map(function (f) {
@@ -4809,7 +4835,7 @@
         (relics ? '<span class="scout-relics">Relics: ' + relics + '</span>' : '') + '</li>';
     }).join("");
     return '<section class="panel-frame scout" id="scoutReport"><h3 class="section">Scouting report</h3>' +
-      (lines.length ? '<p class="fine">' + lines.map(esc).join(" · ") + '</p>' : '') +
+      (lines.length ? lines.map(function (l) { return '<p class="fine' + (l.indexOf("Rival preparations") === 0 ? ' scout-prep' : '') + '">' + esc(l) + '</p>'; }).join("") : '') +
       '<ul class="scout-list">' + rows + '</ul></section>';
   }
 
@@ -5801,7 +5827,7 @@
     const rival = nextRival();
     if (rival && !seasonDone()) {
       const n = weekSize(save.round);
-      rival.fighters.slice(0, n).forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
+      IL.rivalPick(rival, n).forEach(function (f) { pending[IL.hero.keyOf(f.parts)] = f.parts; });
     }
     Object.keys(pending).forEach(function (k) {
       IL.hero.compose(pending[k]).then(function (c) { if (alive(tok)) ready[k] = c; }).catch(function () {});
@@ -6380,6 +6406,7 @@
           foeRelics: spec.foeRelics || null,
           foeWorn: spec.foeWorn || null,
           formation: save.formation || null,
+          foeFormation: spec.foeFormation || null,
           captainBoost: IL.staffStars ? 0.03 * IL.staffStars(save, "coach") : 0
         });
       match.spriteMap = map;
@@ -6459,11 +6486,21 @@
     const size = weekSize(save.round);
     const left = fielded(save.roster, size);
     if (left.length < size) return;
-    const right = rival.fighters.slice(0, size);
+    /* v106 rivals rest the tired, wear relics, and may counter your last three lineups. */
+    const prep = IL.rivalPrep ? IL.rivalPrep(save, rival) : null;
+    const right = IL.rivalPick(rival, size).map(function (f) {
+      return prep ? Object.assign({}, f, { ai: Object.assign({}, f.ai || {}, prep.ai) }) : f;
+    });
+    const foeWorn = {};
+    right.forEach(function (f) { const r = f.relic && IL.relicById(f.relic); if (r) foeWorn[f.id] = [r]; });
     openVersus({
       mode: "league",
       left: left,
       right: right,
+      foeRelics: (rival.equipped || []).map(function (id) { return IL.relicById(id); }).filter(Boolean),
+      foeWorn: foeWorn,
+      foeFormation: (prep && prep.formation) || rival.formation || null,
+      prep: prep ? prep.text : "",
       leftName: save.clubName,
       rightName: rival.name,
       rival: rival,
@@ -7926,6 +7963,12 @@
       }
     } else {
       if (win) save.tokens = (save.tokens || 0) + 1;
+      if (mode === "league") {
+        if (fight.rival && IL.rivalTire) IL.rivalTire(fight.rival, fight.right);
+        if (!Array.isArray(save.recentRoles)) save.recentRoles = [];
+        save.recentRoles.unshift((fight.left || []).map(function (f) { return (IL.CLASSES[f.cls] || IL.CLASSES.warrior).role; }));
+        save.recentRoles = save.recentRoles.slice(0, 3);
+      }
       recordRound(win, pf, pa);
       /* Higher divisions pay more for the same match. */
       const purseMul = IL.DIVISIONS[IL.divisionOf(save)].purse;

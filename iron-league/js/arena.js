@@ -491,6 +491,17 @@
         u.atk = Math.round(u.atk * (1 + opts.captainBoost));
       });
     }
+    if (opts.foeFormation && teams <= 2 && FORMATIONS[opts.foeFormation]) {
+      const ff = FORMATIONS[opts.foeFormation];
+      const theirs = units.filter(function (u) { return u.team === 1; });
+      const midY2 = (WORLD.top + WORLD.bottom) / 2;
+      theirs.forEach(function (u, i) {
+        const x = WORLD.right - (hangsBack(u.role) ? ff.back : ff.front);
+        let y = midY2 + (i - (theirs.length - 1) / 2) * ff.gap;
+        y = Math.max(WORLD.top + 10, Math.min(WORLD.bottom - 10, y));
+        u.x = x; u.y = y; u.homeX = x; u.homeY = y;
+      });
+    }
     const relics = (opts.relics || []).slice();
     (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
     applySideRelics(units, 0, relics, opts.wornRelics || {});

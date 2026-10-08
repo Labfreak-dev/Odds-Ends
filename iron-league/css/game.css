@@ -4812,3 +4812,5 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .series-score { margin: 0; display: flex; gap: 12px; align-items: baseline; font: 700 34px/1 var(--display); color: #f2e2c4; }
 .series-score span { color: var(--muted); font-size: 24px; }
 .series-break .formation-pick { justify-content: center; }
+.scout-prep { color: #ff8f78 !important; font-weight: 700; }
+.scout .fine { margin: 2px 0; }

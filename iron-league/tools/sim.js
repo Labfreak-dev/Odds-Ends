@@ -1727,6 +1727,32 @@ const killsBefore = ffK.m.kills[0] || 0;
 IL._deal(ffK.m, ffK.u, ffK.ally, 999999, { dot: true, friendly: true });
 check("a friendly kill credits nobody", ffK.ally.hp <= 0 && (ffK.m.kills[0] || 0) === killsBefore);
 
+/* v106 named rivals and smarter clubs. */
+const nmSave = { clubName: "N FC", season: 1, division: 0, roster: [] };
+const nmTeams = IL.eligibleNamed(nmSave);
+check("named teams enter by division and season", nmTeams.length >= 2 && nmTeams.every(function (t) { return t.minDiv === 0 && t.minSeason === 1; }) && IL.eligibleNamed({ season: 4, division: 4 }).length === IL.NAMED_TEAMS.length);
+const hook = IL.namedTeam("The Hooked Chain");
+const hookF = IL.namedFighters(nmSave, hook, IL.mulberry32(5), function () { return 6; });
+check("a named team has four, led by its leader", hookF.length === 4 && hookF[0].name === "Grend the Hook" && hookF[0].champion && hookF[0].captain && hookF[0].level >= 6 && hookF[0].relic === "aegis");
+check("named fighters carry the team's signature move", hookF[0].loadout.indexOf("t-haul") >= 0 && hookF[1].loadout.indexOf("x-lancer-hook") >= 0 && hookF[0].ai.target === "back");
+const tiredClub = { fighters: hookF.map(function (f, i) { f.id = "nm" + i; return f; }) };
+tiredClub.fighters[1].stamina = 20;
+const picked3 = IL.rivalPick(tiredClub, 3);
+check("a rival rests its tired fighter", picked3.length === 3 && picked3.indexOf(tiredClub.fighters[1]) < 0 && picked3[0].leader);
+IL.rivalTire(tiredClub, picked3);
+check("a rival's starters tire and the bench rests", picked3.every(function (f) { return f.stamina === 80; }) && tiredClub.fighters[1].stamina === 54);
+const relClub = { fighters: [0, 1, 2, 3].map(function (i) { return { id: "rr" + i }; }) };
+IL.dressRivalRelics(relClub, IL.mulberry32(6), 4);
+check("top-division rivals wear relics", relClub.equipped.length === 2 && relClub.fighters.some(function (f) { return f.relic; }));
+const prepSave = { division: 0, recentRoles: [["cast", "kite", "melee"], ["cast", "support", "tank"], ["kite", "cast", "melee"]] };
+check("a named team counters a back-line-heavy club", IL.rivalPrep(prepSave, { named: true }).ai.target === "back" && IL.rivalPrep(prepSave, { named: false }) === null);
+prepSave.recentRoles = [["melee", "tank", "melee"], ["melee", "melee", "tank"]];
+check("and spreads out against a melee club", IL.rivalPrep(Object.assign({}, prepSave, { division: 2 }), {}).formation === "spread");
+const fmA = IL.randomFighter(IL.mulberry32(1), "warrior"), fmB = IL.randomFighter(IL.mulberry32(2), "warrior");
+const fmM = IL.createMatch({ seed: 1, left: [fmA], right: [fmB], mode: "friendly", foeFormation: "spear" });
+const fmD = IL.createMatch({ seed: 1, left: [fmA], right: [fmB], mode: "friendly" });
+check("a rival's formation mirrors on its side", fmM.units[1].x < fmD.units[1].x - 40);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

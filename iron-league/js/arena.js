@@ -1180,6 +1180,7 @@
         return;
       }
     }
+    if (opt.nonLethal && dmg >= dst.hp) dmg = Math.max(0, dst.hp - 1);
     dst.hp -= dmg;
     dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
     if (m.mods && m.mods.vamp && src && src.hp > 0 && src.team !== dst.team && !opt.dot) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.06);
@@ -1300,9 +1301,11 @@
       dst.iframe = 0;
       dst.cast = null;
       dst.trail = null;
-      const killerTeam = src ? src.team : 0;
-      if (m.kills[killerTeam] == null) m.kills[killerTeam] = 0;
-      m.kills[killerTeam]++;
+      const killerTeam = src ? (src.team === dst.team ? -1 : src.team) : 0;
+      if (killerTeam >= 0) {
+        if (m.kills[killerTeam] == null) m.kills[killerTeam] = 0;
+        m.kills[killerTeam]++;
+      }
       if (src && src.team !== dst.team) src.kos = (src.kos || 0) + 1;
       /* v97 K/D/A: an assist is damage on the fallen in the last 6 s, or a
          heal or shield on the killer in the last 6 s. */
@@ -1587,7 +1590,11 @@
           cue(m, "spell_" + school + "_impact");
           for (let i = 0; i < m.units.length; i++) {
             const e = m.units[i];
-            if (e.team === u.team || e.hp <= 0) continue;
+            if (e.hp <= 0 || e === u) continue;
+            if (e.team === u.team) {
+              if (c.ability && c.kind !== "arc" && m.ff !== false && Math.hypot(e.x - c.x, e.y - c.y) <= c.r + e.radius * 0.45) friendlyHit(m, u, e, Math.round(u.atk * mul));
+              continue;
+            }
             const d = Math.hypot(e.x - c.x, e.y - c.y);
             if (d <= c.r + e.radius * 0.45) {
               deal(m, u, e, Math.round(u.atk * mul), { silent: true, tag: u.swingTag });
@@ -1620,6 +1627,13 @@
     u.cool = PACE.castRecover;
   }
 
+  /* v105 an ally caught in your blast takes 40%, never from full to dead. */
+  function friendlyHit(m, u, e, raw) {
+    const before = e.hp;
+    deal(m, u, e, raw * 0.4, { silent: true, dot: true, friendly: true, nonLethal: before >= e.maxHp * 0.5 });
+    u.ffDealt = (u.ffDealt || 0) + Math.max(0, before - Math.max(0, e.hp));
+  }
+
   function resolveNovaBolt(m, u, c) {
     m.stats.casts++;
     m.stats.abilities++;
@@ -1649,8 +1663,10 @@
     cue(m, "spell_" + school + "_impact");
     for (let i = 0; i < m.units.length; i++) {
       const e = m.units[i];
-      if (e.team === u.team || e.hp <= 0) continue;
+      if (e.hp <= 0 || e === u) continue;
+      if (e.team === u.team && !(c.ability && m.ff !== false)) continue;
       if (Math.hypot(e.x - c.x, e.y - c.y) <= (c.r || 70) + e.radius * 0.4) {
+        if (e.team === u.team) { friendlyHit(m, u, e, Math.round(u.atk * mul)); continue; }
         deal(m, u, e, Math.round(u.atk * mul), { silent: true, tag: u.swingTag });
         if (c.slow) e.slow = Math.max(e.slow || 0, c.slow);
       }
@@ -1999,6 +2015,8 @@
 
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
+    const cost = abCost(ab);
+    if (cost && !u.summon) u[cost.pool] = Math.max(0, (u[cost.pool] == null ? 100 : u[cost.pool]) - cost.n);
     u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id) * specCd(u, ab.id) * PACE.abilityCd * (u.stormCd || 1);
     if (ab && ab.id) {
       u.swingTag = { id: ab.id, name: ab.name };
@@ -2011,10 +2029,21 @@
     arm(u, ab.cd || 6.5);
   }
 
+  /* v105 ability costs, after Eslabong: spells, items and skills spend
+     mana; swings, thrusts, shots and dashes spend stamina. Both pools are
+     100 and refill every second. */
+  const MANA_ROWS = { spell: 1, item: 1, skill: 1 };
+  function abCost(ab) {
+    if (!ab || !ab.cd) return null;
+    return { pool: MANA_ROWS[ab.row] ? "mana" : "sta", n: Math.round(6 + ab.cd * 1.6) };
+  }
   function readyAb(u, ab) {
     if (!ab || !ab.kind || !ab.cd) return false;
     const left = u.cds && u.cds[ab.id];
-    return !(left > 0);
+    if (left > 0) return false;
+    const c = abCost(ab);
+    if (c && !u.summon && (u[c.pool] == null ? 100 : u[c.pool]) < c.n) return false;
+    return true;
   }
 
   function unlockedAbs(u) {
@@ -2331,6 +2360,18 @@
     const lone = forced || foesLeft(m, u) < need || (ab.ult && m.time > 20);
     if (!lone && (ab.kind === "cleave") && t && crowdAt(m, u, u.x, u.y, u.range + 40) < need && !mistake(m, u)) return "skip";
     if (!lone && (ab.kind === "nova" || ab.kind === "frost" || ab.kind === "arc") && t && crowdAt(m, u, t.x, t.y, ab.radius || 68) < need && !mistake(m, u)) return "skip";
+    /* v105 friendly fire: blasts hurt allies in the area too. */
+    if (!forced && (ab.kind === "nova" || ab.kind === "frost") && t) {
+      const r = ab.radius || 68;
+      let mates = 0;
+      for (let i = 0; i < m.units.length; i++) {
+        const a = m.units[i];
+        if (a.team === u.team && a !== u && a.hp > 0 && Math.hypot(a.x - t.x, a.y - t.y) <= r + 10) mates++;
+      }
+      const ff = (u.ai && u.ai.ff) || "avoid";
+      if (mates > 0 && ff === "avoid" && !mistake(m, u)) return "skip";
+      if (mates > 0 && ff === "calc" && crowdAt(m, u, t.x, t.y, r) <= mates) return "skip";
+    }
     if (!forced && (ab.kind === "stun" || ab.kind === "knock")) {
       const r0 = ab.reach || (reach + 12);
       for (let i = 0; i < m.units.length; i++) {
@@ -3317,6 +3358,10 @@
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);
       if (u.root > 0) u.root = Math.max(0, u.root - dt);
+      if (u.mana == null) u.mana = 100;
+      if (u.sta == null) u.sta = 100;
+      u.mana = Math.min(100, u.mana + (u.role === "cast" || u.role === "support" ? 16 : 12) * dt);
+      u.sta = Math.min(100, u.sta + (u.role === "cast" || u.role === "support" ? 14 : 18) * dt);
       if (u.silence > 0) u.silence = Math.max(0, u.silence - dt);
       if (u.pullTo) {
         const px = u.pullTo.x - u.x;
@@ -3479,6 +3524,7 @@
   IL.stepMatch = stepMatch;
   IL._deal = deal; /* tools/sim.js only */
   IL._fire = fireOne; /* tools/sim.js only */
+  IL._ready = readyAb; /* tools/sim.js only */
   IL.PACE = PACE;
   IL.SUDDEN_AT = SUDDEN_AT;
   IL.pilotAbs = pilotAbs;

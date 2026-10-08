@@ -201,6 +201,13 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Ability costs and friendly fire (v105)
+
+- **Mana and stamina**: each fighter has a mana pool and a stamina pool of 100. Spells, items and skills spend mana; swings, thrusts, shots and dashes spend stamina. The cost is 6 + 1.6 × the cooldown (a 10 s move costs 22) and shows on every move card. Casters and supports refill 16 mana and 14 stamina a second, everyone else 12 and 18. A move with its cooldown ready still waits for the pool. A thin bar under the health bar shows the pool (blue mana, yellow stamina) while it is below full.
+- **Friendly fire**: blast abilities (nova and frost kinds) also hit allies inside them for 40%. Friendly fire can never take an ally from above half health to dead, and a friendly kill credits nobody. Arc bursts and basic casts are exempt.
+- **Friendly fire tactic** on the fighter sheet: Avoid (the default; hold a blast while an ally stands in it), Calculated (fire when more foes than allies are in it) or Natural (fire anyway). Results show a fighter's friendly-fire damage.
+- **Balance**: the class band at level 7 is unchanged within noise. Arc was exempted after friendly fire cost Battlemage 10 points.
+
 ## Match series (v104)
 
 - **Best of three**: league matches are a series, first to two round wins, after Eslabong's multi-round matches. Between rounds a break shows the series score and lets you change the formation. Health and cooldowns reset each round.

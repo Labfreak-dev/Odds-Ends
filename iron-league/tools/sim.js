@@ -1688,6 +1688,45 @@ acSave.devTomes = 5;
 IL.useTome(acSave, acRoster[4]);
 check("two tomes a season at most", !IL.useTome(acSave, acRoster[3]));
 
+/* v105 ability costs and friendly fire. */
+const rsF = IL.randomFighter(IL.mulberry32(990), "mage"); rsF.id = "rs"; rsF.level = 12;
+const rsFoe = IL.randomFighter(IL.mulberry32(991), "warrior"); rsFoe.id = "rf2";
+const rsM = IL.createMatch({ seed: 9, left: [rsF], right: [rsFoe], mode: "friendly" });
+rsM.engage = 0;
+const rsU = rsM.units[0];
+IL.stepMatch(rsM, 1 / 60);
+const flare = IL.abilityById("m-flare");
+rsU.x = 300; rsU.y = 300; rsM.units[1].x = 420; rsM.units[1].y = 300; rsU.cool = 0;
+rsU.mana = 100;
+IL._fire(rsM, rsU, rsM.units[1], 120, flare, true);
+check("a spell spends mana", rsU.mana < 100 && rsU.mana > 50);
+rsU.mana = 2; rsU.cds = {};
+check("without the mana a spell waits", !IL._ready(rsU, flare) && (rsU.mana = 100, IL._ready(rsU, flare)));
+function ffMatch(ff) {
+  const a = IL.randomFighter(IL.mulberry32(992), "mage"); a.id = "ffm"; a.level = 15; a.ai = { ff: ff };
+  const b = IL.randomFighter(IL.mulberry32(993), "warrior"); b.id = "ffa"; b.level = 15;
+  const e1 = IL.randomFighter(IL.mulberry32(994), "warrior"); e1.id = "ffe";
+  const m = IL.createMatch({ seed: 11, left: [a, b], right: [e1], mode: "friendly" });
+  m.engage = 0;
+  const u = m.units[0], ally = m.units[1], foe = m.units[2];
+  u.x = 200; u.y = 300; ally.x = 400; ally.y = 300; foe.x = 410; foe.y = 310; u.cool = 0; u.mana = 100;
+  return { m: m, u: u, ally: ally, foe: foe };
+}
+const ffA = ffMatch("avoid");
+check("Avoid holds a blast with an ally in it", IL._fire(ffA.m, ffA.u, ffA.foe, 210, flare) === "skip");
+const ffN = ffMatch("natural");
+check("Natural fires anyway", IL._fire(ffN.m, ffN.u, ffN.foe, 210, flare) === "go");
+for (let k = 0; k < 200 && ffN.ally.hp === ffN.ally.maxHp; k++) IL.stepMatch(ffN.m, 1 / 60);
+check("an ally in your own blast gets hurt", ffN.ally.hp < ffN.ally.maxHp && (ffN.u.ffDealt || 0) > 0);
+const ffK = ffMatch("natural");
+ffK.ally.hp = ffK.ally.maxHp;
+IL._deal(ffK.m, ffK.u, ffK.ally, 999999, { dot: true, friendly: true, nonLethal: true });
+check("friendly fire never kills from above half health", ffK.ally.hp >= 1);
+ffK.ally.hp = 5; ffK.ally.iframe = 0;
+const killsBefore = ffK.m.kills[0] || 0;
+IL._deal(ffK.m, ffK.u, ffK.ally, 999999, { dot: true, friendly: true });
+check("a friendly kill credits nobody", ffK.ally.hp <= 0 && (ffK.m.kills[0] || 0) === killsBefore);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

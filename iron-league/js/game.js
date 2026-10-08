@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Ability costs and friendly fire: spells spend mana and physical moves spend stamina. Blasts now catch allies too, and a new Friendly fire tactic decides how careful each fighter is.",
     "League matches are now best of three. Between rounds you see the score and can change the formation.",
     "The Academy: send young fighters to a weekly 3v3 youth league that costs no week and no stamina. Wins earn Development Tomes, which lift a fighter to the club's average level.",
     "The Chaos Thunder Cup: twice a season, four clubs in one pit, three free-for-all rounds, with points by place and a purse by final standing.",
@@ -995,9 +996,9 @@
     if (k === "pierce") return "Fires one " + arrow + " for " + dmg(1) + " that goes through one extra enemy.";
     if (k === "taunt") return "For 3.2s, enemies attack this fighter first.";
     if (k === "zone") return "Deals " + dmg(0.35) + " to enemies close by and guards for 0.8s: hits taken in that time do 32% damage.";
-    if (k === "nova") return "A blast at the target: " + dmg(ab.power || 0.9) + " to every enemy in the area" + (ab.slow ? ", and they move 38% slower for " + sec(ab.slow) : "") + ".";
+    if (k === "nova") return "A blast at the target: " + dmg(ab.power || 0.9) + " to every enemy in the area" + (ab.slow ? ", and they move 38% slower for " + sec(ab.slow) : "") + ". Allies caught in it take 40% (see the Friendly fire tactic).";
     if (k === "bolt") return "Fires a bolt: " + dmg(ab.power || 0.9) + " to the first enemy it hits.";
-    if (k === "frost") return "A frost blast at the target: " + dmg(1.15) + " to every enemy in the area, and they move 38% slower for 2.1s.";
+    if (k === "frost") return "A frost blast at the target: " + dmg(1.15) + " to every enemy in the area, and they move 38% slower for 2.1s. Allies caught in it take 40% (see the Friendly fire tactic).";
     if (k === "fireball") return "Fires a fireball: " + dmg(1.15) + " to the first enemy hit, and it goes through one more.";
     if (k === "arc") return "Arcs at the target: " + dmg(0.95) + " to every enemy in the area.";
     if (k === "dot") {
@@ -1105,7 +1106,9 @@
     const tags = (ab.tags || []).join(" · ");
     const row = ab.row ? ab.row.charAt(0).toUpperCase() + ab.row.slice(1) : "";
     const when = locked ? ("Level " + unlock) : (ab.cd ? "Cooldown " + realCd(ab, f) + "s" : cdText(ab));
-    return { locked: locked, line: [when, row, tags].filter(Boolean).join(" · "), tags: ab.tags || [], row: row };
+    /* v105 cost: spells, items and skills spend mana; the rest stamina. */
+    const cost = ab.cd ? Math.round(6 + ab.cd * 1.6) + (ab.row === "spell" || ab.row === "item" || ab.row === "skill" ? " mana" : " stamina") : "";
+    return { locked: locked, line: [when, cost, row, tags].filter(Boolean).join(" · "), tags: ab.tags || [], row: row };
   }
 
   function abilityItem(ab, level, learned, f) {
@@ -6473,7 +6476,7 @@
 
   /* v104 league matches are a best-of-three series. */
   function newSeries() { return { need: 2, wins: [0, 0], log: [], stats: {}, kills: [0, 0], round: 1, done: false }; }
-  const SERIES_KEYS = ["dmgDealt", "dmgTaken", "healing", "kos", "deaths", "assists"];
+  const SERIES_KEYS = ["dmgDealt", "dmgTaken", "healing", "kos", "deaths", "assists", "ffDealt"];
   function stashSeries(ser, match) {
     match.units.forEach(function (u) {
       if (!u || u.summon) return;
@@ -7479,6 +7482,7 @@
           '<span class="res-kos"><em>K/D/A</em><b>' + kdaText(u) + '</b></span>' +
           '<span class="res-kos res-imp"><em>Impact</em><b>' + impactOf(u) + '</b></span></div>' +
         abBreakdown(u) +
+        (u.ffDealt ? '<p class="fine res-ff">Friendly fire ' + Math.round(u.ffDealt) + '</p>' : '') +
         '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(IL.xpInto(b.prev).frac * 100) + '%"></div></div><small>Lv ' + b.lv + ' · ' + IL.xpInto(b.now, b.lv).into + '/' + IL.xpInto(b.now, b.lv).need + ' xp</small></div>' +
       "</article>";
     }).join("");

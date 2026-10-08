@@ -353,6 +353,12 @@
       { id: "two", name: "2 or more", blurb: "Hold cleaves and blasts until two foes are in the area, unless one foe is left." },
       { id: "any", name: "Anyone", blurb: "Fire area moves at a single foe as soon as they are up." },
       { id: "three", name: "3 or more", blurb: "Hold area moves for three foes in the area, unless fewer are left." }
+    ] },
+    /* v105 friendly fire: blasts hurt allies in the area (40%). */
+    { key: "ff", name: "Friendly fire", opts: [
+      { id: "avoid", name: "Avoid", blurb: "Hold a blast while an ally stands in it." },
+      { id: "calc", name: "Calculated", blurb: "Fire when more foes than allies are in the blast." },
+      { id: "natural", name: "Natural", blurb: "Fire anyway; allies in the blast take 40%." }
     ] }
   ];
 

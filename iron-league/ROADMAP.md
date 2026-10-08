@@ -48,8 +48,8 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v102 | Chaos Thunder Cup: twice a season, four clubs free for all, three rounds | shipped |
 | v103 | Academy: youth squad, weekly 3v3 academy league, Development Tomes | shipped |
 | v104 | League matches are best of three, with a round break to change formation | shipped |
-| v105 | Ability costs (mana, stamina) and friendly fire | next |
-| v106 | Named rival teams; rivals rest, equip relics and counter-build | planned |
+| v105 | Ability costs (mana, stamina) and friendly fire | shipped |
+| v106 | Named rival teams; rivals rest, equip relics and counter-build | next |
 | v107 | Difficulty: Relaxed, Normal, Hard, Infernus | planned |
 | v108 | Loans, trades and offers for rival fighters | planned |
 | v109 | Deeper tactics, 11 personalities, saved tactics | planned |

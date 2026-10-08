@@ -4763,3 +4763,10 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 /* v98 polish */
 .relic-tools { display: flex; flex-wrap: wrap; gap: 6px; }
 .evo-pip { position: absolute; right: 4px; bottom: 4px; z-index: 1; font-style: normal; font-size: 10px; font-weight: 700; color: #1a140f; background: #ffd27a; border-radius: 8px; padding: 1px 6px; white-space: nowrap; pointer-events: none; }
+
+/* v99 live orders, over the pit's top-left corner */
+.order-bar { position: absolute; left: 6px; top: 6px; z-index: 3; display: flex; gap: 3px; padding: 3px; background: rgba(12, 9, 7, 0.72); border: 1px solid #4a3b2c; border-radius: 6px; }
+.order-btn { min-width: 0; min-height: 30px; padding: 2px 8px; font: 700 12px/1 var(--ui); color: #e8dccb; background: #241c16; border: 1px solid #3a2c1f; border-radius: 4px; cursor: pointer; }
+.order-btn.on { color: #1a140f; background: #e0b25a; border-color: #ffd27a; }
+.order-btn:focus-visible { outline: 2px solid #ffd27a; outline-offset: 1px; }
+@media (max-width: 420px) { .order-btn { padding: 2px 6px; font-size: 11px; min-height: 28px; } }

@@ -201,6 +201,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Live orders (v99)
+
+- Four orders for your side during any two-team fight, after Eslabong's F1 to F4. Use the bar at the pit's top-left or the keys F1 to F4.
+  - **Plan**: each fighter follows its own behavior (the default).
+  - **Attack**: nobody falls back, and ranged fighters close in.
+  - **Regroup**: gather on the captain (or the party's middle) and fight only what comes into reach.
+  - **Hold**: hold the starting line and fight only what is in reach.
+- Fighters still cast their moves while holding or regrouping. A piloted captain ignores orders. The order lasts until you change it (`IL.setOrder` in `js/arena.js`).
+
 ## Polish pass (v98)
 
 The last batch of the Eslabong parity plan.

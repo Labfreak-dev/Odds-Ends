@@ -1585,6 +1585,27 @@ function aoeFire(aoe) {
 }
 check("Anyone cleaves a lone foe; 2 or more holds", aoeFire("any") === "go" && aoeFire("two") === "skip" && aoeFire("three") === "skip");
 
+/* v99 live orders. */
+function orderMatch(order) {
+  const rng = IL.mulberry32(900);
+  const L = ["warrior", "archer", "mage"].map(function (c, j) { const f = IL.randomFighter(rng, c); f.id = "l" + j; f.level = 10; if (j === 1) f.captain = true; return f; });
+  const R = ["warrior", "warrior", "warrior"].map(function (c, j) { const f = IL.randomFighter(rng, c); f.id = "r" + j; f.level = 10; return f; });
+  const m = IL.createMatch({ seed: 900, left: L, right: R, mode: "friendly" });
+  m.engage = 0;
+  if (order) IL.setOrder(m, 0, order);
+  for (let k = 0; k < 90; k++) { IL.stepMatch(m, 1 / 60); m.events.length = 0; }
+  return m;
+}
+const oPlan = orderMatch("plan"), oHold = orderMatch("hold");
+const homeDrift = function (m) { return m.units.filter(function (u) { return u.team === 0; }).reduce(function (n, u) { return Math.max(n, Math.hypot(u.x - u.homeX, u.y - u.homeY)); }, 0); };
+check("Hold keeps the line near its start", homeDrift(oHold) < 40 && homeDrift(oPlan) > homeDrift(oHold) + 30);
+const oReg = orderMatch("regroup");
+const capR = oReg.units.filter(function (u) { return u.captain; })[0];
+const capP = oPlan.units.filter(function (u) { return u.captain; })[0];
+const spreadTo = function (m, cap) { return m.units.filter(function (u) { return u.team === 0 && u !== cap; }).reduce(function (n, u) { return n + Math.hypot(u.x - cap.x, u.y - cap.y); }, 0); };
+check("Regroup gathers on the captain", spreadTo(oReg, capR) < spreadTo(oPlan, capP));
+check("an unknown order falls back to Plan", (function () { const m = orderMatch(null); IL.setOrder(m, 0, "dance"); return m.orders[0] === "plan"; })());
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

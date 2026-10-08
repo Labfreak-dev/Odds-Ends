@@ -1624,6 +1624,96 @@
     return true;
   }
 
+  /* ---------- v103 Academy ----------
+     Up to four fighters of level 20 or less train in the academy. Once a
+     league week they play a 3v3 academy fixture that does not advance the
+     week or cost stamina. Wins earn Development Tomes; a tome lifts a
+     low-level fighter to the club's average level (two a season). */
+  const ACADEMY_MAX_LV = 20;
+  const ACADEMY_SQUAD = 4;
+  const ACADEMY_SIZE = 3;
+  const TOMES_A_SEASON = 2;
+  function weekKey(save) { return (save.season || 1) * 100 + (save.round || 0); }
+  function ensureAcademy(save, rng) {
+    const a = save.academy;
+    if (a && a.season === save.season && Array.isArray(a.table)) return a;
+    const rivals = (save.clubs || []).filter(function (c) { return c && !c.you; }).map(function (c) { return c.name; });
+    const names = [];
+    while (names.length < 5 && rivals.length) names.push(rivals.splice(Math.floor(rng() * rivals.length), 1)[0]);
+    while (names.length < 5) names.push(IL.pick(rng, IL.CLUBS.filter(function (n) { return n !== save.clubName && names.indexOf(n) < 0; })));
+    save.academy = {
+      season: save.season,
+      ids: (a && Array.isArray(a.ids)) ? a.ids : [],
+      table: [{ name: save.clubName, you: true, w: 0, l: 0, pts: 0 }].concat(names.map(function (n) { return { name: n, w: 0, l: 0, pts: 0 }; })),
+      played: null,
+      tomesUsed: 0
+    };
+    return save.academy;
+  }
+  function academyEligible(f) { return !!f && !f.captain && (f.level || 1) <= ACADEMY_MAX_LV; }
+  function setAcademy(save, id, on) {
+    const a = save.academy;
+    if (!a) return false;
+    const f = (save.roster || []).filter(function (r) { return r.id === id; })[0];
+    if (!f) return false;
+    const at = a.ids.indexOf(id);
+    if (!on) { if (at >= 0) a.ids.splice(at, 1); return at >= 0; }
+    if (at >= 0 || !academyEligible(f) || a.ids.length >= ACADEMY_SQUAD) return false;
+    a.ids.push(id);
+    return true;
+  }
+  function academySquad(save) {
+    const a = save.academy;
+    if (!a) return [];
+    return (save.roster || []).filter(function (f) { return a.ids.indexOf(f.id) >= 0 && academyEligible(f) && !isInjured(f); })
+      .sort(function (x, y) { return (y.level || 1) - (x.level || 1); }).slice(0, ACADEMY_SIZE);
+  }
+  function academyReady(save) {
+    const a = save.academy;
+    return !!a && a.played !== weekKey(save) && academySquad(save).length > 0;
+  }
+  function academyOpponent(save, rng) {
+    const a = save.academy;
+    const squad = academySquad(save);
+    const rivals = a.table.slice(1);
+    const foe = rivals[(save.round || 0) % rivals.length];
+    const n = Math.max(1, squad.length);
+    const lv = Math.max(1, Math.round(squad.reduce(function (t, f) { return t + (f.level || 1); }, 0) / n));
+    const side = makeRivalSide(rng, foe.name + " Academy", n);
+    side.fighters.forEach(function (f, i) { growRival(f, rng, Math.max(1, lv + (i === 0 ? 1 : i === 1 ? 0 : -1))); });
+    return { name: foe.name + " Academy", club: foe.name, fighters: side.fighters };
+  }
+  function recordAcademy(save, foeClub, win, rng) {
+    const a = save.academy;
+    if (!a) return 0;
+    a.played = weekKey(save);
+    const you = a.table[0];
+    const them = a.table.filter(function (c) { return c.name === foeClub; })[0];
+    if (win) { you.w++; you.pts += 3; if (them) them.l++; } else { you.l++; if (them) { them.w++; them.pts += 3; } }
+    const rest = a.table.slice(1).filter(function (c) { return c !== them; });
+    for (let i = 0; i + 1 < rest.length; i += 2) {
+      const aw = rng() < 0.5;
+      const x = rest[i], y = rest[i + 1];
+      if (aw) { x.w++; x.pts += 3; y.l++; } else { y.w++; y.pts += 3; x.l++; }
+    }
+    if (win) save.devTomes = (save.devTomes || 0) + 1;
+    return win ? 1 : 0;
+  }
+  function clubAverage(save) {
+    const lv = (save.roster || []).map(function (f) { return f.level || 1; }).sort(function (a, b) { return b - a; }).slice(0, 5);
+    return lv.length ? Math.round(lv.reduce(function (t, n) { return t + n; }, 0) / lv.length) : 1;
+  }
+  function useTome(save, f) {
+    const a = save.academy;
+    if (!f || (save.devTomes || 0) < 1 || !a || (a.tomesUsed || 0) >= TOMES_A_SEASON) return false;
+    const target = clubAverage(save);
+    if ((f.level || 1) >= target || !IL.xpFloor || !IL.grantXp) return false;
+    IL.grantXp(f, Math.max(0, IL.xpFloor(target) - (f.xp || 0)));
+    save.devTomes -= 1;
+    a.tomesUsed = (a.tomesUsed || 0) + 1;
+    return true;
+  }
+
   /* ---------- v102 Chaos Thunder Cup ----------
      Twice a season: four clubs in one pit, free for all, three rounds.
      A round's placings score 3, 2, 1 and 0. The first cup (after week 4)
@@ -2497,6 +2587,18 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.ACADEMY_MAX_LV = ACADEMY_MAX_LV;
+  IL.ACADEMY_SQUAD = ACADEMY_SQUAD;
+  IL.TOMES_A_SEASON = TOMES_A_SEASON;
+  IL.ensureAcademy = ensureAcademy;
+  IL.academyEligible = academyEligible;
+  IL.setAcademy = setAcademy;
+  IL.academySquad = academySquad;
+  IL.academyReady = academyReady;
+  IL.academyOpponent = academyOpponent;
+  IL.recordAcademy = recordAcademy;
+  IL.clubAverage = clubAverage;
+  IL.useTome = useTome;
   IL.THUNDER_AT = THUNDER_AT;
   IL.THUNDER_ROUNDS = THUNDER_ROUNDS;
   IL.THUNDER_POINTS = THUNDER_POINTS;

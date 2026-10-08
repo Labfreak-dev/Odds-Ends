@@ -201,6 +201,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Academy (v103)
+
+- **Academy squad** on the Club tab: up to 4 fighters of level 20 or less (never the captain). They can still play for the first team.
+- **Weekly fixture**: once a league week the best three healthy squad fighters play a 3v3 against a rival academy at their level (±1). It does not advance the week or cost stamina. It pays 75% of match XP (16 a win, 6 a loss), a small purse, and points in a six-club academy league that resets each season.
+- **Development Tomes**: each academy win earns one. A tome lifts a fighter below the club average (the mean level of your top five) straight to it, with every level-up pick on the way. Two a season.
+
 ## Chaos Thunder Cup (v102)
 
 - **Twice a season**: after league week 4 a 2v2v2v2 cup opens, and after week 10 a 3v3v3v3 one. You face three league rivals, levelled like league rivals. It shows on Matches · Cups, in the fight menu and in Events.

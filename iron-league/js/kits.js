@@ -193,7 +193,7 @@
   CLASSES.druid.abilities = [
     CLASSES.druid.ability,
     A("regrowth", "Regrowth", "heal", 8, "plasma", 4, "A mend that prefers the worst wound.", { power: 0.2 }),
-    A("entangle", "Entangle", "debuff", 11, "smoke", 7, "Roots the target for a moment.", { reach: 180, time: 2.2 })
+    A("entangle", "Entangle", "root", 11, "smoke", 7, "Roots the target for a moment.", { reach: 220, time: 2.2, power: 0.2 })
   ];
   CLASSES.bard.abilities = [
     CLASSES.bard.ability,
@@ -267,7 +267,8 @@
     mend: "item", heal: "item", shield: "item",
     shadowstep: "evade", charge: "evade", skirmish: "evade",
     arc: "spell", nova: "spell", bolt: "spell", frost: "spell", fireball: "spell",
-    dot: "thrust", debuff: "skill", stun: "thrust", knock: "thrust", summon: "spell"
+    dot: "thrust", debuff: "skill", stun: "thrust", knock: "thrust", summon: "spell",
+    pull: "thrust", root: "spell", silence: "skill", chain: "spell", drain: "spell", revive: "item", homing: "missile"
   };
   const KIND_TAGS = {
     cleave: ["AoE"], nova: ["AoE"], arc: ["AoE"], zone: ["AoE"], frost: ["AoE"], fireball: ["AoE"],
@@ -277,7 +278,8 @@
     stun: ["CC"], knock: ["CC"], debuff: ["CC"], taunt: ["CC"],
     shadowstep: ["Mobility"], charge: ["Mobility"], skirmish: ["Mobility"], lunge: ["Mobility"],
     summon: ["Summon"],
-    pierce: ["AoE"], bolt: ["AoE"], vial: ["AoE"]
+    pierce: ["AoE"], bolt: ["AoE"], vial: ["AoE"],
+    pull: ["CC"], root: ["CC"], silence: ["CC"], chain: ["AoE"], drain: ["Heal"], revive: ["Heal"], homing: ["Damage"]
   };
 
   function stampMove(ab) {
@@ -309,18 +311,20 @@
       M("a-split", "Split", "multishot", 10, "shot", "missile", ["AoE"], "A wider pair of arrows."),
       M("a-hobble", "Hobble", "debuff", 9.2, "shot", "missile", ["CC"], "The arrow slows them.", { reach: 280, time: 2 }),
       M("a-cover", "Cover", "shadowstep", 11, "dash", "evade", ["Mobility"], "A step back off the line."),
-      M("a-mark", "Mark", "pierce", 10.5, "shot", "missile", ["AoE"], "One arrow that keeps going.")
+      M("a-mark", "Mark", "pierce", 10.5, "shot", "missile", ["AoE"], "One arrow that keeps going."),
+      M("a-seek", "Seeker Arrow", "homing", 9.5, "shot", "missile", ["Damage"], "An arrow that turns to follow.", { power: 1.05, reach: 320 })
     ],
     mage: [
       M("m-shard", "Shard", "bolt", 9, "bolt", "spell", ["AoE"], "A quick bolt between chants.", { power: 0.8, reach: 220 }),
       M("m-rime", "Rime", "debuff", 10, "plasma", "spell", ["CC"], "The air slows whoever it touches.", { reach: 200, time: 2 }),
       M("m-ward", "Ward", "shield", 11, "plasma", "item", ["Heal"], "A thin shield after the chant.", { power: 0.1, self: true }),
-      M("m-flare", "Flare", "nova", 12, "boom", "spell", ["AoE"], "A short burst up close.", { power: 0.7, radius: 60 })
+      M("m-flare", "Flare", "nova", 12, "boom", "spell", ["AoE"], "A short burst up close.", { power: 0.7, radius: 60 }),
+      M("m-seek", "Seeking Bolt", "homing", 9, "bolt", "spell", ["Damage"], "A bolt that hunts its mark.", { power: 1, reach: 320 })
     ],
     tank: [
       M("t-bell", "Bell", "stun", 11, "orbit", "skill", ["CC"], "The shield rings. They stop.", { stun: 0.45, power: 0.25, reach: 52 }),
       M("t-plant", "Plant", "zone", 12, "orbit", "item", ["AoE"], "A short guard planted at their feet."),
-      M("t-haul", "Haul", "knock", 9.4, "slash", "thrust", ["CC"], "Pulls the fight back a step.", { force: 180, power: 0.25 }),
+      M("t-haul", "Haul", "pull", 9.4, "slash", "thrust", ["CC"], "Drags a back-liner to the front.", { power: 0.25, reach: 280 }),
       M("t-iron", "Iron", "shield", 11, "orbit", "item", ["Heal"], "A thicker shield on themselves.", { power: 0.12, self: true })
     ],
     rogue: [
@@ -345,7 +349,8 @@
       M("h-salve", "Salve", "heal", 8, "plasma", "item", ["Heal"], "A quick mend.", { power: 0.14 }),
       M("h-veil", "Veil", "shield", 10, "plasma", "spell", ["Heal"], "A veil on the most wounded.", { power: 0.1 }),
       M("h-calm", "Calm", "debuff", 9.5, "spark", "skill", ["CC"], "The next step is slower.", { reach: 180, time: 2 }),
-      M("h-hymn", "Hymn", "buff", 12, "spark", "spell", ["Heal"], "The party hits a little harder.", { power: 0.08, time: 3.5, team: true })
+      M("h-hymn", "Hymn", "buff", 12, "spark", "spell", ["Heal"], "The party hits a little harder.", { power: 0.08, time: 3.5, team: true }),
+      M("h-raise", "Raise", "revive", 26, "plasma", "item", ["Heal"], "Brings a fallen ally back.", { power: 0.3, ult: true })
     ],
     assassin: [
       M("s-needle", "Needle", "dot", 7.8, "smoke", "thrust", ["DoT"], "A thin poison.", { power: 0.24, dot: 3, reach: 44 }),
@@ -355,7 +360,7 @@
     ],
     ranger: [
       M("n-fork", "Fork", "multishot", 10.5, "shot", "missile", ["AoE"], "Two arrows, lighter."),
-      M("n-root", "Root", "debuff", 9, "shot", "missile", ["CC"], "The shot pins their feet.", { reach: 260, time: 2.2 }),
+      M("n-root", "Root", "root", 9, "shot", "missile", ["CC"], "The shot pins their feet.", { reach: 260, time: 1.5, power: 0.25 }),
       M("n-step", "Step Aside", "skirmish", 9.2, "dash", "evade", ["Mobility"], "A sidestep and a shot."),
       M("n-heart", "Heart", "pierce", 11, "shot", "missile", ["AoE"], "One heavy arrow.")
     ],
@@ -363,7 +368,8 @@
       M("bm-spark", "Spark", "bolt", 8.8, "bolt", "spell", ["AoE"], "A close bolt.", { power: 0.75, reach: 140 }),
       M("bm-shell", "Shell", "shield", 10, "plasma", "item", ["Heal"], "A shell after the burst.", { power: 0.1, self: true }),
       M("bm-lash", "Lash", "cleave", 9.5, "slash", "swing", ["AoE"], "The staff comes around."),
-      M("bm-blink", "Blink", "shadowstep", 11, "plasma", "evade", ["Mobility"], "A short blink off the line.")
+      M("bm-blink", "Blink", "shadowstep", 11, "plasma", "evade", ["Mobility"], "A short blink off the line."),
+      M("bm-chain", "Chain Lightning", "chain", 10, "bolt", "spell", ["AoE"], "Lightning that leaps between them.", { power: 0.6, jumps: 2, reach: 240 })
     ],
     shieldbearer: [
       M("sb-wall", "Wall", "shield", 10, "orbit", "item", ["Heal"], "A wall on themselves.", { power: 0.12, self: true }),
@@ -410,14 +416,15 @@
     druid: [
       M("dr-bark", "Bark", "shield", 9.5, "plasma", "item", ["Heal"], "Bark on the worst wound.", { power: 0.1 }),
       M("dr-swarm", "Swarm", "dot", 8.6, "smoke", "spell", ["DoT"], "Thorns that keep working.", { power: 0.2, dot: 2.6, reach: 150 }),
-      M("dr-root", "Root", "stun", 11, "smoke", "spell", ["CC"], "Roots hold them.", { stun: 0.45, power: 0.25, reach: 160 }),
+      M("dr-root", "Root", "root", 11, "smoke", "spell", ["CC"], "Roots hold them.", { time: 2, power: 0.25, reach: 200 }),
       M("dr-form", "Form", "buff", 12, "spark", "skill", ["Heal"], "A short wilder strength.", { power: 0.12, time: 3.5 })
     ],
     bard: [
       M("bd-note", "Sour Note", "debuff", 8.6, "spark", "skill", ["CC"], "Another sour note.", { reach: 190, time: 2 }),
       M("bd-chord", "Chord", "heal", 9, "plasma", "spell", ["Heal"], "A chord for the worst wound.", { power: 0.14 }),
       M("bd-jig", "Jig", "buff", 11, "spark", "skill", ["Mobility"], "The next steps hit harder.", { power: 0.1, time: 3.5 }),
-      M("bd-shout", "Shout", "taunt", 10, "spark", "skill", ["CC"], "They look at the song.")
+      M("bd-shout", "Shout", "taunt", 10, "spark", "skill", ["CC"], "They look at the song."),
+      M("bd-hush", "Hush", "silence", 11, "spark", "skill", ["CC"], "A note that stops a spell.", { time: 2.5, power: 0.15, reach: 260 })
     ],
     gunslinger: [
       M("g-hip", "Hip Shot", "vial", 7, "shot", "missile", ["AoE"], "A fast hip shot.", { reach: 220, power: 0.62 }),
@@ -426,7 +433,7 @@
       M("g-brand", "Brand", "dot", 9, "boom", "missile", ["DoT"], "A shot that keeps burning.", { power: 0.2, dot: 2.4, reach: 220 })
     ],
     warlock: [
-      M("wl-leech", "Leech", "dot", 8, "smoke", "spell", ["DoT"], "A deeper curse.", { power: 0.28, dot: 3.2, reach: 220 }),
+      M("wl-leech", "Leech", "drain", 9, "smoke", "spell", ["Heal"], "Drinks their health.", { power: 0.55, reach: 220 }),
       M("wl-fear", "Fear", "debuff", 10, "smoke", "spell", ["CC"], "They move slower.", { reach: 220, time: 2.4 }),
       M("wl-imp", "Imp", "summon", 14, "plasma", "spell", ["Summon"], "A small imp, briefly.", { pet: "Imp", petHp: 0.22, petAtk: 0.36, life: 5.5 }),
       M("wl-pact", "Pact", "shield", 11, "plasma", "item", ["Heal"], "The pact leaves a shield.", { power: 0.1, self: true })
@@ -494,7 +501,7 @@
       M("x-mage-slow-field", "Slow Field", "nova", 12.5, "plasma", null, [], "A field that slows whoever stands in it.", { power: 0.55, radius: 62, slow: 1.6 }),
       M("x-mage-blink", "Blink", "shadowstep", 10, "smoke", null, [], "A blink to safer ground."),
       M("x-mage-mana-leech", "Mana Leech", "dot", 8.6, "smoke", null, [], "A thread that drains them.", { power: 0.24, dot: 3, reach: 210 }),
-      M("x-mage-silence", "Silence", "debuff", 9.6, "spark", null, [], "A word that stalls their next move.", { reach: 260, time: 2 })
+      M("x-mage-silence", "Silence", "silence", 9.6, "spark", null, [], "A word that stalls their next move.", { reach: 260, time: 2.5, power: 0.2 })
     ],
     tank: [
       M("x-tank-bulwark-step", "Bulwark Step", "zone", 12, "orbit", null, [], "Plants and holds the ground."),
@@ -515,7 +522,7 @@
     lancer: [
       M("x-lancer-skewer", "Skewer", "lunge", 8.4, "slash", null, [], "A long thrust at the nearest."),
       M("x-lancer-gallop", "Gallop", "charge", 10.5, "dash", null, [], "A running charge down the line."),
-      M("x-lancer-hook", "Hook", "knock", 9.6, "slash", null, [], "Hooks and drags them off balance.", { force: 180, power: 0.28 }),
+      M("x-lancer-hook", "Hook", "pull", 9.6, "slash", null, [], "Hooks and drags them in.", { power: 0.28, reach: 260 }),
       M("x-lancer-pike-wall", "Pike Wall", "zone", 12, "orbit", null, [], "The spear set against the rush."),
       M("x-lancer-rend-point", "Rend Point", "dot", 8.6, "slash", null, [], "The point twists in the wound.", { power: 0.2, dot: 2.8, reach: 52 }),
       M("x-lancer-rally-horn", "Rally Horn", "buff", 12, "spark", null, [], "The line steps up together.", { power: 0.1, time: 3.5, team: true })
@@ -602,7 +609,7 @@
     ],
     necromancer: [
       M("x-necromancer-corpse-fire", "Corpse Fire", "nova", 12, "smoke", null, [], "A green fire bursts among them.", { power: 0.7, radius: 58 }),
-      M("x-necromancer-drain", "Drain", "dot", 8.6, "smoke", null, [], "Life drained a little at a time.", { power: 0.26, dot: 3.2, reach: 210 }),
+      M("x-necromancer-drain", "Drain", "drain", 9, "smoke", null, [], "Takes their life for its own.", { power: 0.5, reach: 210 }),
       M("x-necromancer-skeleton", "Skeleton", "summon", 14, "smoke", null, [], "Another bone stands up.", { pet: "Bone", petHp: 0.22, petAtk: 0.34, life: 5.5 }),
       M("x-necromancer-bone-spear", "Bone Spear", "bolt", 9, "bolt", null, [], "A spear of bone at the nearest.", { power: 0.8, reach: 220 }),
       M("x-necromancer-terror", "Terror", "stun", 11, "smoke", null, [], "A dread that freezes them.", { stun: 0.4, power: 0.25, reach: 200 }),
@@ -997,7 +1004,8 @@
     charge: "Mobility", shadowstep: "Mobility", skirmish: "Mobility",
     multishot: "Damage", pierce: "Damage", bolt: "Damage", fireball: "Damage", lunge: "Damage",
     debuff: "Control", stun: "Stun", knock: "Push", dot: "Over time", vial: "Damage",
-    summon: "Summon"
+    summon: "Summon",
+    pull: "Pull", root: "Root", silence: "Silence", chain: "Chain", drain: "Drain", revive: "Revive", homing: "Homing"
   };
   function categoryOf(card) {
     if (!card) return "Utility";
@@ -1197,6 +1205,64 @@
     return card;
   }
 
+  /* v96 evolutions: at level 20 and again at 50 a fighter evolves one
+     move, choosing one of two new effects for it by the move's family. */
+  const EVO_LEVELS = [20, 50];
+  const EVOS = {
+    root: { name: "Rooting", text: "Its hits also root the target for 1.2s: they cannot move, but can still fight." },
+    drain: { name: "Draining", text: "Heals this fighter for 30% of the damage the move deals." },
+    chain: { name: "Arcing", text: "Each hit jumps to one more enemy within 140 px for 50% damage." },
+    silence: { name: "Hushing", text: "Its hits silence the target for 1.5s: no abilities, and a cast in progress is cut." },
+    lasting: { name: "Lasting", text: "The target also regains 4% of max HP a second for 3s." },
+    shared: { name: "Shared", text: "The next most wounded ally gets the same at half strength." }
+  };
+  const EVO_CHOICES = { melee: ["root", "drain"], spell: ["chain", "silence"], missile: ["root", "chain"], support: ["lasting", "shared"] };
+  const NO_EVO = { taunt: 1, rage: 1, buff: 1, summon: 1, revive: 1, debuff: 1, shadowstep: 1 };
+  function evoFamily(ab) {
+    if (!ab || !ab.cd || NO_EVO[ab.kind]) return null;
+    if (ab.kind === "heal" || ab.kind === "mend" || ab.kind === "shield") return "support";
+    const row = ab.row || KIND_ROW[ab.kind];
+    if (row === "spell") return "spell";
+    if (row === "missile") return "missile";
+    return "melee";
+  }
+  function evoChoices(ab) {
+    const fam = evoFamily(ab);
+    return fam ? EVO_CHOICES[fam].slice() : [];
+  }
+  function evoPicks(f) {
+    if (!f) return 0;
+    const lv = f.level || 1;
+    const earned = EVO_LEVELS.filter(function (l) { return lv >= l; }).length;
+    return Math.max(0, earned - Object.keys(f.evos || {}).length);
+  }
+  function evolveMove(f, abId, evoId) {
+    if (!f || evoPicks(f) < 1) return false;
+    ensureMoves(f);
+    if (f.known.indexOf(abId) < 0) return false;
+    if (f.evos && f.evos[abId]) return false;
+    const ab = poolOf(f.cls).filter(function (a) { return a && a.id === abId; })[0];
+    if (evoChoices(ab).indexOf(evoId) < 0) return false;
+    if (!f.evos || typeof f.evos !== "object") f.evos = {};
+    f.evos[abId] = evoId;
+    return true;
+  }
+  /* Rivals evolve on their own: a seeded pick among their loadout. */
+  function autoEvos(f, rng) {
+    let guard = 0;
+    while (evoPicks(f) > 0 && guard++ < 4) {
+      ensureMoves(f);
+      const pool = poolOf(f.cls);
+      const open = (f.loadout || []).map(function (id) { return pool.filter(function (a) { return a && a.id === id; })[0]; })
+        .filter(function (ab) { return ab && evoChoices(ab).length && !(f.evos && f.evos[ab.id]); });
+      if (!open.length) break;
+      const ab = open[Math.floor(rng() * open.length)];
+      const ch = evoChoices(ab);
+      evolveMove(f, ab.id, ch[Math.floor(rng() * ch.length)]);
+    }
+    return f;
+  }
+
   function modValue(mod, tier) {
     const m = MODS[mod];
     return m ? m.vals[Math.max(0, Math.min(3, tier | 0))] : 0;
@@ -1352,6 +1418,12 @@
   IL.rankOf = rankOf;
   IL.levelOffer = levelOffer;
   IL.applyLevelPick = applyLevelPick;
+  IL.EVOS = EVOS;
+  IL.EVO_LEVELS = EVO_LEVELS;
+  IL.evoChoices = evoChoices;
+  IL.evoPicks = evoPicks;
+  IL.evolveMove = evolveMove;
+  IL.autoEvos = autoEvos;
   IL.statRoll = statRoll;
   IL.rerollCost = rerollCost;
   IL.RARITY = RARITY;

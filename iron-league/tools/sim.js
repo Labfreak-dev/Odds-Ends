@@ -120,7 +120,7 @@ const seenAb = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
   const kit = IL.CLASSES[id];
   const list = kit.abilities || [];
-  if (list.length !== 14) {  // v85: 3 starters, a twin, 4 + 6 learnable
+  if (list.length < 14 || list.length > 15) {  // v85: 3 starters, a twin, 4 + 6 learnable; v96 adds one to five kits
     fails++;
     console.error("pool size", id, list.length);
   }
@@ -1450,6 +1450,99 @@ const tankKinds = IL.wornIds(auTank).map(function (id) { return IL.relicById(id)
 const archKinds = IL.wornIds(auArch).map(function (id) { return IL.relicById(id).kind; });
 check("auto-equip fills both slots and the club slots", tankKinds.length === 2 && archKinds.length === 2 && auSave.equipped.length >= 2 && auSave.equipped.indexOf("purse") < 0);
 check("auto-equip gives the tank defense and the archer damage", tankKinds.some(function (k) { return k === "reflect" || k === "hp"; }) && archKinds.some(function (k) { return k === "atk" || k === "crit"; }));
+
+/* v96 abilities v2: seven new mechanics in real fights, and evolutions. */
+function moveFight(cls, id, foes, seed, watch, setup) {
+  const f = IL.randomFighter(IL.mulberry32(seed), cls);
+  f.id = "mv"; f.level = 14;
+  IL.ensureMoves(f);
+  if (f.known.indexOf(id) < 0) f.known.push(id);
+  if (f.learned.indexOf(id) < 0) f.learned.push(id);
+  f.loadout = [id];
+  const right = foes.map(function (c, i) { const e = IL.randomFighter(IL.mulberry32(seed + 10 + i), c); e.id = "fo" + i; e.level = 12; return e; });
+  const left = [f].concat(setup && setup.ally ? [setup.ally] : []);
+  const m = IL.createMatch({ seed: seed, left: left, right: right, mode: "friendly" });
+  let seen = false;
+  for (let k = 0; k < 2400 && !m.over && !seen; k++) {
+    if (setup && setup.each) setup.each(m, k);
+    IL.stepMatch(m, 1 / 60);
+    if (watch(m)) seen = true;
+    m.events.length = 0;
+  }
+  return seen;
+}
+["pull", "root", "silence", "chain", "drain", "revive", "homing"].forEach(function (k) {
+  check("some kit has a " + k + " move", Object.keys(IL.CLASSES).some(function (c) { return IL.CLASSES[c].abilities.some(function (ab) { return ab.kind === k; }); }));
+});
+check("Haul pulls an enemy in", moveFight("tank", "t-haul", ["archer", "mage"], 301, function (m) { return m.units.some(function (u) { return u.team === 1 && u.pullTo; }); }));
+check("Entangle roots, and a rooted fighter cannot move", (function () {
+  let ok = false;
+  moveFight("druid", "entangle", ["warrior"], 302, function (m) {
+    const e = m.units.filter(function (u) { return u.team === 1 && u.root > 0.2 && !u.pullTo; })[0];
+    if (!e) return false;
+    const x = e.x, y = e.y;
+    for (let q = 0; q < 6; q++) IL.stepMatch(m, 1 / 60);
+    ok = Math.hypot(e.x - x, e.y - y) < 8;
+    return true;
+  });
+  return ok;
+})());
+check("Hush silences, and a silenced fighter casts nothing", moveFight("bard", "bd-hush", ["mage"], 303, function (m) {
+  const e = m.units.filter(function (u) { return u.team === 1 && u.silence > 0; })[0];
+  return !!e && !(e.cast && e.cast.ability);
+}));
+function fixedFire(cls, id, foes) {
+  const f = IL.randomFighter(IL.mulberry32(400), cls); f.id = "mv"; f.level = 14;
+  const right = foes.map(function (c, i) { const e = IL.randomFighter(IL.mulberry32(410 + i), c); e.id = "fo" + i; e.level = 12; return e; });
+  const m = IL.createMatch({ seed: 400, left: [f], right: right, mode: "friendly" });
+  m.engage = 0;
+  const u = m.units[0];
+  u.x = 300; u.y = 300; u.cool = 0;
+  m.units.slice(1).forEach(function (e, i) { e.x = 460 + i * 60; e.y = 300 + (i % 2) * 30; e.iframe = 0; });
+  const t = m.units[1];
+  const res = IL._fire(m, u, t, Math.hypot(t.x - u.x, t.y - u.y), IL.abilityById(id), true);
+  return { m: m, u: u, res: res };
+}
+const ch = fixedFire("battlemage", "bm-chain", ["warrior", "warrior", "rogue"]);
+check("Chain Lightning jumps between enemies", ch.res === "go" && ch.m.units.slice(1).filter(function (e) { return e.hp < e.maxHp; }).length === 3);
+const dr = fixedFire("warlock", "wl-leech", ["warrior"]);
+dr.u.hp = dr.u.maxHp * 0.5;
+const drWas = dr.u.hp;
+const dr2 = IL._fire(dr.m, dr.u, dr.m.units[1], 160, IL.abilityById("wl-leech"), true);
+check("Leech heals its caster for the damage dealt", dr.res === "go" && dr.u.hp > drWas && dr.m.units[1].hp < dr.m.units[1].maxHp);
+const raiseAlly = IL.randomFighter(IL.mulberry32(77), "warrior");
+raiseAlly.id = "ally"; raiseAlly.level = 12;
+check("Raise brings a fallen ally back once", moveFight("healer", "h-raise", ["warrior", "warrior"], 306, function (m) {
+  const a = m.units.filter(function (u) { return u.id === "ally"; })[0];
+  return a && a.wasRaised && a.hp > 0;
+}, { ally: raiseAlly, each: function (m, k) { if (k === 30) { const a = m.units.filter(function (u) { return u.id === "ally"; })[0]; a.iframe = 0; IL._deal(m, m.units[2], a, 99999, { dot: true }); } } }));
+check("Seeking Bolt turns to follow its target", moveFight("mage", "m-seek", ["rogue"], 307, function (m) {
+  return m.shots.some(function (p) { return p.home; }) && m.units[0].byAb && m.units[0].byAb["m-seek"] && m.units[0].byAb["m-seek"].used;
+}));
+const evoF = IL.randomFighter(IL.mulberry32(91), "warrior");
+IL.ensureMoves(evoF);
+evoF.level = 19;
+check("no evolution before level 20", IL.evoPicks(evoF) === 0);
+evoF.level = 20;
+const evoMove = evoF.loadout.filter(function (id) { return IL.evoChoices(IL.abilityById(id)).length; })[0];
+const evoOpts = IL.evoChoices(IL.abilityById(evoMove));
+check("level 20 evolves one move, with two choices", IL.evoPicks(evoF) === 1 && evoOpts.length === 2);
+check("an evolution outside the move's two choices is refused", !IL.evolveMove(evoF, evoMove, "lasting"));
+check("a valid evolution takes", IL.evolveMove(evoF, evoMove, evoOpts[0]) && evoF.evos[evoMove] === evoOpts[0] && IL.evoPicks(evoF) === 0);
+check("the same move cannot evolve twice", (evoF.level = 50, !IL.evolveMove(evoF, evoMove, evoOpts[1]) && IL.evoPicks(evoF) === 1));
+const rivalEvo = IL.randomFighter(IL.mulberry32(92), "warrior");
+IL.growRival(rivalEvo, IL.mulberry32(93), 55);
+check("a rival at level 55 has evolved two moves", Object.keys(rivalEvo.evos || {}).length === 2);
+const evoU = relicUnit([]);
+evoU.u.evos = { cleave: "root" };
+IL._deal(evoU.m, evoU.u, evoU.foe, 20, { tag: { id: "cleave" } });
+check("a Rooting move roots on hit", evoU.foe.root > 1);
+const evoD = relicUnit([]);
+evoD.u.evos = { cleave: "drain" };
+evoD.u.hp = evoD.u.maxHp * 0.5;
+const evoDWas = evoD.u.hp;
+IL._deal(evoD.m, evoD.u, evoD.foe, 60, { tag: { id: "cleave" } });
+check("a Draining move heals on hit", evoD.u.hp > evoDWas);
 
 if (fails) {
   console.error(fails, "failed");

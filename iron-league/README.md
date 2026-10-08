@@ -201,6 +201,28 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Abilities v2 (v96)
+
+Batch 5 of the Eslabong parity plan.
+
+- **Seven new mechanics** in the arena (`fireOne` in `js/arena.js`), each with its real numbers in the move text:
+  - **Pull**: drags an enemy 90 to 280 px away to the caster, preferring a caster, archer or support, and holds them 0.3 s. Tank's Haul and Lancer's Hook now pull.
+  - **Root**: the target cannot move but can still fight. Druid's Entangle (2.2 s) and Root, and Ranger's Root.
+  - **Silence**: no abilities, and a spell being cast is cut off. Mage's Silence now silences for real; Bard has a new move, Hush.
+  - **Chain**: Battlemage's new Chain Lightning hits the target, then jumps to 2 more enemies within 150 px, 25% weaker each jump.
+  - **Drain**: deals damage and heals the caster for all of it. Warlock's Leech and Necromancer's Drain.
+  - **Revive**: Healer's new Raise brings a fallen ally back once a fight, at 30% HP.
+  - **Homing**: Mage's Seeking Bolt and Archer's Seeker Arrow turn to follow their target, and find a new one if it falls.
+- **Evolutions**: at level 20, and again at 50, a fighter evolves one move, picking one of two new effects by the move's family:
+  - melee: Rooting or Draining
+  - spells: Arcing or Hushing
+  - missiles: Rooting or Arcing
+  - heals and shields: Lasting or Shared
+
+  Pick them on the fighter sheet; Events flags a fighter with an evolution to spend. Rivals evolve on their own, and challenge codes carry evolutions.
+- New status marks over the health bar for root and silence. Pull, drain and revive draw their own beams.
+- Balance: Druid's Entangle went from a 38% slow to a 2.2 s root. Druid holds 32% in the class band (100 fights), the same as before.
+
 ## Relics v2 (v95)
 
 Batch 4 of the Eslabong parity plan.

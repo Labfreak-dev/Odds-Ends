@@ -1695,7 +1695,10 @@
     fighter.level = lv;
     fighter.xp = IL.xpFloor ? IL.xpFloor(lv) : (lv - 1) * 40;
     if (IL.ensureMoves) IL.ensureMoves(fighter);
-    if (!IL.levelOffer || !IL.applyLevelPick || lv <= from) return fighter;
+    if (!IL.levelOffer || !IL.applyLevelPick || lv <= from) {
+      if (IL.autoEvos) IL.autoEvos(fighter, rng);
+      return fighter;
+    }
     fighter.pendingLevels = lv - from;
     let guard = 0;
     while (fighter.pendingLevels > 0 && guard < (IL.LEVEL_CAP || 100) + 5) {
@@ -1707,6 +1710,7 @@
       guard++;
     }
     fighter.pendingLevels = 0;
+    if (IL.autoEvos) IL.autoEvos(fighter, rng);
     return fighter;
   }
 
@@ -2210,6 +2214,7 @@
       relic2: f.relic2 || null,
       loadout: Array.isArray(f.loadout) ? f.loadout.slice(0, 3) : [],
       learned: Array.isArray(f.learned) ? f.learned.slice() : [],
+      evos: f.evos && typeof f.evos === "object" ? Object.assign({}, f.evos) : undefined,
       ai: IL.aiCustom && IL.aiCustom(f.ai) ? IL.normAi(f.ai) : undefined
     };
   }
@@ -2281,6 +2286,10 @@
       };
       if (Array.isArray(raw.loadout)) f.loadout = raw.loadout.slice(0, 3);
       if (Array.isArray(raw.learned)) f.learned = raw.learned.slice();
+      if (raw.evos && typeof raw.evos === "object") {
+        f.evos = {};
+        Object.keys(raw.evos).slice(0, 2).forEach(function (id) { if (IL.EVOS && IL.EVOS[raw.evos[id]]) f.evos[id] = raw.evos[id]; });
+      }
       if (raw.ai && IL.normAi) f.ai = IL.normAi(raw.ai);
       if (IL.ensureMoves) IL.ensureMoves(f);
       fighters.push(f);

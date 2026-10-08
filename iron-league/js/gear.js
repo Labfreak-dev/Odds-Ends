@@ -340,7 +340,14 @@
     knock: "assets/ui/abilities/pixel_skill3_26.png",
     summon: "assets/ui/abilities/pixel_skill3_18.png",
     vial: "assets/ui/abilities/pixel_skill3_06.png",
-    dot: "assets/ui/abilities/pixel_skill3_07.png"
+    dot: "assets/ui/abilities/pixel_skill3_07.png",
+    pull: "assets/ui/abilities/pixel_skill3_22.png",
+    root: "assets/ui/abilities/pixel_skill3_27.png",
+    silence: "assets/ui/abilities/pixel_skill3_18.png",
+    chain: "assets/ui/abilities/pixel_skill3_21.png",
+    drain: "assets/ui/abilities/pixel_skill3_29.png",
+    revive: "assets/ui/abilities/pixel_skill3_15.png",
+    homing: "assets/ui/abilities/pixel_skill3_25.png"
   };
 
   function abilityIcon(id) {

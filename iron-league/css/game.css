@@ -4716,3 +4716,17 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .relic-cell.named.riding .glyph { box-shadow: 0 0 0 2px var(--copper), 0 0 10px rgba(255, 190, 90, 0.45); }
 .relic-text { font-size: 15px; line-height: 1.4; }
 .stall-card h3 .relic-roll { margin-left: 4px; }
+
+/* v96 evolutions */
+.evo-ready { margin: 6px 0; color: #ffd27a; font-weight: 700; }
+.evo-move { margin: 6px 0 10px; }
+.evo-move > p { margin: 0 0 4px; }
+.evo-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 6px; }
+.evo-opt { display: grid; gap: 3px; text-align: left; padding: 8px 10px; min-width: 0; color: var(--cream); font: inherit; background: linear-gradient(#2a1f16, #1c1510); border: 1px solid #6a4a2a; border-radius: 6px; cursor: pointer; }
+.evo-opt:hover, .evo-opt:focus-visible { border-color: #e0b25a; }
+.evo-opt b { color: #ffd27a; font-size: 14px; }
+.evo-opt span { font-size: 13px; line-height: 1.35; color: #e8dccb; overflow-wrap: anywhere; }
+.evo-list { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 4px; }
+.evo-list li { padding: 6px 8px; border-left: 3px solid #e0b25a; background: rgba(0, 0, 0, 0.2); }
+.evo-list p { margin: 2px 0 0; font-size: 13px; }
+.inbox-row.ib-evo { border-left: 3px solid #e0b25a; }

@@ -322,6 +322,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Abilities v2: new moves that pull, root, silence, chain lightning, drain life, raise a fallen ally, and fire shots that follow their target. At level 20 and 50 each fighter evolves a move, choosing one of two new effects.",
     "Relics v2: every relic shows its exact numbers and its own roll (85% to 115%). Fighters wear two relics from level 10. Four named legendaries (Phoenix Feather, Bloodvine Ring, Mirror Aegis, Blink Stone), relics that teach a move, a stall that restocks every week, and Auto-equip.",
     "Better fighters: every recruit rolls Balanced, Good or Excellent growth per stat and shows 1 to 5 potential stars. Shiny fighters (1 in 250) start 20% stronger. Champions carry a second class's passive, go to auction against rival clubs, and sometimes ask to join you.",
     "Longer seasons that pay: 14 weeks home and away, a free MidCup after week 7, two season modifiers, five season goals that pay on the spot, and a season chest of gold, gear and relics by where you finish.",
@@ -904,6 +905,13 @@
   }
 
   const ABILITY_COPY = {
+    pull: "Drags an enemy to this fighter.",
+    root: "Pins the target in place.",
+    silence: "Stops the target using abilities.",
+    chain: "Lightning that jumps between enemies.",
+    drain: "Takes the target's health for this fighter.",
+    revive: "Brings a fallen ally back.",
+    homing: "A shot that follows its target.",
     cleave: "A wide swing that catches everyone in front.",
     multishot: "Three shots loosed in one breath.",
     frost: "A ring of cold that slows whoever it reaches.",
@@ -997,6 +1005,13 @@
     if (k === "rage") return "Only below 72% HP: for 4s, deals 28% more damage and moves 8% faster.";
     if (k === "summon") return "Summons a " + (ab.pet || "Familiar") + " for " + sec(ab.life || 6) + " with " + pct(ab.petHp || 0.26) + " of this fighter's max HP and " + pct(ab.petAtk || 0.4) + " of their ATK. One at a time.";
     if (k === "vial") return "Throws a flask: " + dmg(ab.power || 0.85) + " to the first enemy it hits.";
+    if (k === "pull") return "Drags an enemy 90 to " + (ab.reach || 280) + " px away (a caster, archer or support first) to this fighter, deals " + dmg(ab.power || 0.3) + " and holds them 0.3s.";
+    if (k === "root") return "Deals " + dmg(ab.power || 0.2) + " and roots the target for " + sec(ab.time || 1.6) + ": they cannot move, but can still fight.";
+    if (k === "silence") return "Deals " + dmg(ab.power || 0.15) + " and silences an enemy for " + sec(ab.time || 2.5) + ": no abilities, and a spell being cast is cut off. Goes for a caster first.";
+    if (k === "chain") return "Lightning hits the target for " + dmg(ab.power || 0.6) + ", then jumps to " + (ab.jumps || 2) + " more enemies within 150 px, 25% weaker each jump.";
+    if (k === "drain") return "Deals " + dmg(ab.power || 0.55) + " and heals this fighter for all of the damage dealt.";
+    if (k === "revive") return "Once a fight: brings a fallen ally back with " + pct(ab.power || 0.3) + " of their max HP and 1s of guard.";
+    if (k === "homing") return "Fires a " + (ab.row === "spell" ? "bolt" : arrow) + " that turns to follow its target: " + dmg(ab.power || 1) + ". If the target falls, it finds the nearest enemy.";
     return ab.blurb || abilityBlurb(ab.id);
   }
 
@@ -1776,6 +1791,7 @@
             '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
             '<p class="fine">Equip three. A tome teaches the rest.</p>' +
             '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
+            evoHtml(f) +
           '</section>' +
           '<section class="es-card"><h3 class="section">Profile and behavior</h3>' +
             '<dl class="es-profile">' +
@@ -2422,6 +2438,9 @@
     pendingGrowth().forEach(function (f) {
       out.push({ act: true, kind: "level", fid: f.id, text: f.name + " has " + f.pendingLevels + " level-up pick" + (f.pendingLevels === 1 ? "" : "s") + " waiting." });
     });
+    (save.roster || []).forEach(function (f) {
+      if (IL.evoPicks && IL.evoPicks(f) > 0) out.push({ act: true, kind: "evo", fid: f.id, text: f.name + " can evolve a move." });
+    });
     (save.offers || []).forEach(function (o) {
       const f = fighterById(o.fid);
       if (!f) return;
@@ -2516,6 +2535,7 @@
         : x.kind === "go" ? '<button type="button" class="ctl" data-inbox-go="' + esc(x.tab) + '">Open ›</button>'
         : x.kind === "offer" ? offerButtons(x.oid)
         : x.kind === "approach" ? approachButtons()
+        : x.kind === "evo" ? '<button type="button" class="ctl" data-detail="' + esc(x.fid) + '">Evolve ›</button>'
         : x.kind === "season" ? '<button type="button" class="ctl" data-inbox-season="1">Open ›</button>' : '';
       return '<li class="inbox-row ib-' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
     }
@@ -2550,7 +2570,9 @@
       if (on) { answerOffer(on.dataset.offerDecline, false); return; }
       const ay = ev.target.closest("[data-approach-accept]");
       if (ay && !ay.disabled) { answerApproach(true); return; }
-      if (ev.target.closest("[data-approach-decline]")) answerApproach(false);
+      if (ev.target.closest("[data-approach-decline]")) { answerApproach(false); return; }
+      const dt = ev.target.closest("[data-detail]");
+      if (dt) { inboxOpen = false; detailId = dt.dataset.detail; refreshHub(); }
     };
   }
 
@@ -2661,7 +2683,8 @@
           const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
             : x.kind === "go" ? '<button type="button" class="ctl" data-goto="' + esc(x.tab) + '">Open ›</button>'
             : x.kind === "offer" ? offerButtons(x.oid)
-            : x.kind === "approach" ? approachButtons() : '';
+            : x.kind === "approach" ? approachButtons()
+            : x.kind === "evo" ? '<button type="button" class="ctl" data-detail="' + esc(x.fid) + '">Evolve ›</button>' : '';
           return '<li class="inbox-row"><span>' + esc(x.text) + '</span>' + btn + '</li>';
         }).join("") + '</ul></section>'
       : '';
@@ -3340,6 +3363,37 @@
         detail +
       '</div>' +
     '</div>';
+  }
+
+  /* v96 evolutions: one move at level 20, another at 50, two choices each. */
+  function evoHtml(f) {
+    if (!IL.evoChoices) return "";
+    const picks = IL.evoPicks(f);
+    const evos = f.evos || {};
+    const done = Object.keys(evos).map(function (id) {
+      const ab = IL.abilityById(id);
+      const e = IL.EVOS[evos[id]];
+      return ab && e ? '<li><strong>' + esc(ab.name) + ' · ' + esc(e.name) + '</strong><p>' + esc(e.text) + '</p></li>' : '';
+    }).join("");
+    let offer = "";
+    if (picks > 0) {
+      offer = (f.loadout || []).map(function (id) {
+        const ab = IL.abilityById(id);
+        if (!ab || evos[id]) return "";
+        const ch = IL.evoChoices(ab);
+        if (!ch.length) return "";
+        return '<div class="evo-move"><p><strong>' + esc(ab.name) + '</strong></p><div class="evo-opts">' + ch.map(function (c) {
+          return '<button type="button" class="evo-opt" data-evo-move="' + esc(id) + '" data-evo="' + esc(c) + '"><b>' + esc(IL.EVOS[c].name) + '</b><span>' + esc(IL.EVOS[c].text) + '</span></button>';
+        }).join("") + '</div></div>';
+      }).join("");
+      if (!offer) offer = '<p class="fine">None of the equipped moves can evolve. Equip a damage, heal or shield move.</p>';
+    }
+    const lv = f.level || 1;
+    const next = IL.EVO_LEVELS.filter(function (l) { return lv < l; })[0];
+    return '<h3 class="section">Evolutions</h3>' +
+      (done ? '<ul class="evo-list">' + done + '</ul>' : '') +
+      (picks > 0 ? '<p class="evo-ready">Evolve a move · ' + picks + ' to spend</p>' + offer
+        : '<p class="fine">' + (next ? "Level " + next + " evolves one move: pick one of two new effects for it." : "Both evolutions spent.") + '</p>');
   }
 
   /* v94 grades, potential, shiny, champion passive, auctions. */
@@ -5080,6 +5134,18 @@
         }
         return;
       }
+      const evoBtn = ev.target.closest("[data-evo-move]");
+      if (evoBtn) {
+        const ef = fighterById(detailId);
+        if (ef && IL.evolveMove(ef, evoBtn.dataset.evoMove, evoBtn.dataset.evo)) {
+          pitSound("purchase");
+          persist();
+          showHub(hubTab);
+          const ab = IL.abilityById(evoBtn.dataset.evoMove);
+          showNote((ab ? ab.name : "The move") + " evolves: " + IL.EVOS[evoBtn.dataset.evo].name + ".");
+        }
+        return;
+      }
       const study = ev.target.closest("[data-study]");
       if (study) {
         const found = findItem(study.dataset.study);
@@ -6781,7 +6847,8 @@
         if (e.kind === "bolt") {
           P.chain(fx, e.x, fa, fa - e.y, e.x2, fb, fb - e.y2, "255,246,170");
         } else {
-          const rgb = e.kind === "fireball" ? "255,140,50" : e.kind === "pierce" ? "200,240,170" : e.kind === "vial" || e.kind === "dot" ? "170,236,80" : "200,160,255";
+          const rgb = e.kind === "fireball" ? "255,140,50" : e.kind === "pierce" ? "200,240,170" : e.kind === "vial" || e.kind === "dot" ? "170,236,80"
+            : e.kind === "pull" ? "230,220,190" : e.kind === "drain" ? "235,70,90" : e.kind === "revive" ? "255,236,150" : "200,160,255";
           const turn = !!(IL.pitCam && IL.pitCam.portrait);
           const off = turn ? [fa - fb, e.x - e.x2] : [e.x - e.x2, fa - fb];
           P.streaks(fx, { ax: e.x2, ay: fb, x1: off[0], y1: off[1] - (fa - e.y), x2: 0, y2: -(fb - e.y2), rgb: rgb, n: e.kind === "fireball" ? 2 : 1, gap: 2, life: 0.2, w: e.kind === "fireball" ? 2.6 : 1.6 });

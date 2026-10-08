@@ -1470,7 +1470,7 @@
   function rollApproach(save, rng) {
     const notes = [];
     if (save.approach && (save.round || 0) - (save.approach.round || 0) > 2) save.approach = null;
-    if (save.approach || rng() > 0.12 * (1 + 0.25 * staffStars(save, "scout")) || (save.roster || []).length >= (IL.rosterCap ? IL.rosterCap(save) : 8)) return notes;
+    if (save.approach || (save.settings && save.settings.noChampions) || rng() > 0.12 * (1 + 0.25 * staffStars(save, "scout")) || (save.roster || []).length >= (IL.rosterCap ? IL.rosterCap(save) : 8)) return notes;
     const f = makeStar(save, rng, false);
     const cost = Math.max(80, Math.round(marketValue(f) * 0.9 / 5) * 5);
     save.approach = { fighter: f, cost: cost, round: save.round || 0, season: save.season };
@@ -1622,6 +1622,26 @@
       }
     };
     return true;
+  }
+
+  /* ---------- v107 difficulty ----------
+     Rivals' HP and ATK in every fight but friend fights, a captain bonus
+     in autobattle, gold, and season modifiers. Infernus adds 4% threat a
+     season, to +60%. */
+  const DIFFICULTY = {
+    relaxed: { name: "Relaxed", foe: 0.85, cap: 0.15, gold: 1, mods: 2, blurb: "Rivals have 15% less HP and ATK, and your captain fights 15% stronger in autobattle." },
+    normal: { name: "Normal", foe: 1, cap: 0, gold: 1, mods: 2, blurb: "The game as balanced." },
+    hard: { name: "Hard", foe: 1.12, cap: 0, gold: 1.15, mods: 3, blurb: "Rivals have 12% more HP and ATK. Matches pay 15% more gold. Three season modifiers." },
+    infernus: { name: "Infernus", foe: 1.2, cap: 0, gold: 1.3, mods: 4, blurb: "Rivals have 20% more HP and ATK, plus 4% threat a season (up to +60%). Matches pay 30% more gold. Four season modifiers." }
+  };
+  function difficultyOf(save) {
+    const d = save && save.settings && save.settings.difficulty;
+    return DIFFICULTY[d] ? d : "normal";
+  }
+  function foeMulOf(save) {
+    const d = DIFFICULTY[difficultyOf(save)];
+    const threat = difficultyOf(save) === "infernus" ? Math.min(0.6, 0.04 * Math.max(0, (save.season || 1) - 1)) : 0;
+    return Math.round(d.foe * (1 + threat) * 1000) / 1000;
   }
 
   /* ---------- v106 named rival teams ----------
@@ -2682,6 +2702,9 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.DIFFICULTY = DIFFICULTY;
+  IL.difficultyOf = difficultyOf;
+  IL.foeMulOf = foeMulOf;
   IL.NAMED_TEAMS = NAMED_TEAMS;
   IL.namedTeam = namedTeam;
   IL.eligibleNamed = eligibleNamed;

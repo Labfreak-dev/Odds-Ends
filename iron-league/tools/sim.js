@@ -1753,6 +1753,15 @@ const fmM = IL.createMatch({ seed: 1, left: [fmA], right: [fmB], mode: "friendly
 const fmD = IL.createMatch({ seed: 1, left: [fmA], right: [fmB], mode: "friendly" });
 check("a rival's formation mirrors on its side", fmM.units[1].x < fmD.units[1].x - 40);
 
+/* v107 difficulty. */
+check("difficulty defaults to Normal", IL.difficultyOf({}) === "normal" && IL.foeMulOf({}) === 1 && IL.difficultyOf({ settings: { difficulty: "bogus" } }) === "normal");
+check("Infernus threat climbs 4% a season to +60%", IL.foeMulOf({ season: 1, settings: { difficulty: "infernus" } }) === 1.2 && IL.foeMulOf({ season: 6, settings: { difficulty: "infernus" } }) === 1.44 && IL.foeMulOf({ season: 40, settings: { difficulty: "infernus" } }) === 1.92);
+const dfA = IL.randomFighter(IL.mulberry32(41), "warrior"), dfB = IL.randomFighter(IL.mulberry32(42), "warrior");
+dfA.captain = true;
+const dfN = IL.createMatch({ seed: 4, left: [dfA], right: [dfB], mode: "friendly" });
+const dfH = IL.createMatch({ seed: 4, left: [dfA], right: [dfB], mode: "friendly", foeMul: 1.12, capBonus: 0.15 });
+check("Hard makes rivals tougher and Relaxed's captain bonus lands", Math.abs(dfH.units[1].maxHp / dfN.units[1].maxHp - 1.12) < 0.02 && dfH.units[0].maxHp > dfN.units[0].maxHp * 1.1);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

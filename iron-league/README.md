@@ -201,6 +201,16 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Difficulty (v107)
+
+- **Four levels** in Settings, changeable any time and applied from the next fight (`DIFFICULTY` in `js/meta.js`):
+  - **Relaxed**: rivals -15% HP and ATK, your captain +15% in autobattle.
+  - **Normal**: the game as balanced.
+  - **Hard**: rivals +12%, matches pay +15% gold, three season modifiers.
+  - **Infernus**: rivals +20% plus 4% threat a season (up to +60%), +30% gold, four season modifiers.
+- **What it covers**: every fight but friend fights and the shared daily, including wave and boss adds.
+- **Options**: *No champion signings* blocks hiring champions from the market and auctions, and stops champion approaches. *No season modifiers* starts the next season without any.
+
 ## Named rivals and smarter clubs (v106)
 
 - **Named teams**: twelve handcrafted clubs (`NAMED_TEAMS` in `js/meta.js`), each with a leader, a style, fixed classes, a signature move or two, a formation and a named relic. Two take league places in the Sand Division and three from the Iron Division up. Some arrive only from a later season or a higher division. The leader is a champion and the rival captain, up to two levels higher (never past the rival level range), wearing the team's relic.

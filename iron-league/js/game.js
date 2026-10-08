@@ -207,7 +207,8 @@
     const firstHalf = roundRobin(clubs.map(function (c) { return c.id; }));
     const secondHalf = firstHalf.map(function (pairs) { return pairs.map(function (p) { return [p[1], p[0]]; }); });
     save.fixtures = firstHalf.concat(secondHalf);
-    save.mods = IL.pickSeasonMods ? IL.pickSeasonMods(rng, 2) : [];
+    const modCount = IL.DIFFICULTY ? IL.DIFFICULTY[IL.difficultyOf(save)].mods : 2;
+    save.mods = IL.pickSeasonMods && !(save.settings && save.settings.noMods) ? IL.pickSeasonMods(rng, modCount) : [];
     save.seasonGoals = IL.pickSeasonGoals ? IL.pickSeasonGoals(rng) : [];
     (save.roster || []).forEach(function (f) { f.lv0 = f.level || 1; f.lv0Season = save.season; });
     save.streak = 0;
@@ -353,6 +354,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Difficulty: Relaxed, Normal, Hard and Infernus in Settings, plus options for no champion signings and no season modifiers.",
     "Named rivals: twelve handcrafted clubs with leaders, styles and signature moves. Every rival now has a bench, wears relics, rests tired fighters, and the better ones prepare against your last three lineups.",
     "Ability costs and friendly fire: spells spend mana and physical moves spend stamina. Blasts now catch allies too, and a new Friendly fire tactic decides how careful each fighter is.",
     "League matches are now best of three. Between rounds you see the score and can change the formation.",
@@ -2564,6 +2566,7 @@
 
   function bidAuction() {
     const a = save.auction;
+    if (a && a.fighter && a.fighter.champion && save.settings && save.settings.noChampions) { pitSound("error"); showNote("No champion signings is on (Settings)."); return; }
     if (!a || save.roster.length >= IL.rosterCap(save) || !IL.auctionBid(save)) { pitSound("error"); return; }
     pitSound("purchase");
     persist();
@@ -4709,6 +4712,13 @@
         '<div class="chips" id="speedPicks">' + picks + '</div>' +
         '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
         '<label class="shake-row"><input type="checkbox" id="injuryToggle"' + (s.injuries !== false ? " checked" : "") + '> Injuries</label>' +
+        '<p class="eyebrow">Difficulty</p>' +
+        '<div class="chips" id="diffPicks">' + Object.keys(IL.DIFFICULTY).map(function (id) {
+          return '<button type="button" class="chip' + (IL.difficultyOf(save) === id ? " on" : "") + '" data-diff="' + id + '">' + esc(IL.DIFFICULTY[id].name) + '</button>';
+        }).join("") + '</div>' +
+        '<p class="fine" id="diffLine">' + esc(IL.DIFFICULTY[IL.difficultyOf(save)].blurb) + (IL.difficultyOf(save) === "infernus" ? ' Threat now +' + Math.round((IL.foeMulOf(save) / 1.2 - 1) * 100) + '%.' : '') + ' Change it any time; it applies from the next fight.</p>' +
+        '<label class="shake-row"><input type="checkbox" id="noChampToggle"' + (s.noChampions ? " checked" : "") + '> No champion signings</label>' +
+        '<label class="shake-row"><input type="checkbox" id="noModsToggle"' + (s.noMods ? " checked" : "") + '> No season modifiers (from next season)</label>' +
         '<div class="settings-block">' +
           '<button type="button" class="btn" id="copyReport">Report a bug</button>' +
           '<p class="fine" id="reportNote"></p>' +
@@ -4754,6 +4764,20 @@
     };
     const shake = document.getElementById("shakeToggle");
     if (shake) shake.onchange = function () { save.settings.shake = !!shake.checked; touch(); };
+    const diffPicks = document.getElementById("diffPicks");
+    if (diffPicks) diffPicks.onclick = function (ev) {
+      const b = ev.target.closest("[data-diff]");
+      if (!b) return;
+      save.settings.difficulty = b.dataset.diff;
+      touch();
+      diffPicks.querySelectorAll("[data-diff]").forEach(function (c) { c.classList.toggle("on", c === b); });
+      const line = document.getElementById("diffLine");
+      if (line) line.textContent = IL.DIFFICULTY[b.dataset.diff].blurb + " Change it any time; it applies from the next fight.";
+    };
+    const ncT = document.getElementById("noChampToggle");
+    if (ncT) ncT.onchange = function () { save.settings.noChampions = !!ncT.checked; touch(); };
+    const nmT = document.getElementById("noModsToggle");
+    if (nmT) nmT.onchange = function () { save.settings.noMods = !!nmT.checked; touch(); };
     const injT = document.getElementById("injuryToggle");
     if (injT) injT.onchange = function () {
       save.settings.injuries = !!injT.checked;
@@ -5862,6 +5886,7 @@
     const row = save.market[index];
     if (!row || row.locked) { pitSound("error"); return; }
     if (save.gold < row.cost || save.roster.length >= IL.rosterCap(save)) { pitSound("error"); return; }
+    if (row.fighter && row.fighter.champion && save.settings && save.settings.noChampions) { pitSound("error"); showNote("No champion signings is on (Settings)."); return; }
     const fighter = row.fighter;
     IL.hero.compose(fighter.parts).then(function () {
       save.gold -= row.cost;
@@ -6357,6 +6382,12 @@
     return out;
   }
 
+  /* v107 difficulty applies to every fight but friend fights and the shared daily. */
+  function foeMulFor(mode) {
+    if (mode === "challenge" || mode === "daily" || !IL.foeMulOf) return 1;
+    return IL.foeMulOf(save);
+  }
+
   function launchMatch(spec) {
     const people = [];
     if (spec.sides) {
@@ -6388,7 +6419,7 @@
       const pack = IL.relicPack(save, party);
       const relics = pack.club.concat(pack.sets);
       const match = spec.sides
-        ? IL.createMatch({ seed: spec.seed, sides: spec.sides, relics: relics, wornRelics: pack.worn, mode: spec.mode, mods: seasonModsFor(spec.mode) })
+        ? IL.createMatch({ seed: spec.seed, sides: spec.sides, relics: relics, wornRelics: pack.worn, mode: spec.mode, mods: seasonModsFor(spec.mode), foeMul: foeMulFor(spec.mode) })
         : IL.createMatch({
           seed: spec.seed,
           left: spec.left,
@@ -6407,7 +6438,9 @@
           foeWorn: spec.foeWorn || null,
           formation: save.formation || null,
           foeFormation: spec.foeFormation || null,
-          captainBoost: IL.staffStars ? 0.03 * IL.staffStars(save, "coach") : 0
+          captainBoost: IL.staffStars ? 0.03 * IL.staffStars(save, "coach") : 0,
+          foeMul: foeMulFor(spec.mode),
+          capBonus: save.settings && save.settings.pilot ? 0 : (IL.DIFFICULTY ? IL.DIFFICULTY[IL.difficultyOf(save)].cap : 0)
         });
       match.spriteMap = map;
       match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
@@ -7983,6 +8016,7 @@
       || Object.keys(renownPack.worn).some(function (id) { return (renownPack.worn[id] || []).some(function (r) { return r && r.kind === "renown"; }); });
     if (renownOn) renown = Math.round(renown * 1.25);
     gold += match.stats.bounty || 0;
+    if (IL.DIFFICULTY && mode !== "challenge" && mode !== "daily") gold = Math.round(gold * IL.DIFFICULTY[IL.difficultyOf(save)].gold);
     /* v101 staff: Treasurer on league and cup gold, Trainer on all match XP. */
     if (IL.staffStars) {
       if (mode === "league" || mode === "cup" || mode === "champions") gold = Math.round(gold * (1 + 0.04 * IL.staffStars(save, "treasurer")));

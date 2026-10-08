@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "The Academy: send young fighters to a weekly 3v3 youth league that costs no week and no stamina. Wins earn Development Tomes, which lift a fighter to the club's average level.",
     "The Chaos Thunder Cup: twice a season, four clubs in one pit, three free-for-all rounds, with points by place and a purse by final standing.",
     "Staff: hire a Trainer, Medic, Scout, Captain Coach and Treasurer from a weekly staff market. The new Club House adds staff slots.",
     "Injuries: a knocked-out fighter may be hurt for 1 to 3 league weeks, by its injury risk. The bench covers, and the Medical Bay heals for gold. You can switch injuries off in Settings.",
@@ -2474,6 +2475,7 @@
     }
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
     if (save.cup && save.cup.mid && !save.cup.champion && IL.cupOpponent(save.cup)) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The MidCup is open: " + save.cup.size + "v" + save.cup.size + ", free entry." });
+    if (save.academy && save.academy.season === save.season && IL.academyReady(save)) out.push({ act: true, kind: "go", tab: "club:academy", text: "The academy fixture is ready this week." });
     if (thunderLive()) out.push({ act: true, kind: "go", tab: "cup", text: "Chaos Thunder Cup: round " + (save.thunder.round + 1) + " of " + IL.THUNDER_ROUNDS + " is ready." });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
     (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
@@ -3087,16 +3089,77 @@
     '</div>';
   }
 
+  /* v103 Academy: youth squad, weekly fixture, Development Tomes. */
+  function academyPanel() {
+    const fresh = !save.academy || save.academy.season !== save.season;
+    const a = IL.ensureAcademy(save, takeRng());
+    if (fresh) persist();
+    const inSquad = function (f) { return a.ids.indexOf(f.id) >= 0; };
+    const squad = (save.roster || []).filter(inSquad);
+    const open = (save.roster || []).filter(function (f) { return !inSquad(f) && IL.academyEligible(f); });
+    const avg = IL.clubAverage(save);
+    const tomes = save.devTomes || 0;
+    const tomeLeft = Math.max(0, IL.TOMES_A_SEASON - (a.tomesUsed || 0));
+    function row(f, act) {
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const canTome = tomes > 0 && tomeLeft > 0 && (f.level || 1) < avg;
+      return '<li class="acad-row"><span><b>' + esc(f.name) + hurtTag(f) + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + '</small></span><span class="acad-acts">' +
+        (canTome ? '<button type="button" class="ctl gold" data-tome="' + esc(f.id) + '" title="Lift to level ' + avg + '">Tome → Lv ' + avg + '</button>' : '') + act + '</span></li>';
+    }
+    const ready = IL.academyReady(save);
+    const table = a.table.slice().sort(function (x, y) { return y.pts - x.pts || y.w - x.w; }).map(function (c, i) {
+      return '<li class="' + (c.you ? "you" : "") + '"><b>' + (i + 1) + '</b><span>' + esc(c.name) + (c.you ? '' : ' Academy') + '</span><em>' + c.w + '-' + c.l + ' · ' + c.pts + ' pts</em></li>';
+    }).join("");
+    return '<div class="academy-pane" id="academyPane">' +
+      '<section class="es-card"><h3 class="section">This week</h3>' +
+        '<p class="fine">Up to ' + IL.ACADEMY_SQUAD + ' fighters of level ' + IL.ACADEMY_MAX_LV + ' or less. The best three play a 3v3 against a rival academy at their level, once a league week. It does not advance the week or cost stamina, and pays 75% of match XP. A win earns a Development Tome. Academy fighters can still play for the first team.</p>' +
+        '<button type="button" class="btn fight" id="academyGo"' + (ready ? '' : ' disabled') + '>' + (ready ? 'Play the academy match' : a.played === (save.season * 100 + (save.round || 0)) ? 'Played this week' : 'Send a fighter to the academy') + '</button>' +
+      '</section>' +
+      '<section class="es-card"><h3 class="section">Academy squad · ' + squad.length + '/' + IL.ACADEMY_SQUAD + '</h3>' +
+        (squad.length ? '<ul class="acad-list">' + squad.map(function (f) { return row(f, '<button type="button" class="ctl" data-acad-out="' + esc(f.id) + '">Recall</button>'); }).join("") + '</ul>' : emptyState("Nobody in the academy.", "Send a fighter of level " + IL.ACADEMY_MAX_LV + " or less.")) +
+        (open.length ? '<h3 class="section">Can join</h3><ul class="acad-list">' + open.map(function (f) { return row(f, '<button type="button" class="ctl"' + (a.ids.length >= IL.ACADEMY_SQUAD ? ' disabled' : '') + ' data-acad-in="' + esc(f.id) + '">Send</button>'); }).join("") + '</ul>' : '') +
+      '</section>' +
+      '<section class="es-card"><h3 class="section">Development Tomes · ' + tomes + '</h3>' +
+        '<p class="fine">A tome lifts a fighter below the club average (level ' + avg + ', your top five) straight to it, with every level-up pick on the way. ' + tomeLeft + ' of ' + IL.TOMES_A_SEASON + ' left to use this season. Use one from the squad lists above.</p>' +
+      '</section>' +
+      '<section class="es-card"><h3 class="section">Academy league · season ' + save.season + '</h3><ol class="thunder-table acad-table">' + table + '</ol></section>' +
+    '</div>';
+  }
+  function startAcademyFight() {
+    if (!IL.academyReady(save)) { pitSound("error"); return; }
+    const squad = IL.academySquad(save);
+    const opp = IL.academyOpponent(save, takeRng());
+    const btn = document.getElementById("academyGo");
+    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+    launchMatch({
+      mode: "academy",
+      left: squad,
+      right: opp.fighters,
+      leftName: save.clubName + " Academy",
+      rightName: opp.name,
+      academyClub: opp.club,
+      size: squad.length,
+      returnTab: "club",
+      seed: (save.rngSeed ^ (0xACAD + save.round * 131 + save.season * 7)) >>> 0
+    }).catch(function (e) {
+      if (btn) btn.disabled = false;
+      const banner = document.querySelector(".banner");
+      if (banner) banner.textContent = e.message;
+    });
+  }
+
   function clubHomePanel() {
     if (clubPane === "events") return subTabs("club", "events", [["home", "‹ Club"], ["events", "Activities"]]) + eventsPanel();
     if (clubPane === "train") return subTabs("club", "train", [["home", "‹ Club"], ["train", "Training"]]) + trainingPanel();
     if (clubPane === "staff") return subTabs("club", "staff", [["home", "‹ Club"], ["staff", "Staff"]]) + staffPanel();
+    if (clubPane === "academy") return subTabs("club", "academy", [["home", "‹ Club"], ["academy", "Academy"]]) + academyPanel();
     const ev = IL.activeEvent ? IL.activeEvent(Date.now()) : null;
     const fac = save.facilities || {};
     return '<div class="es-club-grid">' +
       '<section><h3 class="section">Activities</h3>' +
         clubTile("events", "Weekly event", ev ? ev.name : "This week", "Boss, gauntlet, horde, king or mirror. A new one each week.", "blue", "PvE") +
         gateTile() +
+        clubTile("academy", "Academy", (save.academy && save.academy.season === save.season ? save.academy.ids.length : 0) + " of " + IL.ACADEMY_SQUAD + " in training", "A weekly 3v3 youth fixture that never costs a week or stamina. Wins earn Development Tomes.", "green", IL.academyReady && save.academy && IL.academyReady(save) ? "Ready" : "Youth") +
         clubTile("events", "Endless pit", "Best wave " + ((save.endless && save.endless.best) || 0), "Waves until you fall. A relic every fifth.", "steel", "PvE") +
         clubTile("events", "Daily challenge", "A seeded pair", "One fight a day for a purse.", "purple", "Daily") +
         clubTile("events", "Fight a friend", "Share a code", "Send your party as a code, or fight theirs.", "gold", "PvP") +
@@ -4899,6 +4962,8 @@
     if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
+    const acadBtn = document.getElementById("academyGo");
+    if (acadBtn && !acadBtn.disabled) acadBtn.onclick = function () { startAcademyFight(); };
     const thunderBtn = document.getElementById("thunderGo");
     if (thunderBtn && !thunderBtn.disabled) thunderBtn.onclick = function () { startThunderFight(); };
     const startEvent = document.getElementById("startEvent");
@@ -5079,6 +5144,18 @@
       if (stHire && !stHire.disabled) {
         const row = (save.staffMarket || [])[+stHire.dataset.staffHire];
         if (row && IL.hireStaff(save, +stHire.dataset.staffHire)) { pitSound("purchase"); logClub(row.name + " joins the staff as " + IL.STAFF_ROLES[row.role].name + "."); persist(); refreshHub(); showNote(row.name + " hired."); }
+        else pitSound("error");
+        return;
+      }
+      const acIn = ev.target.closest("[data-acad-in]");
+      if (acIn && !acIn.disabled) { if (IL.setAcademy(save, acIn.dataset.acadIn, true)) { persist(); refreshHub(); } else pitSound("error"); return; }
+      const acOut = ev.target.closest("[data-acad-out]");
+      if (acOut) { IL.setAcademy(save, acOut.dataset.acadOut, false); persist(); refreshHub(); return; }
+      const tomeB = ev.target.closest("[data-tome]");
+      if (tomeB) {
+        const tf = fighterById(tomeB.dataset.tome);
+        const was = tf ? tf.level || 1 : 1;
+        if (tf && IL.useTome(save, tf)) { pitSound("purchase"); logClub(tf.name + " read a Development Tome: level " + was + " to " + tf.level + "."); persist(); refreshHub(); showNote(tf.name + " is now level " + tf.level + ". Level-up picks are waiting."); }
         else pitSound("error");
         return;
       }
@@ -6313,6 +6390,7 @@
         mode: spec.mode || "league",
         returnTab: spec.returnTab || "overview",
         friendName: spec.friendName || "",
+        academyClub: spec.academyClub || "",
         tok: tok
       };
       IL.currentMatch = match;
@@ -7612,6 +7690,13 @@
         renown = 4;
         headline = "Through to the draft final";
       }
+    } else if (mode === "academy") {
+      const mul = IL.DIVISIONS[IL.divisionOf(save)].purse;
+      gold = Math.round((win ? 10 : 4) * mul);
+      renown = win ? 2 : 1;
+      xp = win ? 16 : 6;
+      IL.recordAcademy(save, fight.academyClub, win, takeRng());
+      headline = win ? "The academy wins · +1 Development Tome" : "The academy learns";
     } else if (mode === "thunder") {
       const order = IL.placings(match);
       const place = order.indexOf(0) + 1;
@@ -8022,7 +8107,7 @@
   }
 
   function modeLabel(mode) {
-    return { league: "League", cup: "Cup", draft: "Draft cup", chaos: "Chaos pit", thunder: "Thunder Cup", boss: "Weekly boss", gauntlet: "Gauntlet", horde: "Horde", king: "King of the pit", mirror: "Mirror", daily: "Daily", challenge: "Friend fight", endless: "Endless" }[mode] || "Fight";
+    return { league: "League", cup: "Cup", draft: "Draft cup", chaos: "Chaos pit", thunder: "Thunder Cup", academy: "Academy", boss: "Weekly boss", gauntlet: "Gauntlet", horde: "Horde", king: "King of the pit", mirror: "Mirror", daily: "Daily", challenge: "Friend fight", endless: "Endless" }[mode] || "Fight";
   }
 
   function lootRevealHtml(item) {

@@ -1665,6 +1665,29 @@ thSave.round = 10;
 const th2 = IL.openThunder(thSave, IL.mulberry32(4));
 check("the second Thunder Cup after week 10 is 3v3v3v3", th2 && th2.size === 3);
 
+/* v103 academy. */
+const acRoster = [30, 28, 26, 4, 3, 2, 25].map(function (lv, i) { const f = IL.randomFighter(IL.mulberry32(970 + i), "warrior"); f.id = "a" + i; f.level = lv; f.xp = IL.xpFloor(lv); return f; });
+acRoster[0].captain = true;
+const acSave = { clubName: "Acad FC", season: 1, round: 2, roster: acRoster, lineup: ["a0", "a1", "a3"], clubs: [{ name: "Acad FC", you: true }, { name: "Red Kettle" }, { name: "Salt Stair" }, { name: "Cinder Pact" }, { name: "North Wharf" }, { name: "Glass Orchard" }] };
+const acad = IL.ensureAcademy(acSave, IL.mulberry32(1));
+check("the academy league has six clubs", acad.table.length === 6 && acad.table[0].you);
+check("only level 20 or less, never the captain", !IL.setAcademy(acSave, "a1", true) && !IL.setAcademy(acSave, "a0", true) && IL.setAcademy(acSave, "a3", true));
+check("an academy fighter can still play for the first team", acSave.lineup.indexOf("a3") >= 0);
+IL.setAcademy(acSave, "a4", true); IL.setAcademy(acSave, "a5", true);
+check("the academy fields its best three, once a week", IL.academySquad(acSave).length === 3 && IL.academyReady(acSave));
+const acOpp = IL.academyOpponent(acSave, IL.mulberry32(2));
+check("rival academies play at the squad's level", acOpp.fighters.length === 3 && acOpp.fighters.every(function (f) { return Math.abs(f.level - 3) <= 1; }));
+IL.recordAcademy(acSave, acOpp.club, true, IL.mulberry32(3));
+check("a win scores 3 and earns a tome, then the week is spent", acad.table[0].pts === 3 && acSave.devTomes === 1 && !IL.academyReady(acSave));
+acSave.round = 3;
+check("next week it is ready again", IL.academyReady(acSave));
+const acBefore = acRoster[5].level;
+const acTarget = IL.clubAverage(acSave);
+check("a tome lifts a fighter to the club average", IL.useTome(acSave, acRoster[5]) && acRoster[5].level === acTarget && acRoster[5].level > acBefore && acRoster[5].pendingLevels > 0 && acSave.devTomes === 0);
+acSave.devTomes = 5;
+IL.useTome(acSave, acRoster[4]);
+check("two tomes a season at most", !IL.useTome(acSave, acRoster[3]));
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

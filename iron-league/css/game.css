@@ -4794,3 +4794,13 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .thunder-table span { grid-area: name; min-width: 0; overflow-wrap: anywhere; color: #f2e2c4; }
 .thunder-table em { grid-area: pts; font-style: normal; font-weight: 700; white-space: nowrap; }
 .thunder-table small { grid-area: places; color: var(--muted); font-size: 12px; }
+
+/* v103 academy */
+.academy-pane { display: grid; gap: 8px; }
+.acad-list { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 4px; }
+.acad-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 5px 8px; background: rgba(0, 0, 0, 0.22); border-radius: 4px; }
+.acad-row > span:first-child { display: grid; min-width: 0; }
+.acad-row b { overflow-wrap: anywhere; color: #f2e2c4; }
+.acad-row small { color: var(--muted); font-size: 12px; }
+.acad-acts { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.acad-table li { grid-template-areas: "n name pts"; }

@@ -52,6 +52,12 @@
     wall: { name: "Shield wall", front: 44, back: 6, gap: 26, blurb: "A tight rank, the front line close in front of the back line to guard it." }
   };
 
+  function scaleFoe(u, mul) {
+    u.maxHp = Math.round(u.maxHp * mul);
+    u.hp = u.maxHp;
+    u.atk = Math.round(u.atk * mul);
+  }
+
   function placeUnit(team, slot, n, teams, role) {
     const midY = (WORLD.top + WORLD.bottom) / 2;
     const midX = (WORLD.left + WORLD.right) / 2;
@@ -406,6 +412,7 @@
       const tmpl = m.bossAdds[phase - 2];
       if (!tmpl) continue;
       const add = makeUnit(tmpl, u.team, 1, 1, m.teams || 2);
+      if (m.foeMul && m.foeMul !== 1 && add.team !== 0) scaleFoe(add, m.foeMul);
       add.maxHp = Math.round(add.maxHp * 0.6);
       add.hp = add.maxHp;
       if (m.hazard) applyWaveMod([add], { id: m.hazard });
@@ -430,6 +437,7 @@
     m.units = m.units.filter(function (u) { return u.team !== 1 || u.hp > 0; });
     (list || []).forEach(function (f, i) {
       const add = makeUnit(f, 1, i, list.length, m.teams || 2);
+      if (m.foeMul && m.foeMul !== 1) scaleFoe(add, m.foeMul);
       if (m.hazard) applyWaveMod([add], { id: m.hazard });
       if (m.spriteMap && f.parts && IL.hero && IL.hero.keyOf) add.sprite = m.spriteMap[IL.hero.keyOf(f.parts)];
       m.units.push(add);
@@ -482,6 +490,12 @@
         u.x = x; u.y = y; u.homeX = x; u.homeY = y;
       });
     }
+    /* v107 difficulty: rivals' HP and ATK, and a captain bonus in autobattle. */
+    if (opts.foeMul && opts.foeMul !== 1) units.forEach(function (u) { if (u.team !== 0) scaleFoe(u, opts.foeMul); });
+    if (opts.capBonus > 0) units.forEach(function (u) {
+      if (u.team !== 0 || !u.captain) return;
+      u.maxHp = Math.round(u.maxHp * (1 + opts.capBonus)); u.hp = u.maxHp; u.atk = Math.round(u.atk * (1 + opts.capBonus));
+    });
     /* v101 Captain Coach staff. */
     if (opts.captainBoost > 0) {
       units.forEach(function (u) {
@@ -544,6 +558,7 @@
     const kills = [];
     for (let t = 0; t < teams; t++) kills.push(0);
     return {
+      foeMul: opts.foeMul || 1,
       seed: opts.seed >>> 0,
       rng: IL.mulberry32(opts.seed >>> 0 || 1),
       leftName: names[0],

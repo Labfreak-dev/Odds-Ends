@@ -50,8 +50,8 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v104 | League matches are best of three, with a round break to change formation | shipped |
 | v105 | Ability costs (mana, stamina) and friendly fire | shipped |
 | v106 | Named rival teams; rivals rest, equip relics and counter-build | shipped |
-| v107 | Difficulty: Relaxed, Normal, Hard, Infernus | next |
-| v108 | Loans, trades and offers for rival fighters | planned |
+| v107 | Difficulty: Relaxed, Normal, Hard, Infernus | shipped |
+| v108 | Loans, trades and offers for rival fighters | next |
 | v109 | Deeper tactics, 11 personalities, saved tactics | planned |
 | v110 | Respec, Rebirth, deferred picks, mastery and upgrade milestones | planned |
 | v111 | Champion abilities and new classes | planned |

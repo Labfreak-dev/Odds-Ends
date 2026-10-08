@@ -322,6 +322,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Relics v2: every relic shows its exact numbers and its own roll (85% to 115%). Fighters wear two relics from level 10. Four named legendaries (Phoenix Feather, Bloodvine Ring, Mirror Aegis, Blink Stone), relics that teach a move, a stall that restocks every week, and Auto-equip.",
     "Better fighters: every recruit rolls Balanced, Good or Excellent growth per stat and shows 1 to 5 potential stars. Shiny fighters (1 in 250) start 20% stronger. Champions carry a second class's passive, go to auction against rival clubs, and sometimes ask to join you.",
     "Longer seasons that pay: 14 weeks home and away, a free MidCup after week 7, two season modifiers, five season goals that pay on the spot, and a season chest of gold, gear and relics by where you finish.",
     "Clearer, smarter fights: spells mark their real landing zone and flash before they hit, cleaves show their ring, charges their path, casters a cast bar. Autobattle fighters step out of marked spells, focus the same target, finish the wounded, protect their casters, and save area moves for groups.",
@@ -897,7 +898,7 @@
       persist();
     }
     if (!save.relicStock || !save.relicStock.length) {
-      save.relicStock = IL.rollRelicStock(takeRng());
+      save.relicStock = IL.rollRelicStock(takeRng(), save);
       persist();
     }
   }
@@ -1712,13 +1713,14 @@
       }).join("") + '</ul>'
       : "";
     const eq = IL.equippedRelics(save);
-    const wornRelic = f.relic && IL.relicById(f.relic);
     const relicRows = [];
-    if (wornRelic) {
-      relicRows.push('<li><strong>' + esc(wornRelic.name) + '</strong><p>Worn by this fighter. ' + esc(wornRelic.blurb) + '</p></li>');
-    }
+    [f.relic, (f.level || 1) >= IL.RELIC_SLOT2_LV ? f.relic2 : null].forEach(function (id, i) {
+      const wr = id && IL.relicById(id);
+      if (wr) relicRows.push('<li><strong>' + esc(wr.name) + ' ' + rollTag(IL.relicRoll(save, wr.id)) + '</strong><p>Slot ' + (i + 1) + '. ' + esc(relicLine(wr)) + '</p></li>');
+    });
+    if ((f.level || 1) < IL.RELIC_SLOT2_LV) relicRows.push('<li class="fine">A second relic slot opens at level ' + IL.RELIC_SLOT2_LV + '.</li>');
     eq.forEach(function (r) {
-      relicRows.push('<li><strong>' + esc(r.name) + '</strong><p>' + esc(r.blurb) + '</p></li>');
+      relicRows.push('<li><strong>' + esc(r.name) + '</strong><p>' + esc(relicLine(r)) + '</p></li>');
     });
     const relics = relicRows.length
       ? '<ul class="relic-list">' + relicRows.join("") + '</ul>'
@@ -2782,7 +2784,9 @@
       const item = f.gear && f.gear[slot];
       return '<i class="es-gear' + (item ? "" : " empty") + '" title="' + esc(item ? IL.itemName(item) : "Empty " + slotLabel(slot).toLowerCase()) + '">' + (item ? (IL.itemIcon && IL.itemIcon(item) ? iconTag(IL.itemIcon(item), 30) : esc(IL.itemName(item).charAt(0))) : '') + '</i>';
     }).join("");
-    const relic = f.relic && IL.relicById(f.relic);
+    const relicMarks = IL.wornIds(f).map(function (id) { return IL.relicById(id); }).filter(Boolean).map(function (relic) {
+      return '<i class="es-gear relic" title="' + esc(relic.name) + '">' + esc(relic.name.charAt(0)) + '</i>';
+    }).join("");
     const ai = IL.normAi ? IL.normAi(f.ai) : null;
     const behave = esc(tacticLabel(f.tactic) + " · " + personalityLabel(f.personality) + (ai && IL.aiCustom && IL.aiCustom(f.ai) ? " · custom" : ""));
     return '<article class="es-fcard ' + tone + (f.captain ? " captain" : "") + '" data-role="' + esc(kit.role) + '">' +
@@ -2795,7 +2799,7 @@
           '<p class="es-class ' + tone + '">' + esc(kit.name) + '</p>' + staminaBar(f) + '</div>' +
       '</div>' +
       statPips(st) +
-      '<div class="es-kit"><div class="es-moves">' + moves + talents + '</div><div class="es-gearcol">' + gear + (relic ? '<i class="es-gear relic" title="' + esc(relic.name) + '">' + esc(relic.name.charAt(0)) + '</i>' : '') + '</div></div>' +
+      '<div class="es-kit"><div class="es-moves">' + moves + talents + '</div><div class="es-gearcol">' + gear + relicMarks + '</div></div>' +
       '<button type="button" class="es-behave" data-fid="' + esc(f.id) + '" title="Tap to change the tactic">' + behave + '</button>' +
       '<div class="es-fc-foot">' +
         (f.captain ? '<span class="es-captain">Captain</span>' : '<button type="button" class="ctl" data-set-captain="' + esc(f.id) + '">Set captain</button>') +
@@ -3057,7 +3061,7 @@
       const owned = save.relics || [];
       body = '<div class="archive-grid wide">' + (IL.RELICS || []).map(function (r) {
         const has = owned.indexOf(r.id) >= 0;
-        return '<div class="archive-cell relic-' + esc(r.rarity) + (has ? "" : " unknown") + '"><span class="q">' + (has ? "◆" : "?") + '</span><b>' + (has ? esc(r.name) : "Not yet found") + '</b>' + (has ? '<small>' + esc(r.blurb) + '</small>' : '<small>' + esc(r.rarity) + '</small>') + '</div>';
+        return '<div class="archive-cell relic-' + esc(r.rarity) + (has ? "" : " unknown") + '"><span class="q">' + (has ? "◆" : "?") + '</span><b>' + (has ? esc(r.name) : "Not yet found") + '</b>' + (has ? '<small>' + esc(relicLine(r)) + '</small>' : '<small>' + esc(r.rarity) + '</small>') + '</div>';
       }).join("") + '</div>';
     } else if (archivePane === "systems") {
       const rows = [
@@ -3411,8 +3415,9 @@
       else if (gone) label = "Sold";
       else if (broke) label = "Need " + row.cost + "g";
       return '<article class="card stall-card' + (cant ? " cant-afford" : " buyable") + '">' +
-        '<h3>' + esc(relic.name) + '</h3>' +
-        '<p>' + esc(relic.blurb) + '</p>' +
+        '<h3>' + esc(relic.name) + ' ' + rollTag(row.roll || 1) + '</h3>' +
+        '<p class="fine">' + esc(IL.rarityName(relic.rarity)) + ' · ' + (relic.scope === "fighter" ? "Fighter" : "Club") + '</p>' +
+        '<p>' + esc(relicLine(Object.assign({}, relic, { roll: row.roll || 1 }))) + '</p>' +
         '<p class="fine">' + (gone ? "Out of stock" : "1 in stock") + '</p>' +
         '<button type="button" class="btn primary" data-buy-relic="' + i + '"' + (cant ? " disabled" : "") + '>' + label + '</button>' +
       '</article>';
@@ -3430,7 +3435,7 @@
     const cost = IL.REFRESH_COST;
     const broke = save.gold < cost;
     return '<section class="panel-frame" id="relicStall"><h3 class="section">Relic stall</h3>' +
-      '<p class="fine">One of each. Refresh spends ' + cost + ' gold. Club relics equip on the Relics tab. A fighter wears one there too.</p>' +
+      '<p class="fine">Five relics, new stock after every league week. The % is that piece\'s roll. Refresh spends ' + cost + ' gold. Equip on the Relics tab: club relics in club slots, fighter relics on a fighter (two from level ' + IL.RELIC_SLOT2_LV + ').</p>' +
       '<div class="hub-actions"><button type="button" class="btn ghost' + (broke ? " cant-afford" : " buyable") + '" id="refreshRelics"' + (broke ? " disabled" : "") + '>Refresh relics — ' + cost + ' gold</button></div>' +
       '<div class="dense-grid">' + (cards || emptyState("The stall is bare.", "Refresh it.")) + '</div>' +
       '<h3 class="section">Yours to sell</h3>' +
@@ -3732,6 +3737,22 @@
     return '<div id="eventsPane">' + tabs + body + '</div>';
   }
 
+  /* v95 exact relic text, with the relic's own roll. */
+  function relicLine(r) {
+    if (!r) return "";
+    const rr = r.setBonus ? r : (typeof r.roll === "number" ? r : IL.rolledRelic(save, r));
+    let t = IL.relicText(rr);
+    if (r.kind === "grant" && IL.grantAbility && IL.moveFacts) {
+      const g = IL.grantAbility(r.grant);
+      if (g) t += " " + g.ab.name + ": " + IL.moveFacts(g.ab, null, g.cls);
+    }
+    return t;
+  }
+  function rollTag(roll) {
+    const pct = Math.round((roll || 1) * 100);
+    return '<em class="relic-roll' + (pct >= 108 ? " hi" : pct <= 92 ? " lo" : "") + '" title="Roll: ' + pct + '% of base (85% to 115%)">' + pct + '%</em>';
+  }
+
   function relicFirst(name) {
     const bits = String(name || "Fighter").trim().split(/\s+/);
     return bits[0] || "Fighter";
@@ -3777,6 +3798,7 @@
     const wearerOf = {};
     (save.roster || []).forEach(function (f) {
       if (f && f.relic) wearerOf[f.relic] = f;
+      if (f && f.relic2) wearerOf[f.relic2] = f;
     });
     return { owned: owned, wearerOf: wearerOf };
   }
@@ -3790,9 +3812,10 @@
       const wearer = fighterPiece ? bag.wearerOf[r.id] : null;
       const mark = (on || wearer) ? " riding" : "";
       const miss = have ? "" : " missing";
-      return '<button type="button" class="relic-cell' + mark + miss + '" data-relic-open="' + esc(r.id) + '" aria-label="' + esc(r.name) + '">' +
+      return '<button type="button" class="relic-cell' + mark + miss + (r.named ? " named" : "") + '" data-relic-open="' + esc(r.id) + '" aria-label="' + esc(r.name) + '">' +
         relicFace(r, 32) +
         '<span class="relic-name">' + esc(r.name) + '</span>' +
+        (have ? rollTag(IL.relicRoll(save, r.id)) : '') +
       '</button>';
     }).join("");
     const size = !seasonDone() ? weekSize(save.round) : IL.PARTY_CAP;
@@ -3812,7 +3835,8 @@
       '</button>';
     }).join("");
     return '<div id="relicPane">' +
-      '<p class="fine relic-count">' + (save.equipped || []).length + ' of ' + IL.clubRelicSlots(save) + ' club slots · ' + wornCount + ' worn · ' + (save.relics || []).length + ' owned</p>' +
+      '<div class="relic-top"><p class="fine relic-count">' + (save.equipped || []).length + ' of ' + IL.clubRelicSlots(save) + ' club slots · ' + wornCount + ' worn · ' + (save.relics || []).length + ' owned · a second fighter slot opens at level ' + IL.RELIC_SLOT2_LV + '</p>' +
+        '<button type="button" class="btn ghost" id="autoRelics"' + ((save.relics || []).length ? '' : ' disabled') + '>Auto-equip</button></div>' +
       '<div class="relic-filters">' +
         '<select id="relicStatus" aria-label="Status">' + selectOptions(relicStatus, [["all", "All relics"], ["owned", "Owned"], ["missing", "Missing"], ["club", "Club"], ["fighter", "Fighter"]]) + '</select>' +
         '<select id="relicRarity" aria-label="Rarity">' + selectOptions(relicRarity, [["all", "Any rarity"], ["common", "Common"], ["uncommon", "Uncommon"], ["rare", "Rare"], ["legendary", "Legendary"]]) + '</select>' +
@@ -3846,8 +3870,10 @@
     let action = "";
     if (have && fighterPiece) {
       const picks = (save.roster || []).map(function (f) {
-        const wearing = f.relic === r.id;
-        return '<button type="button" class="btn ' + (wearing ? "primary" : "ghost") + '" data-bind-relic="' + esc(r.id) + '" data-bind-fighter="' + esc(f.id) + '">' + esc(relicFirst(f.name)) + (wearing ? " · wearing" : "") + '</button>';
+        const wearing = f.relic === r.id || f.relic2 === r.id;
+        const slots = (f.level || 1) >= IL.RELIC_SLOT2_LV ? 2 : 1;
+        const used = (f.relic ? 1 : 0) + (slots > 1 && f.relic2 ? 1 : 0);
+        return '<button type="button" class="btn ' + (wearing ? "primary" : "ghost") + '" data-bind-relic="' + esc(r.id) + '" data-bind-fighter="' + esc(f.id) + '">' + esc(relicFirst(f.name)) + (wearing ? " · wearing" : " · " + used + "/" + slots) + '</button>';
       }).join("");
       const clear = wearer
         ? '<button type="button" class="btn ghost" data-clear-relic="' + esc(r.id) + '">Take it off</button>'
@@ -3865,7 +3891,8 @@
           '<h2 id="relicSheetTitle">' + esc(r.name) + '</h2></div>' +
           '<button type="button" class="btn close-x" id="relicSheetClose" aria-label="Close">Close</button></header>' +
         '<div class="relic-face">' + relicFace(r, 64) + '</div>' +
-        '<p>' + esc(r.blurb) + '</p>' +
+        '<p class="relic-text">' + esc(relicLine(r)) + '</p>' +
+        (have ? '<p class="fine">Roll ' + rollTag(IL.relicRoll(save, r.id)) + ' of its base numbers. Rolls run 85% to 115%; selling and finding it again rolls anew.</p>' : '<p class="fine">Numbers shown at a 100% roll.</p>') +
         setBlock +
         '<p class="fine">' + esc(status) + '</p>' +
         action +
@@ -4940,7 +4967,18 @@
     if (rerollDealsBtn) rerollDealsBtn.onclick = rerollDeals;
   }
 
+  function autoEquipRelics() {
+    const size = !seasonDone() ? weekSize(save.round) : IL.PARTY_CAP;
+    const party = fielded(save.roster, size || IL.PARTY_CAP);
+    const changed = IL.autoRelics(save, party);
+    persist();
+    showHub("relics", true);
+    showNote(changed ? "Relics equipped: the best club relics in the club slots, and the fielded party dressed by role." : "Already at the best fit.");
+  }
+
   function bindRelicSheet() {
+    const autoBtn = document.getElementById("autoRelics");
+    if (autoBtn) autoBtn.onclick = autoEquipRelics;
     const status = document.getElementById("relicStatus");
     const rarity = document.getElementById("relicRarity");
     const setSel = document.getElementById("relicSet");
@@ -5139,7 +5177,7 @@
     if (save.gold < IL.REFRESH_COST) { pitSound("error"); return; }
     save.gold -= IL.REFRESH_COST;
     pitSound("purchase");
-    save.relicStock = IL.rollRelicStock(takeRng());
+    save.relicStock = IL.rollRelicStock(takeRng(), save);
     persist();
     showHub("market", true);
   }
@@ -5163,6 +5201,10 @@
     pitSound("purchase");
     if (!Array.isArray(save.relics)) save.relics = [];
     save.relics.push(row.id);
+    if (typeof row.roll === "number") {
+      if (!save.relicRolls || typeof save.relicRolls !== "object") save.relicRolls = {};
+      save.relicRolls[row.id] = row.roll;
+    }
     row.stock = 0;
     persist();
     showHub("market", true);
@@ -5174,7 +5216,12 @@
     save.gold += IL.relicSellPrice(id);
     save.relics = save.relics.filter(function (rid) { return rid !== id; });
     save.equipped = (save.equipped || []).filter(function (rid) { return rid !== id; });
-    (save.roster || []).forEach(function (f) { if (f && f.relic === id) f.relic = null; });
+    (save.roster || []).forEach(function (f) {
+      if (f && f.relic === id) f.relic = null;
+      if (f && f.relic2 === id) f.relic2 = null;
+    });
+    if (save.relicRolls) delete save.relicRolls[id];
+    save.relicSalt = (save.relicSalt || 0) + 1;
     const fromSheet = relicOpen === id;
     if (fromSheet) relicOpen = null;
     persist();
@@ -5307,7 +5354,7 @@
     else { eq.splice(0, 1, id); wore = true; }
     persist();
     showHub("relics", true);
-    if (wore) showNote(relic.name + ". " + (relic.blurb || ""));
+    if (wore) showNote(relic.name + ". " + relicLine(relic));
   }
 
   function bindFighterRelic(fighterId, relicId) {
@@ -5316,15 +5363,26 @@
     if ((save.relics || []).indexOf(relicId) < 0) return;
     const fighter = fighterById(fighterId);
     if (!fighter) return;
-    (save.roster || []).forEach(function (f) { if (f && f.relic === relicId) f.relic = null; });
-    fighter.relic = relicId;
+    const was = fighter.relic === relicId || fighter.relic2 === relicId;
+    (save.roster || []).forEach(function (f) {
+      if (f && f.relic === relicId) f.relic = null;
+      if (f && f.relic2 === relicId) f.relic2 = null;
+    });
+    if (was) { persist(); showHub("relics", true); return; }
+    const two = (fighter.level || 1) >= IL.RELIC_SLOT2_LV;
+    if (!fighter.relic) fighter.relic = relicId;
+    else if (two) fighter.relic2 = relicId;
+    else fighter.relic = relicId;
     persist();
     showHub("relics", true);
-    showNote(relic.name + ". " + (relic.blurb || ""));
+    showNote(relic.name + ". " + relicLine(relic));
   }
 
   function clearFighterRelic(relicId) {
-    (save.roster || []).forEach(function (f) { if (f && f.relic === relicId) f.relic = null; });
+    (save.roster || []).forEach(function (f) {
+      if (f && f.relic === relicId) f.relic = null;
+      if (f && f.relic2 === relicId) f.relic2 = null;
+    });
     persist();
     showHub("relics", true);
   }
@@ -5966,8 +6024,8 @@
     const foeRelics = (foe.equipped || []).map(function (id) { return IL.relicById(id); }).filter(Boolean);
     const foeWorn = {};
     right.forEach(function (f) {
-      const relic = f && f.relic && IL.relicById(f.relic);
-      if (relic) foeWorn[f.id] = relic;
+      const list = f ? [f.relic, f.relic2].map(function (id) { return id && IL.relicById(id); }).filter(Boolean) : [];
+      if (list.length) foeWorn[f.id] = list;
     });
     settingsOpen = false;
     openVersus({
@@ -7299,7 +7357,7 @@
     }
     const renownPack = IL.relicPack(save, fight.left || []);
     const renownOn = renownPack.club.concat(renownPack.sets).some(function (r) { return r.kind === "renown"; })
-      || Object.keys(renownPack.worn).some(function (id) { return renownPack.worn[id] && renownPack.worn[id].kind === "renown"; });
+      || Object.keys(renownPack.worn).some(function (id) { return (renownPack.worn[id] || []).some(function (r) { return r && r.kind === "renown"; }); });
     if (renownOn) renown = Math.round(renown * 1.25);
     gold += match.stats.bounty || 0;
     noteRecords(match, win);

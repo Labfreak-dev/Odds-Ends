@@ -66,8 +66,118 @@
     { id: "broad", name: "Broad Plate", kind: "shield", scope: "club", rarity: "uncommon", blurb: "The party opens behind a shield." },
     { id: "keenpin", name: "Keen Pin", kind: "atk", scope: "fighter", rarity: "rare", blurb: "That fighter's cuts sit heavier." },
     { id: "cup", name: "Mender's Cup", kind: "regen", scope: "club", rarity: "rare", blurb: "The party mends during the fight." },
-    { id: "lastbell", name: "Last Bell", kind: "haste", scope: "fighter", rarity: "legendary", blurb: "That fighter's casts come back much sooner." }
+    { id: "lastbell", name: "Last Bell", kind: "haste", scope: "fighter", rarity: "legendary", blurb: "That fighter's casts come back much sooner." },
+    /* v95 named legendaries, lesser kin, and relics that grant a move. */
+    { id: "phoenix", name: "Phoenix Feather", kind: "revive", scope: "fighter", rarity: "legendary", named: true, blurb: "Rise once from a killing blow." },
+    { id: "bloodvine", name: "Bloodvine Ring", kind: "lifesteal", scope: "fighter", rarity: "legendary", named: true, blurb: "Drinks from every hit." },
+    { id: "aegis", name: "Mirror Aegis", kind: "reflect", scope: "fighter", rarity: "legendary", named: true, blurb: "Sends hits back." },
+    { id: "blinkstone", name: "Blink Stone", kind: "blink", scope: "fighter", rarity: "legendary", named: true, blurb: "Steps out of danger." },
+    { id: "leech", name: "Leech Tooth", kind: "lifesteal", scope: "fighter", rarity: "rare", blurb: "Drinks a little from every hit." },
+    { id: "bramble", name: "Bramble Mail", kind: "reflect", scope: "fighter", rarity: "rare", blurb: "Sends a little back." },
+    { id: "emberidol", name: "Ember Idol", kind: "grant", grant: "m-flare", scope: "fighter", rarity: "rare", blurb: "Teaches Flare." },
+    { id: "warhorn", name: "War Horn", kind: "grant", grant: "rally", scope: "fighter", rarity: "rare", blurb: "Teaches Rally." },
+    { id: "salvebead", name: "Salve Bead", kind: "grant", grant: "h-salve", scope: "fighter", rarity: "uncommon", blurb: "Teaches Salve." },
+    { id: "wardprism", name: "Ward Prism", kind: "grant", grant: "m-ward", scope: "fighter", rarity: "uncommon", blurb: "Teaches Ward." }
   ];
+
+  /* v95 one table of relic numbers, read by the arena and by the text,
+     so what a relic says is what it does. Scale by rarity, then by the
+     relic's own roll (85% to 115%). */
+  const RELIC_SCALE = { common: 1, uncommon: 1.1, rare: 1.25, legendary: 1.45 };
+  const RELIC_SLOT2_LV = 10;
+  function r1(n) { return Math.round(n * 10) / 10; }
+  function relicNums(r) {
+    if (!r) return {};
+    const s = (RELIC_SCALE[r.rarity] || 1) * (typeof r.roll === "number" ? r.roll : 1);
+    switch (r.kind) {
+      case "hp": return { hp: r1(12 * s) };
+      case "crit": return { crit: r1(14 * s) };
+      case "shield": return { shield: r1(14 * s) };
+      case "haste": return { cast: r1(18 * s), cd: r1(15 * s) };
+      case "bounty": return { gold: Math.max(1, Math.round(6 * s)) };
+      case "regen": return { regen: r1(2.4 * s) };
+      case "pierce": return { pierce: r.rarity === "common" ? 1 : 2 };
+      case "wind": return { at: 32, heal: Math.round(22 * s) };
+      case "speed": return { spd: r1(10 * s) };
+      case "glass": return { atk: r1(15 * s), def: Math.max(1, Math.round(2 * s)) };
+      case "sand": return { cd: r1(22 * s) };
+      case "atk": return { atk: r1(8 * s) };
+      case "def": return { def: r1(2 * s) };
+      case "renown": return { renown: 25 };
+      case "revive": return { hp: Math.round(24 * s) };
+      case "lifesteal": return { pct: r1(10 * s) };
+      case "reflect": return { pct: r1(14 * s) };
+      case "blink": return { n: 2, at: 50, cd: 8, dist: 150, guard: r1(0.42 * s) };
+      case "grant": return { grant: r.grant };
+      default: return {};
+    }
+  }
+  function grantAbility(id) {
+    const ids = Object.keys(IL.CLASSES || {});
+    for (let i = 0; i < ids.length; i++) {
+      const abs = IL.CLASSES[ids[i]].abilities || [];
+      for (let j = 0; j < abs.length; j++) if (abs[j] && abs[j].id === id) return { ab: abs[j], cls: ids[i] };
+    }
+    return null;
+  }
+  function relicText(r) {
+    if (!r) return "";
+    const n = relicNums(r);
+    const who = r.setBonus || r.scope !== "fighter" ? "Every fielded fighter: " : "The wearer: ";
+    let t = "";
+    switch (r.kind) {
+      case "hp": t = "+" + n.hp + "% max HP."; break;
+      case "crit": t = "+" + n.crit + "% critical hit chance."; break;
+      case "shield": t = "starts each fight behind a shield worth " + n.shield + "% of max HP."; break;
+      case "haste": t = "casts " + n.cast + "% faster, and abilities cool down " + n.cd + "% faster."; break;
+      case "bounty": t = "each rival they knock out pays " + n.gold + " gold."; break;
+      case "regen": t = "regains " + n.regen + " HP a second."; break;
+      case "pierce": t = "shots pass through " + n.pierce + " more " + (n.pierce === 1 ? "enemy" : "enemies") + "."; break;
+      case "wind": t = "once a fight, on dropping below " + n.at + "% HP, heals " + n.heal + "% of max HP."; break;
+      case "speed": t = "+" + n.spd + "% move speed."; break;
+      case "glass": t = "+" + n.atk + "% ATK, -" + n.def + " DEF."; break;
+      case "sand": t = "abilities cool down " + n.cd + "% faster."; break;
+      case "atk": t = "+" + n.atk + "% ATK."; break;
+      case "def": t = "+" + n.def + " DEF."; break;
+      case "renown": return "League and cup matches pay 25% more renown (once, however many you wear).";
+      case "revive": t = "once a fight, a killing blow leaves them standing at " + n.hp + "% HP."; break;
+      case "lifesteal": t = "heals " + n.pct + "% of the damage they deal."; break;
+      case "reflect": t = "returns " + n.pct + "% of the damage they take to the attacker."; break;
+      case "blink": t = "twice a fight (8s apart), when hit below " + n.at + "% HP, blinks " + n.dist + " px away from the attacker and dodges every hit for " + n.guard + "s."; break;
+      case "grant": {
+        const g = grantAbility(r.grant);
+        return g ? "The wearer learns " + g.ab.name + " (a " + (IL.CLASSES[g.cls].name || g.cls) + " move) as an extra move, on top of their three." : r.blurb;
+      }
+      default: return r.blurb || "";
+    }
+    return who + t;
+  }
+  function relicScore(r) {
+    if (!r) return 0;
+    const base = { common: 1, uncommon: 1.3, rare: 1.7, legendary: 2.4 }[r.rarity] || 1;
+    const econ = r.kind === "bounty" || r.kind === "renown" ? 0.55 : 1;
+    return base * econ * (typeof r.roll === "number" ? r.roll : 1);
+  }
+  function relicRoll(save, id) {
+    if (!save || !id) return 1;
+    if (!save.relicRolls || typeof save.relicRolls !== "object") save.relicRolls = {};
+    let v = save.relicRolls[id];
+    if (typeof v !== "number" || !(v >= 0.85 && v <= 1.15)) {
+      const h = IL.hashStr ? IL.hashStr(String(save.clubName || "") + ":" + id + ":" + (save.relicSalt || 0)) : 0;
+      v = Math.round((0.85 + ((h >>> 0) % 1000) / 1000 * 0.3) * 100) / 100;
+      save.relicRolls[id] = v;
+    }
+    return v;
+  }
+  function rolledRelic(save, r) {
+    return r ? Object.assign({}, r, { roll: relicRoll(save, r.id) }) : null;
+  }
+  function wornIds(f) {
+    const out = [];
+    if (f && f.relic) out.push(f.relic);
+    if (f && f.relic2 && (f.level || 1) >= RELIC_SLOT2_LV) out.push(f.relic2);
+    return out;
+  }
 
   const SETS = [
     { id: "wall", name: "Iron Wall", kind: "def", need: 2, blurb: "Two pieces of the wall raise defense for the party." },
@@ -102,17 +212,20 @@
 
   /* Club slots plus relics worn by the fielded party. Two pieces of a set wake one club-wide bonus. */
   function relicPack(save, party) {
-    const club = equippedRelics(save);
+    const club = equippedRelics(save).map(function (r) { return rolledRelic(save, r); });
     const owned = (save && save.relics) || [];
     const worn = {};
     const active = club.slice();
     (party || []).forEach(function (f) {
-      if (!f || !f.relic) return;
-      const r = relicById(f.relic);
-      if (!r || r.scope !== "fighter") return;
-      if (owned.indexOf(r.id) < 0) return;
-      worn[f.id] = r;
-      active.push(r);
+      if (!f) return;
+      wornIds(f).forEach(function (id) {
+        const r = relicById(id);
+        if (!r || r.scope !== "fighter") return;
+        if (owned.indexOf(r.id) < 0) return;
+        const rr = rolledRelic(save, r);
+        (worn[f.id] = worn[f.id] || []).push(rr);
+        active.push(rr);
+      });
     });
     const counts = {};
     active.forEach(function (r) {
@@ -368,15 +481,71 @@
     return Math.max(20, Math.round(relicPrice(id) * 0.4));
   }
 
-  function rollRelicStock(rng) {
-    const pool = RELICS.slice();
+  /* v95 five relics a week, each with its roll shown before you buy.
+     Unowned relics first; the first slot is always rare or better. */
+  function rollRelicStock(rng, save) {
+    const owned = (save && save.relics) || [];
+    const fresh = RELICS.filter(function (r) { return owned.indexOf(r.id) < 0; });
+    const pool = (fresh.length >= 5 ? fresh : RELICS).slice();
     const out = [];
-    while (out.length < 4 && pool.length) {
-      const i = Math.floor(rng() * pool.length);
-      const relic = pool.splice(i, 1)[0];
-      out.push({ id: relic.id, cost: relicPrice(relic.id), stock: 1 });
+    const top = pool.filter(function (r) { return r.rarity === "rare" || r.rarity === "legendary"; });
+    function take(relic) {
+      pool.splice(pool.indexOf(relic), 1);
+      const roll = Math.round((0.85 + rng() * 0.3) * 100) / 100;
+      out.push({ id: relic.id, roll: roll, cost: Math.max(20, Math.round(relicPrice(relic.id) * (0.55 + 0.45 * roll) / 5) * 5), stock: 1 });
     }
+    if (top.length) take(top[Math.floor(rng() * top.length)]);
+    while (out.length < 5 && pool.length) take(pool[Math.floor(rng() * pool.length)]);
     return out;
+  }
+  function restockRelics(save, rng) {
+    const key = (save.season || 1) * 100 + (save.round || 0);
+    if (save.relicWeek === key && Array.isArray(save.relicStock) && save.relicStock.length) return false;
+    save.relicWeek = key;
+    save.relicStock = rollRelicStock(rng, save);
+    return true;
+  }
+
+  /* v95 auto-equip: best club relics into the club slots, then the
+     fielded party's slots by fit (front line: health, armor, reflect,
+     revive; back line: damage, crits, haste, blink). Bench fighters
+     hand theirs back. */
+  const FRONT_ROLES = { melee: 1, tank: 1, hybrid: 1 };
+  const FIT = {
+    front: { hp: 1.3, def: 1.3, shield: 1.25, reflect: 1.4, revive: 1.4, lifesteal: 1.3, wind: 1.2, regen: 1.15, atk: 1, crit: 0.95, glass: 0.7, speed: 0.9, haste: 0.85, sand: 0.85, pierce: 0.3, blink: 0.8, grant: 1 },
+    back: { atk: 1.3, crit: 1.25, glass: 1.2, haste: 1.25, sand: 1.25, blink: 1.4, speed: 1.1, revive: 1.2, lifesteal: 1.1, hp: 1, shield: 1, wind: 1, regen: 0.9, def: 0.85, reflect: 0.7, grant: 1, pierce: 1 }
+  };
+  function autoRelics(save, party) {
+    if (!save) return 0;
+    const owned = save.relics || [];
+    const all = owned.map(function (id) { return rolledRelic(save, relicById(id)); }).filter(Boolean);
+    const before = JSON.stringify([save.equipped, (save.roster || []).map(function (f) { return [f.relic, f.relic2]; })]);
+    const clubs = all.filter(function (r) { return r.scope !== "fighter"; }).sort(function (a, b) { return relicScore(b) - relicScore(a); });
+    const slots = IL.clubRelicSlots ? IL.clubRelicSlots(save) : 2;
+    save.equipped = clubs.slice(0, slots).map(function (r) { return r.id; });
+    (save.roster || []).forEach(function (f) { if (f) { f.relic = null; f.relic2 = null; } });
+    const free = all.filter(function (r) { return r.scope === "fighter"; });
+    const team = (party || []).filter(Boolean).slice().sort(function (a, b) { return (b.level || 1) - (a.level || 1); });
+    [1, 2].forEach(function (slot) {
+      team.forEach(function (f) {
+        if (slot === 2 && (f.level || 1) < RELIC_SLOT2_LV) return;
+        const kit = IL.CLASSES[f.cls] || {};
+        const fit = FIT[FRONT_ROLES[kit.role] ? "front" : "back"];
+        const have = wornIds(f).map(function (id) { return relicById(id); });
+        let best = -1, bestV = 0;
+        free.forEach(function (r, i) {
+          if (r.kind === "pierce" && kit.role !== "kite") return;
+          let v = relicScore(r) * (fit[r.kind] || 1);
+          if (have.some(function (h) { return h && h.kind === r.kind; })) v *= 0.6;
+          if (v > bestV) { bestV = v; best = i; }
+        });
+        if (best < 0) return;
+        const r = free.splice(best, 1)[0];
+        if (slot === 1) f.relic = r.id; else f.relic2 = r.id;
+      });
+    });
+    const after = JSON.stringify([save.equipped, (save.roster || []).map(function (f) { return [f.relic, f.relic2]; })]);
+    return before === after ? 0 : 1;
   }
 
   function weekIndex(now) { return Math.floor((now || 0) / WEEK_MS); }
@@ -718,6 +887,14 @@
       if (!worn || worn.scope !== "fighter" || !owned || wornOnce[worn.id]) f.relic = null;
       else wornOnce[worn.id] = true;
     });
+    data.roster.forEach(function (f) {
+      if (!f) return;
+      const worn = typeof f.relic2 === "string" ? relicById(f.relic2) : null;
+      const owned = worn && data.relics.indexOf(worn.id) >= 0;
+      if (!worn || worn.scope !== "fighter" || !owned || wornOnce[worn.id]) f.relic2 = null;
+      else wornOnce[worn.id] = true;
+    });
+    if (!data.relicRolls || typeof data.relicRolls !== "object") data.relicRolls = {};
     function stampMoves(f) {
       if (f && IL.ensureMoves) IL.ensureMoves(f);
     }
@@ -1144,6 +1321,7 @@
     rollOffers(save, rng).forEach(function (n) { notes.push(n); });
     stepAuction(save, rng).forEach(function (n) { notes.push(n); });
     rollApproach(save, rng).forEach(function (n) { notes.push(n); });
+    if (restockRelics(save, rng)) notes.push("The relic stall has new stock this week.");
     return notes;
   }
 
@@ -1865,6 +2043,16 @@
   IL.relicChoices = relicChoices;
   IL.noteEndless = noteEndless;
   const RELIC_ICON = {
+    phoenix: "cs_fire_symbol_05",
+    bloodvine: "cs_spell_016_red",
+    aegis: "cs_water_symbol_03",
+    blinkstone: "cs_spell_021_blue",
+    leech: "bw_orb_01_red",
+    bramble: "bw_grass_gem",
+    emberidol: "cs_fire_symbol_01",
+    warhorn: "bw_orb_10_orange",
+    salvebead: "cs_spell_004_green",
+    wardprism: "bw_diamond",
     band: "bw_ancient_golden_ring",
     edge: "bw_ninja_star",
     plate: "bw_token_golden_medallion",
@@ -2019,6 +2207,7 @@
       mastery: f.mastery || null,
       boosts: slimBoosts(f.boosts),
       relic: f.relic || null,
+      relic2: f.relic2 || null,
       loadout: Array.isArray(f.loadout) ? f.loadout.slice(0, 3) : [],
       learned: Array.isArray(f.learned) ? f.learned.slice() : [],
       ai: IL.aiCustom && IL.aiCustom(f.ai) ? IL.normAi(f.ai) : undefined
@@ -2070,6 +2259,7 @@
       const personality = IL.PERSONALITIES && IL.PERSONALITIES.indexOf(raw.personality) >= 0 ? raw.personality : "bold";
       const tactic = IL.TACTICS && IL.TACTICS.indexOf(raw.tactic) >= 0 ? raw.tactic : "strike";
       const worn = raw.relic && relicById(raw.relic);
+      const worn2 = raw.relic2 && relicById(raw.relic2);
       const f = {
         id: "ch" + i,
         name: String(raw.name || "Fighter").slice(0, 22),
@@ -2084,6 +2274,7 @@
         mastery: raw.mastery && IL.masteryOf && IL.masteryOf(raw.mastery) ? raw.mastery : null,
         boosts: slimBoosts(raw.boosts),
         relic: worn && worn.scope === "fighter" ? worn.id : null,
+        relic2: worn2 && worn2.scope === "fighter" && (!worn || worn2.id !== worn.id) ? worn2.id : null,
         captain: false,
         xp: IL.xpFloor ? IL.xpFloor(Math.max(1, raw.level | 0)) : Math.max(0, ((raw.level | 0) - 1) * 40),
         gear: IL.blankGear ? IL.blankGear() : { weapon: null, armor: null, trinket: null }
@@ -2114,6 +2305,16 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.relicNums = relicNums;
+  IL.relicText = relicText;
+  IL.relicRoll = relicRoll;
+  IL.rolledRelic = rolledRelic;
+  IL.relicScore = relicScore;
+  IL.grantAbility = grantAbility;
+  IL.wornIds = wornIds;
+  IL.autoRelics = autoRelics;
+  IL.restockRelics = restockRelics;
+  IL.RELIC_SLOT2_LV = RELIC_SLOT2_LV;
   IL.SPECIALTIES = SPECIALTIES;
   IL.MASTERIES = MASTERIES;
   IL.specialtyOf = specialtyOf;

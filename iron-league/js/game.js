@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Staff: hire a Trainer, Medic, Scout, Captain Coach and Treasurer from a weekly staff market. The new Club House adds staff slots.",
     "Injuries: a knocked-out fighter may be hurt for 1 to 3 league weeks, by its injury risk. The bench covers, and the Medical Bay heals for gold. You can switch injuries off in Settings.",
     "Live orders in the pit: Plan, Attack, Regroup and Hold, from the bar at the top-left or keys F1 to F4.",
     "Polish: a new Area moves tactic (Anyone, 2 or more, 3 or more), season Impact and assists on the Intel boards, evolution marks on move cards, and Unequip all for relics.",
@@ -3053,9 +3054,39 @@
       '<em class="tile-badge">' + (run ? "GO" : "PVE") + '</em></button>';
   }
 
+  /* v101 staff: one of each role, stars scale the effect. */
+  function staffStarsHtml(n) { return '<span class="pot">' + "★★★★★".slice(0, n) + '<i>' + "★★★★★".slice(0, 5 - n) + '</i></span>'; }
+  function staffPanel() {
+    if (IL.restockStaff && (!Array.isArray(save.staffMarket) || save.staffWeek == null)) { IL.restockStaff(save, takeRng()); persist(); }
+    const hired = save.staff || [];
+    const slots = IL.staffSlots(save);
+    const mine = hired.map(function (st) {
+      const role = IL.STAFF_ROLES[st.role];
+      return '<article class="es-card staff-card"><header><b>' + esc(st.name) + '</b>' + staffStarsHtml(st.stars) + '</header>' +
+        '<p class="staff-role">' + esc(role ? role.name : st.role) + '</p><p>' + esc(role ? role.text(st.stars) : "") + '</p>' +
+        '<button type="button" class="btn ghost" data-staff-fire="' + esc(st.id) + '">Let go</button></article>';
+    }).join("");
+    const market = (save.staffMarket || []).map(function (row, i) {
+      const role = IL.STAFF_ROLES[row.role];
+      const same = hired.filter(function (h) { return h.role === row.role; })[0];
+      const full = !same && hired.length >= slots;
+      const cant = save.gold < row.cost || full;
+      return '<article class="es-card staff-card"><header><b>' + esc(row.name) + '</b>' + staffStarsHtml(row.stars) + '</header>' +
+        '<p class="staff-role">' + esc(role ? role.name : row.role) + '</p><p>' + esc(role ? role.text(row.stars) : "") + '</p>' +
+        (same ? '<p class="fine' + (same.stars > row.stars ? ' staff-worse' : '') + '">Replaces ' + esc(same.name) + ' (' + same.stars + '★)' + (same.stars > row.stars ? ', a downgrade' : '') + '.</p>' : '') +
+        '<button type="button" class="btn primary' + (cant ? " cant-afford" : " buyable") + '" data-staff-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + (full ? "No free slot" : "Hire · " + row.cost + "g") + '</button></article>';
+    }).join("");
+    return '<div class="staff-pane" id="staffPane">' +
+      '<p class="fine">' + hired.length + ' of ' + slots + ' staff slots. One of each role; the Club House adds a slot a rank. The staff market turns over after each league week.</p>' +
+      '<h3 class="section">Your staff</h3><div class="staff-grid">' + (mine || emptyState("No staff yet.", "Hire from the market below.")) + '</div>' +
+      '<h3 class="section">Staff market</h3><div class="staff-grid">' + (market || emptyState("Nobody is looking this week.", "New faces after the next league match.")) + '</div>' +
+    '</div>';
+  }
+
   function clubHomePanel() {
     if (clubPane === "events") return subTabs("club", "events", [["home", "‹ Club"], ["events", "Activities"]]) + eventsPanel();
     if (clubPane === "train") return subTabs("club", "train", [["home", "‹ Club"], ["train", "Training"]]) + trainingPanel();
+    if (clubPane === "staff") return subTabs("club", "staff", [["home", "‹ Club"], ["staff", "Staff"]]) + staffPanel();
     const ev = IL.activeEvent ? IL.activeEvent(Date.now()) : null;
     const fac = save.facilities || {};
     return '<div class="es-club-grid">' +
@@ -3076,11 +3107,13 @@
             : def.id === "barracks" ? Math.round((IL.benchShare ? IL.benchShare(save) : 0) * 100) + "% bench XP"
             : def.id === "infirmary" ? "+" + (IL.restBonus ? IL.restBonus(save) : 0) + " rest · drills " + (IL.drillCost ? IL.drillCost(save) : 16) + "g"
             : def.id === "scout" ? Math.round((IL.scoutOdds ? IL.scoutOdds(save) : 0.45) * 100) + "% scout hits"
-            : def.id === "treasury" ? IL.clubRelicSlots(save) + " club relic slots" : "";
+            : def.id === "treasury" ? IL.clubRelicSlots(save) + " club relic slots"
+            : def.id === "clubhouse" ? IL.staffSlots(save) + " staff slots" : "";
           return clubTile("train:facilities", def.name, now, def.blurb, tones[k % tones.length], lv >= def.max ? "MAX" : "LV " + (lv + 1));
         }).join("") +
       '</section>' +
       '<section><h3 class="section">Services</h3>' +
+        clubTile("staff", "Staff", (save.staff || []).length + " of " + IL.staffSlots(save) + " hired", "Trainers, medics, scouts, coaches and treasurers. New faces every week.", "teal", "Staff") +
         clubTile("train", "Drills", (save.trainsLeft || 0) + " left this week", "Raise a stat on a bench fighter.", "red", "Train") +
         clubTile("train", "Specialties", (save.specPoints || 0) + " points", "Focus at level 5, mastery at level 10.", "gold", "Spec") +
         clubTile("train", "Tasks", "Earn specialty points", "Crits, KOs, blocks, flawless wins.", "steel", "Goals") +
@@ -4994,6 +5027,15 @@
       if (ev.target.closest("[data-approach-decline]")) { answerApproach(false); return; }
       const healB = ev.target.closest("[data-heal]");
       if (healB && !healB.disabled) { healFighter(healB.dataset.heal); return; }
+      const stHire = ev.target.closest("[data-staff-hire]");
+      if (stHire && !stHire.disabled) {
+        const row = (save.staffMarket || [])[+stHire.dataset.staffHire];
+        if (row && IL.hireStaff(save, +stHire.dataset.staffHire)) { pitSound("purchase"); logClub(row.name + " joins the staff as " + IL.STAFF_ROLES[row.role].name + "."); persist(); refreshHub(); showNote(row.name + " hired."); }
+        else pitSound("error");
+        return;
+      }
+      const stFire = ev.target.closest("[data-staff-fire]");
+      if (stFire) { if (IL.fireStaff(save, stFire.dataset.staffFire)) { persist(); refreshHub(); } return; }
       const bid = ev.target.closest("[data-auction-bid]");
       if (bid && !bid.disabled) { bidAuction(); return; }
       const inLv = ev.target.closest("[data-inbox-level]");
@@ -6208,7 +6250,8 @@
           mods: seasonModsFor(spec.mode),
           foeRelics: spec.foeRelics || null,
           foeWorn: spec.foeWorn || null,
-          formation: save.formation || null
+          formation: save.formation || null,
+          captainBoost: IL.staffStars ? 0.03 * IL.staffStars(save, "coach") : 0
         });
       match.spriteMap = map;
       match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
@@ -7657,6 +7700,11 @@
       || Object.keys(renownPack.worn).some(function (id) { return (renownPack.worn[id] || []).some(function (r) { return r && r.kind === "renown"; }); });
     if (renownOn) renown = Math.round(renown * 1.25);
     gold += match.stats.bounty || 0;
+    /* v101 staff: Treasurer on league and cup gold, Trainer on all match XP. */
+    if (IL.staffStars) {
+      if (mode === "league" || mode === "cup" || mode === "champions") gold = Math.round(gold * (1 + 0.04 * IL.staffStars(save, "treasurer")));
+      xp = Math.round(xp * (1 + 0.04 * IL.staffStars(save, "trainer")));
+    }
     noteRecords(match, win);
     if (IL.noteTasks) IL.noteTasks(save, match, win);
     save.bouts = (save.bouts || 0) + 1;

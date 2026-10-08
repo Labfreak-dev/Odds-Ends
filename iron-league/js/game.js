@@ -322,6 +322,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Better fighters: every recruit rolls Balanced, Good or Excellent growth per stat and shows 1 to 5 potential stars. Shiny fighters (1 in 250) start 20% stronger. Champions carry a second class's passive, go to auction against rival clubs, and sometimes ask to join you.",
     "Longer seasons that pay: 14 weeks home and away, a free MidCup after week 7, two season modifiers, five season goals that pay on the spot, and a season chest of gold, gear and relics by where you finish.",
     "Clearer, smarter fights: spells mark their real landing zone and flash before they hit, cleaves show their ring, charges their path, casters a cast bar. Autobattle fighters step out of marked spells, focus the same target, finish the wounded, protect their casters, and save area moves for groups.",
     "A party board on Roster: swap a fighter in two taps, open anyone's gear right under them, and hire from the market without leaving. Gear equips in one tap, with the stat change on every item.",
@@ -1746,8 +1747,9 @@
         '<header class="es-dhead">' +
           '<div class="detail-stage">' + portraitWrap('id="detailPreview" width="140" height="124" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + anim + '" data-scale="3" data-foot="10"', f.captain, f) + '</div>' +
           '<div class="es-dwho">' +
-            '<h2 id="sheetTitle">' + esc(f.name) + (f.captain ? ' <small class="es-captain">Captain</small>' : '') + '</h2>' +
-            '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span><span class="es-role">' + esc(role) + '</span>' + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + '</p>' +
+            '<h2 id="sheetTitle">' + shinyMark(f) + esc(f.name) + (f.captain ? ' <small class="es-captain">Captain</small>' : '') + '</h2>' +
+            '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span><span class="es-role">' + esc(role) + '</span>' + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + (f.shiny ? '<span class="es-role shiny-tag">Shiny</span>' : '') + '</p>' +
+            '<p class="es-dgrades">' + potentialStars(f) + gradeChips(f) + '</p>' +
             staminaBar(f) +
             '<p class="es-dlevel">Level ' + (f.level || 1) + ' · XP ' + into + '/' + xpi.need + ' (' + xpPct + '%)</p>' +
             '<div class="xp"><span>XP</span><div class="track"><div class="fill" style="width:' + xpPct + '%"></div></div><b>' + into + '/' + xpi.need + '</b></div>' +
@@ -1768,6 +1770,7 @@
           '<section class="es-card"><h3 class="section">Abilities</h3>' +
             '<p class="loadout-style"><strong>' + esc(attack.name) + '</strong> ' + esc(attack.blurb) + '</p>' +
             '<p class="loadout-style"><strong>Passive · ' + esc(passive.name || "Passive") + '</strong> ' + esc(passiveBlurb) + '</p>' +
+            (champPassiveOf(f) ? '<p class="loadout-style"><strong>Champion passive · ' + esc(champPassiveOf(f).p.name) + '</strong> ' + esc(champPassiveOf(f).p.blurb) + ' (from the ' + esc(champPassiveOf(f).cls) + ')</p>' : '') +
             '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
             '<p class="fine">Equip three. A tome teaches the rest.</p>' +
             '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
@@ -2423,6 +2426,10 @@
       const mv = IL.marketValue ? IL.marketValue(f) : 0;
       out.push({ act: true, kind: "offer", oid: o.id, text: o.club + " offers " + o.gold + " gold for " + f.name + " (value " + mv + ")." });
     });
+    if (save.approach && save.approach.fighter) {
+      const af = save.approach.fighter;
+      out.push({ act: true, kind: "approach", text: af.name + " (" + (IL.CLASSES[af.cls] ? IL.CLASSES[af.cls].name : af.cls) + ", Lv " + (af.level || 1) + ", " + (IL.potentialOf ? IL.potentialOf(af) : 1) + "★ potential), a champion, asks to join for " + save.approach.cost + " gold." });
+    }
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
     if (save.cup && save.cup.mid && !save.cup.champion && IL.cupOpponent(save.cup)) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The MidCup is open: " + save.cup.size + "v" + save.cup.size + ", free entry." });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
@@ -2435,6 +2442,44 @@
 
   function offerButtons(oid) {
     return '<span class="offer-btns"><button type="button" class="ctl gold" data-offer-accept="' + esc(oid) + '">Accept</button><button type="button" class="ctl" data-offer-decline="' + esc(oid) + '">Decline</button></span>';
+  }
+
+  function approachButtons() {
+    const a = save.approach;
+    const cant = !a || save.gold < a.cost || save.roster.length >= IL.rosterCap(save);
+    return '<span class="offer-btns"><button type="button" class="ctl gold' + (cant ? " cant-afford" : "") + '" data-approach-accept="1"' + (cant ? " disabled" : "") + '>Sign ' + (a ? a.cost : 0) + 'g</button><button type="button" class="ctl" data-approach-decline="1">Decline</button></span>';
+  }
+
+  /* v94 a champion asked to join: sign for the asking price, or let them go. */
+  function answerApproach(yes) {
+    const a = save.approach;
+    if (!a || !a.fighter) { save.approach = null; refreshHub(); return; }
+    if (!yes) { save.approach = null; persist(); refreshHub(); return; }
+    if (save.gold < a.cost || save.roster.length >= IL.rosterCap(save)) { pitSound("error"); return; }
+    const f = a.fighter;
+    save.gold -= a.cost;
+    f.lv0 = f.level || 1;
+    f.lv0Season = save.season;
+    save.roster.push(f);
+    if (IL.dedupeNames) IL.dedupeNames(save.roster);
+    if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
+    if (f.cls && save.seenClasses.indexOf(f.cls) < 0) save.seenClasses.push(f.cls);
+    save.hires = (save.hires || 0) + 1;
+    save.approach = null;
+    save.marketNews = [f.name + " signed for " + a.cost + " gold."].concat(save.marketNews || []).slice(0, 6);
+    pitSound("purchase");
+    persist();
+    refreshHub();
+    showNote(f.name + " joins your club.");
+  }
+
+  function bidAuction() {
+    const a = save.auction;
+    if (!a || save.roster.length >= IL.rosterCap(save) || !IL.auctionBid(save)) { pitSound("error"); return; }
+    pitSound("purchase");
+    persist();
+    refreshHub();
+    showNote("You lead the auction at " + a.bid + " gold.");
   }
 
   /* Sell to the bidding club: gold in, gear back to the bag. */
@@ -2468,6 +2513,7 @@
       const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
         : x.kind === "go" ? '<button type="button" class="ctl" data-inbox-go="' + esc(x.tab) + '">Open ›</button>'
         : x.kind === "offer" ? offerButtons(x.oid)
+        : x.kind === "approach" ? approachButtons()
         : x.kind === "season" ? '<button type="button" class="ctl" data-inbox-season="1">Open ›</button>' : '';
       return '<li class="inbox-row ib-' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
     }
@@ -2499,7 +2545,10 @@
       const oy = ev.target.closest("[data-offer-accept]");
       if (oy) { answerOffer(oy.dataset.offerAccept, true); return; }
       const on = ev.target.closest("[data-offer-decline]");
-      if (on) { answerOffer(on.dataset.offerDecline, false); }
+      if (on) { answerOffer(on.dataset.offerDecline, false); return; }
+      const ay = ev.target.closest("[data-approach-accept]");
+      if (ay && !ay.disabled) { answerApproach(true); return; }
+      if (ev.target.closest("[data-approach-decline]")) answerApproach(false);
     };
   }
 
@@ -2609,7 +2658,8 @@
       ? '<section class="es-card ov-action"><h3 class="section">Action required</h3><ul class="inbox">' + acts.slice(0, 4).map(function (x) {
           const btn = x.kind === "level" ? '<button type="button" class="ctl" data-inbox-level="' + esc(x.fid) + '">Level up ›</button>'
             : x.kind === "go" ? '<button type="button" class="ctl" data-goto="' + esc(x.tab) + '">Open ›</button>'
-            : x.kind === "offer" ? offerButtons(x.oid) : '';
+            : x.kind === "offer" ? offerButtons(x.oid)
+            : x.kind === "approach" ? approachButtons() : '';
           return '<li class="inbox-row"><span>' + esc(x.text) + '</span>' + btn + '</li>';
         }).join("") + '</ul></section>'
       : '';
@@ -3209,7 +3259,7 @@
       return '<div class="es-mrow' + (x.i === marketPick ? " on" : "") + (cant ? " cant-afford" : "") + '" data-role="' + esc(kit.role) + '">' +
         '<button type="button" class="es-mpick" data-mpick="' + x.i + '">' +
           '<canvas class="es-mface" width="40" height="36" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="3"></canvas>' +
-          '<span class="es-mname"><b>' + (r.from ? '<span class="es-mfrom" title="Listed by ' + esc(r.from) + '">' + crestHtml(r.from, "sm", crestIndexOf(r.from)) + '</span>' : '') + esc(f.name) + (f.champion ? ' <em class="champ">★</em>' : '') + (r.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</b><span class="es-mmoves">' + moves + '</span></span>' +
+          '<span class="es-mname"><b>' + (r.from ? '<span class="es-mfrom" title="Listed by ' + esc(r.from) + '">' + crestHtml(r.from, "sm", crestIndexOf(r.from)) + '</span>' : '') + shinyMark(f) + esc(f.name) + (f.champion ? ' <em class="champ">★</em>' : '') + (r.scouted ? ' <em class="scout-tag">Scouted</em>' : '') + '</b><span class="es-mmoves">' + moves + potentialStars(f) + '</span></span>' +
           '<span class="es-mstat">' + Math.round(st.hp) + '</span><span class="es-mstat">' + Math.round(st.atk) + '</span><span class="es-mstat">' + Math.round(st.def) + '</span><span class="es-mstat">' + Math.round(st.speed) + '</span>' +
           '<span class="es-mclass"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span><small>Lvl ' + (f.level || 1) + '</small></span>' +
           '<span class="es-mprice">' + (r.locked ? '' : coinIcon("gold")) + price + '</span>' +
@@ -3239,8 +3289,8 @@
       detail = '<section class="es-card es-mdetail" id="marketDetail">' +
         '<header class="es-mdhead">' +
           portraitWrap('width="96" height="86" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="6"', false, f) +
-          '<div><h3>' + esc(f.name) + '</h3>' +
-            '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span>' + (f.rarity ? '<span class="es-role">' + esc(rarityLabel(f.rarity)) + '</span>' : '') + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + '</p>' +
+          '<div><h3>' + shinyMark(f) + esc(f.name) + '</h3>' +
+            '<p class="es-dtags"><span class="es-class ' + tone + '">' + esc(kit.name) + '</span>' + (f.rarity ? '<span class="es-role">' + esc(rarityLabel(f.rarity)) + '</span>' : '') + (f.champion ? '<span class="es-role champ">Champion</span>' : '') + (f.shiny ? '<span class="es-role shiny-tag">Shiny</span>' : '') + '</p>' +
             '<p class="es-dlevel">Level ' + (f.level || 1) + ' · ' + (pick.from ? 'Listed by ' + esc(pick.from) : 'Free agent') + '</p></div>' +
           '<div class="es-dvalue"><p><span>Market value</span><b>' + coinIcon("gold") + mv + '</b></p>' +
             '<p><span>' + (pick.locked ? 'Renown required' : 'Asking price') + '</span><b>' + (pick.locked ? pick.need : coinIcon("gold") + pick.cost) + '</b></p></div>' +
@@ -3254,6 +3304,9 @@
         '</div>' +
         '<h4 class="ov-sub">Profile and behavior</h4>' +
         '<dl class="es-profile">' +
+          '<dt>Potential</dt><dd>' + potentialStars(f) + '</dd>' +
+          '<dt>Growth grades</dt><dd>' + gradeChips(f) + '</dd>' +
+          (champPassiveOf(f) ? '<dt>Champion passive</dt><dd>' + esc(champPassiveOf(f).p.name + " (" + champPassiveOf(f).cls + "): " + champPassiveOf(f).p.blurb) + '</dd>' : '') +
           '<dt>Personality</dt><dd>' + esc(personalityLabel(f.personality)) + '</dd>' +
           '<dt>Growth style</dt><dd>' + esc(IL.STYLES[IL.styleOf(f)].name) + ' growth</dd>' +
           (spec ? '<dt>Specialty</dt><dd>' + esc(spec.name) + '</dd>' : '') +
@@ -3273,6 +3326,7 @@
         '<div class="hub-actions market-tools"><button type="button" class="btn ghost' + (brokeRefresh ? " cant-afford" : " buyable") + '" id="refreshMarket"' + (brokeRefresh ? " disabled" : "") + '>Refresh · ' + IL.REFRESH_COST + 'g</button>' + scoutPicker() + '</div>' +
       '</div>' +
       (save.marketNews && save.marketNews.length ? '<ul class="market-news" id="marketNews">' + save.marketNews.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join("") + '</ul>' : '') +
+      auctionHtml() +
       '<p class="fine es-pulse">Mercenary board · ' + all.length + ' listings · roster ' + save.roster.length + '/' + IL.rosterCap(save) + ' · the board turns over after league and cup matches; watch up to ' + IL.WATCH_CAP + ' to keep them.</p>' +
       '<div class="es-msplit">' +
         '<div class="es-mlist" id="marketCards">' +
@@ -3282,6 +3336,45 @@
         detail +
       '</div>' +
     '</div>';
+  }
+
+  /* v94 grades, potential, shiny, champion passive, auctions. */
+  const GRADE_NAME = { B: "Balanced", G: "Good", E: "Excellent" };
+  function potentialStars(f) {
+    const n = IL.potentialOf ? IL.potentialOf(f) : 1;
+    return '<span class="pot" title="Potential ' + n + ' of 5">' + "★★★★★".slice(0, n) + '<i>' + "★★★★★".slice(0, 5 - n) + '</i></span>';
+  }
+  function gradeChips(f) {
+    return '<span class="grades">' + [["hp", "HP"], ["atk", "ATK"], ["def", "DEF"], ["spd", "SPD"]].map(function (k) {
+      const g = IL.gradeOf ? IL.gradeOf(f, k[0]) : "B";
+      return '<i class="g-' + g + '" title="' + k[1] + ' growth: ' + GRADE_NAME[g] + (g === "B" ? "" : g === "G" ? " (x1.3)" : " (x1.6)") + '">' + k[1] + ' ' + g + '</i>';
+    }).join("") + '</span>';
+  }
+  function champPassiveOf(f) {
+    if (!f || !f.champPassive) return null;
+    const id = Object.keys(IL.CLASSES).filter(function (c) { return IL.CLASSES[c].passive && IL.CLASSES[c].passive.id === f.champPassive; })[0];
+    return id ? { cls: IL.CLASSES[id].name, p: IL.CLASSES[id].passive } : null;
+  }
+  function shinyMark(f) { return f && f.shiny ? '<em class="shiny" title="Shiny: +20% base stats, one stat Excellent">✦</em>' : ''; }
+  function auctionHtml() {
+    const a = save.auction;
+    if (!a || a.season !== save.season || !a.fighter) return "";
+    const f = a.fighter;
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const st = IL.scaledStats(f, kit);
+    const mine = a.leader === "you";
+    const next = a.leader === "Opening bid" ? a.bid : Math.round(a.bid * 1.1 / 5) * 5;
+    const left = Math.max(0, a.closes - (save.round || 0));
+    const full = save.roster.length >= IL.rosterCap(save);
+    const cant = mine || save.gold < next || full;
+    return '<section class="es-card auction" id="auctionCard">' +
+      '<header><p class="eyebrow">Auction · closes after ' + left + ' more league match' + (left === 1 ? '' : 'es') + '</p>' +
+        '<h3>' + shinyMark(f) + esc(f.name) + ' ' + potentialStars(f) + '</h3>' +
+        '<p class="fine">' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · ' + esc(rarityLabel(f.rarity)) + (f.champion ? ' champion' : '') + ' · HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + '</p>' + gradeChips(f) + '</header>' +
+      '<p class="auction-bid"><span>Top bid</span><b>' + coinIcon("gold") + a.bid + '</b><em>' + (mine ? "Yours" : a.leader === "Opening bid" ? "No bids yet" : esc(a.leader)) + '</em></p>' +
+      '<button type="button" class="btn primary' + (cant ? " cant-afford" : " buyable") + '" data-auction-bid="1"' + (cant ? " disabled" : "") + '>' + (mine ? "You lead" : full ? "Roster full" : "Bid " + next + "g") + '</button>' +
+      '<p class="fine">Rival clubs raise after league matches. Gold leaves only if you hold the top bid when it closes.</p>' +
+    '</section>';
   }
 
   function scoutPicker() {
@@ -4661,6 +4754,11 @@
       if (offY) { answerOffer(offY.dataset.offerAccept, true); return; }
       const offN = ev.target.closest("[data-offer-decline]");
       if (offN) { answerOffer(offN.dataset.offerDecline, false); return; }
+      const apY = ev.target.closest("[data-approach-accept]");
+      if (apY && !apY.disabled) { answerApproach(true); return; }
+      if (ev.target.closest("[data-approach-decline]")) { answerApproach(false); return; }
+      const bid = ev.target.closest("[data-auction-bid]");
+      if (bid && !bid.disabled) { bidAuction(); return; }
       const inLv = ev.target.closest("[data-inbox-level]");
       if (inLv) { levelFocus = inLv.dataset.inboxLevel; showGrowth(); return; }
       const emblem = ev.target.closest("[data-club-crest]");
@@ -6693,7 +6791,7 @@
     units.sort(function (a, b) { return (b.dmgDealt || 0) - (a.dmgDealt || 0); });
     box.innerHTML = units.slice(0, 8).map(function (u) {
       const name = String(u.name || "").trim().split(/\s+/)[0] || "Fighter";
-      const n = u.dmgDealt || 0;
+      const n = Math.round(u.dmgDealt || 0);
       const pct = Math.max(4, Math.round(100 * n / top));
       return '<p class="' + (u.team === 0 ? "you" : "them") + '"><span>' + esc(name) + '</span><b>' + n + '</b></p>' +
         '<i class="' + (u.team === 0 ? "you" : "them") + '" style="width:' + pct + '%"></i>';
@@ -6785,7 +6883,7 @@
     const cards = yours.map(function (u) {
       const b = bits(u);
       const bar = function (label, n, cls) {
-        return '<span class="res-stat ' + cls + '"><em>' + label + '</em><b>' + n + '</b><i style="width:' + Math.max(2, Math.round(100 * n / topDealt)) + '%"></i></span>';
+        return '<span class="res-stat ' + cls + '"><em>' + label + '</em><b>' + Math.round(n) + '</b><i style="width:' + Math.max(2, Math.round(100 * n / topDealt)) + '%"></i></span>';
       };
       return '<article class="result-row' + (b.isMvp ? " mvp" : "") + (u.hp <= 0 ? " down" : "") + '">' +
         '<div class="result-who">' +

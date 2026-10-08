@@ -247,10 +247,54 @@
     return "common";
   }
 
+  /* v94, after Eslabong: every recruit rolls a growth grade on each stat
+     (Balanced, Good, Excellent: x1.0 / x1.3 / x1.6 on that stat's growth),
+     better odds the rarer it is; one in 250 is Shiny (+20% base stats and
+     at least one Excellent); a champion carries a second class's passive. */
+  const GRADE_ODDS = { common: [0.18, 0.04], uncommon: [0.25, 0.07], rare: [0.32, 0.12], legendary: [0.4, 0.2] };
+  const GRADE_MUL = { B: 1, G: 1.3, E: 1.6 };
+  const SHINY_ODDS = 1 / 250;
+  function rollGrades(rng, rarity, champion, shiny) {
+    const odds = GRADE_ODDS[rarity] || GRADE_ODDS.common;
+    const g = {};
+    ["hp", "atk", "def", "spd"].forEach(function (k) {
+      const x = rng();
+      const ex = odds[1] + (champion ? 0.08 : 0);
+      const gd = odds[0] + (champion ? 0.1 : 0);
+      g[k] = x < ex ? "E" : x < ex + gd ? "G" : "B";
+    });
+    if (shiny && !["hp", "atk", "def", "spd"].some(function (k) { return g[k] === "E"; })) g[["hp", "atk", "def", "spd"][Math.floor(rng() * 4)]] = "E";
+    return g;
+  }
+  function gradeOf(f, k) { return (f && f.grades && f.grades[k]) || "B"; }
+  function gradeMul(f, k) { return GRADE_MUL[gradeOf(f, k)] || 1; }
+  /* Potential: 1 to 5 stars from grades, rarity, champion and shiny. */
+  function potentialOf(f) {
+    if (!f) return 1;
+    let pts = 0;
+    ["hp", "atk", "def", "spd"].forEach(function (k) { const g = gradeOf(f, k); pts += g === "E" ? 2 : g === "G" ? 1 : 0; });
+    pts += ({ common: 0, uncommon: 1, rare: 2, legendary: 3 })[f.rarity] || 0;
+    if (f.champion) pts += 1;
+    if (f.shiny) pts += 2;
+    return Math.max(1, Math.min(5, 1 + Math.floor(pts / 2)));
+  }
   function stampRecruit(fighter, rng, rarity) {
     fighter.rarity = rarity || rollRarity(rng);
     fighter.specialty = IL.pick(rng, SPECIALTIES).id;
+    if (!fighter.shiny && rng() < SHINY_ODDS) fighter.shiny = true;
+    fighter.grades = rollGrades(rng, fighter.rarity, !!fighter.champion, !!fighter.shiny);
+    if (fighter.champion && !fighter.champPassive) {
+      const own = IL.CLASSES[fighter.cls] && IL.CLASSES[fighter.cls].passive;
+      const others = Object.keys(IL.CLASSES).map(function (id) { return IL.CLASSES[id].passive; }).filter(function (p) {
+        return p && p.fx && (!own || p.id !== own.id);
+      });
+      if (others.length) fighter.champPassive = others[Math.floor(rng() * others.length)].id;
+    }
     return fighter;
+  }
+  /* Recruit price and market value lean on potential. */
+  function potentialMul(f) {
+    return (1 + 0.08 * (potentialOf(f) - 1)) * (f && f.shiny ? 1.5 : 1);
   }
 
   function recruitCost(cls, rarity, champion) {
@@ -302,7 +346,7 @@
 
   function marketValue(f) {
     if (!f) return 0;
-    const base = IL.hireCost(f.cls) * (RARITY_MULT[f.rarity] || 1) * (f.champion ? 1.65 : 1);
+    const base = IL.hireCost(f.cls) * (RARITY_MULT[f.rarity] || 1) * (f.champion ? 1.65 : 1) * potentialMul(f);
     const lv = Math.max(1, f.level || 1);
     let v = base * (1 + (lv - 1) * 0.2);
     v *= 1 + 0.05 * ((f.talents || []).length + Object.keys(f.specs || {}).length);
@@ -423,14 +467,14 @@
           fighter.name = champ.name;
           const rarity = rollRarity(rng);
           stampRecruit(fighter, rng, (rarity === "common" || rarity === "uncommon") ? "rare" : rarity);
-          cost = recruitCost(champ.cls, fighter.rarity, true);
+          cost = Math.round(recruitCost(champ.cls, fighter.rarity, true) * potentialMul(fighter));
         }
       }
       if (!fighter) {
         const cls = IL.pick(rng, open.length ? open : all);
         fighter = IL.randomFighter(rng, cls);
         stampRecruit(fighter, rng);
-        cost = recruitCost(cls, fighter.rarity, false);
+        cost = Math.round(recruitCost(cls, fighter.rarity, false) * potentialMul(fighter));
       }
       board.push({ fighter: fighter, cost: cost });
     }
@@ -1098,7 +1142,92 @@
     const scouted = rollBoard(save, rng, avoid, kept);
     if (scouted) notes.push("Your scout found a " + scouted + ".");
     rollOffers(save, rng).forEach(function (n) { notes.push(n); });
+    stepAuction(save, rng).forEach(function (n) { notes.push(n); });
+    rollApproach(save, rng).forEach(function (n) { notes.push(n); });
     return notes;
+  }
+
+  /* v94 champion approach: now and then a champion asks to join, at a
+     price, for two weeks. */
+  function makeStar(save, rng, shinyOnly) {
+    const renown = save.renown || 0;
+    const champs = (IL.CHAMPIONS || []).filter(function (c) { return IL.classUnlocked(c.cls, renown); });
+    let f;
+    if (!shinyOnly && champs.length) {
+      const c = IL.pick(rng, champs);
+      f = IL.randomFighter(rng, c.cls);
+      f.champion = true;
+      f.name = c.name;
+      stampRecruit(f, rng, rng() < 0.4 ? "legendary" : "rare");
+    } else {
+      const open = IL.unlockedIds(renown);
+      f = IL.randomFighter(rng, IL.pick(rng, open.length ? open : Object.keys(IL.CLASSES)));
+      f.shiny = true;
+      stampRecruit(f, rng, "legendary");
+    }
+    if (IL.growRival) growRival(f, rng, Math.max(1, clubLevel(save) - 1));
+    return f;
+  }
+  function rollApproach(save, rng) {
+    const notes = [];
+    if (save.approach && (save.round || 0) - (save.approach.round || 0) > 2) save.approach = null;
+    if (save.approach || rng() > 0.12 || (save.roster || []).length >= (IL.rosterCap ? IL.rosterCap(save) : 8)) return notes;
+    const f = makeStar(save, rng, false);
+    const cost = Math.max(80, Math.round(marketValue(f) * 0.9 / 5) * 5);
+    save.approach = { fighter: f, cost: cost, round: save.round || 0, season: save.season };
+    notes.push(f.name + ", a champion, asks to join for " + cost + " gold.");
+    return notes;
+  }
+
+  /* v94 auction: one star a time (a champion, or a shiny), bid on over
+     two league weeks against rival clubs. The highest bid when it closes
+     signs; gold leaves only then. */
+  function stepAuction(save, rng) {
+    const notes = [];
+    const a = save.auction;
+    if (a && a.season === save.season) {
+      if ((save.round || 0) >= a.closes) {
+        if (a.leader === "you") {
+          const room = (save.roster || []).length < (IL.rosterCap ? IL.rosterCap(save) : 8);
+          if (room && (save.gold || 0) >= a.bid) {
+            save.gold -= a.bid;
+            a.fighter.lv0 = a.fighter.level || 1;
+            a.fighter.lv0Season = save.season;
+            save.roster.push(a.fighter);
+            if (IL.dedupeNames) IL.dedupeNames(save.roster);
+            notes.push("You won the auction: " + a.fighter.name + " joins for " + a.bid + " gold.");
+          } else notes.push("The auction for " + a.fighter.name + " fell through: " + (room ? "not enough gold" : "no room on the roster") + ".");
+        } else notes.push(a.leader + " won the auction for " + a.fighter.name + " at " + a.bid + " gold.");
+        save.auction = null;
+        return notes;
+      }
+      /* Rivals raise once or twice a week, less as the price climbs. */
+      const cap = a.value * (1.3 + rng() * 0.5);
+      for (let i = 0; i < 2; i++) {
+        if (a.bid * 1.1 > cap || rng() > (a.leader === "you" ? 0.7 : 0.35)) break;
+        const rivals = (save.clubs || []).filter(function (c) { return c && !c.you; });
+        if (!rivals.length) break;
+        a.bid = Math.round(a.bid * 1.1 / 5) * 5;
+        a.leader = IL.pick(rng, rivals).name;
+        notes.push(a.leader + " bids " + a.bid + " gold for " + a.fighter.name + ".");
+      }
+      return notes;
+    }
+    if (rng() > 0.35) return notes;
+    const f = makeStar(save, rng, rng() < 0.3);
+    const value = marketValue(f);
+    save.auction = { fighter: f, value: value, bid: Math.max(60, Math.round(value * 0.6 / 5) * 5), leader: "Opening bid", closes: (save.round || 0) + 2, season: save.season };
+    notes.push("Auction: " + f.name + (f.shiny ? " (shiny)" : " (champion)") + " opens at " + save.auction.bid + " gold.");
+    return notes;
+  }
+  function auctionBid(save) {
+    const a = save.auction;
+    if (!a || a.leader === "you") return false;
+    const next = a.leader === "Opening bid" ? a.bid : Math.round(a.bid * 1.1 / 5) * 5;
+    if ((save.gold || 0) < next) return false;
+    a.bid = next;
+    a.leader = "you";
+    return true;
   }
 
   /* ---------- draft cup ----------
@@ -2004,6 +2133,14 @@
   IL.gateFloor = gateFloor;
   IL.gateChest = gateChest;
   IL.rollOffers = rollOffers;
+  IL.potentialOf = potentialOf;
+  IL.gradeOf = gradeOf;
+  IL.gradeMul = gradeMul;
+  IL.rollGrades = rollGrades;
+  IL.stepAuction = stepAuction;
+  IL.auctionBid = auctionBid;
+  IL.rollApproach = rollApproach;
+  IL.SHINY_ODDS = SHINY_ODDS;
   IL.rivalListing = rivalListing;
   IL.startChampionsCup = startChampionsCup;
   IL.settleCup = settleCup;

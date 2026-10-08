@@ -590,7 +590,7 @@ def check_gear(page, label, shot_dir):
     page.locator("[data-detail]").first.click()
     page.wait_for_function(
         """() => {
-          const icon = document.querySelector('#fighterSheet .gear-slot .item-icon');
+          const icon = document.querySelector('#fighterSheet .qg-row .item-icon');
           if (!icon || icon.hidden) return false;
           const tile = icon.closest('.glyph');
           if (!tile || getComputedStyle(tile).gridColumnStart !== '1') return false;
@@ -598,15 +598,58 @@ def check_gear(page, label, shot_dir):
           return !svg || getComputedStyle(svg).display === 'none';
         }"""
     )
-    page.wait_for_selector("#fighterSheet [data-preview-item]")
-    page.click("#fighterSheet [data-preview-item]")
-    page.wait_for_selector("#equipDiff .diff-up")
-    page.wait_for_selector("#equipDiff .diff-down")
+    # v89 one-tap gear: each spare item shows its stat change and its own Equip
+    page.wait_for_selector("#fighterSheet [data-qequip]")
+    page.wait_for_selector("#fighterSheet .gear-delta .diff-up")
+    page.wait_for_selector("#fighterSheet .gear-delta .diff-down")
     page.screenshot(path=str(shot_dir / f"{label}-equip.png"))
-    page.click("#cancelEquip")
-    page.wait_for_selector("#equipDiff", state="detached")
+    pick = page.locator("#fighterSheet [data-qequip]").first.get_attribute("data-qequip")
+    fid, uid = pick.split("|")
+    page.click('#fighterSheet [data-qequip="' + pick + '"]')
+    page.wait_for_function(
+        """([fid, uid]) => {
+          const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const f = raw.roster.find(x => x.id === fid);
+          return f && Object.values(f.gear || {}).some(it => it && it.uid === uid) && !(raw.items || []).some(it => it.uid === uid);
+        }""",
+        arg=[fid, uid],
+    )
+    slot = page.evaluate(
+        """([fid, uid]) => { const f = JSON.parse(localStorage.getItem('ironleague.v1')).roster.find(x => x.id === fid); return Object.keys(f.gear).find(k => f.gear[k] && f.gear[k].uid === uid); }""",
+        [fid, uid],
+    )
+    page.click('#fighterSheet [data-qunequip="' + fid + '|' + slot + '"]')
+    page.wait_for_function(
+        """(uid) => (JSON.parse(localStorage.getItem('ironleague.v1')).items || []).some(it => it.uid === uid)""",
+        arg=uid,
+    )
     page.click("#sheetClose")
     page.wait_for_selector("#fighterSheet", state="detached")
+    # v89 party board: swap a party fighter with a bench fighter and back, open
+    # the gear drawer in place, and see the hire list
+    ids = page.evaluate(
+        """() => { const raw = JSON.parse(localStorage.getItem('ironleague.v1'));
+          const bench = raw.roster.find(f => (raw.lineup || []).indexOf(f.id) < 0);
+          return { a: raw.lineup[0], b: bench && bench.id }; }"""
+    )
+    if not ids["b"]:
+        raise SystemExit(label + " party board needs a bench fighter")
+    page.click('#partyCards [data-party-swap="' + ids["a"] + '"]')
+    page.click('#benchList [data-party-swap="' + ids["b"] + '"]')
+    page.wait_for_function("(b) => JSON.parse(localStorage.getItem('ironleague.v1')).lineup[0] === b", arg=ids["b"])
+    page.click('#partyCards [data-party-swap="' + ids["b"] + '"]')
+    page.click('#benchList [data-party-swap="' + ids["a"] + '"]')
+    page.wait_for_function("(a) => JSON.parse(localStorage.getItem('ironleague.v1')).lineup[0] === a", arg=ids["a"])
+    page.click('#partyCards [data-party-gear="' + ids["a"] + '"]')
+    page.wait_for_selector("#partyGear .qg-slot")
+    gap = page.evaluate(
+        """() => { const cards = document.querySelector('#partyCards').getBoundingClientRect(); const d = document.querySelector('#partyGear').getBoundingClientRect(); return d.top - cards.bottom; }"""
+    )
+    if gap > 40:
+        raise SystemExit(label + " gear drawer opened away from the party: " + str(gap))
+    page.click('#partyGear [data-party-gear="' + ids["a"] + '"]')
+    page.wait_for_selector("#partyGear", state="detached")
+    page.wait_for_selector("#partyHire")
     before = page.evaluate(
         """() => {
           const raw = JSON.parse(localStorage.getItem('ironleague.v1'));

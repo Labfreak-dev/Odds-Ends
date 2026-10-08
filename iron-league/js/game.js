@@ -50,6 +50,9 @@
   };
   let matchesPane = "league";
   let rosterPane = "team";
+  /* v89 party board: the fighter picked to swap, and whose gear drawer is open. */
+  let partySwap = null;
+  let partyGear = null;
   let clubPane = "home";
   let intelPane = "stats";
   let inboxOpen = false;
@@ -310,6 +313,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "A party board on Roster: swap a fighter in two taps, open anyone's gear right under them, and hire from the market without leaving. Gear equips in one tap, with the stat change on every item.",
     "Class passives work: every class has a real passive with a set number, shown on its sheet (Bard: the team deals 15% more damage; Druid: the team regains 3 HP a second).",
     "Clear move text: every skill, upgrade and passive now says exactly what it does, with real damage, durations and cooldowns.",
     "Fairer early seasons: a young club meets rivals one level either way. The swing widens with the club, up to six each way at level 24.",
@@ -1319,8 +1323,8 @@
         ? '<button type="button" class="btn ghost" data-arm-tonic="' + esc(item.uid) + '">Give</button>'
         : tome
           ? '<button type="button" class="btn ghost" data-arm-tome="' + esc(item.uid) + '">Study</button>'
-          : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">Equip</button>') +
-        '<button type="button" class="btn ghost" data-salvage="' + esc(item.uid) + '">Salvage — ' + IL.salvageValue(item) + ' gold</button>';
+          : '<button type="button" class="btn ghost" data-arm-equip="' + esc(item.uid) + '">' + (gearPreview && gearPreview.uid === item.uid ? "Pick a fighter ↓" : "Equip") + '</button>');
+    const salvage = row.owner ? "" : '<button type="button" class="btn ghost" data-salvage="' + esc(item.uid) + '">Salvage — ' + IL.salvageValue(item) + ' gold</button>';
     const pickingGear = !row.owner && !drink && !tome && gearPreview && gearPreview.uid === item.uid;
     const pickingTonic = !row.owner && drink && tonicPick && tonicPick.uid === item.uid;
     const pickingTome = !row.owner && tome && tomePick && tomePick.uid === item.uid;
@@ -1328,7 +1332,7 @@
       ? '<div class="armory-pick">' + (save.roster || []).map(function (f) {
         if (pickingTonic) return '<button type="button" class="btn ghost" data-give-on="' + esc(f.id) + '" data-give-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
         if (pickingTome) return '<button type="button" class="btn ghost" data-study-on="' + esc(f.id) + '" data-study-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
-        return '<button type="button" class="btn ghost" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '">' + esc(f.name) + '</button>';
+        return '<button type="button" class="btn ghost arm-who" data-arm-on="' + esc(f.id) + '" data-arm-item="' + esc(item.uid) + '"><b>' + esc(f.name) + '</b><small class="gear-delta">' + gearDelta(f, item) + '</small></button>';
       }).join("") + '</div>'
       : "";
     return '<article class="gear-card rarity-' + esc(item.rarity) + '">' +
@@ -1337,7 +1341,7 @@
       '<p>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(row.slot)) + '</p>' +
       '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
       '<p class="fine">' + esc(where) + '</p>' +
-      actions + pick +
+      actions + pick + salvage +
     '</article>';
   }
 
@@ -1444,34 +1448,6 @@
     dropTonic(fighter);
   }
 
-  function diffHtml(f, item) {
-    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-    const now = IL.scaledStats(f, kit);
-    const slot = IL.itemSlot(item);
-    const gear = {
-      weapon: f.gear && f.gear.weapon,
-      armor: f.gear && f.gear.armor,
-      trinket: f.gear && f.gear.trinket
-    };
-    gear[slot] = item;
-    const next = IL.scaledStats(Object.assign({}, f, { gear: gear }), kit);
-    const rows = [
-      ["HP", now.hp, next.hp],
-      ["ATK", now.atk, next.atk],
-      ["DEF", now.def, next.def],
-      ["SPD", now.speed, next.speed]
-    ].map(function (row) {
-      const d = Math.round(row[2]) - Math.round(row[1]);
-      if (!d) return "<li>" + row[0] + " " + Math.round(row[1]) + "</li>";
-      const cls = d > 0 ? "diff-up" : "diff-down";
-      return '<li class="' + cls + '">' + row[0] + " " + Math.round(row[1]) + " <b>" + (d > 0 ? "+" : "") + d + "</b></li>";
-    }).join("");
-    return '<div id="equipDiff"><p class="eyebrow">If you equip ' + esc(IL.itemName(item)) + '</p><ul class="diff">' + rows + '</ul>' +
-      '<p class="fine">' + esc(bonusLine(item)) + '</p>' +
-      '<button type="button" class="btn primary" id="confirmEquip">Equip</button>' +
-      '<button type="button" class="btn ghost" id="cancelEquip">Cancel</button></div>';
-  }
-
   function fighterCard(f, size, onBench) {
     const slot = (save.lineup || []).indexOf(f.id);
     const fighting = slot >= 0 && (!size || slot < size);
@@ -1558,43 +1534,85 @@
   }
 
 
-  function gearSheetHtml(f) {
-    const gear = f.gear || IL.blankGear();
+  /* v89 one-tap gear: every spare item for a slot sits under that slot with
+     its stat change and its own Equip button. No preview, no confirm at the
+     bottom of the sheet. */
+  function gearDelta(f, item) {
+    const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+    const now = IL.scaledStats(f, kit);
+    const slot = IL.itemSlot(item);
+    const gear = { weapon: f.gear && f.gear.weapon, armor: f.gear && f.gear.armor, trinket: f.gear && f.gear.trinket };
+    gear[slot] = item;
+    const next = IL.scaledStats(Object.assign({}, f, { gear: gear }), kit);
+    const bits = [["HP", "hp"], ["ATK", "atk"], ["DEF", "def"], ["SPD", "speed"]].map(function (k) {
+      const d = Math.round(next[k[1]]) - Math.round(now[k[1]]);
+      return d ? '<span class="' + (d > 0 ? "diff-up" : "diff-down") + '">' + (d > 0 ? "+" : "") + d + " " + k[0] + '</span>' : "";
+    }).filter(Boolean);
+    return bits.length ? bits.join(" ") : '<span class="diff-same">No stat change</span>';
+  }
+
+  function quickGearHtml(f) {
+    const fid = esc(f.id);
     const slots = ["weapon", "armor", "trinket"].map(function (slot) {
-      const item = gear[slot];
-      const body = item
-        ? itemFaceHtml(item) +
-          '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(bonusLine(item)) + '</small></span>' +
-          '<button type="button" class="btn ghost" data-unequip-slot="' + slot + '">Unequip</button>'
-        : glyphHtml(slot === "weapon" ? "sword" : slot === "armor" ? "shield" : "gem", "common") +
-          '<span><b>Empty ' + esc(slotLabel(slot).toLowerCase()) + '</b><small>Nothing worn</small></span>';
-      return '<div class="gear-slot">' + body + '</div>';
+      const cur = f.gear && f.gear[slot];
+      const head = cur
+        ? '<div class="qg-row qg-cur">' + itemFaceHtml(cur) +
+          '<span><b>' + esc(IL.itemName(cur)) + '</b><small>' + esc(rarityLabel(cur.rarity)) + " · " + esc(bonusLine(cur)) + '</small></span>' +
+          '<button type="button" class="btn ghost qg-go" data-qunequip="' + fid + '|' + slot + '">Unequip</button></div>'
+        : '<div class="qg-row qg-cur empty">' + glyphHtml(slot === "weapon" ? "sword" : slot === "armor" ? "shield" : "gem", "common") +
+          '<span><b>Empty ' + esc(slotLabel(slot).toLowerCase()) + '</b><small>Nothing worn</small></span></div>';
+      const opts = (save.items || []).filter(function (it) { return it && IL.itemSlot(it) === slot; }).map(function (it) {
+        return '<div class="qg-row qg-opt">' + itemFaceHtml(it) +
+          '<span><b>' + esc(IL.itemName(it)) + '</b><small>' + esc(rarityLabel(it.rarity)) + " · " + esc(bonusLine(it)) + '</small>' +
+          '<small class="gear-delta">' + gearDelta(f, it) + '</small></span>' +
+          '<button type="button" class="btn primary qg-go" data-qequip="' + fid + '|' + esc(it.uid) + '">Equip</button></div>';
+      }).join("");
+      return '<section class="qg-slot"><h4>' + esc(slotLabel(slot)) + '</h4>' + head +
+        (opts || '<p class="fine qg-none">No spare ' + esc(slotLabel(slot).toLowerCase()) + ' in the bag.</p>') + '</section>';
     }).join("");
     const drink = f.tonic;
-    const tonic = '<h3 class="section">Tonic</h3><div class="gear-slot">' + (drink
-      ? itemFaceHtml(drink) +
-        '<span><b>' + esc(IL.itemName(drink)) + '</b><small>' + esc(rarityLabel(drink.rarity)) + " · " + esc(bonusLine(drink)) + '</small></span>' +
-        '<button type="button" class="btn ghost" data-tonic-drop="1">Pour back</button>'
-      : '<span><b>No tonic</b><small>A drink from the bag lasts one match.</small></span>') + '</div>';
-    const bag = (save.items || []).map(function (item) {
-      if (IL.itemSlot(item) === "tonic") {
-        return '<button type="button" class="gear-offer" data-tonic="' + esc(item.uid) + '">' +
-          itemFaceHtml(item) +
-          '<span><b>' + esc(IL.itemName(item)) + '</b><small>Tonic · ' + esc(bonusLine(item)) + '</small></span>' +
-        '</button>';
-      }
-      return '<button type="button" class="gear-offer" data-preview-item="' + esc(item.uid) + '">' +
-        itemFaceHtml(item) +
-        '<span><b>' + esc(IL.itemName(item)) + '</b><small>' + esc(rarityLabel(item.rarity)) + " · " + esc(slotLabel(IL.itemSlot(item))) + " · " + esc(bonusLine(item)) + '</small></span>' +
-      '</button>';
+    const tonics = (save.items || []).filter(function (it) { return it && IL.itemSlot(it) === "tonic"; }).map(function (it) {
+      return '<div class="qg-row qg-opt">' + itemFaceHtml(it) +
+        '<span><b>' + esc(IL.itemName(it)) + '</b><small>Tonic · ' + esc(bonusLine(it)) + '</small></span>' +
+        '<button type="button" class="btn primary qg-go" data-qtonic="' + fid + '|' + esc(it.uid) + '">Give</button></div>';
     }).join("");
-    const preview = gearPreview && findItem(gearPreview.uid);
-    const diff = preview ? diffHtml(f, preview.item) : "";
-    return '<h3 class="section">Gear</h3><div class="gear-slots">' + slots + '</div>' +
-      tonic +
-      '<h3 class="section">In the bag</h3>' +
-      (bag || '<p class="fine">Nothing waiting. The armory and the stall keep the rest.</p>') +
-      diff;
+    const tonic = '<section class="qg-slot"><h4>Tonic</h4>' + (drink
+      ? '<div class="qg-row qg-cur">' + itemFaceHtml(drink) + '<span><b>' + esc(IL.itemName(drink)) + '</b><small>One match · ' + esc(bonusLine(drink)) + '</small></span>' +
+        '<button type="button" class="btn ghost qg-go" data-qtonic-drop="' + fid + '">Pour back</button></div>'
+      : '<div class="qg-row qg-cur empty"><span><b>No tonic</b><small>A tonic lasts one match.</small></span></div>') +
+      (tonics || '<p class="fine qg-none">No tonics in the bag.</p>') + '</section>';
+    return '<div class="qg">' + slots + tonic + '</div>';
+  }
+
+  /* Handles the one-tap gear buttons wherever they are drawn. */
+  function quickGearClick(ev) {
+    const eq = ev.target.closest("[data-qequip]");
+    const un = ev.target.closest("[data-qunequip]");
+    const tn = ev.target.closest("[data-qtonic]");
+    const td = ev.target.closest("[data-qtonic-drop]");
+    if (!eq && !un && !tn && !td) return false;
+    ev.stopPropagation();
+    let done = false;
+    if (eq) {
+      const bits = eq.dataset.qequip.split("|");
+      const found = findItem(bits[1]);
+      done = !!(found && equipItem(fighterById(bits[0]), found.item));
+    } else if (un) {
+      const bits = un.dataset.qunequip.split("|");
+      done = unequipSlot(fighterById(bits[0]), bits[1]);
+    } else if (tn) {
+      const bits = tn.dataset.qtonic.split("|");
+      const found = findItem(bits[1]);
+      done = !!(found && giveTonic(fighterById(bits[0]), found.item));
+    } else if (td) done = dropTonic(fighterById(td.dataset.qtonicDrop));
+    if (done) { gearPreview = null; pitSound("purchase"); persist(); }
+    else pitSound("error");
+    refreshHub();
+    return true;
+  }
+
+  function gearSheetHtml(f) {
+    return '<h3 class="section">Gear</h3>' + quickGearHtml(f);
   }
 
   function gearStallHtml() {
@@ -2630,7 +2648,7 @@
 
   /* ---------- Roster ---------- */
   function rosterPanel() {
-    const panes = [["team", "First team"], ["gear", "Gear"], ["relics", "Relics"]];
+    const panes = [["team", "Party"], ["gear", "Gear"], ["relics", "Relics"]];
     const body = rosterPane === "relics" ? relicsPanel()
       : rosterPane === "gear" ? '<div class="pane es-armory" id="armoryPane">' + armoryHtml() + '</div>'
       : teamPanel();
@@ -2688,16 +2706,80 @@
     '</article>';
   }
 
-  function esSubTile(f, size) {
+  /* v89 party board: swap, gear and hire without leaving the page. */
+  function partyActs(f) {
+    const picked = partySwap === f.id;
+    const other = partySwap && partySwap !== f.id;
+    const inParty = (save.lineup || []).indexOf(f.id) >= 0;
+    const otherIn = other && (save.lineup || []).indexOf(partySwap) >= 0;
+    const swapLabel = picked ? "Cancel swap" : other ? (inParty === otherIn ? "Swap places" : (inParty ? "Swap out" : "Swap in")) : "Swap";
+    return '<span class="party-acts">' +
+      '<button type="button" class="ctl' + (picked ? " on" : other ? " target" : "") + '" data-party-swap="' + esc(f.id) + '">' + swapLabel + '</button>' +
+      '<button type="button" class="ctl' + (partyGear === f.id ? " on" : "") + '" data-party-gear="' + esc(f.id) + '">' + (partyGear === f.id ? "Close gear" : "Gear") + '</button>' +
+    '</span>';
+  }
+
+  function partyDrawer(f) {
+    return '<section class="party-drawer" id="partyGear" data-for="' + esc(f.id) + '">' +
+      '<header><h3 class="section">Gear · ' + esc(f.name) + '</h3><button type="button" class="ctl" data-party-gear="' + esc(f.id) + '">Close</button></header>' +
+      quickGearHtml(f) + '</section>';
+  }
+
+  function benchRow(f, size) {
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
-    return '<article class="es-sub" data-role="' + esc(kit.role) + '">' +
+    const st = IL.scaledStats(f, kit);
+    return '<article class="bench-row' + (partySwap === f.id ? " picked" : "") + '" data-role="' + esc(kit.role) + '">' +
       '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
         portraitWrap('width="56" height="50" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="4"', f.captain, f) +
       '</button>' +
-      '<b>' + esc(f.name.split(" ")[0]) + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + '</small>' +
-      staminaBar(f) +
-      '<span class="es-sub-act">' + lineupControl(f, size) + trainControl(f, false) + '</span>' +
+      '<span class="bench-id"><b>' + esc(f.name) + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + '</small>' + staminaBar(f) + '</span>' +
+      '<span class="es-sub-act">' + ((save.lineup || []).length < IL.PARTY_CAP ? lineupControl(f, size) : "") + partyActs(f) + trainControl(f, false) + '</span>' +
     '</article>';
+  }
+
+  function partyHireHtml() {
+    const room = IL.rosterCap(save) - save.roster.length;
+    const rows = (save.market || []).map(function (row, i) { return { row: row, i: i }; }).filter(function (x) {
+      return x.row && !x.row.locked && x.row.fighter;
+    }).sort(function (a, b) {
+      const ca = save.gold >= a.row.cost ? 0 : 1;
+      const cb = save.gold >= b.row.cost ? 0 : 1;
+      return ca - cb || (b.row.fighter.level || 1) - (a.row.fighter.level || 1) || a.row.cost - b.row.cost;
+    }).slice(0, 4);
+    const list = rows.map(function (x) {
+      const f = x.row.fighter;
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      const st = IL.scaledStats(f, kit);
+      const cant = save.gold < x.row.cost || room <= 0;
+      return '<div class="hire-row">' +
+        '<span class="bench-id"><b>' + esc(f.name) + (f.champion ? ' <em class="champ">★</em>' : '') + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + '</small></span>' +
+        '<button type="button" class="btn primary' + (cant ? " cant-afford" : " buyable") + '" data-party-hire="' + x.i + '"' + (cant ? " disabled" : "") + '>Hire · ' + x.row.cost + 'g</button>' +
+      '</div>';
+    }).join("");
+    return '<section class="es-card party-hire" id="partyHire"><header class="es-team-head"><h3 class="section">Hire</h3>' +
+      '<span class="fine">' + (room > 0 ? "Room for " + room + " more" : "Roster full (" + save.roster.length + "/" + IL.rosterCap(save) + "). Sell a fighter or build the Barracks.") + '</span></header>' +
+      (list || '<p class="fine">The market is empty until the next refresh.</p>') +
+      '<button type="button" class="ctl" data-tab-jump="market">Whole market ›</button></section>';
+  }
+
+  function partySwapDo(a, b) {
+    if (!Array.isArray(save.lineup)) save.lineup = [];
+    const ia = save.lineup.indexOf(a);
+    const ib = save.lineup.indexOf(b);
+    if (ia >= 0 && ib >= 0) { save.lineup[ia] = b; save.lineup[ib] = a; }
+    else if (ia >= 0) save.lineup[ia] = b;
+    else if (ib >= 0) save.lineup[ib] = a;
+    else return false;
+    return true;
+  }
+
+  /* Strongest first: level, then health and attack, the captain kept in. */
+  function bestLineup() {
+    const kitStats = function (f) { const st = IL.scaledStats(f, IL.CLASSES[f.cls] || IL.CLASSES.warrior); return st.hp / 10 + st.atk + st.def * 2; };
+    const order = save.roster.slice().sort(function (a, b) {
+      return (b.captain ? 1 : 0) - (a.captain ? 1 : 0) || (b.level || 1) - (a.level || 1) || kitStats(b) - kitStats(a);
+    });
+    save.lineup = order.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
   }
 
   function teamPanel() {
@@ -2717,15 +2799,18 @@
       (fighting ? first : subs).push(f);
     });
     const want = size || IL.PARTY_CAP;
-    const cards = first.map(function (f) { return esFighterCard(f, size); });
-    for (let i = first.length; i < want; i++) cards.push('<article class="es-fcard empty"><p>Empty slot</p><small>Field a substitute below.</small></article>');
-    const subTiles = subs.map(function (f) { return esSubTile(f, size); });
-    for (let i = save.roster.length; i < IL.rosterCap(save); i++) subTiles.push('<article class="es-sub empty"><span class="es-ghost"></span><b>Empty</b></article>');
+    if (partySwap && !fighterById(partySwap)) partySwap = null;
+    if (partyGear && !fighterById(partyGear)) partyGear = null;
+    const cards = first.map(function (f) { return esFighterCard(f, size).replace('<div class="es-fc-foot">', '<div class="es-fc-party">' + partyActs(f) + '</div><div class="es-fc-foot">'); });
+    for (let i = first.length; i < want; i++) cards.push('<article class="es-fcard empty"><p>Empty slot</p><small>' + (subs.length ? "Tap Add on a bench fighter below." : "Hire a fighter below.") + '</small></article>');
+    const subTiles = subs.map(function (f) { return benchRow(f, size) + (partyGear === f.id ? partyDrawer(f) : ""); });
+    const firstDrawer = partyGear && first.some(function (f) { return f.id === partyGear; }) ? partyDrawer(fighterById(partyGear)) : "";
     const pilot = !!(save.settings && save.settings.pilot);
     const left = save.trainsLeft || 0;
     return '<div id="fighterList" class="es-team">' +
-      '<header class="es-team-head"><h3 class="section">First team</h3><span class="fine">' + (size ? 'Week ' + (save.round + 1) + ' fields ' + size + '. ' : '') + 'Tap a portrait for the full sheet.</span></header>' +
-      '<div class="es-first" id="partyCards">' + cards.join("") + '</div>' +
+      '<header class="es-team-head"><h3 class="section">Party</h3><span class="fine">' + (size ? 'Week ' + (save.round + 1) + ' fields ' + size + '. ' : '') + (partySwap ? 'Pick who to swap with ' + esc(fighterById(partySwap).name.split(" ")[0]) + '.' : 'Swap, gear and hire here. Tap a portrait for the full sheet.') + '</span>' +
+        '<button type="button" class="ctl" data-party-best="1">Best lineup</button></header>' +
+      '<div class="es-first" id="partyCards">' + cards.join("") + '</div>' + firstDrawer +
       '<nav class="es-team-actions">' +
         '<button type="button" class="es-subtab' + (pilot ? "" : " on") + '" data-pilot-pick="off">Autobattle</button>' +
         '<button type="button" class="es-subtab' + (pilot ? " on" : "") + '" data-pilot-pick="on">Control</button>' +
@@ -2733,9 +2818,10 @@
         '<button type="button" class="es-subtab" data-pane="roster:relics">Relics</button>' +
         '<button type="button" class="es-subtab" data-goto="train">Development</button>' +
       '</nav>' +
-      '<section class="es-subs-wrap"><h3 class="section">Substitutes · ' + subs.length + '</h3><p class="fine es-subs-note">Drills left this week: ' + left + '</p>' +
-        '<div class="es-subs" id="benchList">' + (subs.length ? '' : emptyState("The bench is empty.", "The whole club is in the first team.")) + subTiles.join("") + '</div>' +
+      '<section class="es-subs-wrap"><h3 class="section">Bench · ' + subs.length + '</h3><p class="fine es-subs-note">Drills left this week: ' + left + '</p>' +
+        '<div class="es-bench" id="benchList">' + (subs.length ? '' : emptyState("The bench is empty.", "The whole club is in the party.")) + subTiles.join("") + '</div>' +
       '</section>' +
+      partyHireHtml() +
     '</div>';
   }
 
@@ -4489,6 +4575,23 @@
     };
     const panel = document.getElementById("hubPanel");
     if (panel) panel.onclick = function (ev) {
+      if (quickGearClick(ev)) return;
+      const pSwap = ev.target.closest("[data-party-swap]");
+      if (pSwap) {
+        const id = pSwap.dataset.partySwap;
+        if (!partySwap || partySwap === id) partySwap = partySwap === id ? null : id;
+        else if (partySwapDo(partySwap, id)) { partySwap = null; persist(); }
+        else partySwap = id;
+        refreshHub();
+        return;
+      }
+      const pGear = ev.target.closest("[data-party-gear]");
+      if (pGear) { partyGear = partyGear === pGear.dataset.partyGear ? null : pGear.dataset.partyGear; refreshHub(); return; }
+      if (ev.target.closest("[data-party-best]")) { bestLineup(); partySwap = null; persist(); refreshHub(); return; }
+      const pHire = ev.target.closest("[data-party-hire]");
+      if (pHire && !pHire.disabled) { hireFromMarket(+pHire.dataset.partyHire, "roster"); return; }
+      const jump = ev.target.closest("[data-tab-jump]");
+      if (jump) { showHub(jump.dataset.tabJump); return; }
       const cv = ev.target.closest("[data-club-view]");
       if (cv) { clubView = cv.dataset.clubView; refreshHub(); return; }
       const pane = ev.target.closest("[data-pane]");
@@ -4628,8 +4731,8 @@
       const armEquip = ev.target.closest("[data-arm-equip]");
       if (armEquip) {
         tonicPick = null;
-        gearPreview = { uid: armEquip.dataset.armEquip };
-        showHub("fighters", true);
+        gearPreview = gearPreview && gearPreview.uid === armEquip.dataset.armEquip ? null : { uid: armEquip.dataset.armEquip };
+        refreshHub();
         return;
       }
       const armTonic = ev.target.closest("[data-arm-tonic]");
@@ -4664,9 +4767,10 @@
       }
       const armOn = ev.target.closest("[data-arm-on]");
       if (armOn) {
-        gearPreview = { uid: armOn.dataset.armItem };
-        detailId = armOn.dataset.armOn;
-        showHub("fighters", true);
+        const found = findItem(armOn.dataset.armItem);
+        if (found && equipItem(fighterById(armOn.dataset.armOn), found.item)) { pitSound("purchase"); persist(); }
+        gearPreview = null;
+        refreshHub();
         return;
       }
       const unequipFrom = ev.target.closest("[data-unequip-from]");
@@ -4764,6 +4868,7 @@
     if (train && !train.disabled) train.onclick = function () { trainFighter(detailId); };
     const sheet = document.getElementById("fighterSheet");
     if (sheet) sheet.onclick = function (ev) {
+      if (quickGearClick(ev)) return;
       const tactic = ev.target.closest("[data-tactic]");
       if (tactic) { setTactic(detailId, tactic.dataset.tactic); return; }
       const aiChip = ev.target.closest("[data-ai]");
@@ -4771,21 +4876,6 @@
       if (ev.target.closest("[data-ai-reset]")) {
         const rf = fighterById(detailId);
         if (rf) { delete rf.ai; persist(); refreshHub(); }
-        return;
-      }
-      const preview = ev.target.closest("[data-preview-item]");
-      if (preview) {
-        gearPreview = { uid: preview.dataset.previewItem };
-        refreshHub();
-        return;
-      }
-      const drink = ev.target.closest("[data-tonic]");
-      if (drink) {
-        const found = findItem(drink.dataset.tonic);
-        if (found && giveTonic(fighterById(detailId), found.item)) {
-          persist();
-          refreshHub();
-        }
         return;
       }
       const slotPick = ev.target.closest("[data-slot]");
@@ -4812,36 +4902,6 @@
         }
         return;
       }
-      const pour = ev.target.closest("[data-tonic-drop]");
-      if (pour) {
-        if (dropTonic(fighterById(detailId))) {
-          persist();
-          refreshHub();
-        }
-        return;
-      }
-      const drop = ev.target.closest("[data-unequip-slot]");
-      if (drop) {
-        unequipSlot(fighterById(detailId), drop.dataset.unequipSlot);
-        gearPreview = null;
-        persist();
-        refreshHub();
-      }
-    };
-    const confirm = document.getElementById("confirmEquip");
-    if (confirm) confirm.onclick = function () {
-      const f = fighterById(detailId);
-      const found = gearPreview && findItem(gearPreview.uid);
-      if (f && found && equipItem(f, found.item)) {
-        gearPreview = null;
-        persist();
-        refreshHub();
-      }
-    };
-    const cancel = document.getElementById("cancelEquip");
-    if (cancel) cancel.onclick = function () {
-      gearPreview = null;
-      refreshHub();
     };
   }
 
@@ -5161,7 +5221,7 @@
     raf = requestAnimationFrame(loop);
   }
 
-  function hireFromMarket(index) {
+  function hireFromMarket(index, back) {
     const row = save.market[index];
     if (!row || row.locked) { pitSound("error"); return; }
     if (save.gold < row.cost || save.roster.length >= IL.rosterCap(save)) { pitSound("error"); return; }
@@ -5178,8 +5238,8 @@
       save.market.splice(index, 1);
       if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0, rosterAvoid());
       persist();
-      showHub("market", true);
-    }).catch(function () { showHub("market", true); });
+      showHub(back || "market", true);
+    }).catch(function () { showHub(back || "market", true); });
   }
 
   function toggleWatch(i) {

@@ -117,7 +117,7 @@
     { id: "yard", name: "Training Grounds", blurb: "One more drill each week.", max: 2, costs: [80, 180], group: "train" },
     { id: "hall", name: "Time Chamber", blurb: "Each drill teaches a little more.", max: 2, costs: [70, 160], group: "train" },
     { id: "barracks", name: "Barracks", blurb: "The bench takes 15% of the lineup's match XP a rank.", max: 3, costs: [90, 200, 360], group: "train" },
-    { id: "infirmary", name: "Medical Bay", blurb: "Drills cost less, and the bench rests 6 more stamina a rank.", max: 2, costs: [60, 140], group: "care" },
+    { id: "infirmary", name: "Medical Bay", blurb: "Drills cost less, the bench rests 6 more stamina, injuries come 3% less often and heal 25% cheaper, a rank.", max: 2, costs: [60, 140], group: "care" },
     { id: "scout", name: "Scouting Office", blurb: "Scouting finds the wanted class more often; rank 2 always does.", max: 2, costs: [100, 220], group: "market" },
     { id: "treasury", name: "Treasure House", blurb: "One more club relic slot a rank.", max: 2, costs: [150, 320], group: "market" }
   ];

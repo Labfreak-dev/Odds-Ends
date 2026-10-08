@@ -155,6 +155,7 @@
     });
     const tire = IL.staminaMul ? IL.staminaMul(fighter) : 1;
     if (tire < 1) { hp *= tire; atk *= tire; }
+    if (fighter.injury && fighter.injury.weeks > 0) { hp *= 0.85; atk *= 0.85; }
     return {
       hp: Math.round(hp),
       atk: Math.round(atk),

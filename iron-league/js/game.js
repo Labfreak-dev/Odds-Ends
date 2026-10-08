@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Injuries: a knocked-out fighter may be hurt for 1 to 3 league weeks, by its injury risk. The bench covers, and the Medical Bay heals for gold. You can switch injuries off in Settings.",
     "Live orders in the pit: Plan, Attack, Regroup and Hold, from the bar at the top-left or keys F1 to F4.",
     "Polish: a new Area moves tactic (Anyone, 2 or more, 3 or more), season Impact and assists on the Intel boards, evolution marks on move cards, and Unequip all for relics.",
     "Before and after the fight: pick a formation and read a scouting report on the rival before the pit. Results now show K/D/A and an Impact score for both sides. Save three lineups on the Party board, and filter the Events feed.",
@@ -1813,6 +1814,8 @@
               (f.rarity ? '<dt>Rarity</dt><dd>' + esc(rarityLabel(f.rarity)) + '</dd>' : '') +
               (f.specialty && IL.specialtyOf && IL.specialtyOf(f.specialty) ? '<dt>Specialty</dt><dd>' + esc(IL.specialtyOf(f.specialty).name) + '</dd>' : '') +
               '<dt>Stamina</dt><dd>' + esc(IL.staminaLabel ? IL.staminaLabel(f) : "") + '</dd>' +
+              '<dt>Injury risk</dt><dd>' + esc(IL.INJURY_NAME[IL.injuryRiskOf(f)]) + ' (' + Math.round(IL.injuryChance(save, f) * 100) + '% a knockout)</dd>' +
+              (IL.isInjured(f) ? '<dt>Injured</dt><dd class="hurt-line">' + f.injury.weeks + ' league week' + (f.injury.weeks === 1 ? '' : 's') + ' left ' + healButton(f.id) + '</dd>' : '') +
             '</dl>' +
             '<h3 class="section">Tactic</h3>' + tacticChips(f) +
             behaviorHtml(f) +
@@ -2453,6 +2456,7 @@
     });
     (save.roster || []).forEach(function (f) {
       if (IL.evoPicks && IL.evoPicks(f) > 0) out.push({ act: true, kind: "evo", fid: f.id, text: f.name + " can evolve a move." });
+      if (IL.isInjured && IL.isInjured(f)) out.push({ act: true, kind: "injury", fid: f.id, text: f.name + " is injured for " + f.injury.weeks + " more league week" + (f.injury.weeks === 1 ? "" : "s") + "." });
     });
     (save.offers || []).forEach(function (o) {
       const f = fighterById(o.fid);
@@ -2473,6 +2477,22 @@
       out.push({ act: false, kind: "result", text: (h.win ? "Won " : "Lost ") + (h.score || "") + " against " + (h.opponent || "a rival") + ". MVP " + (h.mvp || "—") + "." });
     });
     return out;
+  }
+
+  function healButton(fid) {
+    const f = fighterById(fid);
+    const cost = f ? IL.healCost(save, f) : 0;
+    const cant = save.gold < cost;
+    return '<button type="button" class="ctl gold' + (cant ? " cant-afford" : "") + '" data-heal="' + esc(fid) + '"' + (cant ? " disabled" : "") + '>Heal ' + cost + 'g</button>';
+  }
+  function healFighter(fid) {
+    const f = fighterById(fid);
+    if (!f || !IL.healInjury(save, f)) { pitSound("error"); return; }
+    pitSound("purchase");
+    logClub(f.name + " was healed at the Medical Bay.");
+    persist();
+    refreshHub();
+    showNote(f.name + " is fit to fight.");
   }
 
   function offerButtons(oid) {
@@ -2550,6 +2570,7 @@
         : x.kind === "offer" ? offerButtons(x.oid)
         : x.kind === "approach" ? approachButtons()
         : x.kind === "evo" ? '<button type="button" class="ctl" data-detail="' + esc(x.fid) + '">Evolve ›</button>'
+        : x.kind === "injury" ? healButton(x.fid)
         : x.kind === "season" ? '<button type="button" class="ctl" data-inbox-season="1">Open ›</button>' : '';
       return '<li class="inbox-row ib-' + x.kind + '"><span>' + esc(x.text) + '</span>' + btn + '</li>';
     }
@@ -2595,7 +2616,9 @@
       const dt = ev.target.closest("[data-detail]");
       if (dt) { inboxOpen = false; detailId = dt.dataset.detail; refreshHub(); return; }
       const ff = ev.target.closest("[data-feed]");
-      if (ff) { feedFilter = ff.dataset.feed; refreshHub(); }
+      if (ff) { feedFilter = ff.dataset.feed; refreshHub(); return; }
+      const hl = ev.target.closest("[data-heal]");
+      if (hl && !hl.disabled) healFighter(hl.dataset.heal);
     };
   }
 
@@ -2707,7 +2730,8 @@
             : x.kind === "go" ? '<button type="button" class="ctl" data-goto="' + esc(x.tab) + '">Open ›</button>'
             : x.kind === "offer" ? offerButtons(x.oid)
             : x.kind === "approach" ? approachButtons()
-            : x.kind === "evo" ? '<button type="button" class="ctl" data-detail="' + esc(x.fid) + '">Evolve ›</button>' : '';
+            : x.kind === "evo" ? '<button type="button" class="ctl" data-detail="' + esc(x.fid) + '">Evolve ›</button>'
+            : x.kind === "injury" ? healButton(x.fid) : '';
           return '<li class="inbox-row"><span>' + esc(x.text) + '</span>' + btn + '</li>';
         }).join("") + '</ul></section>'
       : '';
@@ -2841,7 +2865,7 @@
         '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
           portraitWrap('width="64" height="58" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="5"', f.captain, f) +
         '</button>' +
-        '<div><p class="es-lv">Lv ' + (f.level || 1) + (f.pendingLevels > 0 ? ' <span class="es-up" title="Level-up waiting">▲' + f.pendingLevels + '</span>' : '') + '</p>' +
+        '<div><p class="es-lv">Lv ' + (f.level || 1) + (f.pendingLevels > 0 ? ' <span class="es-up" title="Level-up waiting">▲' + f.pendingLevels + '</span>' : '') + hurtTag(f) + '</p>' +
           '<p class="es-class ' + tone + '">' + esc(kit.name) + '</p>' + staminaBar(f) + '</div>' +
       '</div>' +
       statPips(st) +
@@ -2873,6 +2897,10 @@
       quickGearHtml(f) + '</section>';
   }
 
+  function hurtTag(f) {
+    return IL.isInjured && IL.isInjured(f) ? ' <em class="hurt-badge" title="Injured: sits out while a healthy bench fighter can cover, else plays at 85% HP and ATK">✚ ' + f.injury.weeks + ' wk</em>' : '';
+  }
+
   function benchRow(f, size) {
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
     const st = IL.scaledStats(f, kit);
@@ -2880,7 +2908,7 @@
       '<button type="button" class="portrait" data-detail="' + esc(f.id) + '" aria-label="Open ' + esc(f.name) + '">' +
         portraitWrap('width="56" height="50" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="2" data-foot="4"', f.captain, f) +
       '</button>' +
-      '<span class="bench-id"><b>' + esc(f.name) + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + '</small>' + staminaBar(f) + '</span>' +
+      '<span class="bench-id"><b>' + esc(f.name) + hurtTag(f) + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + '</small>' + staminaBar(f) + '</span>' +
       '<span class="es-sub-act">' + ((save.lineup || []).length < IL.PARTY_CAP ? lineupControl(f, size) : "") + partyActs(f) + trainControl(f, false) + '</span>' +
     '</article>';
   }
@@ -2927,7 +2955,7 @@
     const order = save.roster.slice().sort(function (a, b) {
       return (b.captain ? 1 : 0) - (a.captain ? 1 : 0) || (b.level || 1) - (a.level || 1) || kitStats(b) - kitStats(a);
     });
-    save.lineup = order.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
+    save.lineup = order.filter(function (f) { return !IL.isInjured(f); }).concat(order.filter(function (f) { return IL.isInjured(f); })).slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
   }
 
   /* v97 three saved lineups, each with its formation. */
@@ -4511,6 +4539,7 @@
         '<p class="eyebrow">Fight speed</p>' +
         '<div class="chips" id="speedPicks">' + picks + '</div>' +
         '<label class="shake-row"><input type="checkbox" id="shakeToggle"' + (s.shake ? " checked" : "") + '> Screen shake</label>' +
+        '<label class="shake-row"><input type="checkbox" id="injuryToggle"' + (s.injuries !== false ? " checked" : "") + '> Injuries</label>' +
         '<div class="settings-block">' +
           '<button type="button" class="btn" id="copyReport">Report a bug</button>' +
           '<p class="fine" id="reportNote"></p>' +
@@ -4556,6 +4585,12 @@
     };
     const shake = document.getElementById("shakeToggle");
     if (shake) shake.onchange = function () { save.settings.shake = !!shake.checked; touch(); };
+    const injT = document.getElementById("injuryToggle");
+    if (injT) injT.onchange = function () {
+      save.settings.injuries = !!injT.checked;
+      if (!injT.checked) (save.roster || []).forEach(function (f) { if (f) f.injury = null; });
+      touch();
+    };
     const openFriend = document.getElementById("openFriend");
     if (openFriend) openFriend.onclick = function () {
       settingsOpen = false;
@@ -4957,6 +4992,8 @@
       const apY = ev.target.closest("[data-approach-accept]");
       if (apY && !apY.disabled) { answerApproach(true); return; }
       if (ev.target.closest("[data-approach-decline]")) { answerApproach(false); return; }
+      const healB = ev.target.closest("[data-heal]");
+      if (healB && !healB.disabled) { healFighter(healB.dataset.heal); return; }
       const bid = ev.target.closest("[data-auction-bid]");
       if (bid && !bid.disabled) { bidAuction(); return; }
       const inLv = ev.target.closest("[data-inbox-level]");
@@ -5261,6 +5298,8 @@
         }
         return;
       }
+      const sheetHeal = ev.target.closest("[data-heal]");
+      if (sheetHeal && !sheetHeal.disabled) { healFighter(sheetHeal.dataset.heal); return; }
       const evoBtn = ev.target.closest("[data-evo-move]");
       if (evoBtn) {
         const ef = fighterById(detailId);
@@ -7196,6 +7235,7 @@
           '<span class="result-name">' + esc(u.name) + "</span>" +
           (b.isMvp ? '<em class="mvp-badge">MVP</em>' : "") +
           (b.up ? '<em class="lv-badge">Level ' + b.lv + "</em>" : "") +
+          (fighterById(u.id) && IL.isInjured(fighterById(u.id)) ? '<em class="hurt-badge">Injured · ' + fighterById(u.id).injury.weeks + ' wk</em>' : "") +
         "</div>" +
         '<div class="res-stats">' + bar("Dealt", u.dmgDealt || 0, "dealt") + bar("Taken", u.dmgTaken || 0, "taken") + bar("Heal", u.healing || 0, "heal") +
           '<span class="res-kos"><em>K/D/A</em><b>' + kdaText(u) + '</b></span>' +
@@ -7649,6 +7689,16 @@
       fight.left.forEach(function (f) { if (f) inFight[f.id] = true; });
       (save.roster || []).forEach(function (f) { if (!inFight[f.id]) IL.grantXp(f, Math.max(1, Math.round(xp * share))); });
     }
+    /* v100 a fighter knocked out in a league, cup or Champions Cup match may be injured. */
+    if (mode === "league" || mode === "cup" || mode === "champions") {
+      const irng = takeRng();
+      match.units.forEach(function (u) {
+        if (!u || u.team !== 0 || u.summon || !(u.deaths > 0)) return;
+        const f = fighterById(u.id);
+        const weeks = f ? IL.rollInjury(save, f, irng) : 0;
+        if (weeks) logClub(f.name + " was injured: out for " + weeks + " league week" + (weeks === 1 ? "" : "s") + ".");
+      });
+    }
     const tally = resultTable(match, xpBefore, before);
     if (tally.mvp && tally.mvp.team === 0) {
       const star = fighterById(tally.mvp.id);
@@ -7848,6 +7898,7 @@
       }
     });
     save.round += 1;
+    if (IL.tickInjuries) IL.tickInjuries(save).forEach(function (n) { logClub(n + " is fit again."); });
     save.trainsLeft = IL.drillCap ? IL.drillCap(save) : (IL.TRAIN_CAP || 2);
     save.trainRound = save.round;
     if (IL.rollGearStock) save.gearStock = IL.rollGearStock(takeRng());

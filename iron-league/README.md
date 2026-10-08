@@ -201,6 +201,14 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Injuries (v100)
+
+- **Injury risk**: each fighter has Low, Medium or High risk, shown on the sheet with the chance per knockout. New recruits roll it; older fighters get one from their id.
+- **Injuries**: a fighter knocked out in a league, cup or Champions Cup match is injured on a roll: Low 6%, Medium 12%, High 20%, minus 3% per Medical Bay rank. An injury lasts 1 league week (60%), 2 (30%) or 3 (10%), and one week heals per league round.
+- **Sitting out**: an injured fighter in the lineup sits out, and the best healthy bench fighter covers. With no one healthy left, the injured play hurt at 85% HP and ATK, so a lineup is never short.
+- **Medical Bay**: heals an injury now for 45 gold a week left, times the division purse, 25% cheaper per rank. Use the sheet or the Events entry.
+- **Where it shows**: a red ✚ badge on party cards, bench rows and the results screen. The Club feed logs injuries and recoveries. Settings has an Injuries switch; turning it off heals everyone.
+
 ## Live orders (v99)
 
 - Four orders for your side during any two-team fight, after Eslabong's F1 to F4. Use the bar at the pit's top-left or the keys F1 to F4.

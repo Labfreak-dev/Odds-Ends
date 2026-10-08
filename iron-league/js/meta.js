@@ -395,6 +395,7 @@
     fighter.rarity = rarity || rollRarity(rng);
     fighter.specialty = IL.pick(rng, SPECIALTIES).id;
     if (!fighter.shiny && rng() < SHINY_ODDS) fighter.shiny = true;
+    if (!fighter.injuryRisk) { const ir = rng(); fighter.injuryRisk = ir < 0.3 ? "low" : ir < 0.8 ? "medium" : "high"; }
     fighter.grades = rollGrades(rng, fighter.rarity, !!fighter.champion, !!fighter.shiny);
     if (fighter.champion && !fighter.champPassive) {
       const own = IL.CLASSES[fighter.cls] && IL.CLASSES[fighter.cls].passive;
@@ -958,11 +959,72 @@
     const out = [];
     const ids = lineup || [];
     const want = n > 0 ? n : 0;
+    let hurt = 0;
     for (let i = 0; i < ids.length && out.length < want; i++) {
       const f = byId[ids[i]];
-      if (f && out.indexOf(f) < 0) out.push(f);
+      if (!f || out.indexOf(f) >= 0) continue;
+      /* v100 an injured fighter sits out; the best healthy bench fighter covers. */
+      if (isInjured(f)) { hurt++; continue; }
+      out.push(f);
+    }
+    if (hurt > 0) {
+      const bench = list.filter(function (f) { return f && !isInjured(f) && out.indexOf(f) < 0 && ids.indexOf(f.id) < 0; })
+        .sort(function (a, b) { return (b.level || 1) - (a.level || 1); });
+      for (let i = 0; i < bench.length && hurt > 0 && out.length < want; i++, hurt--) out.push(bench[i]);
+      /* Too few healthy fighters: the injured play hurt (85% HP and ATK) rather than leave a hole. */
+      for (let i = 0; i < ids.length && hurt > 0 && out.length < want; i++) {
+        const f = byId[ids[i]];
+        if (f && isInjured(f) && out.indexOf(f) < 0) { out.push(f); hurt--; }
+      }
     }
     return out;
+  }
+
+  /* ---------- v100 injuries ----------
+     A fighter knocked out in a league, cup or Champions Cup match may be
+     injured for 1 to 3 league weeks, by its injury risk. The Medical Bay
+     cuts the chance and the cost of healing. */
+  const INJURY_RISK = { low: 0.06, medium: 0.12, high: 0.2 };
+  const INJURY_NAME = { low: "Low", medium: "Medium", high: "High" };
+  function injuryRiskOf(f) {
+    if (f && INJURY_RISK[f.injuryRisk]) return f.injuryRisk;
+    const h = IL.hashStr ? (IL.hashStr(String((f && f.id) || "f") + ":injury") >>> 0) % 10 : 5;
+    return h < 3 ? "low" : h < 8 ? "medium" : "high";
+  }
+  function isInjured(f) { return !!(f && f.injury && f.injury.weeks > 0); }
+  function bayRank(save) { return save && save.facilities ? (save.facilities.infirmary | 0) : 0; }
+  function injuryChance(save, f) {
+    return Math.max(0.01, INJURY_RISK[injuryRiskOf(f)] - 0.03 * bayRank(save));
+  }
+  function rollInjury(save, f, rng) {
+    if (!f || isInjured(f) || (save && save.settings && save.settings.injuries === false)) return 0;
+    if (rng() >= injuryChance(save, f)) return 0;
+    const r = rng();
+    const weeks = r < 0.6 ? 1 : r < 0.9 ? 2 : 3;
+    f.injury = { weeks: weeks, season: save ? save.season : 1 };
+    return weeks;
+  }
+  function tickInjuries(save) {
+    const healed = [];
+    (save.roster || []).forEach(function (f) {
+      if (!isInjured(f)) return;
+      f.injury.weeks -= 1;
+      if (f.injury.weeks <= 0) { f.injury = null; healed.push(f.name); }
+    });
+    return healed;
+  }
+  function healCost(save, f) {
+    if (!isInjured(f)) return 0;
+    const div = IL.DIVISIONS && save ? IL.DIVISIONS[IL.divisionOf(save)] : null;
+    const mul = div && div.purse ? div.purse : 1;
+    return Math.max(10, Math.round(45 * f.injury.weeks * mul * (1 - 0.25 * bayRank(save)) / 5) * 5);
+  }
+  function healInjury(save, f) {
+    const cost = healCost(save, f);
+    if (!cost || (save.gold || 0) < cost) return false;
+    save.gold -= cost;
+    f.injury = null;
+    return true;
   }
 
   function normalizeLineup(data) {
@@ -2314,6 +2376,15 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.INJURY_RISK = INJURY_RISK;
+  IL.INJURY_NAME = INJURY_NAME;
+  IL.injuryRiskOf = injuryRiskOf;
+  IL.isInjured = isInjured;
+  IL.injuryChance = injuryChance;
+  IL.rollInjury = rollInjury;
+  IL.tickInjuries = tickInjuries;
+  IL.healCost = healCost;
+  IL.healInjury = healInjury;
   IL.relicNums = relicNums;
   IL.relicText = relicText;
   IL.relicRoll = relicRoll;

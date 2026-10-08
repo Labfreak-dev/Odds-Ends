@@ -1606,6 +1606,28 @@ const spreadTo = function (m, cap) { return m.units.filter(function (u) { return
 check("Regroup gathers on the captain", spreadTo(oReg, capR) < spreadTo(oPlan, capP));
 check("an unknown order falls back to Plan", (function () { const m = orderMatch(null); IL.setOrder(m, 0, "dance"); return m.orders[0] === "plan"; })());
 
+/* v100 injuries. */
+const injSave = { season: 1, round: 0, gold: 500, facilities: {}, settings: {}, roster: [] };
+const injF = { id: "hurt1", name: "Hurt One", cls: "warrior", level: 5, injuryRisk: "high" };
+check("injury chance follows risk and the Medical Bay", IL.injuryChance(injSave, injF) === 0.2 && IL.injuryChance({ facilities: { infirmary: 2 } }, injF) < 0.15 && IL.injuryChance(injSave, { id: "x", injuryRisk: "low" }) === 0.06);
+let injN = 0;
+const injR = IL.mulberry32(11);
+for (let i = 0; i < 1000; i++) { const f = { id: "h" + i, injuryRisk: "medium" }; if (IL.rollInjury(injSave, f, injR)) injN++; }
+check("about 12% of knockouts injure a medium-risk fighter", injN > 90 && injN < 150);
+check("injuries can be switched off", IL.rollInjury({ settings: { injuries: false } }, { id: "z", injuryRisk: "high" }, function () { return 0; }) === 0);
+injF.injury = { weeks: 2 };
+const injMate = { id: "mate", name: "Mate", cls: "warrior", level: 9 };
+const injBench = { id: "bench", name: "Bench", cls: "warrior", level: 7 };
+const injLow = { id: "low", name: "Low", cls: "warrior", level: 3 };
+const injParty = IL.fielded([injF, injMate, injBench, injLow], ["hurt1", "mate"], 2);
+check("an injured fighter sits out and the best bench fighter covers", injParty.length === 2 && injParty.indexOf(injF) < 0 && injParty.indexOf(injBench) >= 0);
+check("with no healthy bench the injured play hurt", IL.fielded([injF, injMate], ["hurt1", "mate"], 2).length === 2 && IL.scaledStats(injF, IL.CLASSES.warrior).hp < IL.scaledStats(Object.assign({}, injF, { injury: null }), IL.CLASSES.warrior).hp);
+injSave.roster = [injF];
+IL.tickInjuries(injSave);
+check("a week passes off the injury", injF.injury.weeks === 1);
+const injCost = IL.healCost(injSave, injF);
+check("the Medical Bay heals for gold", injCost > 0 && IL.healInjury(injSave, injF) && !IL.isInjured(injF) && injSave.gold === 500 - injCost);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

@@ -187,6 +187,7 @@ raw.roster.forEach((f, i) => { f.level = 18 + i * 3; f.wins = 9; f.losses = 3; f
 raw.history = [0,1,2,3,4,5].map(i => ({ mode: 'league', opponent: 'Copper Warden of the Long Name', score: '2–0', win: i % 2 === 0, mvp: 'Labfreak Prime' }));
 raw.marketNews = ['Your scout found a Elementalist.', 'Cass Cinder joined Red Kettle for 222 gold.'];
 raw.offers = [{ id: 'o1', fid: raw.roster[1].id, fname: raw.roster[1].name, club: 'Lowmarket Blades', gold: 1220, season: raw.season, round: raw.round }];
+raw.roster[raw.roster.length - 1].injury = { weeks: 2 }; raw.roster[1].injury = { weeks: 3 };
 raw.roster[0].shiny = true; raw.roster[0].grades = { hp: 'E', atk: 'G', def: 'B', spd: 'E' };
 raw.auction = { fighter: Object.assign({}, raw.roster[2], { id: 'auc1', name: 'Seraphine Longname of the Copper Vale', champion: true, shiny: true, rarity: 'legendary', grades: { hp: 'E', atk: 'E', def: 'G', spd: 'G' } }), value: 900, bid: 1240, leader: 'Lowmarket Blades of the Far Reach', closes: raw.round + 2, season: raw.season };
 raw.approach = { fighter: Object.assign({}, raw.roster[3] || raw.roster[1], { id: 'apr1', name: 'Brannoch the Unbending', champion: true, rarity: 'rare' }), cost: 865, round: raw.round, season: raw.season };

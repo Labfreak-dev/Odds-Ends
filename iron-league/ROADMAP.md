@@ -41,7 +41,7 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v95 | Relics v2: two slots a fighter (second at level 10), rolled values, named legendaries (revive, lifesteal, reflect, blink), relics that grant a skill, weekly relic market, exact text, auto-equip | shipped |
 | v96 | Abilities v2: new mechanics (pull, root, silence, chain, lifesteal, revive, homing), evolutions at 20 and 50 with two choices | shipped |
 | v97 | Menus: match preview with rival scouting and formation, post-match K/D/A, Impact and per-move breakdown, saved lineups, feed filters | shipped |
-| v98 | Polish pass against Eslabong | next |
+| v98 | Polish: Area moves tactic (Anyone / 2+ / 3+), season Impact and assists on Intel, Impact on Fighter of the week, evolution marks on loadout cards, relic Unequip all | shipped |
 
 ## System map
 

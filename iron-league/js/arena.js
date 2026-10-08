@@ -2317,9 +2317,10 @@
       return code;
     }
     /* v92: an area move waits for two targets while two or more stand. */
-    const lone = forced || foesLeft(m, u) < 2 || (ab.ult && m.time > 20);
-    if (!lone && (ab.kind === "cleave") && t && crowdAt(m, u, u.x, u.y, u.range + 40) < 2 && !mistake(m, u)) return "skip";
-    if (!lone && (ab.kind === "nova" || ab.kind === "frost" || ab.kind === "arc") && t && crowdAt(m, u, t.x, t.y, ab.radius || 68) < 2 && !mistake(m, u)) return "skip";
+    const need = u.ai && u.ai.aoe === "any" ? 1 : u.ai && u.ai.aoe === "three" ? 3 : 2;
+    const lone = forced || foesLeft(m, u) < need || (ab.ult && m.time > 20);
+    if (!lone && (ab.kind === "cleave") && t && crowdAt(m, u, u.x, u.y, u.range + 40) < need && !mistake(m, u)) return "skip";
+    if (!lone && (ab.kind === "nova" || ab.kind === "frost" || ab.kind === "arc") && t && crowdAt(m, u, t.x, t.y, ab.radius || 68) < need && !mistake(m, u)) return "skip";
     if (!forced && (ab.kind === "stun" || ab.kind === "knock")) {
       const r0 = ab.reach || (reach + 12);
       for (let i = 0; i < m.units.length; i++) {

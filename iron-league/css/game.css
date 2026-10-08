@@ -4759,3 +4759,7 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 @media (max-width: 560px) { .lineup-presets { grid-template-columns: minmax(0, 1fr); } }
 .feed-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
 .inbox-row.ib-club { border-left: 3px solid var(--steel); }
+
+/* v98 polish */
+.relic-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.evo-pip { position: absolute; right: 4px; bottom: 4px; z-index: 1; font-style: normal; font-size: 10px; font-weight: 700; color: #1a140f; background: #ffd27a; border-radius: 8px; padding: 1px 6px; white-space: nowrap; pointer-events: none; }

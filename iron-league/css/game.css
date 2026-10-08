@@ -4770,3 +4770,8 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .order-btn.on { color: #1a140f; background: #e0b25a; border-color: #ffd27a; }
 .order-btn:focus-visible { outline: 2px solid #ffd27a; outline-offset: 1px; }
 @media (max-width: 420px) { .order-btn { padding: 2px 6px; font-size: 11px; min-height: 28px; } }
+
+/* v100 injuries */
+.hurt-badge { font-style: normal; font-size: 11px; font-weight: 700; color: #fff; background: #b8382a; border-radius: 8px; padding: 1px 6px; white-space: nowrap; vertical-align: 1px; }
+.hurt-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #ff8f78; }
+.inbox-row.ib-injury { border-left: 3px solid #d4543c; }

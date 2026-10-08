@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Live orders in the pit: Plan, Attack, Regroup and Hold, from the bar at the top-left or keys F1 to F4.",
     "Polish: a new Area moves tactic (Anyone, 2 or more, 3 or more), season Impact and assists on the Intel boards, evolution marks on move cards, and Unequip all for relics.",
     "Before and after the fight: pick a formation and read a scouting report on the rival before the pit. Results now show K/D/A and an Impact score for both sides. Save three lineups on the Party board, and filter the Events feed.",
     "Abilities v2: new moves that pull, root, silence, chain lightning, drain life, raise a fallen ally, and fire shots that follow their target. At level 20 and 50 each fighter evolves a move, choosing one of two new effects.",
@@ -6502,6 +6503,30 @@
     });
   }
 
+  /* v99 live orders, after Eslabong's F1 to F4. */
+  const ORDER_LABELS = [
+    ["plan", "Plan", "Each fighter follows its own behavior"],
+    ["engage", "Attack", "Everyone pushes in: no falling back, ranged close the gap"],
+    ["regroup", "Regroup", "Gather on the captain and fight only what comes close"],
+    ["hold", "Hold", "Hold the starting line and fight only what is in reach"]
+  ];
+  function giveOrder(order) {
+    const m = fight && fight.match;
+    if (!m || m.over || !IL.setOrder) return;
+    IL.setOrder(m, 0, order);
+    const bar = document.getElementById("orderBar");
+    if (bar) bar.querySelectorAll("[data-order]").forEach(function (b) { b.classList.toggle("on", b.dataset.order === order); });
+    const lab = ORDER_LABELS.filter(function (o) { return o[0] === order; })[0];
+    if (lab) pilotSay(lab[1] + ": " + lab[2] + ".");
+  }
+  function onOrderKey(ev) {
+    if (!fight || !fight.match || fight.match.over) return;
+    const n = { F1: 0, F2: 1, F3: 2, F4: 3 }[ev.key];
+    if (n == null || !document.getElementById("orderBar")) return;
+    ev.preventDefault();
+    giveOrder(ORDER_LABELS[n][0]);
+  }
+
   function mountFight(match) {
     app.onclick = null;
     app.innerHTML =
@@ -6514,6 +6539,9 @@
         (match.hazardName ? '<p class="hazard-line" id="pitBanner"><strong>' + esc(match.hazardName) + '</strong>' + (match.hazardBlurb ? '<span>' + esc(match.hazardBlurb) + '</span>' : '') + '</p>' : '') +
         '<div class="fight-layout">' +
           '<div class="stage"><canvas id="arena" width="1440" height="900"></canvas><div id="dmgMeter" class="dmg-meter" hidden></div>' +
+            ((match.teams || 2) <= 2 && !match.scripted ? '<div class="order-bar" id="orderBar" role="group" aria-label="Orders">' + ORDER_LABELS.map(function (o, i) {
+              return '<button type="button" class="order-btn' + (i === 0 ? " on" : "") + '" data-order="' + o[0] + '" title="' + esc(o[2]) + ' (F' + (i + 1) + ')">' + o[1] + '</button>';
+            }).join("") + '</div>' : '') +
             '<div class="pilot-bar" id="pilotBar" hidden></div>' +
             '<p class="pilot-note" id="pilotNote" hidden></p>' +
             '<div id="result" class="result" hidden></div></div>' +
@@ -6538,6 +6566,11 @@
       if (btn) btn.onclick = function () { setFightSpeed(n); };
     });
     document.getElementById("pause").onclick = togglePause;
+    const orderBar = document.getElementById("orderBar");
+    if (orderBar) orderBar.onclick = function (ev) {
+      const b = ev.target.closest("[data-order]");
+      if (b) giveOrder(b.dataset.order);
+    };
     document.getElementById("meter").onclick = toggleMeter;
     document.getElementById("pilot").onclick = function () { togglePilot(); };
     /* No skip in the pit. Tests and tools finish a fight with IL.finishNow(). */
@@ -6853,7 +6886,9 @@
     pilotHeld = {};
     document.addEventListener("keydown", onPilotKey);
     document.addEventListener("keyup", onPilotKey);
+    document.addEventListener("keydown", onOrderKey);
     function dropKeys() {
+      document.removeEventListener("keydown", onOrderKey);
       document.removeEventListener("keydown", onPilotKey);
       document.removeEventListener("keyup", onPilotKey);
       pilotHeld = {};

@@ -2744,9 +2744,39 @@
       }
       if (!zone) u.dodgeSlip = null;
     }
+    /* v99 live orders: Hold keeps the line, Regroup gathers on the captain. */
+    const order = m.orders && m.orders[u.team];
+    if (order === "hold" || order === "regroup") {
+      const strike = (u.role === "kite" || u.role === "cast" || u.role === "support") ? (u.range || 200) + 8 : meleeReach(u, t) + 14;
+      let ax = u.homeX != null ? u.homeX : u.x;
+      let ay = u.homeY != null ? u.homeY : u.y;
+      if (order === "regroup") {
+        let cap = null;
+        for (let i = 0; i < m.units.length; i++) {
+          const c = m.units[i];
+          if (c.team === u.team && c.hp > 0 && !c.summon && (c.captain || (m.pilot && c.id === m.pilot.id))) { cap = c; break; }
+        }
+        if (!cap) {
+          let n = 0; ax = 0; ay = 0;
+          for (let i = 0; i < m.units.length; i++) { const c = m.units[i]; if (c.team === u.team && c.hp > 0 && !c.summon) { ax += c.x; ay += c.y; n++; } }
+          ax /= n || 1; ay /= n || 1;
+        } else if (cap === u) { ax = u.x; ay = u.y; }
+        else { ax = cap.x - (u.team === 0 ? 34 : -34); ay = cap.y + (u.y > cap.y ? 26 : -26); }
+      }
+      if (dist > strike) {
+        if (tryClassAbility(m, u, t, dist)) return;
+        if (Math.hypot(ax - u.x, ay - u.y) > (order === "regroup" ? 60 : 24)) {
+          steer(u, ax, ay, spd, dt);
+          u.x += u.vx * dt;
+          u.y += u.vy * dt;
+        } else damp(u, 0.8);
+        setMoveAnim(u, dt);
+        return;
+      }
+    }
     if (tryClassAbility(m, u, t, dist)) return;
     const reach = meleeReach(u, t);
-    if (fallingBack(u) && u.role !== "tank") {
+    if (fallingBack(u) && u.role !== "tank" && order !== "engage") {
       /* Back off toward home and only swing at what follows. */
       const hx = u.homeX != null ? u.homeX : u.x;
       const hy = u.homeY != null ? u.homeY : u.y;
@@ -2761,7 +2791,7 @@
       setMoveAnim(u, dt);
       return;
     }
-    const space = (u.ai && u.ai.range) || "kit";
+    const space = order === "engage" ? "close" : (u.ai && u.ai.range) || "kit";
     const kiteMin = space === "close" ? 78 : space === "far" ? 168 : 118;
     const castStop = space === "close" ? 0.48 : space === "far" ? 0.92 : 0.7;
 
@@ -3410,6 +3440,14 @@
   IL.WORLD = WORLD;
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
+  /* v99 live orders for a team: plan (each follows its own behavior), engage, regroup, hold. */
+  IL.ORDERS = ["plan", "engage", "regroup", "hold"];
+  IL.setOrder = function (m, team, order) {
+    if (!m) return;
+    if (!m.orders) m.orders = {};
+    m.orders[team] = IL.ORDERS.indexOf(order) >= 0 ? order : "plan";
+    m.events.push({ type: "order", team: team, order: m.orders[team] });
+  };
   IL.FORMATIONS = FORMATIONS;
   IL.stepMatch = stepMatch;
   IL._deal = deal; /* tools/sim.js only */

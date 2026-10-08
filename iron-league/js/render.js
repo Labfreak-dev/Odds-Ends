@@ -1346,6 +1346,18 @@
         ctx.fillStyle = "rgba(220,236,255,0.9)";
         ctx.fillRect(x, y - 2.5, w * Math.min(1, u.shield / u.maxHp), 1.5);
       }
+      /* v105 the resource the fighter's moves spend: mana for casters and
+         supports, stamina for the rest. */
+      if (!u.summon && u.state !== "cast") {
+        const useMana = u.role === "cast" || u.role === "support" || u.role === "hybrid";
+        const pool = useMana ? u.mana : u.sta;
+        if (pool != null && pool < 99.5) {
+          ctx.fillStyle = "rgba(6,4,3,0.7)";
+          ctx.fillRect(x, y + hh + 1, w, 2);
+          ctx.fillStyle = useMana ? "#6fa8ff" : "#e6d36a";
+          ctx.fillRect(x, y + hh + 1, w * Math.max(0, pool) / 100, 2);
+        }
+      }
       /* v92 cast bar: how long until the spell lands. */
       if (u.state === "cast" && u.cast && u.cast.dur > 0) {
         const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));

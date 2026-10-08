@@ -201,6 +201,10 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Fix (v90)
+
+- **Archers holding wands**: a weapon item set the drawn weapon whatever the class, and rivals get random division gear, so an archer with a Wand item drew a wand (and still shot arrows). Now an item only changes the drawn weapon inside the class's family (`fitsClass` in `js/weapons.js`): bows for archers and rangers, guns for gunslingers and skirmishers, staffs, wands and books for casters, blades and hafted weapons for melee; Monk and Beastmaster always keep fists and claws. The item's stats still count. The sim checks every class against every weapon item.
+
 ## Party board and one-tap gear (v89)
 
 - **Roster ▸ Party** (was First team): the party cards, then the bench as a list, then a hire list.

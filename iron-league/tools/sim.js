@@ -457,7 +457,7 @@ check("samurai keeps a katana", IL.CLASS_WEAPON.samurai === "katana");
 check("axe chop leaves the sword row", IL.visualMotion("atk1", "tank", IL.defaultSheet("tank"), "axe") === "magic");
 check("staff strike leaves the sword row", IL.visualMotion("atk1", "mage", IL.defaultSheet("mage"), "staff") === "magic");
 check("wand gear is a wand", IL.weaponKind({ cls: "mage", gear: { weapon: { key: "wand" } } }) === "wand");
-check("longbow gear wins", IL.weaponKind({ cls: "warrior", gear: { weapon: { key: "longbow" } } }) === "bow");
+check("a longbow item on a warrior keeps the sword (v90: melee hands stay melee)", IL.weaponKind({ cls: "warrior", gear: { weapon: { key: "longbow" } } }) === "sword");
 check("anchors view is the debug query", /debug=anchors/.test(fs.readFileSync(path.join(root, "js/weapons.js"), "utf8")));
 const seenIds = {};
 Object.keys(IL.CLASSES).forEach(function (id) {
@@ -938,6 +938,21 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 });
 if (inert.length) console.error("passives with no effect:", inert.join(", "));
 check("every class passive changes the fight", inert.length === 0);
+/* v90: a weapon item never puts a wand in an archer's hands. */
+const wrongHands = [];
+Object.keys(IL.CLASSES).forEach(function (cls) {
+  ["cleaver", "axe", "flail", "mace", "spear", "longbow", "wand", "tome", "dagger", "star"].forEach(function (key) {
+    const kind = IL.weaponKind({ cls: cls, gear: { weapon: { key: key } } });
+    const own = IL.CLASS_WEAPON[cls];
+    const ranged = { bow: "bow", crossbow: "bow", gun: "gun" };
+    const cast = { staff: 1, wand: 1, book: 1, scythe: 1 };
+    const ok = kind === own || (ranged[own] ? ranged[kind] === ranged[own] : cast[own] ? !!cast[kind] : (own === "fist" || own === "claw") ? false : !ranged[kind] && !cast[kind]);
+    if (!ok) wrongHands.push(cls + "+" + key + "=" + kind);
+  });
+});
+if (wrongHands.length) console.error("weapons outside the class family:", wrongHands.join(", "));
+check("weapon items stay inside the class's weapon family", wrongHands.length === 0);
+check("an archer with a longbow item still draws a bow, a mage with a tome a book", IL.weaponKind({ cls: "archer", gear: { weapon: { key: "longbow" } } }) === "bow" && IL.weaponKind({ cls: "mage", gear: { weapon: { key: "tome" } } }) === "book");
 const pvRange = IL.createMatch({ seed: 1, left: [IL.randomFighter(IL.mulberry32(3), "archer")], right: [IL.randomFighter(IL.mulberry32(4), "warrior")], leftName: "A", rightName: "B" });
 check("Long Eye adds 12% range", Math.abs(pvRange.units[0].range - IL.CLASSES.archer.range * 1.12) < 0.01);
 const pvTeam = IL.createMatch({ seed: 1, left: [IL.randomFighter(IL.mulberry32(5), "druid"), IL.randomFighter(IL.mulberry32(6), "bard")], right: [IL.randomFighter(IL.mulberry32(7), "warrior")], leftName: "A", rightName: "B" });

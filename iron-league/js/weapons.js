@@ -453,14 +453,32 @@
     return { x: pick[0], y: pick[1], rot: pick[2] };
   }
 
+  /* v90: a weapon item only changes the drawn weapon inside the class's own
+     family, so an archer holding a Wand item still draws a bow (the item's
+     stats still count). Fist and claw fighters always keep their own. */
+  const FAMILY = {
+    bow: "bow", crossbow: "bow", gun: "gun",
+    staff: "cast", wand: "cast", book: "cast", scythe: "cast",
+    sword: "melee", axe: "melee", mace: "melee", spear: "melee", dagger: "melee", katana: "melee",
+    fist: "bare", claw: "bare"
+  };
+  function fitsClass(cls, kind) {
+    const own = CLASS_WEAPON[cls];
+    if (!own || kind === own) return true;
+    return !!FAMILY[kind] && FAMILY[kind] === FAMILY[own] && FAMILY[own] !== "bare";
+  }
+
   function weaponKind(fighter) {
     if (!fighter) return "sword";
-    if (fighter.weaponKind && CLASS_WEAPON[fighter.cls] && !fighter.gear) return fighter.weaponKind;
-    const gear = fighter.gear && fighter.gear.weapon;
-    const key = gear && (typeof gear === "string" ? gear : gear.key);
-    if (key && GEAR_KIND[key]) return GEAR_KIND[key];
-    if (fighter.weaponKind) return fighter.weaponKind;
-    return CLASS_WEAPON[fighter.cls] || "sword";
+    const own = CLASS_WEAPON[fighter.cls];
+    let kind = "";
+    if (fighter.weaponKind && own && !fighter.gear) kind = fighter.weaponKind;
+    else {
+      const gear = fighter.gear && fighter.gear.weapon;
+      const key = gear && (typeof gear === "string" ? gear : gear.key);
+      kind = (key && GEAR_KIND[key]) || fighter.weaponKind || own || "sword";
+    }
+    return fitsClass(fighter.cls, kind) ? kind : (own || kind);
   }
 
   function debugOn() {

@@ -203,7 +203,7 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 
 ## Named rivals and smarter clubs (v106)
 
-- **Named teams**: twelve handcrafted clubs (`NAMED_TEAMS` in `js/meta.js`), each with a leader, a style, fixed classes, a signature move or two, a formation and a named relic. Two take league places in the Sand Division and three from the Iron Division up. Some arrive only from a later season or a higher division. The leader is a champion and the rival captain, two levels up, wearing the team's relic.
+- **Named teams**: twelve handcrafted clubs (`NAMED_TEAMS` in `js/meta.js`), each with a leader, a style, fixed classes, a signature move or two, a formation and a named relic. Two take league places in the Sand Division and three from the Iron Division up. Some arrive only from a later season or a higher division. The leader is a champion and the rival captain, up to two levels higher (never past the rival level range), wearing the team's relic.
 - **Benches**: every rival club now has four fighters. They field the freshest (stamina 50 or more first, the leader first, then by level), and their starters tire and their bench rests like yours.
 - **Rival relics**: clubs wear club and fighter relics by division (legendaries from the Bronze Division up), and the relics work in the fight.
 - **Rival preparations**: named teams, and every club from the Bronze Division up, read your last three league lineups. They dive your back line if half of it is casters, archers and supports, go for your healer if you always field one, or else spread out and keep away from your front line. They also pick a formation to match, mirrored on their side. The scouting report says what they prepared.

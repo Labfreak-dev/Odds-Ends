@@ -1652,7 +1652,7 @@
     const out = team.classes.map(function (cls, k) {
       const f = IL.randomFighter(rng, cls);
       if (IL.dressRival) IL.dressRival(f, rng, divisionOf(save));
-      growRival(f, rng, levelOf(k) + (k === 0 ? 2 : 0));
+      growRival(f, rng, k === 0 ? Math.max(levelOf(k), Math.min(levelOf(k) + 2, rivalRange(save)[1])) : levelOf(k));
       if (IL.ensureMoves) IL.ensureMoves(f);
       const sig = team.sig[cls];
       if (sig && IL.abilityById && IL.abilityById(sig)) {

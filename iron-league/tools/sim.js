@@ -1733,7 +1733,7 @@ const nmTeams = IL.eligibleNamed(nmSave);
 check("named teams enter by division and season", nmTeams.length >= 2 && nmTeams.every(function (t) { return t.minDiv === 0 && t.minSeason === 1; }) && IL.eligibleNamed({ season: 4, division: 4 }).length === IL.NAMED_TEAMS.length);
 const hook = IL.namedTeam("The Hooked Chain");
 const hookF = IL.namedFighters(nmSave, hook, IL.mulberry32(5), function () { return 6; });
-check("a named team has four, led by its leader", hookF.length === 4 && hookF[0].name === "Grend the Hook" && hookF[0].champion && hookF[0].captain && hookF[0].level === 8 && hookF[0].relic === "aegis");
+check("a named team has four, led by its leader", hookF.length === 4 && hookF[0].name === "Grend the Hook" && hookF[0].champion && hookF[0].captain && hookF[0].level >= 6 && hookF[0].relic === "aegis");
 check("named fighters carry the team's signature move", hookF[0].loadout.indexOf("t-haul") >= 0 && hookF[1].loadout.indexOf("x-lancer-hook") >= 0 && hookF[0].ai.target === "back");
 const tiredClub = { fighters: hookF.map(function (f, i) { f.id = "nm" + i; return f; }) };
 tiredClub.fighters[1].stamina = 20;

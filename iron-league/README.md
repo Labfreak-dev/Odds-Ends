@@ -201,6 +201,19 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Relics v2 (v95)
+
+Batch 4 of the Eslabong parity plan.
+
+- **Exact text**: every relic states its real numbers ("The wearer: +17.4% max HP."). The arena and the text read one table, `relicNums` in `js/meta.js`, so they cannot drift apart.
+- **Rolls**: each relic you own has a roll from 85% to 115% that scales its numbers, shown as a % tag on the tile, the popup and the stall. Selling and finding a relic again rolls it anew.
+- **Two fighter slots**: a fighter wears one relic, and a second from level 10. Challenge codes carry both.
+- **Named legendaries**: Phoenix Feather (once a fight, a killing blow leaves them at 35% HP, with a 0.8 s guard), Bloodvine Ring (heals 14.5% of damage dealt), Mirror Aegis (returns 20% of damage taken), Blink Stone (twice a fight, 8 s apart, when hit below 50% HP: blinks 150 px away and dodges for 0.6 s). Rare kin: Leech Tooth (lifesteal) and Bramble Mail (reflect).
+- **Relics that grant a move**: Ember Idol (Flare), War Horn (Rally), Salve Bead (Salve), Ward Prism (Ward). The move is added on top of the wearer's three.
+- **Weekly stall**: five relics, restocked after every league week. Unowned relics come first, and the first slot is always rare or better. Each shows its roll before you buy, and price follows the roll.
+- **Auto-equip** on the Relics tab: the best club relics go into the club slots, then the fielded party is dressed by role (front line: health, armor, reflect, revive; back line: damage, crits, haste, blink).
+- **Fix**: the Relics page scrolls again on every screen size. The v91 change had stopped the panel scrolling at all, and the smoke tour now checks that the last tile can be reached.
+
 ## Fighter rarity and hiring (v94)
 
 Batch 3 of the Eslabong parity plan.

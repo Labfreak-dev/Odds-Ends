@@ -1583,7 +1583,7 @@
       const a = p < 0.7 ? 1 : Math.max(0, 1 - (p - 0.7) / 0.3);
       const base = n.crit ? 21 : n.dodge || n.blocked ? 12 : 15;
       const size = Math.round(base * pop * Math.min(1.3, Math.max(0.9, s / 1.5)));
-      const label = n.heal ? "+" + n.n : n.crit ? n.n + "!" : n.dodge ? "Miss" : n.blocked ? (typeof n.n === "number" ? n.n + " blocked" : "Warded") : String(n.n);
+      const label = n.heal ? (typeof n.n === "number" ? "+" + n.n : String(n.n)) : n.crit ? n.n + "!" : n.dodge ? "Miss" : n.blocked ? (typeof n.n === "number" ? n.n + " blocked" : "Warded") : String(n.n);
       ctx.font = "800 " + size + "px " + UI_FONT;
       ctx.globalAlpha = a;
       ctx.lineWidth = n.crit ? 4 : 3;

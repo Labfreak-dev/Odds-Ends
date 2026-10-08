@@ -301,31 +301,45 @@
     return u;
   }
 
+  /* v95 numbers come from IL.relicNums (meta.js), the same table the
+     relic text reads. */
   function applyRelics(u, relics) {
-    const scaleOf = { common: 1, uncommon: 1.1, rare: 1.25, legendary: 1.45 };
     for (let i = 0; i < relics.length; i++) {
       const r = relics[i];
       if (!r) continue;
-      const scale = scaleOf[r.rarity] || 1;
+      const n = IL.relicNums ? IL.relicNums(r) : {};
       if (r.kind === "hp") {
-        u.maxHp = Math.round(u.maxHp * (1 + 0.12 * scale));
+        u.maxHp = Math.round(u.maxHp * (1 + n.hp / 100));
         u.hp = u.maxHp;
-      } else if (r.kind === "crit") u.crit += 0.14 * scale;
-      else if (r.kind === "shield") u.shield += Math.round(u.maxHp * 0.14 * scale);
+      } else if (r.kind === "crit") u.crit += n.crit / 100;
+      else if (r.kind === "shield") u.shield += Math.round(u.maxHp * n.shield / 100);
       else if (r.kind === "haste") {
-        u.castTime *= (1 - 0.18 * scale);
-        u.abilityCdMul *= (1 - 0.15 * scale);
-      } else if (r.kind === "bounty") u.bounty += 6 * scale;
-      else if (r.kind === "regen") u.regen += 2.4 * scale;
-      else if (r.kind === "pierce") u.pierce += scale;
-      else if (r.kind === "wind") u.wind = true;
-      else if (r.kind === "speed") u.speed *= (1 + 0.1 * scale);
+        u.castTime *= (1 - n.cast / 100);
+        u.abilityCdMul *= (1 - n.cd / 100);
+      } else if (r.kind === "bounty") u.bounty += n.gold;
+      else if (r.kind === "regen") u.regen += n.regen;
+      else if (r.kind === "pierce") u.pierce += n.pierce;
+      else if (r.kind === "wind") u.wind = Math.max(u.wind || 0, n.heal / 100);
+      else if (r.kind === "speed") u.speed *= (1 + n.spd / 100);
       else if (r.kind === "glass") {
-        u.atk = Math.round(u.atk * (1 + 0.15 * scale));
-        u.def = Math.max(0, u.def - Math.round(2 * scale));
-      } else if (r.kind === "sand") u.abilityCdMul *= (1 - 0.22 * scale);
-      else if (r.kind === "atk") u.atk = Math.round(u.atk * (1 + 0.08 * scale));
-      else if (r.kind === "def") u.def += 2 * scale;
+        u.atk = Math.round(u.atk * (1 + n.atk / 100));
+        u.def = Math.max(0, u.def - n.def);
+      } else if (r.kind === "sand") u.abilityCdMul *= (1 - n.cd / 100);
+      else if (r.kind === "atk") u.atk = Math.round(u.atk * (1 + n.atk / 100));
+      else if (r.kind === "def") u.def += n.def;
+      else if (r.kind === "revive") u.revive = Math.max(u.revive || 0, n.hp / 100);
+      else if (r.kind === "lifesteal") u.lifesteal = (u.lifesteal || 0) + n.pct / 100;
+      else if (r.kind === "reflect") u.reflect = (u.reflect || 0) + n.pct / 100;
+      else if (r.kind === "blink") u.blink = { left: n.n, cd: 0, gap: n.cd, at: n.at / 100, dist: n.dist, guard: n.guard };
+      else if (r.kind === "grant" && !u.summon && IL.grantAbility) {
+        const g = IL.grantAbility(n.grant);
+        if (!g) continue;
+        if (!u.grantAbs) u.grantAbs = [];
+        const mine = (kitOf(u.cls).abilities || []).some(function (ab) { return ab && ab.id === g.ab.id; });
+        if (mine || u.grantAbs.some(function (ab) { return ab.id === g.ab.id; })) continue;
+        u.grantAbs.push(g.ab);
+        u.cds[g.ab.id] = 2 + u.grantAbs.length;
+      }
     }
   }
 
@@ -419,7 +433,8 @@
       if (units[i].team !== team) continue;
       const pack = list.slice();
       const one = map[units[i].id];
-      if (one) pack.push(one);
+      if (Array.isArray(one)) one.forEach(function (r) { if (r) pack.push(r); });
+      else if (one) pack.push(one);
       if (pack.length) applyRelics(units[i], pack);
     }
   }
@@ -1146,6 +1161,16 @@
     if (src && src.team !== dst.team) {
       src.dmgDealt = (src.dmgDealt || 0) + dmg;
       noteBook(src, "dmg", dmg, opt.tag);
+      /* v95 relics: lifesteal heals the hitter, reflect hits back. */
+      if (src.lifesteal > 0 && src.hp > 0 && !opt.reflected) {
+        const back = dmg * src.lifesteal * (m.time > (m.suddenAt || SUDDEN_AT) ? 0.5 : 1);
+        const was = src.hp;
+        src.hp = Math.min(src.maxHp, src.hp + back);
+        src.healing = (src.healing || 0) + (src.hp - was);
+      }
+      if (dst.reflect > 0 && src.hp > 0 && src !== dst && !opt.reflected && !opt.dot) {
+        deal(m, dst, src, dmg * dst.reflect + src.def * 0.35, { dot: true, silent: true, reflected: true });
+      }
     }
     dst.flash = 0.14;
     const big = !!opt.crit || dmg >= 26;
@@ -1182,6 +1207,17 @@
       });
     }
     if (blocked) fx(m, "orbit", dst.x + dst.facing * 8, dst.y - 22, { size: 130 });
+    if (dst.hp <= 0 && dst.revive > 0 && !dst.revived && !dst.summon) {
+      dst.revived = true;
+      dst.hp = Math.max(1, Math.round(dst.maxHp * dst.revive));
+      dst.iframe = Math.max(dst.iframe || 0, 0.8);
+      dst.bleed = null;
+      m.events.push({ type: "heal", x: dst.x, y: dst.y - 48, n: "Revive", team: dst.team });
+      cue(m, "heal_chime");
+      fx(m, "plasma", dst.x, dst.y - 16, { size: 160 });
+      fx(m, "boom", dst.x, dst.y - 18, { size: 120 });
+      return;
+    }
     if (dst.hp <= 0) {
       m.events.push({ type: "die", x: dst.x, y: dst.y, team: dst.team });
       if (src && src.bloodlust > 0 && src.hp > 0 && src.team !== dst.team) src.hp = Math.min(src.maxHp, src.hp + src.maxHp * src.bloodlust);
@@ -1217,9 +1253,24 @@
       fx(m, "boom", dst.x, dst.y - 18, { size: 168 });
       return;
     }
+    const bl = dst.blink;
+    if (bl && bl.left > 0 && bl.cd <= 0 && src && src !== dst && dst.hp > 0 && dst.hp < dst.maxHp * bl.at) {
+      bl.left -= 1;
+      bl.cd = bl.gap;
+      const ax = dst.x - src.x;
+      const ay = dst.y - src.y;
+      const ad = Math.hypot(ax, ay) || 1;
+      fx(m, "smoke", dst.x, dst.y - 6, { size: 110, ground: true });
+      dst.x += (ax / ad) * bl.dist;
+      dst.y += (ay / ad) * bl.dist * 0.5;
+      dst.iframe = Math.max(dst.iframe || 0, bl.guard);
+      dst.cast = null;
+      m.events.push({ type: "dmg", x: dst.x, y: dst.y - 40, n: "Blink", team: dst.team });
+      fx(m, "orbit", dst.x, dst.y - 20, { size: 120 });
+    }
     if (dst.wind && !dst.windUsed && dst.hp > 0 && dst.hp < dst.maxHp * 0.32) {
       dst.windUsed = true;
-      const heal = Math.round(dst.maxHp * 0.22);
+      const heal = Math.round(dst.maxHp * (dst.wind === true ? 0.22 : dst.wind));
       dst.hp = Math.min(dst.maxHp, dst.hp + heal);
       dst.healing = (dst.healing || 0) + heal;
       m.events.push({ type: "heal", x: dst.x, y: dst.y - 48, n: heal, team: dst.team });
@@ -1901,11 +1952,12 @@
       : (kit.abilities || []).filter(function (ab) { return ab && ab.unlock && ab.unlock <= 7; }).map(function (ab) { return ab.id; });
     const learned = u.learned || [];
     const lv = u.level || 1;
-    return ids.map(function (id) { return by[id]; }).filter(function (ab) {
+    const list = ids.map(function (id) { return by[id]; }).filter(function (ab) {
       if (!ab) return false;
       if (learned.indexOf(ab.id) >= 0) return true;
       return (ab.unlock || 1) <= lv;
     });
+    return u.grantAbs && u.grantAbs.length ? list.concat(u.grantAbs) : list;
   }
 
   function missileMotion(u) {
@@ -2905,6 +2957,7 @@
       u.blockCd = Math.max(0, u.blockCd - dt);
       u.hurtCd = Math.max(0, u.hurtCd - dt);
       u.iframe = Math.max(0, u.iframe - dt);
+      if (u.blink && u.blink.cd > 0) u.blink.cd = Math.max(0, u.blink.cd - dt);
       u.flash = Math.max(0, u.flash - dt);
       u.abilityCd = Math.max(0, u.abilityCd - dt);
       u.stun = Math.max(0, (u.stun || 0) - dt);
@@ -3062,6 +3115,7 @@
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
   IL.stepMatch = stepMatch;
+  IL._deal = deal; /* tools/sim.js only */
   IL.PACE = PACE;
   IL.SUDDEN_AT = SUDDEN_AT;
   IL.pilotAbs = pilotAbs;

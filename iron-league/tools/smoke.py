@@ -313,6 +313,15 @@ def tour(page, shot_dir):
     page.click("#relicSheetClose")
     page.wait_for_selector("#relicSheet", state="detached")
     page.screenshot(path=str(shot_dir / "relics.png"))
+    # v95: the relic list must scroll to its last tile (v91 broke this).
+    box = page.viewport_size
+    page.mouse.move(box["width"] // 2, box["height"] // 2)
+    page.mouse.wheel(0, 8000)
+    page.wait_for_timeout(500)
+    seen = page.evaluate("""() => { const cells = document.querySelectorAll('.relic-cell'); const last = cells[cells.length - 1].getBoundingClientRect();
+      const hp = document.getElementById('hubPanel').getBoundingClientRect(); return last.bottom <= hp.bottom + 2 && last.top >= hp.top - 2; }""")
+    if not seen:
+        raise AssertionError("the relic list does not scroll to its last tile")
     page.keyboard.press("2")
     page.click("[data-pane='matches:cups']")
     page.click("#enterCup")

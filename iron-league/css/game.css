@@ -4645,7 +4645,9 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 /* ---------- v91 relics: one page scroll, bigger tiles, a sane popup ----------
    The relic pane was a fixed-height column with its own scroll box (about
    370px on a phone). It now flows with the page. */
-.hub-panel:has(#relicPane) { overflow: visible !important; }
+/* v95: the hub is a fixed 100dvh column, so the panel must be the one
+   scroller (v91 set it visible, which stopped the page scrolling at all). */
+.hub-panel:has(#relicPane) { overflow-x: hidden !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 #relicPane { display: block !important; overflow: visible !important; min-height: 0; }
 #relicPane > .pane, #relicPane > #relicGrid { max-height: none !important; overflow: visible !important; height: auto !important; }
 #relicPane .relic-grid { gap: 8px; }
@@ -4702,3 +4704,15 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .auction-bid b > * { flex: 0 0 auto; }
 .auction-bid em { font-style: normal; color: var(--copper-2); overflow-wrap: anywhere; }
 .auction .btn { justify-self: start; }
+
+/* v95 relic rolls, auto-equip, named legendaries */
+.relic-roll { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); padding: 0 5px; border: 1px solid var(--line); border-radius: 8px; white-space: nowrap; vertical-align: 2px; }
+.relic-roll.hi { color: #f0c860; border-color: rgba(240, 200, 96, 0.6); }
+.relic-roll.lo { color: #a99a86; }
+.relic-top { display: grid; gap: 6px; margin: 0 0 6px; justify-items: start; }
+.relic-top .relic-count { margin: 0; min-width: 0; }
+.relic-cell.named .relic-name { color: #ffd27a; }
+.relic-cell.named .glyph { box-shadow: 0 0 10px rgba(255, 190, 90, 0.45); }
+.relic-cell.named.riding .glyph { box-shadow: 0 0 0 2px var(--copper), 0 0 10px rgba(255, 190, 90, 0.45); }
+.relic-text { font-size: 15px; line-height: 1.4; }
+.stall-card h3 .relic-roll { margin-left: 4px; }

@@ -1536,7 +1536,7 @@
 
   /* v92 sudden death: a red edge from 45 s, and a banner for 2.5 s. */
   function drawSudden(ctx, match, view) {
-    const at = IL.SUDDEN_AT || 45;
+    const at = match.suddenAt || IL.SUDDEN_AT || 45;
     if (!match || match.over || match.time < at) return;
     const w = view.cssW;
     const h = view.cssH;

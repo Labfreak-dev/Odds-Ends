@@ -434,6 +434,15 @@
     (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
     applySideRelics(units, 0, relics, opts.wornRelics || {});
     applySideRelics(units, 1, opts.foeRelics || [], opts.foeWorn || {});
+    /* v93 season modifiers ride on league, cup and Champions Cup matches. */
+    const mods = {};
+    (opts.mods || []).forEach(function (id) { mods[id] = true; });
+    units.forEach(function (u) {
+      if (mods.iron) u.def += 3;
+      if (mods.swift) u.speed *= 1.12;
+      if (mods.keen) u.crit += 0.06;
+      if (mods.storm) u.stormCd = 0.8;
+    });
     /* v88 team passives: set once at the start, for the whole fight. */
     units.forEach(function (src) {
       if (!src.pv || (!src.pv.teamDmg && !src.pv.teamRegen)) return;
@@ -476,6 +485,8 @@
       horde: opts.horde || null,
       king: opts.king || null,
       bossAdds: opts.bossAdds || null,
+      mods: mods,
+      suddenAt: mods.fuse ? 30 : SUDDEN_AT,
       units: units,
       shots: [],
       events: [],
@@ -1070,7 +1081,9 @@
     if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
     /* v92 sudden death for every fight, after Eslabong: from 45 s hits
        climb 5% a second, to three times at 85 s. */
-    if (m.time > SUDDEN_AT) amount *= Math.min(3, 1 + (m.time - SUDDEN_AT) * 0.05);
+    const sAt = m.suddenAt || SUDDEN_AT;
+    if (m.time > sAt) amount *= Math.min(3, 1 + (m.time - sAt) * 0.05);
+    if (m.mods && m.mods.rush && m.time < 10) amount *= 1.25;
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
       if (src.buff > 0 && src.buffAtk) amount *= src.buffAtk;
@@ -1094,8 +1107,9 @@
     if (blocked) dmg *= (dst.guardZone ? 0.32 : 0.4) * (1 - ((dst.pv && dst.pv.blockCut) || 0));
     dmg = Math.max(1, Math.round(dmg));
     if (dst.shield > 0) {
-      const absorb = Math.min(dst.shield, dmg);
-      dst.shield -= absorb;
+      const eff = m.mods && m.mods.glass ? 0.6 : 1;
+      const absorb = Math.min(dst.shield * eff, dmg);
+      dst.shield = Math.max(0, dst.shield - absorb / eff);
       dmg -= absorb;
       fx(m, "orbit", dst.x, dst.y - 20, { size: 100 });
       if (dmg <= 0) {
@@ -1106,6 +1120,7 @@
     }
     dst.hp -= dmg;
     dst.dmgTaken = (dst.dmgTaken || 0) + dmg;
+    if (m.mods && m.mods.vamp && src && src.hp > 0 && src.team !== dst.team && !opt.dot) src.hp = Math.min(src.maxHp, src.hp + dmg * 0.06);
     if (spec && IL.modValue && src && src.team !== dst.team) {
       const v = IL.modValue(spec.mod, spec.tier);
       const tag = (opt.tag && opt.tag.id) ? opt.tag : src.swingTag;
@@ -1219,7 +1234,8 @@
   function healUnit(m, src, dst, raw) {
     if (!dst || dst.hp <= 0) return;
     let rawN = raw;
-    if (m.time > SUDDEN_AT) rawN *= 0.5;
+    if (m.time > (m.suddenAt || SUDDEN_AT)) rawN *= 0.5;
+    if (m.mods && m.mods.mercy) rawN *= 1.25;
     if (src && src.oath) rawN *= 1.12;
     if (src && src.pv && src.pv.healMul) rawN *= 1 + src.pv.healMul;
     if (src && src.pv && src.pv.triage && dst.hp < dst.maxHp * (src.pv.triageAt || 0.4)) rawN *= 1 + src.pv.triage;
@@ -1847,7 +1863,7 @@
 
   function spend(u, ab) {
     if (!u.cds) u.cds = {};
-    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id) * specCd(u, ab.id) * PACE.abilityCd;
+    u.cds[ab.id] = (ab.cd || 6.5) * (u.abilityCdMul || 1) * rankCd(u, ab.id) * specCd(u, ab.id) * PACE.abilityCd * (u.stormCd || 1);
     if (ab && ab.id) {
       u.swingTag = { id: ab.id, name: ab.name };
       if (!u.byAb) u.byAb = {};

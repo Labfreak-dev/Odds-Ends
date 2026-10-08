@@ -180,7 +180,16 @@
     });
     save.clubs = clubs;
     save.round = 0;
-    save.fixtures = roundRobin(clubs.map(function (c) { return c.id; }));
+    /* v93: home and away, 14 weeks for eight clubs, as long seasons go. */
+    const firstHalf = roundRobin(clubs.map(function (c) { return c.id; }));
+    const secondHalf = firstHalf.map(function (pairs) { return pairs.map(function (p) { return [p[1], p[0]]; }); });
+    save.fixtures = firstHalf.concat(secondHalf);
+    save.mods = IL.pickSeasonMods ? IL.pickSeasonMods(rng, 2) : [];
+    save.seasonGoals = IL.pickSeasonGoals ? IL.pickSeasonGoals(rng) : [];
+    (save.roster || []).forEach(function (f) { f.lv0 = f.level || 1; f.lv0Season = save.season; });
+    save.streak = 0;
+    save.streakBest = 0;
+    save.streakSeason = save.season;
     if (!keepGold) save.gold = IL.START_GOLD;
     if (IL.rollGearStock) save.gearStock = IL.rollGearStock(rng);
     save.trainsLeft = IL.drillCap ? IL.drillCap(save) : (IL.TRAIN_CAP || 2);
@@ -313,6 +322,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Longer seasons that pay: 14 weeks home and away, a free MidCup after week 7, two season modifiers, five season goals that pay on the spot, and a season chest of gold, gear and relics by where you finish.",
     "Clearer, smarter fights: spells mark their real landing zone and flash before they hit, cleaves show their ring, charges their path, casters a cast bar. Autobattle fighters step out of marked spells, focus the same target, finish the wounded, protect their casters, and save area moves for groups.",
     "A party board on Roster: swap a fighter in two taps, open anyone's gear right under them, and hire from the market without leaving. Gear equips in one tap, with the stat change on every item.",
     "Class passives work: every class has a real passive with a set number, shown on its sheet (Bard: the team deals 15% more damage; Druid: the team regains 3 HP a second).",
@@ -1958,9 +1968,32 @@
     if (save.ceremonyPaid === save.season) return null;
     const sorted = sortedClubs();
     const place = sorted.findIndex(function (c) { return c.you; });
-    const purse = IL.seasonPurse(place < 0 ? 99 : place, IL.divisionOf(save));
+    /* v93: a season chest by finish (gold, renown, gear, a relic at the
+       top), the awards pay XP, and the top-three goal is settled. */
+    const rng = takeRng();
+    const chest = IL.seasonChest ? IL.seasonChest(place < 0 ? 99 : place, IL.divisionOf(save), rng) : IL.seasonPurse(place < 0 ? 99 : place, IL.divisionOf(save));
+    const purse = { gold: chest.gold, renown: chest.renown };
     save.gold += purse.gold;
     save.renown = (save.renown || 0) + purse.renown;
+    if (!Array.isArray(save.items)) save.items = [];
+    const got = [];
+    (chest.items || []).forEach(function (it) { save.items.push(it); got.push(IL.itemName(it) + " (" + rarityLabel(it.rarity) + ")"); });
+    if (chest.relic) {
+      const relic = IL.offerRelic(save, rng);
+      if (relic) { holdClubRelic(relic); got.push(relic.name + " (relic)"); }
+    }
+    const aw = IL.seasonAwards(save.roster);
+    const awarded = [];
+    ["mvp", "kos", "wall", "healer"].forEach(function (k) {
+      const f = aw[k];
+      if (!f || awarded.indexOf(f.id + k) >= 0) return;
+      awarded.push(f.id + k);
+      f.awards = (f.awards || 0) + 1;
+      IL.grantXp(f, Math.round((IL.xpNeed ? IL.xpNeed(f.level || 1) : 60) * 0.5));
+    });
+    const goals = settleGoals({ place: place });
+    goals.forEach(function (g) { purse.gold += g.gold; purse.renown += g.renown; });
+    save.chest = { season: save.season, gold: purse.gold, renown: purse.renown, got: got, goals: goals.map(function (g) { return g.name; }) };
     save.ceremonyPaid = save.season;
     if (place === 0) save.seasonTitles = (save.seasonTitles || 0) + 1;
     const you = place >= 0 ? sorted[place] : null;
@@ -2131,6 +2164,13 @@
           awardCard("Iron wall", awards.wall) +
           awardCard("Top healer", awards.healer) +
         '</div></section>' +
+        (save.chest && save.chest.season === save.season
+          ? '<section class="panel-frame" id="seasonChest"><h3 class="section">Season chest</h3>' +
+            '<p class="fine">' + esc("+" + save.chest.gold + " gold · +" + save.chest.renown + " renown" + (save.chest.goals.length ? " (with " + save.chest.goals.length + " goal" + (save.chest.goals.length === 1 ? "" : "s") + ")" : "")) + '</p>' +
+            (save.chest.got.length ? '<ul class="chest-list">' + save.chest.got.map(function (g) { return '<li>' + esc(g) + '</li>'; }).join("") + '</ul>' : '<p class="fine">Finish in the top five for gear, the top three for a chance at a relic.</p>') +
+            '<p class="fine">Award winners each took half a level of XP.</p></section>'
+          : '') +
+        seasonGoalsHtml(place) +
         '<p id="seasonRewards" class="fine">' + esc(paidLine) + '</p>' +
         '<p id="cupNote" hidden>' + esc(cupNote) + '</p>' +
         '<div class="hub-actions">' +
@@ -2384,6 +2424,7 @@
       out.push({ act: true, kind: "offer", oid: o.id, text: o.club + " offers " + o.gold + " gold for " + f.name + " (value " + mv + ")." });
     });
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
+    if (save.cup && save.cup.mid && !save.cup.champion && IL.cupOpponent(save.cup)) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The MidCup is open: " + save.cup.size + "v" + save.cup.size + ", free entry." });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
     (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
     (save.history || []).slice(0, 6).forEach(function (h) {
@@ -2480,7 +2521,9 @@
     return '<header class="hub-head es-head">' +
       '<button type="button" class="crest-btn" id="clubIdentity" aria-label="Club name and colors" title="Club name and colors">' + crestHtml(save.clubName, "md", save.crest, save.plate) + '<span class="crest-edit" aria-hidden="true">✎</span></button>' +
       '<h2 class="es-club">' + esc(save.clubName) + '</h2>' +
-      '<div class="es-week"><p><b>Season ' + save.season + ' - Week ' + week + '/' + seasonWeeks() + '</b><span class="div-chip">' + esc((div.roman ? "Div " + div.roman + " · " : "") + div.name.replace(" Division", "")) + '</span></p>' + weekPips() + '</div>' +
+      '<div class="es-week"><p><b>Season ' + save.season + ' - Week ' + week + '/' + seasonWeeks() + '</b><span class="div-chip">' + esc((div.roman ? "Div " + div.roman + " · " : "") + div.name.replace(" Division", "")) + '</span>' +
+        ((save.mods || []).length && IL.seasonModById ? '<span class="mod-chip" title="' + esc((save.mods || []).map(function (id) { const m = IL.seasonModById(id); return m ? m.name + ": " + m.blurb : ""; }).join("  ")) + '">◆ ' + esc((save.mods || []).map(function (id) { const m = IL.seasonModById(id); return m ? m.name : ""; }).join(" · ")) + '</span>' : '') +
+        '</p>' + weekPips() + '</div>' +
       '<div class="es-purse">' +
         '<span class="coin" title="Gold">' + coinIcon("gold") + '<b>' + save.gold + '</b></span>' +
         '<span class="coin" title="Renown">' + coinIcon("renown") + '<b>' + (save.renown || 0) + '</b></span>' +
@@ -2582,6 +2625,7 @@
         '<div class="ov-col">' +
           '<section class="es-card"><h3 class="section">Standings · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</h3><ol class="ov-table">' + top + '</ol>' +
             '<button type="button" class="text-btn" data-goto="matches">Full table ›</button></section>' +
+          seasonModsHtml() + seasonGoalsHtml() +
           (star ? '<section class="es-card ov-star"><p class="eyebrow">Fighter of the week</p><h3>' + esc(star.mvp) + '</h3><p class="fine">MVP against ' + esc(star.opponent) + ', ' + esc(star.score) + '.</p></section>' : '') +
           '<section class="es-card"><h3 class="section">Feed</h3>' + (feed.length ? '<ul class="ov-feed">' + feed.slice(0, 6).map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join("") + '</ul>' : '<p class="fine">Results and market news show up here.</p>') + '</section>' +
         '</div>' +
@@ -2614,7 +2658,10 @@
       const res = log ? '<b class="' + (log.win ? "w" : "l") + '">' + (log.win ? "W " : "L ") + log.pf + '-' + log.pa + '</b>' : r === save.round ? '<b class="now">NEXT</b>' : '<b>-</b>';
       cal.push('<li class="' + (r === save.round ? "now" : "") + '"><span class="wk">W' + (r + 1) + '</span>' + (foe ? crestHtml(foe.name, "sm", clubCrest(foe)) + '<span>vs ' + esc(foe.name) + '</span>' : '<span>—</span>') + '<em>' + weekSize(r) + 'v' + weekSize(r) + '</em>' + res + '</li>');
     }
-    if (save.cup && !save.cup.champion) cal.push('<li class="cup"><span class="wk">Cup</span><span>' + esc("Cup bracket is open") + '</span></li>');
+    const midAt = Math.floor(seasonWeeks() / 2);
+    const midText = save.midWon === save.season ? "MidCup won" : save.cup && save.cup.mid && save.cup.season === save.season ? (save.cup.champion ? "MidCup played" : "MidCup open · " + save.cup.size + "v" + save.cup.size) : "MidCup opens after week " + midAt;
+    cal.splice(midAt, 0, '<li class="cup' + (save.cup && save.cup.mid && !save.cup.champion ? " now" : "") + '"><span class="wk">Mid</span><span>' + esc(midText) + '</span></li>');
+    if (save.cup && !save.cup.champion && !save.cup.mid) cal.push('<li class="cup"><span class="wk">Cup</span><span>' + esc("Cup bracket is open") + '</span></li>');
     const champsRow = seasonDone() ? champsState() : null;
     let champsText = "Champions Cup · the top four, 3v3 knockouts";
     if (champsRow) {
@@ -3917,9 +3964,11 @@
       : fightBtn;
     return '<div class="compete-grid">' + leagueCardHtml() + chaosCardHtml() + '</div>' +
       '<section class="cup-block" id="cupBlock">' +
-      '<header class="panel-head"><p class="eyebrow">Single elimination</p><h3>The cup</h3></header>' +
+      '<header class="panel-head"><p class="eyebrow">' + (cup && cup.mid && !cup.champion ? 'Mid-season · free entry · ' + cup.size + 'v' + cup.size : 'Single elimination') + '</p><h3>' + (cup && cup.mid && !cup.champion ? 'The MidCup' : 'The cup') + '</h3></header>' +
       '<div class="hub-actions">' + enter + '</div>' +
-      '<p class="banner">Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.</p>' +
+      '<p class="banner">' + (cup && cup.mid && !cup.champion
+        ? 'Every club gets one MidCup a season, opened after week ' + Math.floor(seasonWeeks() / 2) + '. You send ' + esc(sentNames) + '. Win it for 150 gold, 28 renown and a season goal.'
+        : 'Four clubs. You send ' + esc(sentNames) + '. The other semi is called from the yard. Win the final for gold, renown, and a shot at a relic.') + '</p>' +
       (opp && !cupReady ? '<p class="banner">Set ' + cup.size + ' fighters in the lineup on the club tab before this tie.</p>' : '') +
       (cup ? cupMarkup(cup) : '<p class="fine">No bracket yet.</p>') +
       '</section>' +
@@ -3957,8 +4006,9 @@
     if (!save) { showTitle(); return; }
     IL.migrate(save);
     if (IL.keepRivalsUp && IL.keepRivalsUp(save)) persist();
+    if (openMidCup()) persist();
     ensureMarket();
-    const freshAchieve = takeAchievements();
+    const freshAchieve = takeAchievements().concat(settleGoals());
     let want = tab;
     let aliased = false;
     /* "events:daily", "club:home", "matches:cups": a tab and the page in it. */
@@ -5235,6 +5285,8 @@
       if (!Array.isArray(save.seenClasses)) save.seenClasses = [];
       if (fighter.cls && save.seenClasses.indexOf(fighter.cls) < 0) save.seenClasses.push(fighter.cls);
       save.roster.push(fighter);
+      fighter.lv0 = fighter.level || 1;
+      fighter.lv0Season = save.season;
       if (IL.dedupeNames) IL.dedupeNames(save.roster);
       save.market.splice(index, 1);
       if (!save.market.length) save.market = IL.rollMarket(takeRng(), save.renown || 0, rosterAvoid());
@@ -5651,6 +5703,73 @@
   function showMoves() { showGrowth(); }
 
   /* ---------- fight ---------- */
+  function seasonModsFor(mode) {
+    const m = mode || "league";
+    return (m === "league" || m === "cup" || m === "champions") && Array.isArray(save.mods) ? save.mods.slice() : [];
+  }
+
+  /* v93 MidCup: from week 8 a free cup opens once a season, in a random
+     size, for a bigger purse. It waits for a token cup in progress. */
+  function openMidCup() {
+    if (!save || !IL.startCup || seasonDone()) return false;
+    if (save.midSeason === save.season) return false;
+    if ((save.round || 0) < Math.floor(seasonWeeks() / 2)) return false;
+    if (save.cup && !save.cup.champion) return false;
+    const rng = takeRng();
+    const size = 1 + Math.floor(rng() * 3);
+    save.cup = IL.startCup(save, rng, size);
+    save.cup.mid = true;
+    save.cup.season = save.season;
+    save.midSeason = save.season;
+    return true;
+  }
+
+  /* v93 season objectives: pay the moment one is met. */
+  /* Season card: modifiers and objectives with progress. */
+  function seasonGoalsHtml(place) {
+    const goals = save.seasonGoals || [];
+    if (!goals.length || !IL.SEASON_GOALS) return "";
+    const ctx = place != null ? { place: place } : null;
+    const rows = goals.map(function (g) {
+      const def = IL.SEASON_GOALS.filter(function (d) { return d.id === g.id; })[0];
+      if (!def) return "";
+      const have = Math.min(def.need, IL.goalProgress(save, g.id, ctx));
+      const pct = Math.round(100 * have / def.need);
+      return '<li class="goal-row' + (g.paid ? " done" : "") + '"><span><b>' + esc(def.text) + '</b><small>' + (g.paid ? "Done · paid" : have + " / " + def.need) + ' · ' + def.gold + 'g, ' + def.renown + ' renown</small></span>' +
+        '<i class="goal-bar"><i style="width:' + (g.paid ? 100 : pct) + '%"></i></i></li>';
+    }).join("");
+    return '<section class="es-card season-card" id="seasonGoals"><h3 class="section">Season goals</h3><ul class="goal-list">' + rows + '</ul></section>';
+  }
+
+  function seasonModsHtml() {
+    const mods = (save.mods || []).map(function (id) { return IL.seasonModById ? IL.seasonModById(id) : null; }).filter(Boolean);
+    if (!mods.length) return "";
+    return '<section class="es-card season-card" id="seasonMods"><h3 class="section">Season modifiers</h3><ul class="mod-list">' +
+      mods.map(function (m) { return '<li><b>' + esc(m.name) + '</b><small>' + esc(m.blurb) + '</small></li>'; }).join("") +
+      '</ul><p class="fine">On every league, cup and Champions Cup match this season.</p></section>';
+  }
+
+  function settleGoals(ctx) {
+    const out = [];
+    if (!save || !Array.isArray(save.seasonGoals) || !IL.SEASON_GOALS) return out;
+    const mul = IL.DIVISIONS[IL.divisionOf(save)].purse;
+    save.seasonGoals.forEach(function (g) {
+      if (g.paid) return;
+      const def = IL.SEASON_GOALS.filter(function (d) { return d.id === g.id; })[0];
+      if (!def) return;
+      if (def.id === "top3" && !(ctx && ctx.place != null)) return;
+      if (IL.goalProgress(save, g.id, ctx) < def.need) return;
+      g.paid = true;
+      const gold = Math.round(def.gold * mul);
+      const renown = Math.round(def.renown * mul);
+      save.gold += gold;
+      save.renown = (save.renown || 0) + renown;
+      out.push({ name: "Goal: " + def.text, gold: gold, renown: renown });
+    });
+    if (out.length) persist();
+    return out;
+  }
+
   function launchMatch(spec) {
     const people = [];
     if (spec.sides) {
@@ -5682,7 +5801,7 @@
       const pack = IL.relicPack(save, party);
       const relics = pack.club.concat(pack.sets);
       const match = spec.sides
-        ? IL.createMatch({ seed: spec.seed, sides: spec.sides, relics: relics, wornRelics: pack.worn, mode: spec.mode })
+        ? IL.createMatch({ seed: spec.seed, sides: spec.sides, relics: relics, wornRelics: pack.worn, mode: spec.mode, mods: seasonModsFor(spec.mode) })
         : IL.createMatch({
           seed: spec.seed,
           left: spec.left,
@@ -5696,6 +5815,7 @@
           king: spec.king || null,
           bossAdds: spec.bossAdds || null,
           mod: spec.mod || null,
+          mods: seasonModsFor(spec.mode),
           foeRelics: spec.foeRelics || null,
           foeWorn: spec.foeWorn || null
         });
@@ -5969,6 +6089,10 @@
   function endGate() {
     const run = save.gateRun;
     if (run) save.gateBest = Math.max(save.gateBest || 0, (run.floor || 1) - 1);
+    if (run) {
+      if (save.gateSeason !== save.season) { save.gateSeason = save.season; save.gateSeasonBest = 0; }
+      save.gateSeasonBest = Math.max(save.gateSeasonBest || 0, (run.floor || 1) - 1);
+    }
     save.gateRun = null;
     persist();
   }
@@ -6893,11 +7017,12 @@
         renown = wasFinal ? 10 : 4;
         headline = wasFinal ? "The final slips away" : "Out of the cup";
       } else if (cup && cup.champion === "you") {
-        gold = 90;
-        renown = 18;
-        xp = 30;
+        gold = cup.mid ? 150 : 90;
+        renown = cup.mid ? 28 : 18;
+        xp = cup.mid ? 45 : 30;
         save.tokens = (save.tokens || 0) + 1;
-        headline = "The cup is yours";
+        headline = cup.mid ? "MidCup champions" : "The cup is yours";
+        if (cup.mid) save.midWon = save.season;
         save.cupsWon = (save.cupsWon || 0) + 1;
         if (takeRng()() < 0.7) {
           const relic = IL.offerRelic(save, takeRng());
@@ -7034,6 +7159,8 @@
           renown += 10;
           endGate();
           save.gateBest = IL.GATE_FLOORS;
+          save.gateSeason = save.season;
+          save.gateSeasonBest = IL.GATE_FLOORS;
         }
       } else {
         gold = 4 + floor * 2;
@@ -7067,6 +7194,9 @@
       /* Higher divisions pay more for the same match. */
       const purseMul = IL.DIVISIONS[IL.divisionOf(save)].purse;
       gold = Math.round(gold * purseMul);
+      const sm = save.mods || [];
+      if (mode === "league" && sm.indexOf("purse") >= 0) gold = Math.round(gold * 1.3);
+      if (mode === "league" && sm.indexOf("lean") >= 0) { gold = Math.round(gold * 0.8); xp = Math.round(xp * 1.25); }
       renown = Math.round(renown * purseMul);
     }
     const renownPack = IL.relicPack(save, fight.left || []);
@@ -7281,6 +7411,9 @@
         save.leagueLog[save.round] = { season: save.season, win: !!win, pf: pf, pa: pa, opp: them.id };
         you.form = (you.form || []).concat(win ? "W" : "L").slice(-5);
         them.form = (them.form || []).concat(win ? "L" : "W").slice(-5);
+        if (save.streakSeason !== save.season) { save.streakSeason = save.season; save.streak = 0; save.streakBest = 0; }
+        save.streak = win ? (save.streak || 0) + 1 : 0;
+        save.streakBest = Math.max(save.streakBest || 0, save.streak);
         if (win) {
           you.w++; you.pts += 3; you.pf += pf; you.pa += pa;
           them.l++; them.pf += pa; them.pa += pf;

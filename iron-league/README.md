@@ -201,6 +201,17 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Seasons and rewards (v93)
+
+Batch 2 of the Eslabong parity plan.
+
+- **14 weeks**: the league plays home and away (the round robin, then the same weeks with sides swapped). The week sizes keep their 3-2-3-1-3-2-3 pattern.
+- **MidCup**: after week 7 a free cup opens once a season in a random size (1v1, 2v2 or 3v3), on the calendar and in Events. It waits for a token cup already running. Winning pays 150 gold, 28 renown and 45 XP (the token cup: 90, 18, 30).
+- **Season modifiers**: two a season from eleven (`SEASON_MODS` in `js/meta.js`), on every league, cup and Champions Cup match: Glass Shields (shields absorb 40% less), Vampiric Moon (hits heal 6%), Opening Rush (+25% damage for 10 s), Mana Storm (cooldowns -20%), Iron Season (+3 defense), Swift Feet (+12% speed), Short Fuse (sudden death at 30 s), Mercy (heals +25%), Keen Edges (+6% crit), Rich Purses (+30% league gold), Lean Year (-20% gold, +25% XP; never with Rich Purses). Shown on the Overview, in the header (desktop) and on the fight.
+- **Season goals**: five a season from eight (top three, 8 league wins, the MidCup, 30 knockouts, 4 wins in a row, 10 fighter levels, reach the Champions Cup, 5 Iron Gate floors in a run), each paying gold and renown by division the moment it is met, with progress on the Overview.
+- **Season chest** by finish (replaces the small purse): 1st 420 gold, 42 renown, three gear pieces and a relic; 2nd-3rd two pieces and a 50% relic; 4th-5th one piece; down to 80 gold for last, all times the division purse.
+- **Awards** (MVP, Most KOs, Iron wall, Top healer) now pay half a level of XP and count on the fighter.
+
 ## Combat feel and smarter autobattle (v92)
 
 Batch 1 of the Eslabong parity plan (ROADMAP.md).

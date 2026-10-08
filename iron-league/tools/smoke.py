@@ -251,6 +251,8 @@ def tour(page, shot_dir):
     page.evaluate(
         """() => {
           const raw = JSON.parse(localStorage.getItem("ironleague.v1"));
+          // v93: a Lean Year's +25% XP can leave level-ups waiting from the fight
+          raw.roster.forEach((x) => { x.pendingLevels = 0; x.pendingPicks = 0; });
           const f = raw.roster[0];
           f.xp = 80;
           f.level = 3;

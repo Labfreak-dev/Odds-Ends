@@ -1762,6 +1762,27 @@ const dfN = IL.createMatch({ seed: 4, left: [dfA], right: [dfB], mode: "friendly
 const dfH = IL.createMatch({ seed: 4, left: [dfA], right: [dfB], mode: "friendly", foeMul: 1.12, capBonus: 0.15 });
 check("Hard makes rivals tougher and Relaxed's captain bonus lands", Math.abs(dfH.units[1].maxHp / dfN.units[1].maxHp - 1.12) < 0.02 && dfH.units[0].maxHp > dfN.units[0].maxHp * 1.1);
 
+/* v108 transfers. */
+const trRoster = [0, 1, 2].map(function (i) { const f = IL.randomFighter(IL.mulberry32(1100 + i), "warrior"); f.id = "y" + i; f.level = 6; return f; });
+trRoster[0].captain = true;
+const trClubF = [0, 1, 2, 3].map(function (i) { const f = IL.randomFighter(IL.mulberry32(1200 + i), "archer"); f.id = "z" + i; f.level = 6 - (i === 3 ? 3 : 0); return f; });
+trClubF[0].leader = true;
+const trSave = { clubName: "T FC", season: 1, round: 0, renown: 0, gold: 5000, roster: trRoster, lineup: ["y0", "y1", "y2"], facilities: {}, clubs: [{ id: "you", you: true, name: "T FC" }, { id: "c1", name: "Red Kettle", fighters: trClubF }] };
+check("leaders are not for sale", IL.askingPrice(trClubF[0]) === 0 && !IL.buyFromRival(trSave, "c1", "z0", IL.mulberry32(1)));
+const trAsk = IL.askingPrice(trClubF[1]);
+check("buying a rival's fighter costs 25% over value and they refill to four", IL.buyFromRival(trSave, "c1", "z1", IL.mulberry32(2)) === trAsk && trSave.gold === 5000 - trAsk && trSave.roster.some(function (f) { return f.id === "z1"; }) && trSave.clubs[1].fighters.length === 4);
+const trBench = IL.rivalBench(trSave.clubs[1]);
+check("only a rival's bench can be loaned, for two weeks", trBench.length === 1 && IL.loanIn(trSave, "c1", trBench[0].id) > 0 && trBench[0].loan.weeks === 2);
+const trGold = trSave.gold;
+const trSwap = IL.swapWithRival(trSave, "c1", trSave.clubs[1].fighters[1].id, "y2", IL.mulberry32(3));
+check("a swap trades fighters plus a top-up", trSwap && trSave.clubs[1].fighters.some(function (f) { return f.id === "y2"; }) && trSave.gold === trGold - trSwap.top && trSave.lineup.indexOf("y2") < 0);
+check("the captain cannot be swapped or loaned out", !IL.swapWithRival(trSave, "c1", trSave.clubs[1].fighters[2].id, "y0", IL.mulberry32(4)) && !IL.loanOut(trSave, "y0", IL.mulberry32(5)));
+const trOut = IL.loanOut(trSave, "z1", IL.mulberry32(6));
+check("a loan out pays a fee and takes the fighter away", trOut && trOut.fee > 0 && !trSave.roster.some(function (f) { return f.id === "z1"; }) && trSave.loansOut.length === 1);
+const trXp = trSave.loansOut[0].fighter.xp || 0;
+IL.tickLoans(trSave); IL.tickLoans(trSave);
+check("after two weeks loans end both ways", trSave.roster.some(function (f) { return f.id === "z1"; }) && !trSave.roster.some(function (f) { return f.id === trBench[0].id; }) && trSave.clubs[1].fighters.some(function (f) { return f.id === trBench[0].id && !f.loan; }) && (trSave.roster.filter(function (f) { return f.id === "z1"; })[0].xp || 0) > trXp);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

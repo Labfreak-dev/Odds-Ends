@@ -201,6 +201,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Transfers and loans (v108)
+
+- **Rival rosters** on the Market lists every league club's four fighters.
+  - **Buy**: 25% over market value. Named leaders are not for sale, and the club signs a replacement to stay at four.
+  - **Swap**: pick one of your fighters (never the captain). 90% of its value counts against the price; you pay the rest. Your fighter's gear returns to the bag.
+  - **Loan in**: a rival's bench fighter for 2 league weeks, for 12% of value. They go home when it ends, and any gear you gave them returns to the bag.
+- **Loan out**: on the Sell pane, send a bench fighter to a random rival for 2 league weeks. You get 8% of their value a week up front, and they come back with 25 XP a week.
+- **Guards**: a loaned-in fighter cannot be sold or released. Loans tick with the league week.
+
 ## Difficulty (v107)
 
 - **Four levels** in Settings, changeable any time and applied from the next fight (`DIFFICULTY` in `js/meta.js`):

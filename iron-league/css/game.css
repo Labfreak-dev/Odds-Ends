@@ -4814,3 +4814,21 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .series-break .formation-pick { justify-content: center; }
 .scout-prep { color: #ff8f78 !important; font-weight: 700; }
 .scout .fine { margin: 2px 0; }
+
+/* v108 rival rosters and loans */
+.rv-pane { display: grid; gap: 8px; }
+.rv-swap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rv-swap select { min-width: 0; max-width: 100%; }
+.rv-clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 8px; }
+.rv-list, .rv-loans { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.rv-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; padding: 5px 8px; background: rgba(0, 0, 0, 0.22); border-radius: 4px; }
+.rv-id { display: grid; min-width: 0; }
+.rv-id b { overflow-wrap: anywhere; color: #f2e2c4; }
+.rv-id small { color: var(--muted); font-size: 12px; }
+.rv-lead { font-style: normal; font-size: 10px; color: #1a140f; background: #ffd27a; border-radius: 8px; padding: 0 5px; }
+.rv-acts { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.sell-acts { display: flex; flex-wrap: wrap; gap: 4px; }
+.sell-acts { align-items: center; }
+.roster-row .sell-acts { display: grid; gap: 3px; }
+.roster-row .sell-acts > .btn, .roster-row .sell-acts > .ctl { width: 68px; min-width: 0; height: 28px; min-height: 28px; padding: 0 4px; font-size: 12px; }
+.roster-row .sell-acts > .btn { border-width: 0 8px; border-image-width: 0 8px; }

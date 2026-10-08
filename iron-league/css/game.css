@@ -4730,3 +4730,32 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .evo-list li { padding: 6px 8px; border-left: 3px solid #e0b25a; background: rgba(0, 0, 0, 0.2); }
 .evo-list p { margin: 2px 0 0; font-size: 13px; }
 .inbox-row.ib-evo { border-left: 3px solid #e0b25a; }
+
+/* v97 menus: formation, scouting, K/D/A and Impact, saved lineups, feed filters */
+.res-stats { grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; }
+@media (max-width: 420px) { .res-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } .res-stats .res-kos { align-items: flex-start; } }
+.formation-pick { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.formation .fine { margin: 4px 0 0; }
+.scout-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.scout-list li { display: grid; gap: 2px; padding: 6px 8px; background: rgba(0, 0, 0, 0.22); border-left: 3px solid var(--danger); min-width: 0; }
+.scout-list li > * { min-width: 0; overflow-wrap: anywhere; }
+.scout-list span { font-size: 13px; color: #e8dccb; }
+.scout-moves { color: var(--copper-2) !important; }
+.scout-relics { color: var(--violet) !important; }
+.scout-evo { font-style: normal; color: #ffd27a; }
+.res-rivals { margin: 8px 0 0; padding: 6px 8px; border: 1px solid #3a2c1f; border-radius: 6px; background: rgba(0, 0, 0, 0.2); }
+.res-rivals summary { cursor: pointer; font-weight: 700; color: #f2e2c4; }
+.res-rival-rows { display: grid; gap: 4px; margin-top: 6px; }
+.res-rival { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: #e8dccb; }
+.res-rival b { flex: 1 1 100%; color: #ff8f78; overflow-wrap: anywhere; }
+.lineup-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 8px; }
+.lp-slot { display: flex; gap: 4px; align-items: stretch; min-width: 0; }
+.lp-load, .lp-empty { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; text-align: left; padding: 4px 8px; font: inherit; color: var(--cream); background: #1a140f; border: 1px solid #3a2c1f; border-radius: 4px; }
+.lp-load { cursor: pointer; border-color: #6a4a2a; }
+.lp-load:hover, .lp-load:focus-visible { border-color: #e0b25a; }
+.lp-load b, .lp-empty b { color: #ffd27a; font-size: 13px; }
+.lp-load span, .lp-empty span { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; line-height: 1.25; }
+.lp-save { flex: 0 0 auto; }
+@media (max-width: 560px) { .lineup-presets { grid-template-columns: minmax(0, 1fr); } }
+.feed-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+.inbox-row.ib-club { border-left: 3px solid var(--steel); }

@@ -1624,6 +1624,101 @@
     return true;
   }
 
+  /* ---------- v106 named rival teams ----------
+     Handcrafted clubs with a leader, a style, fixed classes and a
+     signature move each. They enter the league by division and season. */
+  const NAMED_TEAMS = [
+    { name: "The Hooked Chain", leader: "Grend the Hook", style: "Grab and drag: they haul your back line into their front.", classes: ["tank", "lancer", "berserker", "warrior"], sig: { tank: "t-haul", lancer: "x-lancer-hook" }, ai: { target: "back" }, formation: "spear", minDiv: 0, minSeason: 1, relic: "aegis" },
+    { name: "Choir of Embers", leader: "Mother Vell", style: "Sustain: a healer who raises the fallen behind a holy wall.", classes: ["healer", "paladin", "bard", "druid"], sig: { healer: "h-raise" }, ai: { retreat: "low" }, formation: "wall", minDiv: 0, minSeason: 1, relic: "phoenix" },
+    { name: "Seekers of the Glass Eye", leader: "Oracle Venn", style: "Homing barrage: bolts and arrows that turn to follow.", classes: ["mage", "archer", "ranger", "gunslinger"], sig: { mage: "m-seek", archer: "a-seek" }, ai: { range: "far" }, formation: "spread", minDiv: 0, minSeason: 2, relic: "lens" },
+    { name: "Rootbound", leader: "Elder Sorrel", style: "Root and punish: pinned in place, then picked apart.", classes: ["druid", "ranger", "monk", "archer"], sig: { druid: "dr-root", ranger: "n-root" }, ai: {}, formation: "line", minDiv: 0, minSeason: 2, relic: "chalice" },
+    { name: "Hushwatch", leader: "Silent Marta", style: "Silence the casters, then cut them down.", classes: ["bard", "mage", "assassin", "rogue"], sig: { bard: "bd-hush", mage: "x-mage-silence" }, ai: { target: "back" }, formation: "spear", minDiv: 1, minSeason: 1, relic: "blinkstone" },
+    { name: "Stormfront Legion", leader: "Captain Aster", style: "Chain lightning through a packed line.", classes: ["battlemage", "elementalist", "warrior", "shieldbearer"], sig: { battlemage: "bm-chain" }, ai: { aoe: "any", ff: "calc" }, formation: "line", minDiv: 1, minSeason: 2, relic: "echo" },
+    { name: "Night Tithe", leader: "Count Morrow", style: "Drain: every hit feeds them.", classes: ["warlock", "necromancer", "assassin", "tank"], sig: { warlock: "wl-leech", necromancer: "x-necromancer-drain" }, ai: {}, formation: "line", minDiv: 1, minSeason: 3, relic: "bloodvine" },
+    { name: "Iron Phalanx", leader: "Strategos Hale", style: "A shield wall that never breaks rank.", classes: ["shieldbearer", "spearmaiden", "paladin", "archer"], sig: {}, ai: { retreat: "never" }, formation: "wall", minDiv: 2, minSeason: 1, relic: "oath" },
+    { name: "Red Dune Raiders", leader: "Kesh the Quick", style: "Dive: they go for your casters first.", classes: ["rogue", "assassin", "skirmisher", "duelist"], sig: {}, ai: { target: "back" }, formation: "spear", minDiv: 2, minSeason: 2, relic: "spur" },
+    { name: "Beast Court", leader: "Warden Fang", style: "Summons: hounds, bones and spirits on every side.", classes: ["beastmaster", "summoner", "necromancer", "druid"], sig: {}, ai: {}, formation: "spread", minDiv: 2, minSeason: 3, relic: "knot" },
+    { name: "Twin Blade School", leader: "Master Ren", style: "Duelists: clean cuts, one foe at a time.", classes: ["samurai", "duelist", "monk", "lancer"], sig: {}, ai: { target: "weak" }, formation: "line", minDiv: 3, minSeason: 2, relic: "thorn" },
+    { name: "The Long Fuse", leader: "Pyra Gale", style: "Bombs and blasts, and they do not mind friendly fire.", classes: ["alchemist", "gunslinger", "elementalist", "mage"], sig: {}, ai: { aoe: "any", ff: "natural" }, formation: "spread", minDiv: 3, minSeason: 3, relic: "heart" }
+  ];
+  function namedTeam(name) { for (let i = 0; i < NAMED_TEAMS.length; i++) if (NAMED_TEAMS[i].name === name) return NAMED_TEAMS[i]; return null; }
+  function eligibleNamed(save) {
+    const tier = divisionOf(save);
+    return NAMED_TEAMS.filter(function (t) { return t.minDiv <= tier && t.minSeason <= (save.season || 1) && t.name !== save.clubName; });
+  }
+  /* Four fighters; the first is the leader: a champion, captain and a
+     level up, with the team's named relic. */
+  function namedFighters(save, team, rng, levelOf) {
+    const out = team.classes.map(function (cls, k) {
+      const f = IL.randomFighter(rng, cls);
+      if (IL.dressRival) IL.dressRival(f, rng, divisionOf(save));
+      growRival(f, rng, levelOf(k) + (k === 0 ? 2 : 0));
+      if (IL.ensureMoves) IL.ensureMoves(f);
+      const sig = team.sig[cls];
+      if (sig && IL.abilityById && IL.abilityById(sig)) {
+        if (f.known.indexOf(sig) < 0) f.known.push(sig);
+        if (f.learned.indexOf(sig) < 0) f.learned.push(sig);
+        if (f.loadout.indexOf(sig) < 0) f.loadout[Math.min(1, f.loadout.length - 1)] = sig;
+      }
+      f.ai = Object.assign({}, team.ai);
+      if (k === 0) {
+        f.name = team.leader;
+        f.champion = true;
+        f.captain = true;
+        f.rarity = "legendary";
+        f.leader = true;
+        if (team.relic && relicById(team.relic) && relicById(team.relic).scope === "fighter") f.relic = team.relic;
+      }
+      return f;
+    });
+    if (IL.separateLooks) IL.separateLooks(out);
+    return out;
+  }
+  /* v106 rivals rest tired fighters and wear relics. */
+  function rivalPick(club, size) {
+    const list = ((club && club.fighters) || []).slice();
+    list.sort(function (a, b) {
+      const ta = IL.staminaOf && IL.staminaOf(a) < 50 ? 1 : 0;
+      const tb = IL.staminaOf && IL.staminaOf(b) < 50 ? 1 : 0;
+      return ta - tb || (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || (b.level || 1) - (a.level || 1);
+    });
+    return list.slice(0, size);
+  }
+  function rivalTire(club, used) {
+    const ids = {};
+    (used || []).forEach(function (f) { if (f) ids[f.id] = true; });
+    ((club && club.fighters) || []).forEach(function (f) {
+      const was = IL.staminaOf ? IL.staminaOf(f) : 100;
+      f.stamina = ids[f.id] ? Math.max(0, was - (IL.STAMINA_COST || 20)) : Math.min(IL.STAMINA_MAX || 100, was + (IL.STAMINA_REST || 34));
+    });
+  }
+  function dressRivalRelics(club, rng, tier) {
+    const clubs = RELICS.filter(function (r) { return r.scope !== "fighter" && (r.rarity !== "legendary" || tier >= 2) && r.kind !== "renown" && r.kind !== "bounty"; });
+    const n = tier >= 3 ? 2 : tier >= 1 ? 1 : (rng() < 0.5 ? 1 : 0);
+    club.equipped = [];
+    for (let i = 0; i < n && clubs.length; i++) club.equipped.push(clubs.splice(Math.floor(rng() * clubs.length), 1)[0].id);
+    const wear = RELICS.filter(function (r) { return r.scope === "fighter" && (r.rarity !== "legendary" || tier >= 2) && r.kind !== "renown" && r.kind !== "bounty"; });
+    (club.fighters || []).forEach(function (f) {
+      if (f.relic || rng() > 0.25 + 0.12 * tier || !wear.length) return;
+      f.relic = wear.splice(Math.floor(rng() * wear.length), 1)[0].id;
+    });
+  }
+  /* v106 Rival preparations: named teams, and every club from the Bronze
+     Division up, read your last three league lineups and counter them. */
+  function rivalPrep(save, club) {
+    if (!club || (!club.named && divisionOf(save) < 2)) return null;
+    const recent = (save.recentRoles || []).slice(0, 3);
+    if (!recent.length) return null;
+    let back = 0, front = 0, all = 0, heal = 0;
+    recent.forEach(function (roles) {
+      roles.forEach(function (r) { all++; if (r === "kite" || r === "cast" || r === "support") back++; else front++; if (r === "support") heal++; });
+    });
+    if (!all) return null;
+    if (back / all >= 0.5) return { ai: { target: "back" }, formation: "spear", text: "They studied your last " + recent.length + " matches and will dive your back line." };
+    if (heal >= recent.length) return { ai: { target: "back" }, formation: "line", text: "They studied your last " + recent.length + " matches and will go for your healer." };
+    return { ai: { range: "far", aoe: "any" }, formation: "spread", text: "They studied your last " + recent.length + " matches and will spread out and keep away from your front line." };
+  }
+
   /* ---------- v103 Academy ----------
      Up to four fighters of level 20 or less train in the academy. Once a
      league week they play a 3v3 academy fixture that does not advance the
@@ -2587,6 +2682,14 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.NAMED_TEAMS = NAMED_TEAMS;
+  IL.namedTeam = namedTeam;
+  IL.eligibleNamed = eligibleNamed;
+  IL.namedFighters = namedFighters;
+  IL.rivalPick = rivalPick;
+  IL.rivalTire = rivalTire;
+  IL.dressRivalRelics = dressRivalRelics;
+  IL.rivalPrep = rivalPrep;
   IL.ACADEMY_MAX_LV = ACADEMY_MAX_LV;
   IL.ACADEMY_SQUAD = ACADEMY_SQUAD;
   IL.TOMES_A_SEASON = TOMES_A_SEASON;

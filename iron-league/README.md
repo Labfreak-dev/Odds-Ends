@@ -201,6 +201,16 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Staff (v101)
+
+- **Staff** on the Club tab. You can hire one of each role, with 1 to 5 stars, from a staff market of three that turns over after each league week:
+  - **Trainer**: match XP +4% a star.
+  - **Medic**: injury chance -1% a knockout and healing 8% cheaper, a star.
+  - **Scout**: champion approaches +25% and auctions +20% more often, a star.
+  - **Captain Coach**: the captain fights with +3% HP and ATK a star.
+  - **Treasurer**: league and cup gold +4% a star.
+- **Slots and cost**: one slot to start. The new **Club House** facility adds a slot a rank (up to three). Hiring the same role replaces the one you have, and the market flags a downgrade. Cost is 40 to 360 gold by stars, +10% a season (up to +100%). Letting someone go is free.
+
 ## Injuries (v100)
 
 - **Injury risk**: each fighter has Low, Medium or High risk, shown on the sheet with the chance per knockout. New recruits roll it; older fighters get one from their id.

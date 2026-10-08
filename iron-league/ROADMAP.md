@@ -44,8 +44,8 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v98 | Polish: Area moves tactic (Anyone / 2+ / 3+), season Impact and assists on Intel, Impact on Fighter of the week, evolution marks on loadout cards, relic Unequip all | shipped |
 | v99 | Live orders in the pit: Plan, Attack, Regroup, Hold (buttons and F1 to F4) | shipped |
 | v100 | Injuries and the Medical Bay | shipped |
-| v101 | Staff: Club House slots, weekly staff market | next |
-| v102 | Chaos free-for-all cups | planned |
+| v101 | Staff: Club House slots, weekly staff market | shipped |
+| v102 | Chaos free-for-all cups | next |
 | v103 | Academy league | planned |
 
 ## System map

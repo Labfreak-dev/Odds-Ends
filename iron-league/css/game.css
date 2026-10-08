@@ -4775,3 +4775,13 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .hurt-badge { font-style: normal; font-size: 11px; font-weight: 700; color: #fff; background: #b8382a; border-radius: 8px; padding: 1px 6px; white-space: nowrap; vertical-align: 1px; }
 .hurt-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #ff8f78; }
 .inbox-row.ib-injury { border-left: 3px solid #d4543c; }
+
+/* v101 staff */
+.staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; margin-bottom: 10px; }
+.staff-card { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.staff-card header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; align-items: baseline; }
+.staff-card header b { overflow-wrap: anywhere; color: #f2e2c4; }
+.staff-card p { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.staff-role { color: var(--copper-2); font-weight: 700; }
+.staff-card .btn { justify-self: start; margin-top: 4px; }
+.staff-worse { color: #ff8f78 !important; }

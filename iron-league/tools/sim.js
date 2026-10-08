@@ -1628,6 +1628,23 @@ check("a week passes off the injury", injF.injury.weeks === 1);
 const injCost = IL.healCost(injSave, injF);
 check("the Medical Bay heals for gold", injCost > 0 && IL.healInjury(injSave, injF) && !IL.isInjured(injF) && injSave.gold === 500 - injCost);
 
+/* v101 staff. */
+const stSave = { season: 2, round: 1, gold: 2000, facilities: {}, roster: [], staff: [] };
+IL.restockStaff(stSave, IL.mulberry32(21));
+check("the staff market offers three, each 1 to 5 stars with a role", stSave.staffMarket.length === 3 && stSave.staffMarket.every(function (r) { return r.stars >= 1 && r.stars <= 5 && IL.STAFF_ROLES[r.role] && r.cost > 0; }));
+check("the staff market keeps its faces within a week", !IL.restockStaff(stSave, IL.mulberry32(22)));
+stSave.staffMarket = [{ id: "a", role: "medic", stars: 3, name: "A", cost: 100 }, { id: "b", role: "trainer", stars: 2, name: "B", cost: 80 }, { id: "c", role: "medic", stars: 5, name: "C", cost: 300 }];
+check("one slot to start: the first hire fits, a second role does not", IL.staffSlots(stSave) === 1 && IL.hireStaff(stSave, 0) && !IL.hireStaff(stSave, 0));
+check("a better hire of the same role replaces the old one", IL.hireStaff(stSave, 1) && IL.staffStars(stSave, "medic") === 5 && stSave.staff.length === 1);
+stSave.facilities.clubhouse = 2;
+check("the Club House adds slots", IL.staffSlots(stSave) === 3);
+check("a Medic cuts the injury chance", IL.injuryChance(stSave, { id: "m", injuryRisk: "high" }) < 0.2 - 0.04);
+const coachF = IL.randomFighter(IL.mulberry32(31), "warrior"); coachF.id = "cap"; coachF.captain = true;
+const coachFoe = IL.randomFighter(IL.mulberry32(32), "warrior");
+const plainCap = IL.createMatch({ seed: 3, left: [coachF], right: [coachFoe], mode: "friendly" }).units[0];
+const coachedCap = IL.createMatch({ seed: 3, left: [coachF], right: [coachFoe], mode: "friendly", captainBoost: 0.15 }).units[0];
+check("a Captain Coach boosts the captain", coachedCap.maxHp > plainCap.maxHp * 1.1 && coachedCap.atk >= plainCap.atk);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

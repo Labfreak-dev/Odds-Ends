@@ -980,6 +980,64 @@
     return out;
   }
 
+  /* ---------- v101 staff ----------
+     Hired from a weekly staff market, one of each role. Stars (1 to 5)
+     scale the effect. Slots: one, plus one a Club House rank. */
+  const STAFF_ROLES = {
+    trainer: { name: "Trainer", per: 4, text: function (n) { return "Match XP +" + n * 4 + "%."; } },
+    medic: { name: "Medic", per: 1, text: function (n) { return "Injury chance -" + n + "% a knockout, healing " + n * 8 + "% cheaper."; } },
+    scout: { name: "Scout", per: 25, text: function (n) { return "Champion approaches come " + n * 25 + "% more often, auctions " + n * 20 + "% more often."; } },
+    coach: { name: "Captain Coach", per: 3, text: function (n) { return "Your captain fights with +" + n * 3 + "% HP and ATK."; } },
+    treasurer: { name: "Treasurer", per: 4, text: function (n) { return "League and cup gold +" + n * 4 + "%."; } }
+  };
+  const STAFF_COST = [40, 80, 140, 230, 360];
+  function staffSlots(save) {
+    const n = save && save.facilities && typeof save.facilities.clubhouse === "number" ? Math.min(2, save.facilities.clubhouse | 0) : 0;
+    return 1 + n;
+  }
+  function staffStars(save, role) {
+    const list = (save && save.staff) || [];
+    for (let i = 0; i < list.length; i++) if (list[i] && list[i].role === role) return Math.max(1, Math.min(5, list[i].stars | 0));
+    return 0;
+  }
+  function rollStaff(rng, season) {
+    const roles = Object.keys(STAFF_ROLES);
+    const out = [];
+    for (let i = 0; i < 3; i++) {
+      const r = rng();
+      const stars = r < 0.35 ? 1 : r < 0.65 ? 2 : r < 0.85 ? 3 : r < 0.96 ? 4 : 5;
+      const role = roles[Math.floor(rng() * roles.length)];
+      const name = IL.pick(rng, IL.FIRST) + " " + IL.pick(rng, IL.LAST);
+      out.push({ id: "st" + Math.floor(rng() * 1e9).toString(36), role: role, stars: stars, name: name,
+        cost: Math.round(STAFF_COST[stars - 1] * (1 + 0.1 * Math.min(10, Math.max(0, (season || 1) - 1))) / 5) * 5 });
+    }
+    return out;
+  }
+  function restockStaff(save, rng) {
+    const key = (save.season || 1) * 100 + (save.round || 0);
+    if (save.staffWeek === key && Array.isArray(save.staffMarket) && save.staffMarket.length) return false;
+    save.staffWeek = key;
+    save.staffMarket = rollStaff(rng, save.season);
+    return true;
+  }
+  function hireStaff(save, index) {
+    const row = (save.staffMarket || [])[index];
+    if (!row || (save.gold || 0) < row.cost) return false;
+    if (!Array.isArray(save.staff)) save.staff = [];
+    const same = save.staff.filter(function (s) { return s.role === row.role; })[0];
+    if (!same && save.staff.length >= staffSlots(save)) return false;
+    save.gold -= row.cost;
+    if (same) save.staff.splice(save.staff.indexOf(same), 1);
+    save.staff.push({ id: row.id, role: row.role, stars: row.stars, name: row.name });
+    save.staffMarket.splice(index, 1);
+    return true;
+  }
+  function fireStaff(save, id) {
+    const before = (save.staff || []).length;
+    save.staff = (save.staff || []).filter(function (s) { return s.id !== id; });
+    return save.staff.length < before;
+  }
+
   /* ---------- v100 injuries ----------
      A fighter knocked out in a league, cup or Champions Cup match may be
      injured for 1 to 3 league weeks, by its injury risk. The Medical Bay
@@ -994,7 +1052,7 @@
   function isInjured(f) { return !!(f && f.injury && f.injury.weeks > 0); }
   function bayRank(save) { return save && save.facilities ? (save.facilities.infirmary | 0) : 0; }
   function injuryChance(save, f) {
-    return Math.max(0.01, INJURY_RISK[injuryRiskOf(f)] - 0.03 * bayRank(save));
+    return Math.max(0.01, INJURY_RISK[injuryRiskOf(f)] - 0.03 * bayRank(save) - 0.01 * staffStars(save, "medic"));
   }
   function rollInjury(save, f, rng) {
     if (!f || isInjured(f) || (save && save.settings && save.settings.injuries === false)) return 0;
@@ -1017,7 +1075,7 @@
     if (!isInjured(f)) return 0;
     const div = IL.DIVISIONS && save ? IL.DIVISIONS[IL.divisionOf(save)] : null;
     const mul = div && div.purse ? div.purse : 1;
-    return Math.max(10, Math.round(45 * f.injury.weeks * mul * (1 - 0.25 * bayRank(save)) / 5) * 5);
+    return Math.max(10, Math.round(45 * f.injury.weeks * mul * (1 - 0.25 * bayRank(save)) * (1 - 0.08 * staffStars(save, "medic")) / 5) * 5);
   }
   function healInjury(save, f) {
     const cost = healCost(save, f);
@@ -1384,6 +1442,7 @@
     stepAuction(save, rng).forEach(function (n) { notes.push(n); });
     rollApproach(save, rng).forEach(function (n) { notes.push(n); });
     if (restockRelics(save, rng)) notes.push("The relic stall has new stock this week.");
+    restockStaff(save, rng);
     return notes;
   }
 
@@ -1411,7 +1470,7 @@
   function rollApproach(save, rng) {
     const notes = [];
     if (save.approach && (save.round || 0) - (save.approach.round || 0) > 2) save.approach = null;
-    if (save.approach || rng() > 0.12 || (save.roster || []).length >= (IL.rosterCap ? IL.rosterCap(save) : 8)) return notes;
+    if (save.approach || rng() > 0.12 * (1 + 0.25 * staffStars(save, "scout")) || (save.roster || []).length >= (IL.rosterCap ? IL.rosterCap(save) : 8)) return notes;
     const f = makeStar(save, rng, false);
     const cost = Math.max(80, Math.round(marketValue(f) * 0.9 / 5) * 5);
     save.approach = { fighter: f, cost: cost, round: save.round || 0, season: save.season };
@@ -1453,7 +1512,7 @@
       }
       return notes;
     }
-    if (rng() > 0.35) return notes;
+    if (rng() > Math.min(0.9, 0.35 * (1 + 0.2 * staffStars(save, "scout")))) return notes;
     const f = makeStar(save, rng, rng() < 0.3);
     const value = marketValue(f);
     save.auction = { fighter: f, value: value, bid: Math.max(60, Math.round(value * 0.6 / 5) * 5), leader: "Opening bid", closes: (save.round || 0) + 2, season: save.season };
@@ -2376,6 +2435,13 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.STAFF_ROLES = STAFF_ROLES;
+  IL.staffSlots = staffSlots;
+  IL.staffStars = staffStars;
+  IL.rollStaff = rollStaff;
+  IL.restockStaff = restockStaff;
+  IL.hireStaff = hireStaff;
+  IL.fireStaff = fireStaff;
   IL.INJURY_RISK = INJURY_RISK;
   IL.INJURY_NAME = INJURY_NAME;
   IL.injuryRiskOf = injuryRiskOf;

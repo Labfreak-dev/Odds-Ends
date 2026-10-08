@@ -482,6 +482,15 @@
         u.x = x; u.y = y; u.homeX = x; u.homeY = y;
       });
     }
+    /* v101 Captain Coach staff. */
+    if (opts.captainBoost > 0) {
+      units.forEach(function (u) {
+        if (u.team !== 0 || !u.captain) return;
+        u.maxHp = Math.round(u.maxHp * (1 + opts.captainBoost));
+        u.hp = u.maxHp;
+        u.atk = Math.round(u.atk * (1 + opts.captainBoost));
+      });
+    }
     const relics = (opts.relics || []).slice();
     (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
     applySideRelics(units, 0, relics, opts.wornRelics || {});

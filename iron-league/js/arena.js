@@ -43,6 +43,15 @@
     return role === "kite" || role === "cast" || role === "support";
   }
 
+  /* v97 front and back are the distance from the left edge; gap is the
+     spacing down the line. "line" matches placeUnit's default. */
+  const FORMATIONS = {
+    line: { name: "Line", front: 68, back: 18, gap: 36, blurb: "The usual rank: front line a step ahead, back line on the edge." },
+    spear: { name: "Spearhead", front: 120, back: 18, gap: 30, blurb: "The front line starts 52 px further forward and reaches the enemy first. The back line is left more open." },
+    spread: { name: "Spread", front: 68, back: 18, gap: 70, blurb: "Twice the spacing down the line, so area moves catch fewer of you." },
+    wall: { name: "Shield wall", front: 44, back: 6, gap: 26, blurb: "A tight rank, the front line close in front of the back line to guard it." }
+  };
+
   function placeUnit(team, slot, n, teams, role) {
     const midY = (WORLD.top + WORLD.bottom) / 2;
     const midX = (WORLD.left + WORLD.right) / 2;
@@ -457,6 +466,20 @@
       const right = opts.right || [];
       left.forEach(function (f, i) { units.push(makeUnit(f, 0, i, left.length, 2)); });
       right.forEach(function (f, i) { units.push(makeUnit(f, 1, i, right.length, 2)); });
+    }
+    /* v97 formations for the left team (two-team fights): where each
+       fighter starts, which is also where it falls back to. */
+    if (opts.formation && teams <= 2 && FORMATIONS[opts.formation]) {
+      const fm = FORMATIONS[opts.formation];
+      const mine = units.filter(function (u) { return u.team === 0; });
+      const midY = (WORLD.top + WORLD.bottom) / 2;
+      mine.forEach(function (u, i) {
+        const back = hangsBack(u.role);
+        const x = WORLD.left + (back ? fm.back : fm.front);
+        let y = midY + (i - (mine.length - 1) / 2) * fm.gap;
+        y = Math.max(WORLD.top + 10, Math.min(WORLD.bottom - 10, y));
+        u.x = x; u.y = y; u.homeX = x; u.homeY = y;
+      });
     }
     const relics = (opts.relics || []).slice();
     (opts.setRelics || []).forEach(function (r) { if (r) relics.push(r); });
@@ -1184,6 +1207,8 @@
     if (src && src.team !== dst.team) {
       src.dmgDealt = (src.dmgDealt || 0) + dmg;
       noteBook(src, "dmg", dmg, opt.tag);
+      if (!dst.hitBy) dst.hitBy = {};
+      dst.hitBy[src.id] = m.time;
       /* v95 relics: lifesteal heals the hitter, reflect hits back. */
       if (src.lifesteal > 0 && src.hp > 0 && !opt.reflected) {
         const back = dmg * src.lifesteal * (m.time > (m.suddenAt || SUDDEN_AT) ? 0.5 : 1);
@@ -1269,6 +1294,19 @@
       if (m.kills[killerTeam] == null) m.kills[killerTeam] = 0;
       m.kills[killerTeam]++;
       if (src && src.team !== dst.team) src.kos = (src.kos || 0) + 1;
+      /* v97 K/D/A: an assist is damage on the fallen in the last 6 s, or a
+         heal or shield on the killer in the last 6 s. */
+      if (!dst.summon) dst.deaths = (dst.deaths || 0) + 1;
+      if (src && src.team !== dst.team) {
+        const helpers = {};
+        Object.keys(dst.hitBy || {}).forEach(function (id) { if (m.time - dst.hitBy[id] <= 6) helpers[id] = true; });
+        Object.keys(src.helpedBy || {}).forEach(function (id) { if (m.time - src.helpedBy[id] <= 6) helpers[id] = true; });
+        delete helpers[src.id];
+        for (let i = 0; i < m.units.length; i++) {
+          const a = m.units[i];
+          if (helpers[a.id] && a.team === src.team) a.assists = (a.assists || 0) + 1;
+        }
+      }
       if (src && src.bounty) m.stats.bounty = (m.stats.bounty || 0) + src.bounty;
       m.stats.deaths++;
       m.events.push({ type: "death", id: dst.id, team: dst.team, by: src ? src.id : "", byTeam: src ? src.team : -1 });
@@ -1330,6 +1368,7 @@
     if (src) {
       src.healing = (src.healing || 0) + n;
       noteBook(src, "heal", n, null);
+      if (src !== dst) { if (!dst.helpedBy) dst.helpedBy = {}; dst.helpedBy[src.id] = m.time; }
     }
     m.stats.heals++;
     m.events.push({ type: "heal", x: dst.x, y: dst.y - 46, n: n, team: dst.team });
@@ -1956,6 +1995,7 @@
       if (!u.byAb) u.byAb = {};
       const row = u.byAb[ab.id] || (u.byAb[ab.id] = { id: ab.id, name: ab.name, dmg: 0, heal: 0 });
       row.used = true;
+      row.uses = (row.uses || 0) + 1;
       if (!row.name) row.name = ab.name;
     }
     arm(u, ab.cd || 6.5);
@@ -2416,6 +2456,7 @@
       if (!ab.self) ally = lowestAlly(m, u) || u;
       const sh = Math.round(ally.maxHp * (ab.power || 0.1) * (1 + (u.pv.shieldMul || 0)));
       ally.shield += sh;
+      if (ally !== u) { if (!ally.helpedBy) ally.helpedBy = {}; ally.helpedBy[u.id] = m.time; }
       evoSupport(m, u, ally, ab, sh, "shield");
       spend(u, ab);
       m.stats.abilities++;
@@ -3368,6 +3409,7 @@
   IL.WORLD = WORLD;
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
+  IL.FORMATIONS = FORMATIONS;
   IL.stepMatch = stepMatch;
   IL._deal = deal; /* tools/sim.js only */
   IL._fire = fireOne; /* tools/sim.js only */

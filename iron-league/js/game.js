@@ -56,6 +56,7 @@
   let clubPane = "home";
   let intelPane = "stats";
   let inboxOpen = false;
+  let feedFilter = "all";
   let marketPick = 0;
   let marketFilter = "all";
   const TUTOR_STEPS = [
@@ -310,6 +311,14 @@
     '</div>';
   }
 
+  /* v97 the club's own feed (Events, "Club" filter). */
+  function logClub(text) {
+    if (!save) return;
+    if (!Array.isArray(save.clubLog)) save.clubLog = [];
+    save.clubLog.unshift(String(text));
+    if (save.clubLog.length > 20) save.clubLog.length = 20;
+  }
+
   function sortedClubs() {
     return save.clubs.slice().sort(function (a, b) {
       return (b.pts - a.pts) || ((b.pf - b.pa) - (a.pf - a.pa)) || (b.pf - a.pf);
@@ -322,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Before and after the fight: pick a formation and read a scouting report on the rival before the pit. Results now show K/D/A and an Impact score for both sides. Save three lineups on the Party board, and filter the Events feed.",
     "Abilities v2: new moves that pull, root, silence, chain lightning, drain life, raise a fallen ally, and fire shots that follow their target. At level 20 and 50 each fighter evolves a move, choosing one of two new effects.",
     "Relics v2: every relic shows its exact numbers and its own roll (85% to 115%). Fighters wear two relics from level 10. Four named legendaries (Phoenix Feather, Bloodvine Ring, Mirror Aegis, Blink Stone), relics that teach a move, a stall that restocks every week, and Auto-equip.",
     "Better fighters: every recruit rolls Balanced, Good or Excellent growth per stat and shows 1 to 5 potential stars. Shiny fighters (1 in 250) start 20% stronger. Champions carry a second class's passive, go to auction against rival clubs, and sometimes ask to join you.",
@@ -2455,7 +2465,8 @@
     if (save.cup && save.cup.mid && !save.cup.champion && IL.cupOpponent(save.cup)) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The MidCup is open: " + save.cup.size + "v" + save.cup.size + ", free entry." });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
     (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
-    (save.history || []).slice(0, 6).forEach(function (h) {
+    (save.clubLog || []).slice(0, 10).forEach(function (n) { out.push({ act: false, kind: "club", text: n }); });
+    (save.history || []).slice(0, 10).forEach(function (h) {
       out.push({ act: false, kind: "result", text: (h.win ? "Won " : "Lost ") + (h.score || "") + " against " + (h.opponent || "a rival") + ". MVP " + (h.mvp || "—") + "." });
     });
     return out;
@@ -2546,7 +2557,14 @@
         '<h3 class="section">Action required</h3>' +
         (acts.length ? '<ul class="inbox">' + acts.map(row).join("") + '</ul>' : '<p class="fine">Nothing waits on you.</p>') +
         '<h3 class="section">Feed</h3>' +
-        (news.length ? '<ul class="inbox">' + news.map(row).join("") + '</ul>' : '<p class="fine">No news yet.</p>') +
+        '<div class="feed-filters" role="group" aria-label="Feed filter">' + [["all", "All"], ["result", "Results"], ["news", "Market"], ["club", "Club"]].map(function (c) {
+          const n = c[0] === "all" ? news.length : news.filter(function (x) { return x.kind === c[0]; }).length;
+          return '<button type="button" class="es-subtab small' + (feedFilter === c[0] ? " on" : "") + '" data-feed="' + c[0] + '">' + c[1] + ' <em class="es-count">' + n + '</em></button>';
+        }).join("") + '</div>' +
+        (function () {
+          const shown = feedFilter === "all" ? news : news.filter(function (x) { return x.kind === feedFilter; });
+          return shown.length ? '<ul class="inbox">' + shown.map(row).join("") + '</ul>' : '<p class="fine">Nothing here yet.</p>';
+        })() +
         '<button type="button" class="btn ghost inbox-done" id="inboxDone">Close</button>' +
       '</aside>';
   }
@@ -2572,7 +2590,9 @@
       if (ay && !ay.disabled) { answerApproach(true); return; }
       if (ev.target.closest("[data-approach-decline]")) { answerApproach(false); return; }
       const dt = ev.target.closest("[data-detail]");
-      if (dt) { inboxOpen = false; detailId = dt.dataset.detail; refreshHub(); }
+      if (dt) { inboxOpen = false; detailId = dt.dataset.detail; refreshHub(); return; }
+      const ff = ev.target.closest("[data-feed]");
+      if (ff) { feedFilter = ff.dataset.feed; refreshHub(); }
     };
   }
 
@@ -2907,6 +2927,42 @@
     save.lineup = order.slice(0, IL.PARTY_CAP).map(function (f) { return f.id; });
   }
 
+  /* v97 three saved lineups, each with its formation. */
+  function lineupPresets() {
+    const sets = Array.isArray(save.lineups) ? save.lineups : [];
+    return '<div class="lineup-presets" id="lineupPresets">' + ["A", "B", "C"].map(function (tag, i) {
+      const p = sets[i];
+      const ids = p && Array.isArray(p.ids) ? p.ids.filter(function (id) { return fighterById(id); }) : [];
+      const names = ids.map(function (id) { return fighterById(id).name.split(" ")[0]; }).join(", ");
+      const fm = p && p.formation && IL.FORMATIONS[p.formation] ? IL.FORMATIONS[p.formation].name : "";
+      return '<div class="lp-slot">' +
+        (ids.length
+          ? '<button type="button" class="lp-load" data-lineup-load="' + i + '"><b>' + tag + '</b><span>' + esc(names) + (fm ? ' · ' + esc(fm) : '') + '</span></button>'
+          : '<span class="lp-empty"><b>' + tag + '</b><span>Empty</span></span>') +
+        '<button type="button" class="ctl lp-save" data-lineup-save="' + i + '" aria-label="Save the current lineup as ' + tag + '">Save</button>' +
+      '</div>';
+    }).join("") + '</div>';
+  }
+  function saveLineupPreset(i) {
+    if (!Array.isArray(save.lineups)) save.lineups = [];
+    save.lineups[i] = { ids: (save.lineup || []).filter(function (id) { return fighterById(id); }).slice(0, IL.PARTY_CAP), formation: save.formation || "line" };
+    persist();
+    refreshHub();
+    showNote("Lineup " + "ABC".charAt(i) + " saved.");
+  }
+  function loadLineupPreset(i) {
+    const p = Array.isArray(save.lineups) ? save.lineups[i] : null;
+    const ids = p && Array.isArray(p.ids) ? p.ids.filter(function (id) { return fighterById(id); }) : [];
+    if (!ids.length) { pitSound("error"); return; }
+    const rest = (save.lineup || []).filter(function (id) { return ids.indexOf(id) < 0 && fighterById(id); });
+    save.lineup = ids.concat(rest).slice(0, IL.PARTY_CAP);
+    if (p.formation && IL.FORMATIONS[p.formation]) save.formation = p.formation;
+    partySwap = null;
+    persist();
+    refreshHub();
+    showNote("Lineup " + "ABC".charAt(i) + " loaded.");
+  }
+
   function teamPanel() {
     const size = !seasonDone() ? weekSize(save.round) : 0;
     const slotOf = {};
@@ -2935,6 +2991,7 @@
     return '<div id="fighterList" class="es-team">' +
       '<header class="es-team-head"><h3 class="section">Party</h3><span class="fine">' + (size ? 'Week ' + (save.round + 1) + ' fields ' + size + '. ' : '') + (partySwap ? 'Pick who to swap with ' + esc(fighterById(partySwap).name.split(" ")[0]) + '.' : 'Swap, gear and hire here. Tap a portrait for the full sheet.') + '</span>' +
         '<button type="button" class="ctl" data-party-best="1">Best lineup</button></header>' +
+      lineupPresets() +
       '<div class="es-first" id="partyCards">' + cards.join("") + '</div>' + firstDrawer +
       '<nav class="es-team-actions">' +
         '<button type="button" class="es-subtab' + (pilot ? "" : " on") + '" data-pilot-pick="off">Autobattle</button>' +
@@ -4529,6 +4586,45 @@
     return Math.max(1, Math.round(s));
   }
 
+  /* v97 pre-match: formation and a scouting report on the rival. */
+  function formationHtml() {
+    const cur = IL.FORMATIONS[save.formation] ? save.formation : "line";
+    return '<section class="panel-frame formation" id="formationBox"><h3 class="section">Formation</h3>' +
+      '<div class="formation-pick" id="formationPick" role="group" aria-label="Formation">' + Object.keys(IL.FORMATIONS).map(function (id) {
+        return '<button type="button" class="es-subtab' + (id === cur ? " on" : "") + '" data-formation="' + id + '">' + esc(IL.FORMATIONS[id].name) + '</button>';
+      }).join("") + '</div>' +
+      '<p class="fine" id="formationLine">' + esc(IL.FORMATIONS[cur].blurb) + '</p></section>';
+  }
+  function scoutHtml(spec, right) {
+    if (!right || !right.length) return "";
+    const club = (save.clubs || []).filter(function (c) { return c && !c.you && c.name === spec.rightName; })[0];
+    const lines = [];
+    if (club) {
+      const rank = sortedClubs().indexOf(club) + 1;
+      lines.push(rank + (rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th") + " in the league · " + club.w + " won, " + club.l + " lost · " + club.pts + " pts");
+    }
+    const met = (save.history || []).filter(function (h) { return h && h.opponent === spec.rightName; }).slice(0, 3);
+    if (met.length) lines.push("Last met: " + met.map(function (h) { return (h.win ? "won " : "lost ") + (h.score || ""); }).join(", "));
+    const rows = right.map(function (f) {
+      const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+      if (IL.ensureMoves) IL.ensureMoves(f);
+      const moves = (f.loadout || []).map(function (id) {
+        const ab = IL.abilityById(id);
+        if (!ab) return "";
+        const evo = f.evos && f.evos[id] && IL.EVOS[f.evos[id]];
+        return esc(ab.name) + (evo ? ' <em class="scout-evo" title="Evolved: ' + esc(evo.name) + '">★</em>' : '');
+      }).filter(Boolean).join(", ");
+      const relics = [f.relic, f.relic2].map(function (id) { return id && IL.relicById(id); }).filter(Boolean).map(function (r) { return esc(r.name); }).join(", ");
+      const st = IL.scaledStats(f, kit);
+      return '<li><b>' + esc(f.name) + '</b><span>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · HP ' + Math.round(st.hp) + ' · ATK ' + Math.round(st.atk) + ' · DEF ' + Math.round(st.def) + '</span>' +
+        '<span class="scout-moves">' + (moves || "Basic attacks") + '</span>' +
+        (relics ? '<span class="scout-relics">Relics: ' + relics + '</span>' : '') + '</li>';
+    }).join("");
+    return '<section class="panel-frame scout" id="scoutReport"><h3 class="section">Scouting report</h3>' +
+      (lines.length ? '<p class="fine">' + lines.map(esc).join(" · ") + '</p>' : '') +
+      '<ul class="scout-list">' + rows + '</ul></section>';
+  }
+
   function versusCard(f) {
     const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
     const st = IL.scaledStats(f, kit);
@@ -4561,10 +4657,12 @@
         '</header>' +
         (nemesisBanner({ name: spec.rightName }) ? '<p class="banner" id="rivalLine">' + nemesisBanner({ name: spec.rightName }) + '</p>' : '') +
         (spec.mod ? '<p class="banner" id="fightEvent">' + esc(spec.mod.name) + '. ' + esc(spec.mod.blurb) + '</p>' : '') +
+        (spec.sides ? '' : formationHtml()) +
         '<div class="versus-grid">' +
           '<section class="panel-frame"><h3 class="section">Your party</h3>' + synergyLine(left, "yourSynergy") + '<div class="cards">' + left.map(versusCard).join("") + '</div></section>' +
           '<section class="panel-frame"><h3 class="section">They send</h3>' + synergyLine(right, "theirSynergy") + '<div class="cards">' + right.map(versusCard).join("") + '</div></section>' +
         '</div>' +
+        scoutHtml(spec, right) +
         '<div class="power-compare" id="powerBar">' +
           '<div class="power-track"><div class="power-you" style="width:' + share + '%"></div></div>' +
           '<p>Power ' + youP + ' · ' + themP + '</p>' +
@@ -4581,6 +4679,16 @@
       showHub(spec.returnTab || "overview");
     };
     document.getElementById("confirmFight").onclick = confirmPending;
+    const fmBox = document.getElementById("formationPick");
+    if (fmBox) fmBox.onclick = function (ev) {
+      const b = ev.target.closest("[data-formation]");
+      if (!b) return;
+      save.formation = b.dataset.formation;
+      persist();
+      fmBox.querySelectorAll("[data-formation]").forEach(function (c) { c.classList.toggle("on", c.dataset.formation === save.formation); });
+      const line = document.getElementById("formationLine");
+      if (line) line.textContent = IL.FORMATIONS[save.formation].blurb;
+    };
     const pick = document.getElementById("pilotPick");
     if (pick) pick.onclick = function (ev) {
       const b = ev.target.closest("[data-pilot-pick]");
@@ -4813,6 +4921,10 @@
       const pGear = ev.target.closest("[data-party-gear]");
       if (pGear) { partyGear = partyGear === pGear.dataset.partyGear ? null : pGear.dataset.partyGear; refreshHub(); return; }
       if (ev.target.closest("[data-party-best]")) { bestLineup(); partySwap = null; persist(); refreshHub(); return; }
+      const lpLoad = ev.target.closest("[data-lineup-load]");
+      if (lpLoad) { loadLineupPreset(+lpLoad.dataset.lineupLoad); return; }
+      const lpSave = ev.target.closest("[data-lineup-save]");
+      if (lpSave) { saveLineupPreset(+lpSave.dataset.lineupSave); return; }
       const pHire = ev.target.closest("[data-party-hire]");
       if (pHire && !pHire.disabled) { hireFromMarket(+pHire.dataset.partyHire, "roster"); return; }
       const jump = ev.target.closest("[data-tab-jump]");
@@ -5143,6 +5255,7 @@
           showHub(hubTab);
           const ab = IL.abilityById(evoBtn.dataset.evoMove);
           showNote((ab ? ab.name : "The move") + " evolves: " + IL.EVOS[evoBtn.dataset.evo].name + ".");
+          logClub(ef.name + "'s " + (ab ? ab.name : "move") + " evolved: " + IL.EVOS[evoBtn.dataset.evo].name + ".");
         }
         return;
       }
@@ -5987,6 +6100,7 @@
       save.gold += gold;
       save.renown = (save.renown || 0) + renown;
       out.push({ name: "Goal: " + def.text, gold: gold, renown: renown });
+      logClub("Season goal met: " + def.text + " (+" + gold + " gold).");
     });
     if (out.length) persist();
     return out;
@@ -6039,7 +6153,8 @@
           mod: spec.mod || null,
           mods: seasonModsFor(spec.mode),
           foeRelics: spec.foeRelics || null,
-          foeWorn: spec.foeWorn || null
+          foeWorn: spec.foeWorn || null,
+          formation: save.formation || null
         });
       match.spriteMap = map;
       match.units.forEach(function (u) { u.sprite = map[IL.hero.keyOf(u.parts)]; });
@@ -6961,11 +7076,27 @@
     if (!rows.length) return "";
     const text = rows.map(function (r) {
       const bits = [];
-      if (r.dmg) bits.push(String(r.dmg));
-      if (r.heal) bits.push("+" + r.heal);
+      if (r.dmg) bits.push(String(Math.round(r.dmg)));
+      if (r.heal) bits.push("+" + Math.round(r.heal));
+      if (r.uses > 1) bits.push("×" + r.uses);
       return r.name + (bits.length ? " " + bits.join(" ") : "");
     }).join(" · ");
     return '<p class="ab-break">' + esc(text) + "</p>";
+  }
+
+  /* v97 Impact: one number for a fighter's part in the fight. */
+  function impactOf(u) {
+    return Math.max(0, Math.round((u.dmgDealt || 0) + (u.healing || 0) + (u.dmgTaken || 0) * 0.35 + (u.kos || 0) * 60 + (u.assists || 0) * 30 - (u.deaths || 0) * 40));
+  }
+  function kdaText(u) { return (u.kos || 0) + "/" + (u.deaths || 0) + "/" + (u.assists || 0); }
+  function rivalBoard(match) {
+    const theirs = match.units.filter(function (u) { return u.team !== 0 && !u.summon; });
+    if (!theirs.length) return "";
+    return '<details class="res-rivals" id="resRivals"><summary>Their side · K/D/A and Impact</summary>' +
+      '<div class="res-rival-rows">' + theirs.map(function (u) {
+        const kit = IL.CLASSES[u.cls] || IL.CLASSES.warrior;
+        return '<p class="res-rival"><b>' + esc(u.name) + '</b><span>' + esc(kit.name) + '</span><span>K/D/A ' + kdaText(u) + '</span><span>Dealt ' + Math.round(u.dmgDealt || 0) + '</span><span>Taken ' + Math.round(u.dmgTaken || 0) + '</span><span>Heal ' + Math.round(u.healing || 0) + '</span><span>Impact ' + impactOf(u) + '</span></p>';
+      }).join("") + '</div></details>';
   }
 
   function resultTable(match, xpBefore, lvBefore) {
@@ -6973,7 +7104,7 @@
     let mvp = null;
     let best = -1;
     yours.forEach(function (u) {
-      const score = (u.dmgDealt || 0) + (u.healing || 0) * 1.25 + (u.kos || 0) * 50;
+      const score = impactOf(u);
       if (score > best) { best = score; mvp = u; }
     });
     function bits(u) {
@@ -7018,12 +7149,13 @@
           (b.up ? '<em class="lv-badge">Level ' + b.lv + "</em>" : "") +
         "</div>" +
         '<div class="res-stats">' + bar("Dealt", u.dmgDealt || 0, "dealt") + bar("Taken", u.dmgTaken || 0, "taken") + bar("Heal", u.healing || 0, "heal") +
-          '<span class="res-kos"><em>KOs</em><b>' + (u.kos || 0) + '</b></span></div>' +
+          '<span class="res-kos"><em>K/D/A</em><b>' + kdaText(u) + '</b></span>' +
+          '<span class="res-kos res-imp"><em>Impact</em><b>' + impactOf(u) + '</b></span></div>' +
         abBreakdown(u) +
         '<div class="xp result-xp" data-xp-from="' + b.prev + '" data-xp-to="' + b.now + '"><div class="track"><div class="fill" style="width:' + Math.round(IL.xpInto(b.prev).frac * 100) + '%"></div></div><small>Lv ' + b.lv + ' · ' + IL.xpInto(b.now, b.lv).into + '/' + IL.xpInto(b.now, b.lv).need + ' xp</small></div>' +
       "</article>";
     }).join("");
-    if (cards) return { mvp: mvp, html: '<div id="resultTable" class="result-board res-cards"><div class="result-rows">' + cards + '</div></div>' };
+    if (cards) return { mvp: mvp, html: '<div id="resultTable" class="result-board res-cards"><div class="result-rows">' + cards + '</div>' + rivalBoard(match) + '</div>' };
     const legacy = yours.map(function (u) {
       const b = bits(u);
       return '<article class="result-row' + (b.isMvp ? " mvp" : "") + '">' +
@@ -7450,6 +7582,7 @@
       const kit = IL.CLASSES[f.cls];
       if (kit && IL.scaledStats) statBefore[f.id] = IL.scaledStats(f, kit);
       IL.grantXp(f, xp);
+      if ((f.level || 1) > (before[f.id] || 1)) logClub(f.name + " reached level " + f.level + ".");
     });
     /* v75 Barracks: the bench takes a share of the lineup's match XP. */
     const share = IL.benchShare ? IL.benchShare(save) : 0;

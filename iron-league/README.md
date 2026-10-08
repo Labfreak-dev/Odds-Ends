@@ -201,6 +201,22 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Menus: match preview and breakdown (v97)
+
+Batch 6 of the Eslabong parity plan.
+
+- **Formation**, picked on the versus screen and kept for the next fight. It sets where your party starts, which is also where it falls back to (`FORMATIONS` in `js/arena.js`):
+  - Line: the usual rank.
+  - Spearhead: the front line starts 52 px further forward.
+  - Spread: twice the spacing, so area moves catch fewer of you.
+  - Shield wall: a tight rank with the front line close in front of the back line.
+
+  Two-team fights only.
+- **Scouting report** on the versus screen: the rival's league place and record, your last three meetings, and each rival fighter's level, HP, ATK, DEF, equipped moves (★ marks an evolved move) and relics.
+- **K/D/A and Impact** on the results screen. An assist is damage on the fallen enemy in the 6 s before the kill, or a heal or shield on the killer in that time. Impact is damage dealt + healing + 35% of damage taken + 60 a knockout + 30 an assist − 40 a death. MVP now goes to the highest Impact. The per-move line shows damage, healing and uses (×N). "Their side" opens the same numbers for the rival.
+- **Saved lineups**: three slots (A, B, C) on the Party board. Each saves the lineup and its formation and loads both in one tap.
+- **Feed filters** in Events: All, Results, Market and Club. The new Club feed logs level-ups, met season goals and evolutions. The feed now keeps the last 10 results.
+
 ## Abilities v2 (v96)
 
 Batch 5 of the Eslabong parity plan.

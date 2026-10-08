@@ -1544,6 +1544,32 @@ const evoDWas = evoD.u.hp;
 IL._deal(evoD.m, evoD.u, evoD.foe, 60, { tag: { id: "cleave" } });
 check("a Draining move heals on hit", evoD.u.hp > evoDWas);
 
+/* v97 K/D/A and formations. */
+let kdaOk = true, assistSeen = false;
+for (let i = 0; i < 6; i++) {
+  const rng = IL.mulberry32(600 + i);
+  const L = ["warrior", "archer", "healer"].map(function (c, j) { const f = IL.randomFighter(rng, c); f.id = "l" + j; f.level = 10; return f; });
+  const R = ["warrior", "mage", "rogue"].map(function (c, j) { const f = IL.randomFighter(rng, c); f.id = "r" + j; f.level = 10; return f; });
+  const m = runOut(IL.createMatch({ seed: 600 + i, left: L, right: R, mode: "friendly" }));
+  [0, 1].forEach(function (team) {
+    const kills = m.units.filter(function (u) { return u.team === team; }).reduce(function (n, u) { return n + (u.kos || 0); }, 0);
+    const deaths = m.units.filter(function (u) { return u.team !== team && !u.summon; }).reduce(function (n, u) { return n + (u.deaths || 0); }, 0);
+    if (kills > deaths) kdaOk = false;
+  });
+  if (m.units.some(function (u) { return (u.assists || 0) > 0; })) assistSeen = true;
+}
+check("knockouts never outnumber deaths, and assists are counted", kdaOk && assistSeen);
+function formed(fm) {
+  const rng = IL.mulberry32(700);
+  const L = ["warrior", "archer", "mage"].map(function (c, j) { const f = IL.randomFighter(rng, c); f.id = "l" + j; return f; });
+  const R = ["warrior", "warrior", "warrior"].map(function (c, j) { const f = IL.randomFighter(rng, c); f.id = "r" + j; return f; });
+  return IL.createMatch({ seed: 700, left: L, right: R, mode: "friendly", formation: fm }).units.filter(function (u) { return u.team === 0; });
+}
+const fLine = formed("line"), fSpear = formed("spear"), fSpread = formed("spread"), fNone = formed(null);
+check("Line matches the default start", fLine.every(function (u, i) { return Math.abs(u.x - fNone[i].x) < 1 && Math.abs(u.y - fNone[i].y) < 1; }));
+check("Spearhead starts the front line further forward", fSpear[0].x > fLine[0].x + 40 && Math.abs(fSpear[1].x - fLine[1].x) < 1);
+check("Spread widens the line, and home moves with it", Math.abs(fSpread[2].y - fSpread[0].y) > Math.abs(fLine[2].y - fLine[0].y) * 1.6 && fSpread[0].homeY === fSpread[0].y);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

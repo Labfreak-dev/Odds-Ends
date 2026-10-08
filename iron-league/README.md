@@ -201,6 +201,22 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Combat feel and smarter autobattle (v92)
+
+Batch 1 of the Eslabong parity plan (ROADMAP.md).
+
+- **Warnings**: a spell's floor circle is drawn at its real hit radius (it was 85%, smaller than what lands), fills from the centre as the cast completes and flashes white in the last quarter. A fighter about to cleave shows the ring it will hit; a charge shows a dashed path and arrowhead to its target; a caster has a cast bar under its health bar.
+- **Targeting** (the default "Nearest" row): among enemies not much farther than the nearest, fighters prefer one the team is already hitting (focus fire, +34 each, up to two), one under 30% health (+46), one mid-cast (+34 for front-liners), and front-liners prefer an enemy on top of their own caster, archer or support (+60, peel). Summons come last.
+- **Dodging**: a fighter standing in an enemy spell's circle walks out (the roll stays for late casts).
+- **Area moves wait for a group**: cleave, nova, frost and arc hold while only one enemy is in the area and two or more are standing (an ultimate fires anyway after 20 s).
+- **Interrupts**: stuns and knockbacks go to an enemy mid-cast when one is in reach.
+- **Mistakes**: each pick or dodge has a small slip chance by personality (bold 2.5%, wary 1.25%, patient 0.75%), after Eslabong's hidden mistake chance.
+- Balance after: Warlock's Hex Mark 8% → 5%, Mage's cast speed 15% → 10%, Bard's team damage 15% → 18%. Class band (100 fights each) runs Bard 25% to Warlock 68%.
+- **Sudden death** in every fight, after Eslabong: from 45 s hits grow 5% a second (three times at 85 s) and heals halve; a red edge and a banner say so. Smarter play made a few 1v1s with a healer run past a minute.
+- Fighters only walk out of ability spells (with cooldowns), not a caster's basic casts, or a melee fighter could dodge a healer forever. Rogues and assassins dive the back line instead of peeling.
+- Your own moves in Control mode always fire: the "wait for a group" and "stun the caster" rules are autobattle judgment and never override an order, and a steered fighter's automatic target is the plain nearest.
+- Sim checks: walking out of a marked spell, finishing the wounded, a tank peeling for its caster, every class's solo fight ending inside 90 s.
+
 ## Fix (v91)
 
 - **Relics page**: the relic list was a fixed-height column with its own scroll box (about 370 px on a phone), inside the scrolling page. It now flows with the page, with bigger tiles (52 px icons in framed cells).
@@ -228,7 +244,7 @@ Only four class passives were arena rules (Rogue and Assassin bleed, Berserker f
 |---|---|---|
 | Warrior | Sure Footing | Knockbacks push 50% less far |
 | Archer | Long Eye | +12% attack range |
-| Mage | Still Hands | Spells take 15% less time to cast |
+| Mage | Still Hands | Spells take 10% less time to cast (v92) |
 | Tank | Raised Guard | Blocked hits do 30% instead of 40% |
 | Rogue, Assassin | Bleed | Every hit bleeds 18% ATK every 0.85s for 3.1s |
 | Lancer | Long Reach | +10% attack range |
@@ -244,9 +260,9 @@ Only four class passives were arena rules (Rogue and Assassin bleed, Berserker f
 | Necromancer | Grave Cold | Damage over time +20% a tick |
 | Paladin | Oath Arm | Shields it gives +10% (v89) |
 | Druid | Green Blood | Team regains 3 HP a second |
-| Bard | Encore | Team deals 15% more damage |
+| Bard | Encore | Team deals 18% more damage (v92) |
 | Gunslinger | Quick Draw | First shot of a fight +50% |
-| Warlock | Hex Mark | Its damage-over-time targets take 8% more from everyone |
+| Warlock | Hex Mark | Its damage-over-time targets take 5% more from everyone (v92) |
 | Samurai | Still Blade | Crits ×1.8 instead of ×1.55 |
 | Spearmaiden | Long Point | Charges hit 25% harder |
 | Summoner | Tether | Summons last 40% longer, 20% more HP |

@@ -313,6 +313,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Clearer, smarter fights: spells mark their real landing zone and flash before they hit, cleaves show their ring, charges their path, casters a cast bar. Autobattle fighters step out of marked spells, focus the same target, finish the wounded, protect their casters, and save area moves for groups.",
     "A party board on Roster: swap a fighter in two taps, open anyone's gear right under them, and hire from the market without leaving. Gear equips in one tap, with the stat change on every item.",
     "Class passives work: every class has a real passive with a set number, shown on its sheet (Bard: the team deals 15% more damage; Druid: the team regains 3 HP a second).",
     "Clear move text: every skill, upgrade and passive now says exactly what it does, with real damage, durations and cooldowns.",

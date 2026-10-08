@@ -29,6 +29,20 @@ we keep our own twist.
 | v79b | Tournament Center, Hall of Legends, Academy 3v3 | planned |
 | v80 | **Matches as series** and bigger squads (league 5v5 in rounds), formations and opening moves | planned |
 
+## Parity plan (October 2026)
+
+The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hiring, menus, attack effects, autobattle AI, season length and rewards, and fighter rarity. Seven batches, each shipped on its own:
+
+| Batch | Area | Status |
+|---|---|---|
+| v92 | Combat feel and AI: true-size spell warnings, cleave rings, charge paths, cast bars; focus fire, finishing, peeling, dodging marked spells, area moves on groups, interrupts, personality mistakes | shipped |
+| v93 | Seasons: about 14 weeks (league home and away, a MidCup, a free-for-all cup, free Draft and Iron Gate weeks), Champions Cup top 8, season modifiers, awards, reward chest by finish, season objectives | next |
+| v94 | Fighters: per-stat growth grades, potential, Shiny, Champions with hybrid kits, auctions, champion approaches, scouting by class | planned |
+| v95 | Relics v2: two slots a fighter (second at level 10), rolled values, named legendaries (revive, lifesteal, reflect, blink), relics that grant a skill, weekly relic market, exact text, auto-equip | planned |
+| v96 | Abilities v2: new mechanics (pull, root, silence, chain, lifesteal, revive, homing), evolutions at 20 and 50 with two choices | planned |
+| v97 | Menus: match preview with rival scouting and formation, post-match K/D/A, Impact and per-move breakdown, saved lineups, feed filters | planned |
+| v98 | Polish pass against Eslabong | planned |
+
 ## System map
 
 ### Screens

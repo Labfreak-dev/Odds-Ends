@@ -1326,6 +1326,68 @@ const dopp = IL.cupOpponent(draft.cup);
 const dm = runOut(IL.createMatch({ seed: 81, left: draft.picks, right: dopp.foe.fighters, mode: "draft" }));
 check("a draft tie plays out", dm.over);
 
+/* v94 grades, potential, shiny, champion passive, auction, approach. */
+function gradeShare(rarity, champ) {
+  let good = 0, ex = 0, n = 0;
+  for (let i = 0; i < 400; i++) {
+    const g = IL.rollGrades(IL.mulberry32(500 + i), rarity, champ, false);
+    ["hp", "atk", "def", "spd"].forEach(function (k) { n++; if (g[k] === "G") good++; if (g[k] === "E") ex++; });
+  }
+  return { good: good / n, ex: ex / n };
+}
+const gCommon = gradeShare("common", false);
+const gLegend = gradeShare("legendary", false);
+const gChamp = gradeShare("legendary", true);
+check("rarer fighters roll better growth grades", gLegend.ex > gCommon.ex * 2 && gLegend.good > gCommon.good && gChamp.ex > gLegend.ex);
+check("a shiny always has one Excellent grade", [0, 1, 2, 3, 4, 5].every(function (i) {
+  const g = IL.rollGrades(IL.mulberry32(900 + i), "common", false, true);
+  return ["hp", "atk", "def", "spd"].some(function (k) { return g[k] === "E"; });
+}));
+const potAll = [];
+for (let i = 0; i < 200; i++) {
+  const f = IL.randomFighter(IL.mulberry32(700 + i), "warrior");
+  f.grades = IL.rollGrades(IL.mulberry32(800 + i), i % 2 ? "legendary" : "common", false, false);
+  f.rarity = i % 2 ? "legendary" : "common";
+  potAll.push(IL.potentialOf(f));
+}
+check("potential stays within 1 to 5 stars", potAll.every(function (n) { return n >= 1 && n <= 5 && n === Math.round(n); }) && new Set(potAll).size >= 3);
+const gBase = IL.randomFighter(IL.mulberry32(77), "warrior");
+gBase.level = 40;
+const gB = Object.assign({}, gBase, { grades: { hp: "B", atk: "B", def: "B", spd: "B" }, shiny: false });
+const gE = Object.assign({}, gBase, { grades: { hp: "E", atk: "E", def: "E", spd: "E" }, shiny: false });
+const gS = Object.assign({}, gB, { shiny: true });
+const sB = IL.scaledStats(gB, IL.CLASSES.warrior), sE = IL.scaledStats(gE, IL.CLASSES.warrior), sS = IL.scaledStats(gS, IL.CLASSES.warrior);
+check("Excellent growth outgrows Balanced by level 40", sE.hp > sB.hp * 1.15 && sE.atk > sB.atk * 1.1 && sE.def > sB.def);
+check("a shiny gets +20% HP and ATK", Math.abs(sS.hp / sB.hp - 1.2) < 0.02 && Math.abs(sS.atk / sB.atk - 1.2) < 0.02);
+const cpId = Object.keys(IL.CLASSES).map(function (c) { return IL.CLASSES[c].passive; }).filter(function (p) { return p && p.fx && p.id !== (IL.CLASSES.warrior.passive || {}).id; })[0].id;
+const cpF = Object.assign({}, gB, { champion: true, champPassive: cpId });
+const cpM = IL.createMatch({ seed: 3, left: [cpF], right: [IL.randomFighter(IL.mulberry32(4), "mage")], mode: "friendly" });
+const cpFx = Object.keys(IL.CLASSES).map(function (c) { return IL.CLASSES[c].passive; }).filter(function (p) { return p && p.id === cpId; })[0].fx;
+check("a champion carries a second class's passive", Object.keys(cpFx).length > 0 && Object.keys(cpFx).every(function (k) { return cpM.units[0].pv && cpM.units[0].pv[k] !== undefined; }));
+const aSave = { clubName: "A", season: 1, round: 0, renown: 40, gold: 5000, roster: [], clubs: [{ name: "A", you: true }, { name: "Rival FC" }] };
+let aRng = IL.mulberry32(41);
+for (let i = 0; i < 40 && !aSave.auction; i++) IL.stepAuction(aSave, aRng);
+check("an auction opens with a star fighter", !!(aSave.auction && aSave.auction.fighter && (aSave.auction.fighter.champion || aSave.auction.fighter.shiny)));
+const open0 = aSave.auction.bid;
+check("the first bid takes the opening price", IL.auctionBid(aSave) && aSave.auction.bid === open0 && aSave.auction.leader === "you" && !IL.auctionBid(aSave));
+const aFighter = aSave.auction.fighter;
+const aBid = aSave.auction.bid;
+aSave.round = aSave.auction.closes;
+IL.stepAuction(aSave, aRng);
+check("winning the auction signs the fighter and takes the gold", aSave.auction === null && aSave.roster.indexOf(aFighter) >= 0 && aSave.gold === 5000 - aBid);
+const apSave = { clubName: "P", season: 1, round: 0, renown: 40, gold: 0, roster: [] };
+let apHits = 0, apGood = true;
+for (let i = 0; i < 100; i++) {
+  apSave.approach = null;
+  IL.rollApproach(apSave, IL.mulberry32(1000 + i));
+  if (apSave.approach) { apHits++; if (!apSave.approach.fighter.champion || apSave.approach.cost < 80) apGood = false; }
+}
+check("a champion approaches on some weeks", apHits >= 4 && apHits <= 25 && apGood);
+apSave.approach = { fighter: {}, cost: 100, round: 0, season: 1 };
+apSave.round = 3;
+IL.rollApproach(apSave, function () { return 0.99; });
+check("an unanswered approach expires", apSave.approach === null);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

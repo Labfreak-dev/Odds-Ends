@@ -201,6 +201,17 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Fighter rarity and hiring (v94)
+
+Batch 3 of the Eslabong parity plan.
+
+- **Growth grades**: every recruit rolls a grade per stat (HP, ATK, DEF, SPD): Balanced, Good (x1.3 growth per level) or Excellent (x1.6). Rarer fighters roll better (Good/Excellent odds: common 18%/4%, uncommon 25%/7%, rare 32%/12%, legendary 40%/20%; champions +10%/+8%). Defense grows +0.12 a level on Good and +0.24 on Excellent, speed +0.3% and +0.6%.
+- **Potential**: 1 to 5 stars from rarity and grades, on the market row, the market detail and the fighter sheet. It raises market price (+8% a star).
+- **Shiny**: 1 in 250 recruits. +20% HP and ATK, at least one Excellent grade, a ✦ mark, x1.5 price.
+- **Champions with hybrid kits**: a champion also carries a second class's passive, at its set number, shown on the sheet.
+- **Auctions**: now and then a star (a champion, or a shiny) goes to auction on the market for two league weeks. Rival clubs raise by 10%. Gold leaves only if you hold the top bid when it closes and have roster room.
+- **Champion approaches**: about one week in eight a champion asks to join at 90% of value. Sign or decline under Action required; the offer lapses after two weeks.
+
 ## Seasons and rewards (v93)
 
 Batch 2 of the Eslabong parity plan.

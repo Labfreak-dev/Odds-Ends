@@ -91,11 +91,17 @@
     const b = fighter.boosts || {};
     /* Per-level growth stays 8% health and 6% attack: flatter rates broke the
        class win band. v65 slows growth through the xp curve instead. */
-    let hp = kit.hp * (1 + (lv - 1) * 0.08) * (1 + (b.hp || 0) * 0.08);
-    let atk = kit.atk * (1 + (lv - 1) * 0.06) * (1 + (b.dmg || 0) * 0.08);
-    let def = kit.def + (b.def || 0) * 2;
-    let speed = kit.speed * (1 + (b.spd || 0) * 0.06);
+    /* v94 growth grades scale each stat's growth per level: Balanced x1.0,
+       Good x1.3, Excellent x1.6. Defense and speed only grow when graded. */
+    const gm = IL.gradeMul || function () { return 1; };
+    const gDef = { B: 0, G: 0.12, E: 0.24 }[(IL.gradeOf ? IL.gradeOf(fighter, "def") : "B")] || 0;
+    const gSpd = { B: 0, G: 0.003, E: 0.006 }[(IL.gradeOf ? IL.gradeOf(fighter, "spd") : "B")] || 0;
+    let hp = kit.hp * (1 + (lv - 1) * 0.08 * gm(fighter, "hp")) * (1 + (b.hp || 0) * 0.08);
+    let atk = kit.atk * (1 + (lv - 1) * 0.06 * gm(fighter, "atk")) * (1 + (b.dmg || 0) * 0.08);
+    let def = kit.def + (b.def || 0) * 2 + (lv - 1) * gDef;
+    let speed = kit.speed * (1 + (b.spd || 0) * 0.06) * (1 + (lv - 1) * gSpd);
     if (fighter.champion) { hp *= 1.14; atk *= 1.12; }
+    if (fighter.shiny) { hp *= 1.2; atk *= 1.2; }
     const rarityStat = { common: 1, uncommon: 1.04, rare: 1.08, legendary: 1.12 }[fighter.rarity];
     if (rarityStat) { hp *= rarityStat; atk *= rarityStat; }
     const spec = IL.combatSpecialty ? IL.combatSpecialty(fighter) : (IL.specialtyOf && fighter.specialty ? IL.specialtyOf(fighter.specialty) : null);
@@ -283,6 +289,11 @@
     }
     /* v88 class passive numbers (kits.js PASSIVE_FX). Summons get none. */
     u.pv = (!fighter.summon && kit.passive && kit.passive.fx) || {};
+    /* v94: a champion also carries a second class's passive. */
+    if (!fighter.summon && fighter.champPassive) {
+      const extra = Object.keys(IL.CLASSES).map(function (id) { return IL.CLASSES[id].passive; }).filter(function (p) { return p && p.id === fighter.champPassive && p.fx; })[0];
+      if (extra) u.pv = Object.assign({}, extra.fx, u.pv);
+    }
     if (u.pv.range) u.range *= 1 + u.pv.range;
     if (u.pv.cdCut) u.abilityCdMul *= 1 - u.pv.cdCut;
     u.feintT = 0;

@@ -4785,3 +4785,12 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .staff-role { color: var(--copper-2); font-weight: 700; }
 .staff-card .btn { justify-self: start; margin-top: 4px; }
 .staff-worse { color: #ff8f78 !important; }
+
+/* v102 Chaos Thunder Cup */
+.thunder-table { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 3px; }
+.thunder-table li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-areas: "n name pts" "n places places"; column-gap: 8px; padding: 4px 8px; background: rgba(0, 0, 0, 0.22); border-radius: 4px; }
+.thunder-table li.you { border-left: 3px solid var(--copper); }
+.thunder-table b { grid-area: n; color: #ffd27a; align-self: center; }
+.thunder-table span { grid-area: name; min-width: 0; overflow-wrap: anywhere; color: #f2e2c4; }
+.thunder-table em { grid-area: pts; font-style: normal; font-weight: 700; white-space: nowrap; }
+.thunder-table small { grid-area: places; color: var(--muted); font-size: 12px; }

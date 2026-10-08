@@ -45,8 +45,8 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v99 | Live orders in the pit: Plan, Attack, Regroup, Hold (buttons and F1 to F4) | shipped |
 | v100 | Injuries and the Medical Bay | shipped |
 | v101 | Staff: Club House slots, weekly staff market | shipped |
-| v102 | Chaos free-for-all cups | next |
-| v103 | Academy league | planned |
+| v102 | Chaos Thunder Cup: twice a season, four clubs free for all, three rounds | shipped |
+| v103 | Academy league | next |
 
 ## System map
 

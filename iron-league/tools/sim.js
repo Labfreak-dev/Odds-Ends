@@ -1645,6 +1645,26 @@ const plainCap = IL.createMatch({ seed: 3, left: [coachF], right: [coachFoe], mo
 const coachedCap = IL.createMatch({ seed: 3, left: [coachF], right: [coachFoe], mode: "friendly", captainBoost: 0.15 }).units[0];
 check("a Captain Coach boosts the captain", coachedCap.maxHp > plainCap.maxHp * 1.1 && coachedCap.atk >= plainCap.atk);
 
+/* v102 Chaos Thunder Cup. */
+const thRoster = [0, 1, 2, 3].map(function (i) { const f = IL.randomFighter(IL.mulberry32(950 + i), ["warrior", "archer", "mage", "tank"][i]); f.id = "t" + i; f.level = 8; return f; });
+const thSave = { clubName: "Thunder FC", season: 1, round: 3, renown: 20, roster: thRoster, lineup: ["t0", "t1", "t2"], clubs: [{ name: "Thunder FC", you: true }, { name: "Red Kettle" }, { name: "Salt Stair" }, { name: "Cinder Pact" }, { name: "North Wharf" }] };
+check("no Thunder Cup before week 4", IL.openThunder(thSave, IL.mulberry32(1)) === null);
+thSave.round = 4;
+const th1 = IL.openThunder(thSave, IL.mulberry32(2));
+check("the first Thunder Cup is 2v2v2v2 with four clubs", th1 && th1.size === 2 && th1.clubs.length === 4 && th1.clubs.slice(1).every(function (c) { return c.fighters.length === 2; }));
+check("only one cup at a time", IL.openThunder(thSave, IL.mulberry32(3)) === null);
+const thSides = IL.thunderSides(thSave);
+const thM = runOut(IL.createMatch({ seed: 77, sides: thSides, mode: "thunder" }));
+const thOrder = IL.placings(thM);
+check("placings rank all four clubs, the winner first", thOrder.length === 4 && new Set(thOrder).size === 4 && thOrder[0] === thM.winner);
+IL.scoreThunder(thSave, thOrder);
+IL.scoreThunder(thSave, [0, 1, 2, 3]);
+IL.scoreThunder(thSave, [0, 2, 1, 3]);
+check("three rounds finish the cup and points add up", th1.done && th1.clubs.reduce(function (n, c) { return n + c.pts; }, 0) === 18 && th1.finish >= 1 && th1.finish <= 4);
+thSave.round = 10;
+const th2 = IL.openThunder(thSave, IL.mulberry32(4));
+check("the second Thunder Cup after week 10 is 3v3v3v3", th2 && th2.size === 3);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

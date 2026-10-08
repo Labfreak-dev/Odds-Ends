@@ -3180,6 +3180,18 @@
     return win;
   }
 
+  /* v102 final placings, first to last: the winner, then any team still
+     standing by health left, then the fallen, last out ranked highest. */
+  function placings(m) {
+    const teams = m.teams || 2;
+    const out = (m.outOrder || []).slice();
+    const standing = [];
+    for (let t = 0; t < teams; t++) if (out.indexOf(t) < 0) standing.push(t);
+    standing.sort(function (a, b) { return teamScore(m, b) - teamScore(m, a); });
+    if (m.winner != null && standing.indexOf(m.winner) > 0) { standing.splice(standing.indexOf(m.winner), 1); standing.unshift(m.winner); }
+    return standing.concat(out.reverse());
+  }
+
   function stepBody(m, u, dt) {
     if (m.pilot && m.pilot.roll && !m.pilot.auto && m.pilot.id === u.id && u.team === 0 && !m.scripted) pilotRoll(m, u);
     if (u.state !== "leap" && ((u.z || 0) > 0 || u.vz)) {
@@ -3355,7 +3367,11 @@
 
     const teamCount = m.teams || 2;
     let aliveTeams = 0;
-    for (let t = 0; t < teamCount; t++) if (living(m, t).length) aliveTeams++;
+    if (!m.outOrder) m.outOrder = [];
+    for (let t = 0; t < teamCount; t++) {
+      if (living(m, t).length) aliveTeams++;
+      else if (m.outOrder.indexOf(t) < 0) m.outOrder.push(t);
+    }
     tickBoss(m);
     if (!m.ending && (m.horde || m.king) && tryNextWave(m)) aliveTeams = 2;
     let cap = teamCount > 2 ? 46 : 62;
@@ -3450,6 +3466,7 @@
   IL.WORLD = WORLD;
   IL.scaledStats = scaledStats;
   IL.createMatch = createMatch;
+  IL.placings = placings;
   /* v99 live orders for a team: plan (each follows its own behavior), engage, regroup, hold. */
   IL.ORDERS = ["plan", "engage", "regroup", "hold"];
   IL.setOrder = function (m, team, order) {

@@ -1624,6 +1624,68 @@
     return true;
   }
 
+  /* ---------- v102 Chaos Thunder Cup ----------
+     Twice a season: four clubs in one pit, free for all, three rounds.
+     A round's placings score 3, 2, 1 and 0. The first cup (after week 4)
+     is 2v2v2v2, the second (after week 10) 3v3v3v3. */
+  const THUNDER_AT = [{ round: 4, size: 2 }, { round: 10, size: 3 }];
+  const THUNDER_ROUNDS = 3;
+  const THUNDER_POINTS = [3, 2, 1, 0];
+  const THUNDER_PAY = [{ gold: 180, renown: 30, xp: 40 }, { gold: 100, renown: 18, xp: 26 }, { gold: 55, renown: 10, xp: 16 }, { gold: 25, renown: 4, xp: 10 }];
+  function openThunder(save, rng) {
+    if (!save || (save.thunder && save.thunder.season === save.season && !save.thunder.done)) return null;
+    const done = (save.thunderDone && save.thunderDone.season === save.season) ? save.thunderDone.slots : [];
+    for (let i = 0; i < THUNDER_AT.length; i++) {
+      const at = THUNDER_AT[i];
+      if ((save.round || 0) < at.round || done.indexOf(i) >= 0) continue;
+      const pool = (save.clubs || []).filter(function (c) { return c && !c.you; }).map(function (c) { return c.name; });
+      const names = [];
+      while (names.length < 3 && pool.length) names.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+      while (names.length < 3) names.push(IL.pick(rng, IL.CLUBS.filter(function (n) { return n !== save.clubName && names.indexOf(n) < 0; })));
+      save.thunder = {
+        season: save.season, slot: i, size: at.size, round: 0, done: false,
+        clubs: [{ name: save.clubName, you: true, pts: 0, places: [] }].concat(names.map(function (n) {
+          const side = makeRivalSide(rng, n, at.size, save);
+          return { name: n, you: false, pts: 0, places: [], fighters: side.fighters };
+        }))
+      };
+      if (!save.thunderDone || save.thunderDone.season !== save.season) save.thunderDone = { season: save.season, slots: [] };
+      save.thunderDone.slots.push(i);
+      return save.thunder;
+    }
+    return null;
+  }
+  function thunderSides(save) {
+    const t = save.thunder;
+    if (!t || t.done) return null;
+    const yours = fielded(save.roster, save.lineup, t.size);
+    if (yours.length < t.size) return null;
+    return [{ name: save.clubName, fighters: yours }].concat(t.clubs.slice(1).map(function (c) { return { name: c.name, fighters: c.fighters }; }));
+  }
+  /* order: team indices first to last (IL.placings). Returns the cup. */
+  function scoreThunder(save, order) {
+    const t = save.thunder;
+    if (!t || t.done) return null;
+    order.forEach(function (team, place) {
+      const c = t.clubs[team];
+      if (!c) return;
+      c.pts += THUNDER_POINTS[place] || 0;
+      c.places.push(place + 1);
+    });
+    t.round += 1;
+    if (t.round >= THUNDER_ROUNDS) {
+      t.done = true;
+      const table = thunderTable(t);
+      t.finish = table.indexOf(t.clubs[0]) + 1;
+    }
+    return t;
+  }
+  function thunderTable(t) {
+    return t.clubs.slice().sort(function (a, b) {
+      return (b.pts - a.pts) || (a.places.reduce(function (n, p) { return n + p; }, 0) - b.places.reduce(function (n, p) { return n + p; }, 0));
+    });
+  }
+
   function startChaos(save, rng) {
     const picked = fielded(save.roster, save.lineup, 1);
     const yours = picked[0] || (save.roster || [])[0];
@@ -2435,6 +2497,14 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.THUNDER_AT = THUNDER_AT;
+  IL.THUNDER_ROUNDS = THUNDER_ROUNDS;
+  IL.THUNDER_POINTS = THUNDER_POINTS;
+  IL.THUNDER_PAY = THUNDER_PAY;
+  IL.openThunder = openThunder;
+  IL.thunderSides = thunderSides;
+  IL.scoreThunder = scoreThunder;
+  IL.thunderTable = thunderTable;
   IL.STAFF_ROLES = STAFF_ROLES;
   IL.staffSlots = staffSlots;
   IL.staffStars = staffStars;

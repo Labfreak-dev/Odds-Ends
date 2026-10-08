@@ -1624,6 +1624,117 @@
     return true;
   }
 
+  /* ---------- v108 transfers: buy, swap and loan with rival clubs ----------
+     A rival's fighter costs 25% over market value (leaders are never for
+     sale). The club signs a replacement so it always keeps four. A bench
+     fighter can be loaned in for two league weeks for 12% of value; your
+     own bench can go out on loan for 8% a week and comes back with XP. */
+  const LOAN_WEEKS = 2;
+  function askingPrice(f) {
+    if (!f || f.leader) return 0;
+    return Math.max(40, Math.round(marketValue(f) * 1.25 / 5) * 5);
+  }
+  function clubOf(save, id) { return (save.clubs || []).filter(function (c) { return c && c.id === id; })[0] || null; }
+  function rivalBench(club) {
+    const starters = rivalPick(club, 3);
+    return (club.fighters || []).filter(function (f) { return starters.indexOf(f) < 0; });
+  }
+  function refill(save, club, rng) {
+    while ((club.fighters || []).length < 4) {
+      const f = makeRivalSide(rng, club.name, 1, save).fighters[0];
+      if (f) club.fighters.push(f); else break;
+    }
+    if (IL.dedupeNames) IL.dedupeNames(club.fighters);
+  }
+  function joinRoster(save, f) {
+    f.lv0 = f.level || 1;
+    f.lv0Season = save.season;
+    f.captain = false;
+    f.leader = false;
+    save.roster.push(f);
+    if (IL.dedupeNames) IL.dedupeNames(save.roster);
+  }
+  function roomFor(save) { return (save.roster || []).length < (IL.rosterCap ? IL.rosterCap(save) : 8); }
+  function buyFromRival(save, clubId, fid, rng) {
+    const club = clubOf(save, clubId);
+    const f = club && (club.fighters || []).filter(function (x) { return x.id === fid; })[0];
+    const cost = askingPrice(f);
+    if (!f || !cost || (save.gold || 0) < cost || !roomFor(save)) return false;
+    save.gold -= cost;
+    club.fighters.splice(club.fighters.indexOf(f), 1);
+    joinRoster(save, f);
+    refill(save, club, rng);
+    return cost;
+  }
+  function swapTopUp(f, yours) {
+    return Math.max(0, askingPrice(f) - Math.round(marketValue(yours) * 0.9 / 5) * 5);
+  }
+  function swapWithRival(save, clubId, fid, yourId, rng) {
+    const club = clubOf(save, clubId);
+    const f = club && (club.fighters || []).filter(function (x) { return x.id === fid; })[0];
+    const yours = (save.roster || []).filter(function (x) { return x.id === yourId; })[0];
+    if (!f || !yours || yours.captain || yours.loan || !askingPrice(f)) return false;
+    const top = swapTopUp(f, yours);
+    if ((save.gold || 0) < top) return false;
+    save.gold -= top;
+    save.roster.splice(save.roster.indexOf(yours), 1);
+    save.lineup = (save.lineup || []).filter(function (x) { return x !== yours.id; });
+    club.fighters.splice(club.fighters.indexOf(f), 1, yours);
+    joinRoster(save, f);
+    return { top: top, gone: yours };
+  }
+  function loanFee(f) { return Math.max(10, Math.round(marketValue(f) * 0.12 / 5) * 5); }
+  function loanIn(save, clubId, fid) {
+    const club = clubOf(save, clubId);
+    const f = club && rivalBench(club).filter(function (x) { return x.id === fid; })[0];
+    const fee = loanFee(f);
+    if (!f || f.leader || (save.gold || 0) < fee || !roomFor(save)) return false;
+    save.gold -= fee;
+    club.fighters.splice(club.fighters.indexOf(f), 1);
+    f.loan = { club: club.id, weeks: LOAN_WEEKS };
+    joinRoster(save, f);
+    return fee;
+  }
+  function loanOutFee(f) { return Math.max(5, Math.round(marketValue(f) * 0.08 / 5) * 5) * LOAN_WEEKS; }
+  function loanOut(save, fid, rng) {
+    const f = (save.roster || []).filter(function (x) { return x.id === fid; })[0];
+    const takers = (save.clubs || []).filter(function (c) { return c && !c.you; });
+    if (!f || f.captain || f.loan || !takers.length) return false;
+    const club = takers[Math.floor(rng() * takers.length)];
+    const fee = loanOutFee(f);
+    save.gold = (save.gold || 0) + fee;
+    save.roster.splice(save.roster.indexOf(f), 1);
+    save.lineup = (save.lineup || []).filter(function (x) { return x !== f.id; });
+    if (!Array.isArray(save.loansOut)) save.loansOut = [];
+    save.loansOut.push({ fighter: f, club: club.name, weeks: LOAN_WEEKS });
+    return { fee: fee, club: club.name };
+  }
+  /* Once a league week. onLeave(f) runs before a loaned-in fighter goes home. */
+  function tickLoans(save, onLeave) {
+    const notes = [];
+    (save.roster || []).slice().forEach(function (f) {
+      if (!f.loan) return;
+      f.loan.weeks -= 1;
+      if (f.loan.weeks > 0) return;
+      const club = clubOf(save, f.loan.club);
+      if (onLeave) onLeave(f);
+      save.roster.splice(save.roster.indexOf(f), 1);
+      save.lineup = (save.lineup || []).filter(function (x) { return x !== f.id; });
+      delete f.loan;
+      if (club) club.fighters.push(f);
+      notes.push(f.name + "'s loan ends; back to " + (club ? club.name : "their club") + ".");
+    });
+    save.loansOut = (save.loansOut || []).filter(function (row) {
+      row.weeks -= 1;
+      if (IL.grantXp) IL.grantXp(row.fighter, 25);
+      if (row.weeks > 0) return true;
+      save.roster.push(row.fighter);
+      notes.push(row.fighter.name + " is back from loan at " + row.club + ".");
+      return false;
+    });
+    return notes;
+  }
+
   /* ---------- v107 difficulty ----------
      Rivals' HP and ATK in every fight but friend fights, a captain bonus
      in autobattle, gold, and season modifiers. Infernus adds 4% threat a
@@ -2702,6 +2813,17 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.LOAN_WEEKS = LOAN_WEEKS;
+  IL.askingPrice = askingPrice;
+  IL.rivalBench = rivalBench;
+  IL.buyFromRival = buyFromRival;
+  IL.swapTopUp = swapTopUp;
+  IL.swapWithRival = swapWithRival;
+  IL.loanFee = loanFee;
+  IL.loanIn = loanIn;
+  IL.loanOutFee = loanOutFee;
+  IL.loanOut = loanOut;
+  IL.tickLoans = tickLoans;
   IL.DIFFICULTY = DIFFICULTY;
   IL.difficultyOf = difficultyOf;
   IL.foeMulOf = foeMulOf;

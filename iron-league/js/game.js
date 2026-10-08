@@ -33,6 +33,7 @@
   let armorySort = "rarity";
   let fighterFilter = "all";
   let marketPane = "fighters";
+  let swapPick = "";
   let eventPane = "week";
   let trainPane = "drills";
   let trainDrill = "strength";
@@ -354,6 +355,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Transfers: buy, swap or loan fighters straight from rival rosters on the Market, and loan your bench out for gold and XP.",
     "Difficulty: Relaxed, Normal, Hard and Infernus in Settings, plus options for no champion signings and no season modifiers.",
     "Named rivals: twelve handcrafted clubs with leaders, styles and signature moves. Every rival now has a bench, wears relics, rests tired fighters, and the better ones prepare against your last three lineups.",
     "Ability costs and friendly fire: spells spend mana and physical moves spend stamina. Blasts now catch allies too, and a new Friendly fire tactic decides how careful each fighter is.",
@@ -3476,6 +3478,60 @@
     return [rarityLabel(f.rarity), style, spec && spec.name, trait && trait.name].filter(Boolean).join(" · ");
   }
 
+  /* v108 rival rosters: buy, swap or loan with league clubs. */
+  function rivalMarketHtml() {
+    const mine = (save.roster || []).filter(function (f) { return !f.captain && !f.loan; });
+    if (swapPick && !mine.some(function (f) { return f.id === swapPick; })) swapPick = "";
+    const yours = swapPick ? fighterById(swapPick) : null;
+    const room = save.roster.length < IL.rosterCap(save);
+    const clubs = (save.clubs || []).filter(function (c) { return c && !c.you; }).map(function (c) {
+      const bench = IL.rivalBench(c);
+      const rows = (c.fighters || []).map(function (f) {
+        const kit = IL.CLASSES[f.cls] || IL.CLASSES.warrior;
+        const ask = IL.askingPrice(f);
+        const onBench = bench.indexOf(f) >= 0;
+        const fee = IL.loanFee(f);
+        const top = yours ? IL.swapTopUp(f, yours) : 0;
+        return '<li class="rv-row"><span class="rv-id"><b>' + shinyMark(f) + esc(f.name) + (f.leader ? ' <em class="rv-lead">Leader</em>' : '') + '</b><small>' + esc(kit.name) + ' · Lv ' + (f.level || 1) + ' · ' + potentialStars(f) + (onBench ? ' · bench' : '') + '</small></span>' +
+          '<span class="rv-acts">' + (ask
+            ? '<button type="button" class="ctl gold" data-rv-buy="' + esc(c.id + ":" + f.id) + '"' + (save.gold < ask || !room ? ' disabled' : '') + '>Buy ' + ask + 'g</button>' +
+              (yours ? '<button type="button" class="ctl" data-rv-swap="' + esc(c.id + ":" + f.id) + '"' + (save.gold < top ? ' disabled' : '') + '>Swap +' + top + 'g</button>' : '') +
+              (onBench ? '<button type="button" class="ctl" data-rv-loan="' + esc(c.id + ":" + f.id) + '"' + (save.gold < fee || !room ? ' disabled' : '') + '>Loan ' + IL.LOAN_WEEKS + ' wk · ' + fee + 'g</button>' : '')
+            : '<span class="fine">Not for sale</span>') + '</span></li>';
+      }).join("");
+      return '<section class="es-card rv-club"><h3 class="section">' + esc(c.name) + (c.named ? ' · ' + esc(c.leader) : '') + '</h3><ul class="rv-list">' + rows + '</ul></section>';
+    }).join("");
+    const out = (save.loansOut || []).map(function (r) { return '<li>' + esc(r.fighter.name) + ' at ' + esc(r.club) + ' · ' + r.weeks + ' wk left</li>'; }).join("");
+    const inn = (save.roster || []).filter(function (f) { return f.loan; }).map(function (f) { return '<li>' + esc(f.name) + ' on loan here · ' + f.loan.weeks + ' wk left</li>'; }).join("");
+    return '<div class="rv-pane" id="rivalMarket">' +
+      '<p class="fine">Every league club\'s roster. A rival asks 25% over market value, and leaders are not for sale. A swap counts 90% of your fighter\'s value against the price. Bench fighters can be loaned for ' + IL.LOAN_WEEKS + ' league weeks.</p>' +
+      '<label class="rv-swap">Swap with <select id="swapPick"><option value="">— pick your fighter —</option>' + mine.map(function (f) {
+        return '<option value="' + esc(f.id) + '"' + (f.id === swapPick ? ' selected' : '') + '>' + esc(f.name) + ' · Lv ' + (f.level || 1) + '</option>';
+      }).join("") + '</select></label>' +
+      ((out || inn) ? '<section class="es-card"><h3 class="section">Loans</h3><ul class="rv-loans">' + inn + out + '</ul></section>' : '') +
+      '<div class="rv-clubs">' + (clubs || emptyState("No league clubs yet.", "")) + '</div></div>';
+  }
+  function rivalDeal(kind, key) {
+    const bits = key.split(":");
+    const rng = takeRng();
+    let done = null;
+    if (kind === "buy") done = IL.buyFromRival(save, bits[0], bits[1], rng);
+    else if (kind === "loan") done = IL.loanIn(save, bits[0], bits[1]);
+    else if (kind === "swap") {
+      const gone = fighterById(swapPick);
+      if (gone) returnGear(gone);
+      done = IL.swapWithRival(save, bits[0], bits[1], swapPick, rng);
+      if (done) swapPick = "";
+    }
+    if (!done) { pitSound("error"); return; }
+    const f = fighterById(bits[1]);
+    pitSound("purchase");
+    if (f) logClub(f.name + (kind === "loan" ? " arrives on loan." : " joins from a rival club."));
+    persist();
+    if (f && IL.hero) IL.hero.compose(f.parts).then(function () { refreshHub(); }).catch(function () { refreshHub(); });
+    else refreshHub();
+  }
+
   function marketPanel() {
     if (marketPane === "recruits") marketPane = "fighters";
     const bench = save.roster.filter(function (f) { return !f.captain; }).map(function (f) {
@@ -3490,7 +3546,9 @@
           '<p class="kit-line">' + classBadge(f.cls) + '<span>' + esc(kit.name) + " · Lv " + f.level + (inParty ? " · party" : "") + '</span></p>' +
           '<p class="fine">' + IL.sellValue(f) + ' gold · gear returns to the bag</p>' +
         '</div>' +
-        '<button type="button" class="btn ghost buyable" data-sell="' + esc(f.id) + '">Sell</button>' +
+        (f.loan ? '<p class="fine">On loan from a rival · ' + f.loan.weeks + ' wk left</p>'
+          : '<span class="sell-acts"><button type="button" class="btn ghost buyable" data-sell="' + esc(f.id) + '">Sell</button>' +
+            '<button type="button" class="ctl" data-loan-out="' + esc(f.id) + '" title="Two league weeks at a rival; comes back with XP">Loan +' + IL.loanOutFee(f) + 'g</button></span>') +
       '</article>';
     }).join("");
     const captain = save.roster.filter(function (f) { return f.captain; })[0];
@@ -3499,12 +3557,13 @@
     const selling = '<section class="roster-block"><h3 class="section">Sell from the bench</h3>' +
       '<p class="fine">' + (captain ? esc(captain.name) + " is captain and stays." : "The captain stays.") + '</p>' +
       '<div class="cards dense-grid">' + (bench || emptyState("The bench is empty.", "Hire someone before there is anyone to sell.")) + '</div></section>';
-    const body = marketPane === "gear" ? gearStallHtml()
+    const body = marketPane === "rivals" ? rivalMarketHtml()
+      : marketPane === "gear" ? gearStallHtml()
       : marketPane === "relics" ? relicStallHtml()
       : marketPane === "deals" ? dealsHtml()
       : marketPane === "sell" ? selling
       : recruits;
-    return filterBar("market", marketPane, [["fighters", "Fighters"], ["relics", "Relics"], ["gear", "Gear"], ["deals", "Deals"], ["sell", "Sell"]]) +
+    return filterBar("market", marketPane, [["fighters", "Fighters"], ["rivals", "Rival rosters"], ["relics", "Relics"], ["gear", "Gear"], ["deals", "Deals"], ["sell", "Sell"]]) +
       (marketPane === "deals" ? dealsHead() : "") +
       '<div class="pane" id="marketPane">' + body + '</div>';
   }
@@ -5118,6 +5177,8 @@
       persist();
       showHub("market", true);
     };
+    const swapSel = document.getElementById("swapPick");
+    if (swapSel) swapSel.onchange = function () { swapPick = swapSel.value; refreshHub(); };
     const scout = document.getElementById("scoutPick");
     if (scout) scout.onchange = function () {
       save.scout = scout.value || null;
@@ -5290,7 +5351,22 @@
       if (ev.target.closest("#draftFight")) { startDraftFight(); return; }
       if (ev.target.closest("#draftRelease")) { save.draft.stage = "done"; persist(); refreshHub(); return; }
       const sell = ev.target.closest("[data-sell]");
-      if (sell) { sellFighter(sell.dataset.sell); return; }
+      if (sell) { const sf = fighterById(sell.dataset.sell); if (sf && sf.loan) { pitSound("error"); return; } sellFighter(sell.dataset.sell); return; }
+      const lo = ev.target.closest("[data-loan-out]");
+      if (lo) {
+        const lf = fighterById(lo.dataset.loanOut);
+        if (lf) returnGear(lf);
+        const res = lf && IL.loanOut(save, lf.id, takeRng());
+        if (res) { pitSound("purchase"); logClub(lf.name + " goes on loan to " + res.club + " (+" + res.fee + " gold)."); persist(); refreshHub(); showNote(lf.name + " joins " + res.club + " for " + IL.LOAN_WEEKS + " weeks."); }
+        else pitSound("error");
+        return;
+      }
+      const rvB = ev.target.closest("[data-rv-buy]");
+      if (rvB && !rvB.disabled) { rivalDeal("buy", rvB.dataset.rvBuy); return; }
+      const rvS = ev.target.closest("[data-rv-swap]");
+      if (rvS && !rvS.disabled) { rivalDeal("swap", rvS.dataset.rvSwap); return; }
+      const rvL = ev.target.closest("[data-rv-loan]");
+      if (rvL && !rvL.disabled) { rivalDeal("loan", rvL.dataset.rvLoan); return; }
       const openRelic = ev.target.closest("[data-relic-open]");
       if (openRelic) { relicOpen = openRelic.dataset.relicOpen; refreshHub(); return; }
       const setJump = ev.target.closest("[data-set-filter]");
@@ -5779,7 +5855,7 @@
 
   function releaseFighter(id) {
     const f = fighterById(id);
-    if (!f || f.captain) return;
+    if (!f || f.captain || f.loan) return;
     returnGear(f);
     save.roster = save.roster.filter(function (r) { return r !== f; });
     save.lineup = (save.lineup || []).filter(function (fid) { return fid !== f.id; });
@@ -8264,6 +8340,7 @@
     });
     save.round += 1;
     if (IL.tickInjuries) IL.tickInjuries(save).forEach(function (n) { logClub(n + " is fit again."); });
+    if (IL.tickLoans) IL.tickLoans(save, returnGear).forEach(logClub);
     if (IL.openThunder) {
       const tc = IL.openThunder(save, takeRng());
       if (tc) logClub("The Chaos Thunder Cup opens: " + tc.size + "v" + tc.size + "v" + tc.size + "v" + tc.size + ", three rounds.");

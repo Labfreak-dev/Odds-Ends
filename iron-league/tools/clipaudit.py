@@ -225,7 +225,7 @@ def states(page):
     for pane in ("specs", "tasks", "facilities"):
         page.click("[data-filter-kind='train'][data-filter='" + pane + "']"); yield "club train " + pane, None
     k.press("5"); yield "market fighters", None
-    for pane in ("relics", "gear", "deals", "sell"):
+    for pane in ("rivals", "relics", "gear", "deals", "sell"):
         page.click("[data-filter-kind='market'][data-filter='" + pane + "']"); yield "market " + pane, None
     k.press("6"); yield "intel stats", None
     page.click("[data-pane='intel:rosters']"); yield "intel rosters", None

@@ -1016,6 +1016,53 @@
     ctx.restore();
   }
 
+  /* v92 move warnings on the floor: a ring around a fighter about to
+     cleave (everything in it is hit), and a path line while charging. */
+  function drawMoveWarn(ctx, u, match, fx) {
+    const rgb = u.team === 0 ? "130,210,255" : "255,92,70";
+    if (u.state === "attack" && u.cleave && !u.didHit) {
+      const r = (u.range || 40) + 28;
+      const p = Math.min(1, (u.animT || 0) / 0.3);
+      ctx.save();
+      ctx.fillStyle = "rgba(" + rgb + "," + (0.08 + p * 0.12) + ")";
+      ctx.strokeStyle = "rgba(" + rgb + "," + (0.55 + p * 0.35) + ")";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(u.x, u.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (u.state === "dash" && (u.dashDmg || 1) > 1) {
+      let t = null;
+      for (let i = 0; i < match.units.length; i++) if (match.units[i].id === u.tgtId) t = match.units[i];
+      if (t && t.hp > 0) {
+        const dx = t.x - u.x;
+        const dy = t.y - u.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const ux = dx / d;
+        const uy = dy / d;
+        ctx.save();
+        ctx.strokeStyle = "rgba(" + rgb + ",0.75)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y);
+        ctx.lineTo(t.x - ux * 8, t.y - uy * 8);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(" + rgb + ",0.85)";
+        ctx.beginPath();
+        ctx.moveTo(t.x - ux * 2, t.y - uy * 2);
+        ctx.lineTo(t.x - ux * 12 - uy * 6, t.y - uy * 12 + ux * 6);
+        ctx.lineTo(t.x - ux * 12 + uy * 6, t.y - uy * 12 - ux * 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+
   function drawBlock(ctx, u, fx) {
     if (u.state !== "block" || u.hp <= 0) return;
     const pulse = 0.55 + 0.45 * Math.sin((fx.t || 0) * 11);
@@ -1299,6 +1346,14 @@
         ctx.fillStyle = "rgba(220,236,255,0.9)";
         ctx.fillRect(x, y - 2.5, w * Math.min(1, u.shield / u.maxHp), 1.5);
       }
+      /* v92 cast bar: how long until the spell lands. */
+      if (u.state === "cast" && u.cast && u.cast.dur > 0) {
+        const cp = Math.max(0, Math.min(1, u.cast.t / u.cast.dur));
+        ctx.fillStyle = "rgba(6,4,3,0.82)";
+        ctx.fillRect(x - 1, y + hh + 2, w + 2, 4);
+        ctx.fillStyle = cp > 0.75 ? "#fff0c8" : "#f2b84a";
+        ctx.fillRect(x, y + hh + 3, w * cp, 2);
+      }
       drawStatusCss(ctx, u, x + w + 6, y + hh / 2, fx.t || 0);
       drawAbilityPop(ctx, u, foot.x, y - 4);
     }
@@ -1477,6 +1532,39 @@
       y += 20;
     }
     ctx.restore();
+  }
+
+  /* v92 sudden death: a red edge from 45 s, and a banner for 2.5 s. */
+  function drawSudden(ctx, match, view) {
+    const at = IL.SUDDEN_AT || 45;
+    if (!match || match.over || match.time < at) return;
+    const w = view.cssW;
+    const h = view.cssH;
+    const k = Math.min(1, (match.time - at) / 20);
+    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.7);
+    g.addColorStop(0, "rgba(160,20,10,0)");
+    g.addColorStop(1, "rgba(160,20,10," + (0.18 + 0.17 * k) + ")");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    const t = match.time - at;
+    if (t < 2.5) {
+      const a = t < 0.2 ? t / 0.2 : t > 2 ? (2.5 - t) / 0.5 : 1;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "800 " + Math.round(Math.max(20, Math.min(34, w * 0.05))) + "px " + UI_FONT;
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "rgba(20,4,2,0.9)";
+      ctx.strokeText("SUDDEN DEATH", w / 2, h * 0.22);
+      ctx.fillStyle = "#ff6a4a";
+      ctx.fillText("SUDDEN DEATH", w / 2, h * 0.22);
+      ctx.font = "700 13px " + UI_FONT;
+      ctx.strokeText("Hits grow harder, heals weaker", w / 2, h * 0.22 + 26);
+      ctx.fillStyle = "#ffd9c8";
+      ctx.fillText("Hits grow harder, heals weaker", w / 2, h * 0.22 + 26);
+      ctx.restore();
+    }
   }
 
   function drawNums(ctx, fx, cam) {
@@ -1711,6 +1799,7 @@
       }
       drawBlock(ctx, u, fx);
       if (u.hp > 0 && u.state === "attack" && !u.didSlash && !u.didHit) drawWindup(ctx, u, gy, cam, fx);
+      if (u.hp > 0) drawMoveWarn(ctx, u, match, fx);
       if (u.hp > 0) {
         const bh = bodyH * (u.giant ? 1.15 : 1);
         const bw = bodyW * (u.giant ? 1.15 : 1);
@@ -1745,6 +1834,7 @@
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     drawOverheads(ctx, heads, cam, fx, match);
     drawNums(ctx, fx, cam);
+    drawSudden(ctx, match, view);
     drawFeed(ctx, fx, cam);
 
     if (IL.pitFocusId) {

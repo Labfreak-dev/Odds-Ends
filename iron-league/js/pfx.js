@@ -754,14 +754,26 @@
     if (!c) return;
     const turn = turned();
     const p = Math.max(0, Math.min(1, c.t / c.dur));
-    const r = c.r * 0.85;
+    /* v92: drawn at the real hit radius (it was 85%, smaller than what
+       lands), with a disc that fills toward the rim as the cast completes
+       and a flash in the last quarter, so every spell reads before it hits. */
+    const r = c.r;
+    const heal = c.kind === "mend";
     ctx.save();
-    ctx.fillStyle = "rgba(" + teamRgb + "," + (0.05 + p * 0.07) + ")";
+    ctx.fillStyle = "rgba(" + teamRgb + "," + (heal ? 0.08 : 0.1 + p * 0.1) + ")";
     ctx.beginPath();
     ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "rgba(" + teamRgb + "," + (0.5 + p * 0.3) + ")";
-    ctx.lineWidth = 1;
+    if (!heal) {
+      ctx.fillStyle = "rgba(" + teamRgb + "," + (0.18 + p * 0.22) + ")";
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, Math.max(1, r * p), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const late = p > 0.75 && !heal;
+    const flash = late ? 0.5 + 0.5 * Math.sin((fx.t || 0) * 40) : 0;
+    ctx.strokeStyle = late ? "rgba(255,240,210," + (0.6 + 0.4 * flash) + ")" : "rgba(" + teamRgb + "," + (0.6 + p * 0.3) + ")";
+    ctx.lineWidth = late ? 2 : 1.4;
     ctx.stroke();
     /* Four small notches on the rim, like a target. */
     ctx.lineWidth = 1.6;

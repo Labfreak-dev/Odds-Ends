@@ -542,7 +542,7 @@
     });
   }
 
-  function nearest(m, u) {
+  function nearest(m, u, plain) {
     let best = null;
     let bestD = 1e9;
     let taunter = null;
@@ -569,7 +569,93 @@
     }
     if (taunter && u.tactic !== "hold" && tauntD < bestD * 1.85) return taunter;
     const pref = preferred(m, u);
-    return pref || best;
+    if (pref) return pref;
+    return (!plain && smartPick(m, u, best, bestD)) || best;
+  }
+
+  /* v92 autobattle targeting, after Eslabong's tactics defaults. Among the
+     enemies not much farther than the nearest, prefer one the team is
+     already hitting (focus fire), one nearly down (finish it), a caster
+     mid-spell (interrupt it), and, for front-liners, whoever is on top of
+     our back line (peel). Summons come last. A personality's mistake
+     chance sometimes skips all this and takes the nearest. */
+  function smartPick(m, u, nearestFoe, nearD) {
+    if (!nearestFoe || u.summon) return null;
+    if (mistake(m, u)) return null;
+    const front = u.role === "tank" || u.role === "melee" || u.role === "hybrid";
+    const diver = u.role === "dash";
+    let pick = null;
+    let score = -1e9;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === u.team || e.hp <= 0) continue;
+      const d = Math.hypot(e.x - u.x, e.y - u.y);
+      if (d > nearD + 120) continue;
+      let sc = -d;
+      let focus = 0;
+      for (let j = 0; j < m.units.length; j++) {
+        const a = m.units[j];
+        if (a !== u && a.team === u.team && a.hp > 0 && a.tgtId === e.id) focus++;
+      }
+      sc += Math.min(2, focus) * 34;
+      if (e.hp / e.maxHp < 0.3) sc += 46;
+      if (e.state === "cast") sc += front || diver ? 34 : 14;
+      /* Rogues dive the back line. */
+      if (diver && (e.role === "support" || e.role === "cast" || e.role === "kite")) sc += 50;
+      if (front) {
+        for (let j = 0; j < m.units.length; j++) {
+          const a = m.units[j];
+          if (a.team !== u.team || a.hp <= 0 || a.summon || a === u) continue;
+          if (!(a.role === "support" || a.role === "cast" || a.role === "kite")) continue;
+          if (Math.hypot(e.x - a.x, e.y - a.y) < 110) { sc += 60; break; }
+        }
+      }
+      if (e.summon) sc -= 70;
+      if (sc > score) { score = sc; pick = e; }
+    }
+    return pick;
+  }
+
+  /* Hidden mistake chance by personality (Eslabong: Tactician 2% ...
+     Reckless 25%). Bold fighters slip the most. */
+  const MISTAKE = { bold: 0.1, wary: 0.05, patient: 0.03 };
+  function mistake(m, u) {
+    const p = MISTAKE[u.personality] != null ? MISTAKE[u.personality] : 0.05;
+    return m.rng() < p * 0.25;
+  }
+
+  /* An enemy spell is about to land where this fighter stands: the centre
+     to walk away from, or null. */
+  function castDanger(m, u) {
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === u.team || e.hp <= 0 || !e.cast || e.state !== "cast") continue;
+      const c = e.cast;
+      if (c.kind === "mend" || !c.ability) continue;
+      const d = Math.hypot(u.x - c.x, u.y - c.y);
+      if (d <= (c.r || 70) + u.radius * 0.4 + 10) return { x: c.x, y: c.y, d: d, r: c.r || 70 };
+    }
+    return null;
+  }
+
+  /* Enemies inside r of a point. */
+  function crowdAt(m, u, x, y, r) {
+    let n = 0;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team === u.team || e.hp <= 0 || e.summon) continue;
+      if (Math.hypot(e.x - x, e.y - y) <= r + (e.radius || 12) * 0.4) n++;
+    }
+    return n;
+  }
+
+  function foesLeft(m, u) {
+    let n = 0;
+    for (let i = 0; i < m.units.length; i++) {
+      const e = m.units[i];
+      if (e.team !== u.team && e.hp > 0 && !e.summon) n++;
+    }
+    return n;
   }
 
   function unitById(m, id) {
@@ -982,6 +1068,9 @@
     if (src && src.pv && src.pv.vsSlowed && dst.slow > 0) amount *= 1 + src.pv.vsSlowed;
     if (src && src.teamDmg && !opt.dot) amount *= 1 + src.teamDmg;
     if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
+    /* v92 sudden death for every fight, after Eslabong: from 45 s hits
+       climb 5% a second, to three times at 85 s. */
+    if (m.time > SUDDEN_AT) amount *= Math.min(3, 1 + (m.time - SUDDEN_AT) * 0.05);
     if (src && !opt.dot) {
       if (src.rage > 0) amount *= 1.28;
       if (src.buff > 0 && src.buffAtk) amount *= src.buffAtk;
@@ -1130,6 +1219,7 @@
   function healUnit(m, src, dst, raw) {
     if (!dst || dst.hp <= 0) return;
     let rawN = raw;
+    if (m.time > SUDDEN_AT) rawN *= 0.5;
     if (src && src.oath) rawN *= 1.12;
     if (src && src.pv && src.pv.healMul) rawN *= 1 + src.pv.healMul;
     if (src && src.pv && src.pv.triage && dst.hp < dst.maxHp * (src.pv.triageAt || 0.4)) rawN *= 1 + src.pv.triage;
@@ -2017,13 +2107,29 @@
     if (spec.cue) cue(m, spec.cue);
   }
 
-  function fireOne(m, u, t, dist, ab) {
+  /* forced: a move the player ordered (or a scripted cast); the
+     autobattle judgment below (wait for a group, redirect to a caster)
+     never overrides it. */
+  function fireOne(m, u, t, dist, ab, forced) {
     if (!u.pv) u.pv = {};
     const reach = u.range + (t ? t.radius : 0);
     const paint = ab.fx || "spark";
     function finish(code) {
       if (code !== "skip") noteAbility(m, u, t, ab);
       return code;
+    }
+    /* v92: an area move waits for two targets while two or more stand. */
+    const lone = forced || foesLeft(m, u) < 2 || (ab.ult && m.time > 20);
+    if (!lone && (ab.kind === "cleave") && t && crowdAt(m, u, u.x, u.y, u.range + 40) < 2 && !mistake(m, u)) return "skip";
+    if (!lone && (ab.kind === "nova" || ab.kind === "frost" || ab.kind === "arc") && t && crowdAt(m, u, t.x, t.y, ab.radius || 68) < 2 && !mistake(m, u)) return "skip";
+    if (!forced && (ab.kind === "stun" || ab.kind === "knock")) {
+      const r0 = ab.reach || (reach + 12);
+      for (let i = 0; i < m.units.length; i++) {
+        const e = m.units[i];
+        if (e.team === u.team || e.hp <= 0 || e.state !== "cast" || e === t) continue;
+        const de = Math.hypot(e.x - u.x, e.y - u.y);
+        if (de <= r0) { t = e; dist = de; break; }
+      }
     }
     if (ab.kind === "cleave" && t && dist <= reach + 6 && u.cool <= 0) {
       u.cleave = true;
@@ -2116,7 +2222,7 @@
     }
     if (ab.kind === "arc" && t && dist < u.range + 90 && u.cool <= 0) {
       startCast(m, u, t);
-      if (u.cast) u.cast.kind = "arc";
+      if (u.cast) { u.cast.kind = "arc"; u.cast.ability = true; }
       spend(u, ab);
       return finish("go");
     }
@@ -2124,6 +2230,7 @@
       startCast(m, u, t);
       if (u.cast) {
         u.cast.kind = ab.kind;
+        u.cast.ability = ab.kind !== "bolt";
         u.cast.r = ab.radius || (ab.kind === "bolt" ? 24 : 68);
         u.cast.power = ab.power || 0.9;
         u.cast.fx = paint;
@@ -2202,6 +2309,7 @@
       startCast(m, u, t);
       if (u.cast) {
         u.cast.kind = ab.kind;
+        u.cast.ability = ab.kind === "frost";
         u.cast.r = ab.kind === "fireball" ? 28 : (ab.radius || u.cast.r || 70);
         u.cast.fx = paint;
         u.cast.slow = ab.kind === "frost" ? 2.1 : 0;
@@ -2279,6 +2387,23 @@
     u.tgtId = t.id;
     const dist = Math.hypot(t.x - u.x, t.y - u.y);
     if (maybeRoll(m, u, dist)) return;
+    /* v92: step out of a marked spell instead of standing in it. */
+    if (!u.summon && !(u.ai && u.ai.evade === "rarely")) {
+      const zone = castDanger(m, u);
+      if (zone && !u.dodgeSlip) {
+        if (u.dodgeSlip == null) u.dodgeSlip = mistake(m, u);
+        if (!u.dodgeSlip) {
+          const ox = zone.d < 1 ? -(u.facing || 1) : (u.x - zone.x) / zone.d;
+          const oy = zone.d < 1 ? 0.3 : (u.y - zone.y) / zone.d;
+          steer(u, u.x + ox * 160, u.y + oy * 160, spd, dt);
+          u.x += u.vx * dt;
+          u.y += u.vy * dt;
+          setMoveAnim(u, dt);
+          return;
+        }
+      }
+      if (!zone) u.dodgeSlip = null;
+    }
     if (tryClassAbility(m, u, t, dist)) return;
     const reach = meleeReach(u, t);
     if (fallingBack(u) && u.role !== "tank") {
@@ -2479,7 +2604,7 @@
     let t = unitById(m, P.focusId);
     if (!t || t.hp <= 0 || t.team === u.team) {
       P.focusId = null;
-      t = nearest(m, u);
+      t = nearest(m, u, true);
     }
     P.targetId = t ? t.id : null;
     u.tgtId = P.targetId;
@@ -2494,7 +2619,7 @@
         P.ab = null;
       } else {
         if (t) face(u, t);
-        const code = fireOne(m, u, t, dist, ab);
+        const code = fireOne(m, u, t, dist, ab, true);
         if (code !== "skip") {
           P.ab = null;
           P.chase = false;
@@ -2674,6 +2799,8 @@
     else if (m.pilot && !m.pilot.auto && m.pilot.id === u.id && u.team === 0) pilotThink(m, u, dt);
     else think(m, u, dt);
   }
+
+  const SUDDEN_AT = 45;
 
   function stepMatch(m, dt) {
     if (!m || m.over) return;
@@ -2891,7 +3018,7 @@
         startAttack(u, (u.attacks && u.attacks[0]) || "atk1", foe);
       }
     } else {
-      const code = fireOne(m, u, foe, dist, ab);
+      const code = fireOne(m, u, foe, dist, ab, true);
       if (code === "skip") {
         posed(u, ab);
         noteAbility(m, u, foe, ab);
@@ -2909,5 +3036,6 @@
   IL.createMatch = createMatch;
   IL.stepMatch = stepMatch;
   IL.PACE = PACE;
+  IL.SUDDEN_AT = SUDDEN_AT;
   IL.pilotAbs = pilotAbs;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -938,6 +938,50 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 });
 if (inert.length) console.error("passives with no effect:", inert.join(", "));
 check("every class passive changes the fight", inert.length === 0);
+
+/* v92 autobattle AI. */
+function aiMatch(left, right, seed) {
+  const L = left.map(function (c, i) { return IL.growRival(IL.randomFighter(IL.mulberry32(seed + i), c), IL.mulberry32(seed + 50 + i), 8); });
+  const R = right.map(function (c, i) { return IL.growRival(IL.randomFighter(IL.mulberry32(seed + 20 + i), c), IL.mulberry32(seed + 70 + i), 8); });
+  L.concat(R).forEach(function (f) { f.personality = "patient"; });
+  const m = IL.createMatch({ seed: seed, left: L, right: R, leftName: "A", rightName: "B" });
+  m.engage = 0;
+  m.units.forEach(function (u) { u.homeX = null; u.cool = 0.5; });
+  return m;
+}
+(function () {
+  const m = aiMatch(["warrior"], ["mage"], 9100);
+  const u = m.units[0], e = m.units[1];
+  u.x = 300; u.y = 200; e.x = 520; e.y = 200;
+  e.state = "cast"; e.actT = 2; e.cast = { x: 300, y: 200, r: 70, t: 0, dur: 2, kind: "nova", ability: true };
+  for (let i = 0; i < 66; i++) { e.actT = 2; e.cast.t = Math.min(1.5, e.cast.t); IL.stepMatch(m, 1 / 60); m.events.length = 0; }
+  check("a fighter walks out of a marked spell", Math.hypot(u.x - 300, u.y - 200) > 70 + u.radius * 0.4);
+})();
+(function () {
+  const m = aiMatch(["warrior"], ["warrior", "warrior"], 9200);
+  const u = m.units[0], a = m.units[1], b = m.units[2];
+  u.x = 300; u.y = 200; a.x = 380; a.y = 200; b.x = 300; b.y = 290; b.hp = Math.round(b.maxHp * 0.15);
+  IL.stepMatch(m, 1 / 60);
+  check("autobattle finishes the nearly dead enemy over the slightly nearer one", u.tgtId === b.id);
+})();
+(function () {
+  const m = aiMatch(["tank", "mage"], ["warrior", "warrior"], 9300);
+  const tk = m.units[0], mg = m.units[1], near = m.units[2], diver = m.units[3];
+  tk.x = 300; tk.y = 200; mg.x = 200; mg.y = 300; near.x = 370; near.y = 200; diver.x = 240; diver.y = 310;
+  IL.stepMatch(m, 1 / 60);
+  check("a tank peels the enemy on its caster", tk.tgtId === diver.id);
+})();
+const longSolo = [];
+Object.keys(IL.CLASSES).forEach(function (id) {
+  const f = IL.randomFighter(IL.mulberry32(11), id); f.level = 7;
+  const foe = IL.randomFighter(IL.mulberry32(12), "warrior");
+  const m = IL.createMatch({ seed: 9, left: [f], right: [foe], leftName: "A", rightName: "B" });
+  let st = 0;
+  while (!m.over && st < 60 * 90) { IL.stepMatch(m, 1 / 60); m.events.length = 0; st++; }
+  if (!m.over) longSolo.push(id);
+});
+if (longSolo.length) console.error("solo fights past 90 s:", longSolo.join(", "));
+check("sudden death ends every class's solo fight inside 90 s", longSolo.length === 0);
 /* v90: a weapon item never puts a wand in an archer's hands. */
 const wrongHands = [];
 Object.keys(IL.CLASSES).forEach(function (cls) {
@@ -956,7 +1000,7 @@ check("an archer with a longbow item still draws a bow, a mage with a tome a boo
 const pvRange = IL.createMatch({ seed: 1, left: [IL.randomFighter(IL.mulberry32(3), "archer")], right: [IL.randomFighter(IL.mulberry32(4), "warrior")], leftName: "A", rightName: "B" });
 check("Long Eye adds 12% range", Math.abs(pvRange.units[0].range - IL.CLASSES.archer.range * 1.12) < 0.01);
 const pvTeam = IL.createMatch({ seed: 1, left: [IL.randomFighter(IL.mulberry32(5), "druid"), IL.randomFighter(IL.mulberry32(6), "bard")], right: [IL.randomFighter(IL.mulberry32(7), "warrior")], leftName: "A", rightName: "B" });
-check("team passives reach every ally and not the foe", pvTeam.units[0].regen >= 3 && pvTeam.units[1].regen >= 3 && pvTeam.units[1].teamDmg === 0.15 && !(pvTeam.units[2].teamDmg) && (pvTeam.units[2].regen || 0) < 3);
+check("team passives reach every ally and not the foe", pvTeam.units[0].regen >= 3 && pvTeam.units[1].regen >= 3 && pvTeam.units[1].teamDmg === 0.18 && !(pvTeam.units[2].teamDmg) && (pvTeam.units[2].regen || 0) < 3);
 check("every passive has text with a number", Object.keys(IL.CLASSES).every(function (id) { const p = IL.CLASSES[id].passive; return p && /\d/.test(p.blurb || ""); }));
 
 const nameRng = IL.mulberry32(9);

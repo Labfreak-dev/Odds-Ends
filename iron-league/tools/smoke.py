@@ -20,6 +20,17 @@ ROOT = Path(__file__).resolve().parents[2]
 URL = os.environ.get("IL_SMOKE_URL", "http://127.0.0.1:8765/iron-league/")
 
 
+def through_series(page, sel="#resultTable", timeout=60000):
+    """v104 league matches are best of three: play past any round break."""
+    page.wait_for_selector(sel + ", #seriesBreak", timeout=timeout)
+    if page.locator("#seriesBreak").count():
+        page.click("#nextRound")
+        page.wait_for_selector("#seriesBreak", state="detached", timeout=30000)
+        page.wait_for_timeout(300)
+        page.evaluate("() => IL.finishNow()")
+        page.wait_for_selector(sel, timeout=timeout)
+
+
 def go_fight(page):
     """Fight opens the fight menu; To the pit opens the versus card."""
     page.click("#nextMatch")
@@ -1249,7 +1260,7 @@ def check_phone_fight(browser, width, height, shot_dir, dismiss):
             raise SystemExit(label + " speed control off screen " + str(box))
     page.screenshot(path=str(shot_dir / ("fight-" + label + ".png")))
     page.click("#speed15")
-    page.wait_for_selector("#resultTable", timeout=60000)
+    through_series(page)
     page.wait_for_function("() => document.querySelector('#speed15') && document.querySelector('#speed15').classList.contains('on')")
     overlay = page.evaluate(
         """() => {
@@ -1475,7 +1486,7 @@ def qa_gate(browser, shot_dir):
         assert_inside(page, label + " arena")
         shot("fight")
         page.click("#speed15")
-        page.wait_for_selector("#result:not([hidden]) #resultTable", timeout=60000)
+        through_series(page, "#result:not([hidden]) #resultTable")
         page.wait_for_function("() => document.querySelector('#speed15') && document.querySelector('#speed15').classList.contains('on')")
         assert_visible_exit(page, "#backHub", label + " results")
         assert_inside(page, label + " results")

@@ -201,6 +201,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Match series (v104)
+
+- **Best of three**: league matches are a series, first to two round wins, after Eslabong's multi-round matches. Between rounds a break shows the series score and lets you change the formation. Health and cooldowns reset each round.
+- **Results**: they cover the whole series. Damage, healing, K/D/A, Impact and per-move numbers add up across rounds, and the headline and match history show the series score (2–0, 2–1). Pay, XP, stamina and injuries are settled once, at the end.
+- **Tests**: `IL.finishNow()` (tools only) now ends the whole series on the current round, and `IL.finishRound()` ends one round.
+
 ## Academy (v103)
 
 - **Academy squad** on the Club tab: up to 4 fighters of level 20 or less (never the captain). They can still play for the first team.

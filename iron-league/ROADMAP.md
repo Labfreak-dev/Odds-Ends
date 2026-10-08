@@ -47,6 +47,18 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v101 | Staff: Club House slots, weekly staff market | shipped |
 | v102 | Chaos Thunder Cup: twice a season, four clubs free for all, three rounds | shipped |
 | v103 | Academy: youth squad, weekly 3v3 academy league, Development Tomes | shipped |
+| v104 | League matches are best of three, with a round break to change formation | shipped |
+| v105 | Ability costs (mana, stamina) and friendly fire | next |
+| v106 | Named rival teams; rivals rest, equip relics and counter-build | planned |
+| v107 | Difficulty: Relaxed, Normal, Hard, Infernus | planned |
+| v108 | Loans, trades and offers for rival fighters | planned |
+| v109 | Deeper tactics, 11 personalities, saved tactics | planned |
+| v110 | Respec, Rebirth, deferred picks, mastery and upgrade milestones | planned |
+| v111 | Champion abilities and new classes | planned |
+| v112 | Bigger league, draws, disbanding | planned |
+| v113 | Hall of Legends, Tournament Center, All-Star, alliance Thunder, free draft week, offline Challenge Tower | planned |
+| v114 | Staff roles and specializations, Club Agenda, Development Plans, relic tools | planned |
+| v115 | Club history and the Veteran profile | planned |
 
 ## System map
 

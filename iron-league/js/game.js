@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "The Chaos Thunder Cup: twice a season, four clubs in one pit, three free-for-all rounds, with points by place and a purse by final standing.",
     "Staff: hire a Trainer, Medic, Scout, Captain Coach and Treasurer from a weekly staff market. The new Club House adds staff slots.",
     "Injuries: a knocked-out fighter may be hurt for 1 to 3 league weeks, by its injury risk. The bench covers, and the Medical Bay heals for gold. You can switch injuries off in Settings.",
     "Live orders in the pit: Plan, Attack, Regroup and Hold, from the bar at the top-left or keys F1 to F4.",
@@ -1151,7 +1152,7 @@
 
   function fightBed(spec) {
     if (spec.mode === "gate") return "boss";
-    if (spec.mode === "chaos" || spec.mode === "endless" || spec.mode === "king") return "endless";
+    if (spec.mode === "chaos" || spec.mode === "thunder" || spec.mode === "endless" || spec.mode === "king") return "endless";
     if (spec.mode === "boss") return "boss";
     const people = [];
     (spec.left || []).forEach(function (f) { people.push(f); });
@@ -2385,6 +2386,7 @@
     const rows = otherFights().map(function (o) {
       return '<li><span>' + esc(o.label) + '</span><button type="button" class="ctl" data-fm-go="' + esc(o.tab) + '">Open ›</button></li>';
     });
+    if (thunderLive()) rows.unshift('<li><span>Chaos Thunder Cup · round ' + (save.thunder.round + 1) + ' of ' + IL.THUNDER_ROUNDS + '</span><button type="button" class="ctl" data-fm-thunder="1">Fight ›</button></li>');
     if (fielded(save.roster, 1).length) rows.push('<li><span>Chaos pit · free for all</span><button type="button" class="ctl" data-fm-chaos="1">Enter ›</button></li>');
     return '<div class="sheet-back" id="fightMenuBack"></div>' +
       '<aside class="sheet fight-menu" id="fightMenu" role="dialog" aria-modal="true" aria-labelledby="fightMenuTitle">' +
@@ -2416,6 +2418,7 @@
       const go = ev.target.closest("[data-fm-go]");
       if (go) { fightMenuOpen = false; showHub(go.dataset.fmGo); return; }
       if (ev.target.closest("[data-fm-chaos]")) { fightMenuOpen = false; showHub("cup"); startChaosFight(); }
+      if (ev.target.closest("[data-fm-thunder]")) { fightMenuOpen = false; showHub("cup"); startThunderFight(); }
     };
   }
 
@@ -2471,6 +2474,7 @@
     }
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
     if (save.cup && save.cup.mid && !save.cup.champion && IL.cupOpponent(save.cup)) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The MidCup is open: " + save.cup.size + "v" + save.cup.size + ", free entry." });
+    if (thunderLive()) out.push({ act: true, kind: "go", tab: "cup", text: "Chaos Thunder Cup: round " + (save.thunder.round + 1) + " of " + IL.THUNDER_ROUNDS + " is ready." });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
     (save.marketNews || []).forEach(function (n) { out.push({ act: false, kind: "news", text: n }); });
     (save.clubLog || []).slice(0, 10).forEach(function (n) { out.push({ act: false, kind: "club", text: n }); });
@@ -3287,6 +3291,48 @@
         ? '<button type="button" class="btn gold" id="leagueCeremony">Season ceremony</button>'
         : '<button type="button" class="btn fight" id="leagueFight"' + (ready ? '' : ' disabled') + '>' + (ready ? 'Fight' : 'Pick ' + size + ' on the club tab') + '</button>') +
     '</section>';
+  }
+
+  /* v102 Chaos Thunder Cup. */
+  function thunderLive() {
+    return !!(save.thunder && save.thunder.season === save.season && !save.thunder.done);
+  }
+  function thunderCardHtml() {
+    const t = save.thunder;
+    if (!t || t.season !== save.season) {
+      const next = (IL.THUNDER_AT || []).filter(function (a, i) { return !(save.thunderDone && save.thunderDone.season === save.season && save.thunderDone.slots.indexOf(i) >= 0); })[0];
+      return '<section class="compete-card" id="thunderCard"><header><p class="eyebrow">Free for all · twice a season</p><h3>Chaos Thunder Cup</h3></header>' +
+        '<p class="fine">' + (next ? 'Opens after league week ' + next.round + ': four clubs in one pit, ' + next.size + ' fighters each, three rounds. Places score 3, 2, 1, 0.' : 'Both cups are done this season.') + '</p></section>';
+    }
+    const table = IL.thunderTable(t);
+    const rows = table.map(function (c, i) {
+      return '<li class="' + (c.you ? "you" : "") + '"><b>' + (i + 1) + '</b><span>' + esc(c.name) + '</span><em>' + c.pts + ' pts</em><small>' + (c.places.length ? c.places.map(function (p) { return p === 1 ? "1st" : p === 2 ? "2nd" : p === 3 ? "3rd" : "4th"; }).join(" · ") : "—") + '</small></li>';
+    }).join("");
+    const ready = !t.done && fielded(save.roster, t.size).length >= t.size;
+    return '<section class="compete-card" id="thunderCard"><header><p class="eyebrow">Free for all · ' + t.size + 'v' + t.size + 'v' + t.size + 'v' + t.size + '</p><h3>Chaos Thunder Cup</h3></header>' +
+      '<ol class="thunder-table">' + rows + '</ol>' +
+      (t.done ? '<p class="fine">Finished ' + (t.finish === 1 ? "1st. The cup is yours." : t.finish === 2 ? "2nd." : t.finish === 3 ? "3rd." : "4th.") + '</p>'
+        : '<p class="fine">Round ' + (t.round + 1) + ' of ' + IL.THUNDER_ROUNDS + '. Last club standing places 1st; the rest place by when they fall.</p>' +
+          '<button type="button" class="btn fight" id="thunderGo"' + (ready ? '' : ' disabled') + '>' + (ready ? 'Fight round ' + (t.round + 1) : 'Pick ' + t.size + ' for the pit') + '</button>') +
+    '</section>';
+  }
+  function startThunderFight() {
+    const sides = IL.thunderSides(save);
+    if (!sides) { pitSound("error"); return; }
+    const btn = document.getElementById("thunderGo");
+    if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+    launchMatch({
+      mode: "thunder",
+      sides: sides,
+      left: sides[0].fighters,
+      size: save.thunder.size,
+      returnTab: "cup",
+      seed: (save.rngSeed ^ (0x7D0 + save.thunder.round * 977 + save.season * 31)) >>> 0
+    }).catch(function (e) {
+      if (btn) btn.disabled = false;
+      const banner = document.querySelector(".banner");
+      if (banner) banner.textContent = e.message;
+    });
   }
 
   function chaosCardHtml() {
@@ -4261,7 +4307,7 @@
     const enter = (!cup || cup.champion)
       ? '<button type="button" class="btn gold" id="enterCup"' + ((save.tokens || 0) < 1 ? " disabled" : "") + '>Enter cup — 1 token</button>'
       : fightBtn;
-    return '<div class="compete-grid">' + leagueCardHtml() + chaosCardHtml() + '</div>' +
+    return '<div class="compete-grid">' + leagueCardHtml() + thunderCardHtml() + chaosCardHtml() + '</div>' +
       '<section class="cup-block" id="cupBlock">' +
       '<header class="panel-head"><p class="eyebrow">' + (cup && cup.mid && !cup.champion ? 'Mid-season · free entry · ' + cup.size + 'v' + cup.size : 'Single elimination') + '</p><h3>' + (cup && cup.mid && !cup.champion ? 'The MidCup' : 'The cup') + '</h3></header>' +
       '<div class="hub-actions">' + enter + '</div>' +
@@ -4853,6 +4899,8 @@
     if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
+    const thunderBtn = document.getElementById("thunderGo");
+    if (thunderBtn && !thunderBtn.disabled) thunderBtn.onclick = function () { startThunderFight(); };
     const startEvent = document.getElementById("startEvent");
     if (startEvent) startEvent.onclick = function () { beginEvent(); };
     const startEndlessBtn = document.getElementById("startEndless");
@@ -7564,6 +7612,23 @@
         renown = 4;
         headline = "Through to the draft final";
       }
+    } else if (mode === "thunder") {
+      const order = IL.placings(match);
+      const place = order.indexOf(0) + 1;
+      const t = IL.scoreThunder(save, order);
+      const mul = IL.DIVISIONS[IL.divisionOf(save)].purse;
+      gold = Math.round([30, 18, 10, 5][place - 1] * mul);
+      renown = [5, 3, 2, 1][place - 1];
+      headline = place === 1 ? "Last club standing" : "Placed " + (place === 2 ? "2nd" : place === 3 ? "3rd" : "4th") + " in the round";
+      if (t && t.done) {
+        const pay = IL.THUNDER_PAY[t.finish - 1];
+        gold += Math.round(pay.gold * mul);
+        renown += pay.renown;
+        xp += pay.xp;
+        headline = t.finish === 1 ? "The Thunder Cup is yours" : "Thunder Cup: finished " + (t.finish === 2 ? "2nd" : t.finish === 3 ? "3rd" : "4th");
+        logClub("Chaos Thunder Cup finished " + (t.finish === 1 ? "1st" : t.finish === 2 ? "2nd" : t.finish === 3 ? "3rd" : "4th") + ".");
+        if (t.finish === 1) save.cupsWon = (save.cupsWon || 0) + 1;
+      }
     } else if (mode === "chaos") {
       gold = win ? 32 : 12;
       renown = win ? 7 : 2;
@@ -7947,13 +8012,17 @@
     });
     save.round += 1;
     if (IL.tickInjuries) IL.tickInjuries(save).forEach(function (n) { logClub(n + " is fit again."); });
+    if (IL.openThunder) {
+      const tc = IL.openThunder(save, takeRng());
+      if (tc) logClub("The Chaos Thunder Cup opens: " + tc.size + "v" + tc.size + "v" + tc.size + "v" + tc.size + ", three rounds.");
+    }
     save.trainsLeft = IL.drillCap ? IL.drillCap(save) : (IL.TRAIN_CAP || 2);
     save.trainRound = save.round;
     if (IL.rollGearStock) save.gearStock = IL.rollGearStock(takeRng());
   }
 
   function modeLabel(mode) {
-    return { league: "League", cup: "Cup", draft: "Draft cup", chaos: "Chaos pit", boss: "Weekly boss", gauntlet: "Gauntlet", horde: "Horde", king: "King of the pit", mirror: "Mirror", daily: "Daily", challenge: "Friend fight", endless: "Endless" }[mode] || "Fight";
+    return { league: "League", cup: "Cup", draft: "Draft cup", chaos: "Chaos pit", thunder: "Thunder Cup", boss: "Weekly boss", gauntlet: "Gauntlet", horde: "Horde", king: "King of the pit", mirror: "Mirror", daily: "Daily", challenge: "Friend fight", endless: "Endless" }[mode] || "Fight";
   }
 
   function lootRevealHtml(item) {

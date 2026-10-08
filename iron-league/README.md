@@ -201,6 +201,13 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Chaos Thunder Cup (v102)
+
+- **Twice a season**: after league week 4 a 2v2v2v2 cup opens, and after week 10 a 3v3v3v3 one. You face three league rivals, levelled like league rivals. It shows on Matches · Cups, in the fight menu and in Events.
+- **Format**: three free-for-all rounds in one pit. The last club standing places 1st, and the rest place by when they fell, last out highest (`IL.placings` in `js/arena.js`). Places score 3, 2, 1 and 0. Ties break on the sum of placings.
+- **Pay**: each round pays 30, 18, 10 or 5 gold by place, times the division purse. The cup pays by final standing: 1st 180 gold, 30 renown and 40 XP; 2nd 100/18/26; 3rd 55/10/16; 4th 25/4/10. Winning counts as a cup won.
+- The old one-off Chaos pit stays as is.
+
 ## Staff (v101)
 
 - **Staff** on the Club tab. You can hire one of each role, with 1 to 5 stars, from a staff market of three that turns over after each league week:

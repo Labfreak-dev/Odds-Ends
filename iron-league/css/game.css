@@ -4804,3 +4804,11 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .acad-row small { color: var(--muted); font-size: 12px; }
 .acad-acts { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .acad-table li { grid-template-areas: "n name pts"; }
+
+/* v104 series break */
+.series-break { display: grid; gap: 8px; justify-items: center; text-align: center; max-width: 520px; margin: 0 auto; padding: 18px 16px; background: rgba(20, 15, 11, 0.94); border: 1px solid #6a4a2a; border-radius: 8px; }
+.series-break h2 { margin: 0; font-family: var(--display); color: #ffd27a; }
+.series-break .fine { margin: 0; }
+.series-score { margin: 0; display: flex; gap: 12px; align-items: baseline; font: 700 34px/1 var(--display); color: #f2e2c4; }
+.series-score span { color: var(--muted); font-size: 24px; }
+.series-break .formation-pick { justify-content: center; }

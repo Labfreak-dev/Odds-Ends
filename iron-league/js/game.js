@@ -331,6 +331,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "League matches are now best of three. Between rounds you see the score and can change the formation.",
     "The Academy: send young fighters to a weekly 3v3 youth league that costs no week and no stamina. Wins earn Development Tomes, which lift a fighter to the club's average level.",
     "The Chaos Thunder Cup: twice a season, four clubs in one pit, three free-for-all rounds, with points by place and a purse by final standing.",
     "Staff: hire a Trainer, Medic, Scout, Captain Coach and Treasurer from a weekly staff market. The new Club House adds staff slots.",
@@ -6391,6 +6392,8 @@
         returnTab: spec.returnTab || "overview",
         friendName: spec.friendName || "",
         academyClub: spec.academyClub || "",
+        series: spec.series || null,
+        spec: spec,
         tok: tok
       };
       IL.currentMatch = match;
@@ -6463,8 +6466,73 @@
       rival: rival,
       size: size,
       seed: (save.rngSeed ^ (save.season * 997) ^ ((save.round + 1) * 131)) >>> 0,
-      returnTab: "overview"
+      returnTab: "overview",
+      series: newSeries()
     });
+  }
+
+  /* v104 league matches are a best-of-three series. */
+  function newSeries() { return { need: 2, wins: [0, 0], log: [], stats: {}, kills: [0, 0], round: 1, done: false }; }
+  const SERIES_KEYS = ["dmgDealt", "dmgTaken", "healing", "kos", "deaths", "assists"];
+  function stashSeries(ser, match) {
+    match.units.forEach(function (u) {
+      if (!u || u.summon) return;
+      const k = u.team + ":" + u.id;
+      const row = ser.stats[k] || (ser.stats[k] = { byAb: {} });
+      SERIES_KEYS.forEach(function (key) { row[key] = (row[key] || 0) + (u[key] || 0); });
+      Object.keys(u.byAb || {}).forEach(function (id) {
+        const a = u.byAb[id];
+        const b = row.byAb[id] || (row.byAb[id] = { id: id, name: a.name, dmg: 0, heal: 0, uses: 0 });
+        b.dmg += a.dmg || 0; b.heal += a.heal || 0; b.uses += a.uses || 0; if (a.used) b.used = true;
+      });
+    });
+    (match.kills || []).forEach(function (n, t) { ser.kills[t] = (ser.kills[t] || 0) + (n || 0); });
+  }
+  function foldSeries(ser, match) {
+    match.units.forEach(function (u) {
+      const row = u && ser.stats[u.team + ":" + u.id];
+      if (!row) return;
+      SERIES_KEYS.forEach(function (key) { u[key] = (u[key] || 0) + (row[key] || 0); });
+      if (!u.byAb) u.byAb = {};
+      Object.keys(row.byAb).forEach(function (id) {
+        const b = row.byAb[id];
+        const a = u.byAb[id] || (u.byAb[id] = { id: id, name: b.name, dmg: 0, heal: 0 });
+        a.dmg = (a.dmg || 0) + b.dmg; a.heal = (a.heal || 0) + b.heal; a.uses = (a.uses || 0) + b.uses; if (b.used) a.used = true;
+      });
+    });
+    (ser.kills || []).forEach(function (n, t) { match.kills[t] = (match.kills[t] || 0) + (n || 0); });
+  }
+  function seriesBreak(ser) {
+    const box = document.getElementById("result");
+    if (!box) return;
+    const cur = IL.FORMATIONS[save.formation] ? save.formation : "line";
+    const last = ser.log[ser.log.length - 1];
+    box.hidden = false;
+    box.innerHTML = '<div class="series-break" id="seriesBreak">' +
+      '<p class="eyebrow">Round ' + (ser.round - 1) + ' of 3 · best of three</p>' +
+      '<h2>' + (last === "W" ? "Round won" : "Round lost") + '</h2>' +
+      '<p class="series-score"><b>' + ser.wins[0] + '</b><span>–</span><b>' + ser.wins[1] + '</b></p>' +
+      '<p class="fine">' + (ser.wins[0] === 1 && ser.wins[1] === 1 ? "All square. The next round decides it." : ser.wins[0] > ser.wins[1] ? "One more round takes the match." : "Win the next round to force a decider.") + ' Health and cooldowns reset. Change the formation if the last round went wrong.</p>' +
+      '<div class="formation-pick" id="breakFormation" role="group" aria-label="Formation">' + Object.keys(IL.FORMATIONS).map(function (id) {
+        return '<button type="button" class="es-subtab' + (id === cur ? " on" : "") + '" data-formation="' + id + '">' + esc(IL.FORMATIONS[id].name) + '</button>';
+      }).join("") + '</div>' +
+      '<p class="fine" id="breakFormationLine">' + esc(IL.FORMATIONS[cur].blurb) + '</p>' +
+      '<button type="button" class="btn fight" id="nextRound">Round ' + ser.round + '</button>' +
+    '</div>';
+    document.getElementById("breakFormation").onclick = function (ev) {
+      const b = ev.target.closest("[data-formation]");
+      if (!b) return;
+      save.formation = b.dataset.formation;
+      persist();
+      this.querySelectorAll("[data-formation]").forEach(function (c) { c.classList.toggle("on", c.dataset.formation === save.formation); });
+      document.getElementById("breakFormationLine").textContent = IL.FORMATIONS[save.formation].blurb;
+    };
+    const spec = fight.spec;
+    document.getElementById("nextRound").onclick = function () {
+      this.disabled = true;
+      this.textContent = "Opening the pit…";
+      launchMatch(Object.assign({}, spec, { seed: ((spec.seed || 1) + ser.round * 7919) >>> 0, series: ser }));
+    };
   }
 
   function startCupFight() {
@@ -6782,7 +6850,8 @@
     document.getElementById("meter").onclick = toggleMeter;
     document.getElementById("pilot").onclick = function () { togglePilot(); };
     /* No skip in the pit. Tests and tools finish a fight with IL.finishNow(). */
-    IL.finishNow = function () { skipFight(); };
+    IL.finishNow = function () { if (fight && fight.series) fight.series.quick = true; skipFight(); };
+    IL.finishRound = function () { skipFight(); }; /* tests: end one round of a series */
     const youRows = [];
     const themRows = [];
     match.units.forEach(function (u, i) {
@@ -7468,7 +7537,7 @@
     save.history.unshift({
       mode: (fight && fight.mode) || "league",
       opponent: opponent,
-      score: (match.kills[0] || 0) + "–" + foe,
+      score: fight && fight.series ? fight.series.wins[0] + "–" + fight.series.wins[1] : (match.kills[0] || 0) + "–" + foe,
       win: !!win,
       mvp: mvpName || "—",
       mvpImpact: (function () {
@@ -7578,6 +7647,22 @@
       match.winner = 0;
     }
     fight.settled = true;
+    /* v104 a series: record the round; break between rounds, or fold every
+       round's numbers into this match before the payout. */
+    const ser = fight.series;
+    if (ser && !ser.done) {
+      ser.wins[match.winner === 0 ? 0 : 1] += 1;
+      ser.log.push(match.winner === 0 ? "W" : "L");
+      ser.round += 1;
+      if (!ser.quick && ser.wins[0] < ser.need && ser.wins[1] < ser.need) {
+        stashSeries(ser, match);
+        seriesBreak(ser);
+        return;
+      }
+      ser.done = true;
+      foldSeries(ser, match);
+      if (ser.wins[0] !== ser.wins[1]) match.winner = ser.wins[0] > ser.wins[1] ? 0 : 1;
+    }
     const win = match.winner === 0;
     const pf = match.kills[0] || 0;
     const pa = match.units.filter(function (u) { return u.team === 0 && u.hp <= 0; }).length;
@@ -7586,6 +7671,7 @@
     let renown = win ? 6 + fight.size : 2;
     let xp = win ? 22 : 8;
     let headline = win ? "The pit is yours" : "They walk out";
+    if (ser && ser.done && ser.log.length > 1) headline = (win ? "Series won " : "Series lost ") + ser.wins[0] + "–" + ser.wins[1];
     let relicNote = "";
     if (mode === "champions") {
       const cup = save.champs;

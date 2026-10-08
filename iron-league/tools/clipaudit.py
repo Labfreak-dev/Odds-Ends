@@ -114,6 +114,12 @@ PROBE = r"""
         a = a.parentElement;
       }
     }
+    // text squeezed into a sliver: three or more lines, each a letter or two wide
+    if (!why && trs.length >= 3) {
+      const fs = parseFloat(cs.fontSize) || 14;
+      const avg = trs.reduce(function (n, t) { return n + t.width; }, 0) / trs.length;
+      if (avg < fs * 1.8) why = 'text stacked in a ' + Math.round(avg) + 'px column (' + trs.length + ' lines)';
+    }
     // a one-line button label with under 10% to spare clips on wider phone fonts (Roboto)
     // (a shrink-to-fit button grows with its label, so only a squeezed one counts)
     if (!why && (el.tagName === 'BUTTON' || el.classList.contains('btn')) && cs.whiteSpace.indexOf('nowrap') >= 0 && trs.length === 1) {
@@ -200,6 +206,8 @@ def states(page):
     if page.locator("#armory [data-arm-equip]").count():
         page.locator("#armory [data-arm-equip]").first.click(); page.wait_for_selector("#armory .armory-pick"); yield "armory pick", None
     page.click("[data-pane='roster:relics']"); yield "roster relics", None
+    page.locator("[data-relic-open]").first.click(); page.wait_for_selector("#relicSheet"); yield "relic sheet", "#relicSheet"
+    page.click("#relicSheetClose"); page.wait_for_selector("#relicSheet", state="detached")
     k.press("4"); yield "club home", None
     page.locator("[data-pane='club:events']").first.click(); yield "club events week", None
     for pane in ("endless", "daily", "friend"):

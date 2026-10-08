@@ -201,6 +201,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Fix (v91)
+
+- **Relics page**: the relic list was a fixed-height column with its own scroll box (about 370 px on a phone), inside the scrolling page. It now flows with the page, with bigger tiles (52 px icons in framed cells).
+- **Relic popup**: `#relicSheet .btn { width: 100% }` also caught the close cross, which took the whole header and squeezed the title into a 17 px column, one letter a line. The cross is 40 px again and the title gets the rest.
+- The clip audit opens the relic popup and now flags text stacked into a sliver (three or more lines, each under two letters wide).
+
 ## Fix (v90)
 
 - **Archers holding wands**: a weapon item set the drawn weapon whatever the class, and rivals get random division gear, so an archer with a Wand item drew a wand (and still shot arrows). Now an item only changes the drawn weapon inside the class's family (`fitsClass` in `js/weapons.js`): bows for archers and rangers, guns for gunslingers and skirmishers, staffs, wands and books for casters, blades and hafted weapons for melee; Monk and Beastmaster always keep fists and claws. The item's stats still count. The sim checks every class against every weapon item.

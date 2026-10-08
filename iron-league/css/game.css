@@ -4639,3 +4639,23 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .bench-row .es-sub-act .party-acts { display: contents; }
 .bench-row .es-sub-act > *, .bench-row .party-acts .ctl { width: 100%; min-width: 0; padding: 0 8px; }
 @media (min-width: 561px) { .bench-row .es-sub-act { grid-auto-columns: minmax(84px, auto); } }
+
+/* ---------- v91 relics: one page scroll, bigger tiles, a sane popup ----------
+   The relic pane was a fixed-height column with its own scroll box (about
+   370px on a phone). It now flows with the page. */
+.hub-panel:has(#relicPane) { overflow: visible !important; }
+#relicPane { display: block !important; overflow: visible !important; min-height: 0; }
+#relicPane > .pane, #relicPane > #relicGrid { max-height: none !important; overflow: visible !important; height: auto !important; }
+#relicPane .relic-grid { gap: 8px; }
+#relicPane .relic-cell { padding: 8px 4px 10px; border: 1px solid #3a2c1f; border-radius: 6px; background: linear-gradient(#211913, #17120e); min-height: 96px; justify-content: flex-start; }
+#relicPane .relic-cell.riding { border-color: #c9973f; }
+#relicPane .relic-cell .glyph { width: 52px; height: 52px; }
+#relicPane .relic-cell .glyph svg { width: 30px; height: 30px; }
+#relicPane .relic-cell .relic-name { font-size: 13px; text-align: center; overflow-wrap: anywhere; white-space: normal; }
+/* The relic popup: #relicSheet .btn made every button full width, the close
+   cross too, which squeezed the title into a sliver. */
+#relicSheet .sheet-head { display: flex; align-items: flex-start; gap: 10px; }
+#relicSheet .sheet-head > div { flex: 1 1 auto; min-width: 0; }
+#relicSheet .sheet-head .btn.close-x { flex: none; width: 40px !important; margin-top: 0; }
+#relicSheet .sheet-head .eyebrow { overflow-wrap: normal; word-break: normal; }
+#relicSheet .relic-face .glyph { width: 72px; height: 72px; }

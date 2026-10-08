@@ -4659,3 +4659,24 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 #relicSheet .sheet-head .btn.close-x { flex: none; width: 40px !important; margin-top: 0; }
 #relicSheet .sheet-head .eyebrow { overflow-wrap: normal; word-break: normal; }
 #relicSheet .relic-face .glyph { width: 72px; height: 72px; }
+
+/* ---------- v93 season card, goals, modifiers, chest ---------- */
+.mod-chip { padding: 1px 8px; border-radius: 4px; border: 1px solid #a07a40; background: #2a1f14; color: #ffe0a0; font: 700 11px var(--ui); letter-spacing: 0.03em; max-width: 100%; overflow-wrap: anywhere; }
+.season-card .section { margin-top: 0; }
+.goal-list, .mod-list, .chest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.goal-row { display: grid; gap: 4px; padding: 6px 8px; border: 1px solid #3a2c1f; border-radius: 4px; background: #1a140f; }
+.goal-row span { display: grid; gap: 1px; }
+.goal-row b { color: #f4ecdf; font-size: 14px; }
+.goal-row small, .mod-list small { color: var(--muted); font-size: 12px; }
+.goal-row.done { border-color: #6cc46a; }
+.goal-row.done b { color: #b7e8a8; }
+.goal-bar { display: block; height: 4px; border-radius: 2px; background: #2a2018; overflow: hidden; }
+.goal-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #d9a54a, #ffd27a); }
+.goal-row.done .goal-bar > i { background: #6cc46a; }
+.mod-list li { display: grid; gap: 1px; padding: 6px 8px; border-left: 3px solid #a07a40; background: #1a140f; border-radius: 0 4px 4px 0; }
+.mod-list b { color: #ffe0a0; }
+.chest-list li { padding: 4px 8px; border: 1px solid #5a4630; border-radius: 4px; background: #1a140f; color: #f4ecdf; }
+#seasonGoals.es-card, #seasonMods.es-card { margin-bottom: 10px; }
+@media (max-width: 560px) { .es-week .mod-chip { display: none; } }
+/* v93: long goal toasts wrap inside the box instead of running off screen */
+#achieveToast .toast { max-width: 100%; white-space: normal !important; overflow-wrap: anywhere; text-align: right; }

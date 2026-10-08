@@ -819,8 +819,8 @@
     return { id: "r" + Math.floor(rng() * 1e9).toString(36), name: name, you: false, fighters: fighters };
   }
 
-  function startCup(save, rng) {
-    const n = 2;
+  function startCup(save, rng, size) {
+    const n = Math.max(1, Math.min(3, size | 0 || 2));
     const you = {
       id: "you",
       name: save.clubName,
@@ -1227,6 +1227,95 @@
       return top ? top.fighter : null;
     }
     return { mvp: best("dealt"), kos: best("kos"), wall: best("taken"), healer: best("heal") };
+  }
+
+  /* ---------- v93 season rules, after Eslabong ----------
+     Season modifiers: two rules a season from this pool, on every league,
+     cup and Champions Cup match (not events, daily or friendly fights). */
+  const SEASON_MODS = [
+    { id: "glass", name: "Glass Shields", blurb: "Shields absorb 40% less." },
+    { id: "vamp", name: "Vampiric Moon", blurb: "Every hit heals its dealer for 6% of the damage." },
+    { id: "rush", name: "Opening Rush", blurb: "The first 10 seconds of a fight deal 25% more damage." },
+    { id: "storm", name: "Mana Storm", blurb: "Ability cooldowns are 20% shorter." },
+    { id: "iron", name: "Iron Season", blurb: "Every fighter has +3 defense." },
+    { id: "swift", name: "Swift Feet", blurb: "Every fighter moves 12% faster." },
+    { id: "fuse", name: "Short Fuse", blurb: "Sudden death starts at 30 seconds instead of 45." },
+    { id: "mercy", name: "Mercy", blurb: "Heals are 25% stronger." },
+    { id: "keen", name: "Keen Edges", blurb: "Every fighter has +6% critical chance." },
+    { id: "purse", name: "Rich Purses", blurb: "League matches pay 30% more gold." },
+    { id: "lean", name: "Lean Year", blurb: "League matches pay 20% less gold and 25% more XP." }
+  ];
+  function seasonModById(id) {
+    for (let i = 0; i < SEASON_MODS.length; i++) if (SEASON_MODS[i].id === id) return SEASON_MODS[i];
+    return null;
+  }
+  function pickSeasonMods(rng, n) {
+    const pool = SEASON_MODS.map(function (m) { return m.id; });
+    const out = [];
+    while (out.length < (n || 2) && pool.length) {
+      const id = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+      if ((id === "purse" && out.indexOf("lean") >= 0) || (id === "lean" && out.indexOf("purse") >= 0)) continue;
+      out.push(id);
+    }
+    return out;
+  }
+
+  /* Season objectives: five a season, each paying gold and renown (by
+     division) the moment it is met. */
+  const SEASON_GOALS = [
+    { id: "top3", text: "Finish in the top three", need: 1, gold: 160, renown: 16 },
+    { id: "wins", text: "Win 8 league matches", need: 8, gold: 120, renown: 12 },
+    { id: "midcup", text: "Win the MidCup", need: 1, gold: 140, renown: 14 },
+    { id: "kos", text: "Land 30 knockouts", need: 30, gold: 90, renown: 9 },
+    { id: "streak", text: "Win 4 league matches in a row", need: 4, gold: 110, renown: 11 },
+    { id: "levels", text: "Gain 10 fighter levels", need: 10, gold: 80, renown: 8 },
+    { id: "champs", text: "Reach the Champions Cup", need: 1, gold: 120, renown: 12 },
+    { id: "gate", text: "Clear 5 Iron Gate floors in one run", need: 5, gold: 100, renown: 10 }
+  ];
+  function pickSeasonGoals(rng) {
+    const pool = SEASON_GOALS.slice();
+    const out = [];
+    while (out.length < 5 && pool.length) out.push({ id: pool.splice(Math.floor(rng() * pool.length), 1)[0].id, paid: false });
+    return out;
+  }
+  /* How far along a goal is, from the save (nothing extra to keep). */
+  function goalProgress(save, id, ctx) {
+    const c = ctx || {};
+    const you = (save.clubs || []).filter(function (x) { return x.you; })[0] || { w: 0 };
+    if (id === "wins") return you.w || 0;
+    if (id === "kos") return (save.roster || []).reduce(function (n, f) { return n + ((f.season && f.season.kos) || 0); }, 0);
+    if (id === "streak") return save.streakSeason === save.season ? (save.streakBest || 0) : 0;
+    if (id === "levels") {
+      return (save.roster || []).reduce(function (n, f) {
+        return n + (f.lv0Season === save.season ? Math.max(0, (f.level || 1) - (f.lv0 || 1)) : 0);
+      }, 0);
+    }
+    if (id === "midcup") return save.midWon === save.season ? 1 : 0;
+    if (id === "champs") return save.champs && save.champs.season === save.season && (save.champs.slots || []).some(function (s) { return s.you; }) ? 1 : 0;
+    if (id === "top3") return c.place != null && c.place <= 2 ? 1 : 0;
+    if (id === "gate") return save.gateSeason === save.season ? (save.gateSeasonBest || 0) : 0;
+    return 0;
+  }
+
+  /* The season-end chest, by finishing place (0 = first) and division. */
+  function seasonChest(place, tier, rng) {
+    const mul = DIVISIONS[Math.max(0, Math.min(4, tier | 0))].purse;
+    const GOLD = [420, 280, 220, 160, 130, 110, 90, 80];
+    const RENOWN = [42, 28, 22, 16, 13, 11, 9, 8];
+    const p = Math.max(0, Math.min(GOLD.length - 1, place | 0));
+    const items = [];
+    const nItems = p === 0 ? 3 : p <= 2 ? 2 : p <= 4 ? 1 : 0;
+    for (let tries = 0; items.length < nItems && tries < 20 && IL.makeItem; tries++) {
+      const it = IL.makeItem(rng, { bag: p <= 2 ? "cup" : "win" });
+      if (IL.itemSlot && IL.itemSlot(it) === "tome") continue;
+      items.push(it);
+    }
+    return {
+      gold: Math.round(GOLD[p] * mul),
+      renown: Math.round(RENOWN[p] * mul),
+      items: items,
+      relic: p === 0 || (p <= 2 && rng() < 0.5)
+    };
   }
 
   function seasonPurse(place, tier) {
@@ -1969,6 +2058,13 @@
   IL.rivalBump = rivalBump;
   IL.seasonAwards = seasonAwards;
   IL.seasonPurse = seasonPurse;
+  IL.SEASON_MODS = SEASON_MODS;
+  IL.seasonModById = seasonModById;
+  IL.pickSeasonMods = pickSeasonMods;
+  IL.SEASON_GOALS = SEASON_GOALS;
+  IL.pickSeasonGoals = pickSeasonGoals;
+  IL.goalProgress = goalProgress;
+  IL.seasonChest = seasonChest;
   IL.ACHIEVEMENTS = ACHIEVEMENTS;
   IL.claimAchievements = claimAchievements;
   IL.achievementBoard = achievementBoard;

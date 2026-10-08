@@ -982,6 +982,25 @@ Object.keys(IL.CLASSES).forEach(function (id) {
 });
 if (longSolo.length) console.error("solo fights past 90 s:", longSolo.join(", "));
 check("sudden death ends every class's solo fight inside 90 s", longSolo.length === 0);
+
+/* v93 seasons. */
+const modPicks = [];
+for (let i = 0; i < 40; i++) modPicks.push(IL.pickSeasonMods(IL.mulberry32(300 + i), 2));
+check("two distinct season modifiers, never Rich Purses with Lean Year", modPicks.every(function (p) { return p.length === 2 && p[0] !== p[1] && !(p.indexOf("purse") >= 0 && p.indexOf("lean") >= 0) && p.every(function (id) { return !!IL.seasonModById(id); }); }));
+const goalPick = IL.pickSeasonGoals(IL.mulberry32(5));
+check("five distinct season goals", goalPick.length === 5 && new Set(goalPick.map(function (g) { return g.id; })).size === 5);
+const chests = [0, 1, 2, 4, 7].map(function (pl) { return IL.seasonChest(pl, 0, IL.mulberry32(50 + pl)); });
+check("the season chest shrinks down the table and only the top gets a sure relic", chests[0].gold > chests[1].gold && chests[1].gold > chests[3].gold && chests[3].gold > chests[4].gold && chests[0].relic === true && chests[4].items.length === 0 && chests[0].items.length === 3);
+check("a higher division fills the chest more", IL.seasonChest(0, 3, IL.mulberry32(1)).gold > IL.seasonChest(0, 0, IL.mulberry32(1)).gold);
+const goalSave = { season: 2, clubs: [{ you: true, w: 6 }], roster: [{ level: 9, lv0: 5, lv0Season: 2, season: { kos: 12 } }, { level: 4, lv0: 4, lv0Season: 1, season: { kos: 3 } }], streakSeason: 2, streakBest: 3, midWon: 2 };
+check("goal progress reads the save", IL.goalProgress(goalSave, "wins") === 6 && IL.goalProgress(goalSave, "kos") === 15 && IL.goalProgress(goalSave, "levels") === 4 && IL.goalProgress(goalSave, "streak") === 3 && IL.goalProgress(goalSave, "midcup") === 1 && IL.goalProgress(goalSave, "top3", { place: 2 }) === 1 && IL.goalProgress(goalSave, "top3", { place: 3 }) === 0);
+(function () {
+  const mk = function (mods) { return IL.createMatch({ seed: 4, left: [IL.randomFighter(IL.mulberry32(3), "warrior")], right: [IL.randomFighter(IL.mulberry32(4), "mage")], leftName: "A", rightName: "B", mods: mods }); };
+  const plain = mk([]), iron = mk(["iron", "swift", "keen", "fuse", "storm"]);
+  check("season modifiers change the fighters and the fight", iron.units[0].def === plain.units[0].def + 3 && Math.abs(iron.units[0].speed - plain.units[0].speed * 1.12) < 0.01 && Math.abs(iron.units[0].crit - plain.units[0].crit - 0.06) < 1e-9 && iron.suddenAt === 30 && plain.suddenAt === 45 && iron.units[0].stormCd === 0.8);
+  const a = runOut(mk(["rush", "vamp"])), b = runOut(mk([]));
+  check("a fight with Opening Rush and Vampiric Moon plays out differently", a.time !== b.time || a.units[0].hp !== b.units[0].hp);
+})();
 /* v90: a weapon item never puts a wand in an archer's hands. */
 const wrongHands = [];
 Object.keys(IL.CLASSES).forEach(function (cls) {

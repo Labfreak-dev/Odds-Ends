@@ -201,6 +201,15 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Party board and one-tap gear (v89)
+
+- **Roster ▸ Party** (was First team): the party cards, then the bench as a list, then a hire list.
+  - **Swap**: tap Swap on one fighter, then on another (party or bench). Party and bench trade places; two party fighters trade slots. **Best lineup** fields the highest levels with the captain kept in.
+  - **Gear**: opens a gear drawer right under that fighter (party fighters: under the cards; bench: under their row), every slot with what is worn and every spare item for it.
+  - **Hire**: the four best market listings you can afford (level first), with Hire right there; the hire lands back on the party board. "Whole market" opens the market tab.
+- **One-tap gear**: every spare item shows its stat change (+12 ATK, -1 DEF...) and its own Equip button, in the party drawer and on the fighter sheet. The old flow (tap an item, scroll to the bottom for the comparison and Equip) is gone. On the Gear tab, Equip opens the fighter list inside the card, each name with the change for that fighter, and a tap equips.
+- **Paladin** won 62% in the class band; its Oath Arm shields drop to +10% (from +25%), health 196 → 180, defense 8 → 7. Measured after: 49% over 100 fights.
+
 ## Class passives (v88)
 
 Only four class passives were arena rules (Rogue and Assassin bleed, Berserker fury, Duelist riposte); the other 23 were text. Each now has a set number in `PASSIVE_FX` (`js/kits.js`), the arena reads it as `u.pv`, and the sheet text is written from the same numbers:
@@ -223,7 +232,7 @@ Only four class passives were arena rules (Rogue and Assassin bleed, Berserker f
 | Elementalist | Cycle | Cooldowns 10% shorter |
 | Monk | Open Hand | Stuns last 30% longer |
 | Necromancer | Grave Cold | Damage over time +20% a tick |
-| Paladin | Oath Arm | Shields it gives +25% |
+| Paladin | Oath Arm | Shields it gives +10% (v89) |
 | Druid | Green Blood | Team regains 3 HP a second |
 | Bard | Encore | Team deals 15% more damage |
 | Gunslinger | Quick Draw | First shot of a fight +50% |

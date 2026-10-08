@@ -193,7 +193,12 @@ def states(page):
         page.click("#enterCup"); yield "matches cups bracket", None
     page.click("[data-pane='matches:history']"); yield "matches history", None
     k.press("3"); yield "roster first team", None
+    page.locator("#partyCards [data-party-gear]").first.click(); page.wait_for_selector("#partyGear"); yield "party gear drawer", None
+    page.locator("#partyCards [data-party-swap]").first.click(); yield "party swap picked", None
+    page.locator("#partyCards [data-party-swap]").first.click()
     page.click("[data-pane='roster:gear']"); yield "roster gear", None
+    if page.locator("#armory [data-arm-equip]").count():
+        page.locator("#armory [data-arm-equip]").first.click(); page.wait_for_selector("#armory .armory-pick"); yield "armory pick", None
     page.click("[data-pane='roster:relics']"); yield "roster relics", None
     k.press("4"); yield "club home", None
     page.locator("[data-pane='club:events']").first.click(); yield "club events week", None

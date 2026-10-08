@@ -54,7 +54,7 @@
     paladin: {
       id: "paladin", name: "Paladin", renown: 15, trait: "guardian",
       blurb: "Holds the line and mends the nearest wound.",
-      hp: 196, atk: 14, def: 8, speed: 76, radius: 16,
+      hp: 180, atk: 14, def: 7, speed: 76, radius: 16,
       range: 40, role: "tank", attacks: ["atk1", "atk2"], weapon: 1,
       idle: "idle2", run: "run",
       ability: A("aegis", "Aegis", "shield", 9.5, "orbit", 1, "A shield on the most wounded ally.", { power: 0.1 })
@@ -777,7 +777,7 @@
     cycle: { cdCut: 0.1 },
     "open-hand": { stunTime: 0.3 },
     "grave-cold": { dotMul: 0.2 },
-    "oath-arm": { shieldMul: 0.25 },
+    "oath-arm": { shieldMul: 0.1 },
     "green-blood": { teamRegen: 3 },
     "encore-note": { teamDmg: 0.15 },
     "quick-draw": { firstShot: 0.5 },

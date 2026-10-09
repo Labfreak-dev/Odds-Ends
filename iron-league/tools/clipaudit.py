@@ -188,7 +188,7 @@ raw.history = [0,1,2,3,4,5].map(i => ({ mode: 'league', opponent: 'Copper Warden
 raw.marketNews = ['Your scout found a Elementalist.', 'Cass Cinder joined Red Kettle for 222 gold.'];
 raw.offers = [{ id: 'o1', fid: raw.roster[1].id, fname: raw.roster[1].name, club: 'Lowmarket Blades', gold: 1220, season: raw.season, round: raw.round }];
 raw.roster[raw.roster.length - 1].injury = { weeks: 2 }; raw.roster[1].injury = { weeks: 3 };
-raw.staff = [{ id: 'sx1', role: 'trainer', stars: 4, name: 'Ottoline Barrowmere-Vale' }];
+raw.staff = [{ id: 'sx1', role: 'trainer', stars: 4, name: 'Ottoline Barrowmere-Vale', spec: 'drillmaster' }];
 raw.thunder = { season: raw.season, slot: 0, size: 2, round: 1, done: false, clubs: [{ name: raw.clubName, you: true, pts: 3, places: [1] }, { name: 'Lowmarket Blades of the Far Reach', pts: 2, places: [2], fighters: raw.roster.slice(0, 2) }, { name: 'Salt Stair', pts: 1, places: [3], fighters: raw.roster.slice(0, 2) }, { name: 'Cinder Pact', pts: 0, places: [4], fighters: raw.roster.slice(0, 2) }] };
 raw.devTomes = 2; raw.academy = { season: raw.season, ids: [raw.roster[raw.roster.length - 1].id], table: [{ name: raw.clubName, you: true, w: 2, l: 1, pts: 6 }, { name: 'Lowmarket Blades of the Far Reach', w: 1, l: 2, pts: 3 }, { name: 'Salt Stair', w: 0, l: 0, pts: 0 }, { name: 'Cinder Pact', w: 0, l: 0, pts: 0 }, { name: 'North Wharf', w: 0, l: 0, pts: 0 }, { name: 'Red Kettle', w: 0, l: 0, pts: 0 }], played: null, tomesUsed: 0 };
 raw.roster[0].shiny = true; raw.roster[0].grades = { hp: 'E', atk: 'G', def: 'B', spd: 'E' };
@@ -222,6 +222,7 @@ def states(page):
     k.press("4"); page.locator("[data-pane='club:staff']").first.click(); yield "club staff", None
     k.press("4"); page.locator("[data-pane='club:academy']").first.click(); yield "club academy", None
     k.press("4"); page.locator("[data-pane='club:halls']").first.click(); yield "club halls", None
+    k.press("4"); page.locator(".es-tile[data-pane='club:plans']").first.click(); yield "club plans", None
     k.press("4"); page.locator("[data-pane^='club:train']").first.click(); yield "club train", None
     for pane in ("specs", "tasks", "facilities"):
         page.click("[data-filter-kind='train'][data-filter='" + pane + "']"); yield "club train " + pane, None

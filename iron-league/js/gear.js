@@ -120,7 +120,7 @@
     { id: "infirmary", name: "Medical Bay", blurb: "Drills cost less, the bench rests 6 more stamina, injuries come 3% less often and heal 25% cheaper, a rank.", max: 2, costs: [60, 140], group: "care" },
     { id: "scout", name: "Scouting Office", blurb: "Scouting finds the wanted class more often; rank 2 always does.", max: 2, costs: [100, 220], group: "market" },
     { id: "treasury", name: "Treasure House", blurb: "One more club relic slot a rank.", max: 2, costs: [150, 320], group: "market" },
-    { id: "clubhouse", name: "Club House", blurb: "One more staff slot a rank (one to start).", max: 2, costs: [110, 260], group: "core" }
+    { id: "clubhouse", name: "Club House", blurb: "One more staff slot a rank (one to start).", max: 4, costs: [110, 260, 450, 700], group: "core" }
   ];
   const GEAR_REROLL = 20;
   const STOCK_N = 4;
@@ -500,11 +500,12 @@
   function drillCap(data) { return TRAIN_CAP + facilityRank(data, "yard"); }
   function rosterCap(data) { return (IL.ROSTER_CAP || 8) + 2 * facilityRank(data, "hq"); }
   function benchShare(data) { return 0.15 * facilityRank(data, "barracks"); }
-  function restBonus(data) { return 6 * facilityRank(data, "infirmary"); }
+  function staffSpecOn(data, id) { return !!(IL.staffSpec && IL.staffSpec(data, id)); }
+  function restBonus(data) { return 6 * facilityRank(data, "infirmary") + (staffSpecOn(data, "restful") ? 4 : 0); }
   function scoutOdds(data) { const r = facilityRank(data, "scout"); return r >= 2 ? 1 : 0.45 + 0.3 * r; }
   function clubRelicSlots(data) { return 2 + facilityRank(data, "treasury"); }
-  function drillXp(data) { return TRAIN_XP + facilityRank(data, "hall") * 4; }
-  function drillCost(data) { return Math.max(8, TRAIN_COST - facilityRank(data, "infirmary") * 4); }
+  function drillXp(data) { return TRAIN_XP + facilityRank(data, "hall") * 4 + (staffSpecOn(data, "drillmaster") ? 3 : 0); }
+  function drillCost(data) { return Math.max(5, TRAIN_COST - facilityRank(data, "infirmary") * 4 - (staffSpecOn(data, "thrifty") ? 3 : 0)); }
 
   function drillList(data) {
     const xp = drillXp(data);

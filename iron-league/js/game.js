@@ -357,6 +357,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Club tools: Treasure Hunter, Legendary Expert and Shiny Catcher staff with specializations, a Club Agenda, Development Plans, and relic lock, reroll and trade-in.",
     "New modes: the Hall of Legends, a Tournament Center, an offline Challenge Tower, an All-Star match, alliance rounds in the second Thunder Cup, and a free draft at week 7.",
     "A bigger league: ten clubs over 18 weeks, drawn matches between rivals, and each season the bottom two clubs disband while new ones are founded.",
     "Three new classes (Templar, Frost Knight, Witch Hunter), and every champion now has a signature move of its own.",
@@ -3144,6 +3145,10 @@
 
   /* v101 staff: one of each role, stars scale the effect. */
   function staffStarsHtml(n) { return '<span class="pot">' + "★★★★★".slice(0, n) + '<i>' + "★★★★★".slice(0, 5 - n) + '</i></span>'; }
+  function staffSpecHtml(st) {
+    const sp = st && st.spec && IL.specById(st.spec);
+    return sp ? '<p class="staff-spec"><b>' + esc(sp.name) + '</b> · ' + esc(sp.text) + '</p>' : '';
+  }
   function staffPanel() {
     if (IL.restockStaff && (!Array.isArray(save.staffMarket) || save.staffWeek == null)) { IL.restockStaff(save, takeRng()); persist(); }
     const hired = save.staff || [];
@@ -3151,7 +3156,7 @@
     const mine = hired.map(function (st) {
       const role = IL.STAFF_ROLES[st.role];
       return '<article class="es-card staff-card"><header><b>' + esc(st.name) + '</b>' + staffStarsHtml(st.stars) + '</header>' +
-        '<p class="staff-role">' + esc(role ? role.name : st.role) + '</p><p>' + esc(role ? role.text(st.stars) : "") + '</p>' +
+        '<p class="staff-role">' + esc(role ? role.name : st.role) + '</p><p>' + esc(role ? role.text(st.stars) : "") + '</p>' + staffSpecHtml(st) +
         '<button type="button" class="btn ghost" data-staff-fire="' + esc(st.id) + '">Let go</button></article>';
     }).join("");
     const market = (save.staffMarket || []).map(function (row, i) {
@@ -3160,12 +3165,12 @@
       const full = !same && hired.length >= slots;
       const cant = save.gold < row.cost || full;
       return '<article class="es-card staff-card"><header><b>' + esc(row.name) + '</b>' + staffStarsHtml(row.stars) + '</header>' +
-        '<p class="staff-role">' + esc(role ? role.name : row.role) + '</p><p>' + esc(role ? role.text(row.stars) : "") + '</p>' +
+        '<p class="staff-role">' + esc(role ? role.name : row.role) + '</p><p>' + esc(role ? role.text(row.stars) : "") + '</p>' + staffSpecHtml(row) +
         (same ? '<p class="fine' + (same.stars > row.stars ? ' staff-worse' : '') + '">Replaces ' + esc(same.name) + ' (' + same.stars + '★)' + (same.stars > row.stars ? ', a downgrade' : '') + '.</p>' : '') +
         '<button type="button" class="btn primary' + (cant ? " cant-afford" : " buyable") + '" data-staff-hire="' + i + '"' + (cant ? " disabled" : "") + '>' + (full ? "No free slot" : "Hire · " + row.cost + "g") + '</button></article>';
     }).join("");
     return '<div class="staff-pane" id="staffPane">' +
-      '<p class="fine">' + hired.length + ' of ' + slots + ' staff slots. One of each role; the Club House adds a slot a rank. The staff market turns over after each league week.</p>' +
+      '<p class="fine">' + hired.length + ' of ' + slots + ' staff slots. One of each role, and each hire brings one specialization on top; the Club House adds a slot a rank, to five. The staff market turns over after each league week.</p>' +
       '<h3 class="section">Your staff</h3><div class="staff-grid">' + (mine || emptyState("No staff yet.", "Hire from the market below.")) + '</div>' +
       '<h3 class="section">Staff market</h3><div class="staff-grid">' + (market || emptyState("Nobody is looking this week.", "New faces after the next league match.")) + '</div>' +
     '</div>';
@@ -3302,15 +3307,82 @@
     });
   }
 
+  /* v114 Club Agenda: what wants doing, each line a jump to its screen. */
+  function agendaItems() {
+    const out = [];
+    const roster = save.roster || [];
+    const free = IL.staffSlots(save) - (save.staff || []).length;
+    if (free > 0) out.push({ pane: "club:staff", text: free + " staff slot" + (free === 1 ? " is" : "s are") + " empty." });
+    const a = save.academy && save.academy.season === save.season ? save.academy : null;
+    const can = roster.filter(function (f) { return IL.academyEligible(f) && !f.loan && (!a || a.ids.indexOf(f.id) < 0); }).length;
+    const room = IL.ACADEMY_SQUAD - (a ? a.ids.length : 0);
+    if (room > 0 && can > 0) out.push({ pane: "club:academy", text: "The academy is understaffed: " + room + " place" + (room === 1 ? "" : "s") + " open, " + can + " eligible." });
+    if (a && IL.academyReady(save)) out.push({ pane: "club:academy", text: "The academy fixture is ready to play." });
+    const grow = roster.filter(function (f) { return IL.upgradesPending(f) > 0 || IL.masteriesPending(f) > 0 || f.respecPicks > 0; }).length;
+    if (grow) out.push({ pane: "roster:team", text: grow + " fighter" + (grow === 1 ? " has" : "s have") + " upgrades, masteries or respec picks to spend." });
+    const hurt = roster.filter(IL.isInjured).length;
+    if (hurt) out.push({ pane: "roster:team", text: hurt + " fighter" + (hurt === 1 ? " is" : "s are") + " injured." });
+    if (!seasonDone()) {
+      const tired = fielded(roster, weekSize(save.round)).filter(function (f) { return IL.staminaOf(f) < 30; }).length;
+      if (tired) out.push({ pane: "roster:team", text: tired + " of the next lineup " + (tired === 1 ? "is" : "are") + " tired." });
+    }
+    const clubRelics = (save.relics || []).filter(function (id) { const r = IL.relicById(id); return r && r.scope !== "fighter" && (save.equipped || []).indexOf(id) < 0; }).length;
+    if (clubRelics && (save.equipped || []).length < IL.clubRelicSlots(save)) out.push({ pane: "roster:relics", text: "A club relic slot is empty and a club relic sits in the chest." });
+    if ((save.trainsLeft || 0) > 0 && roster.length) out.push({ pane: "club:train", text: save.trainsLeft + " drill" + (save.trainsLeft === 1 ? "" : "s") + " left this week." });
+    const tn = IL.tourneyNow ? IL.tourneyNow(save) : null;
+    if (tn && !(save.tourney && save.tourney.key === tn.key)) out.push({ pane: "club:halls", text: tn.def.name + " is open for entries." });
+    return out;
+  }
+  function agendaHtml() {
+    const items = agendaItems();
+    const on = IL.PLAN_KEYS.filter(function (k) { return IL.plansOf(save)[k]; }).length;
+    return '<section class="agenda" id="clubAgenda"><h3 class="section">Club agenda</h3>' +
+      (items.length ? '<ul class="agenda-list">' + items.map(function (it) {
+        return '<li><button type="button" class="agenda-row" data-pane="' + it.pane + '"><span>' + esc(it.text) + '</span><em>›</em></button></li>';
+      }).join("") + '</ul>' : '<p class="fine">All clear. Nothing waits on you this week.</p>') +
+      '<p class="fine">' + (on ? on + ' Development Plan' + (on === 1 ? '' : 's') + ' run after each league and cup week.' : 'No Development Plans set.') + ' <button type="button" class="ctl" data-pane="club:plans">Plans</button></p>' +
+    '</section>';
+  }
+  const PLAN_TEXT = {
+    upgrades: ["Spend move upgrades", "Ranks up the lowest-ranked move in each loadout whenever an upgrade is waiting."],
+    masteries: ["Pick masteries", "Front liners take Grit and Bulwark, the back line Execution and Tempo, spread rather than stacked."],
+    academy: ["Fill the academy", "Sends the youngest eligible fighters outside the lineup until all four places are taken."],
+    relics: ["Dress the party", "Auto-equips relics on the club slots and the fielded party each week."],
+    heal: ["Heal the injured", "Pays the Medical Bay for injured fighters, strongest first, while the purse stays above " + 150 + " gold."]
+  };
+  function plansPanel() {
+    const p = IL.plansOf(save);
+    return '<div class="plans-pane" id="plansPane">' +
+      '<p class="fine">Standing orders for the club. Each one runs after every league and cup week, and you can run them all now. Choices that need your eye, such as evolutions and respec picks, stay yours.</p>' +
+      '<ul class="plan-list">' + IL.PLAN_KEYS.map(function (k) {
+        const t = PLAN_TEXT[k];
+        return '<li class="plan-row"><span><b>' + esc(t[0]) + '</b><small>' + esc(t[1]) + '</small></span>' +
+          '<button type="button" class="chip' + (p[k] ? ' on' : '') + '" data-plan="' + k + '" aria-pressed="' + (p[k] ? 'true' : 'false') + '">' + (p[k] ? 'On' : 'Off') + '</button></li>';
+      }).join("") + '</ul>' +
+      '<div class="hub-actions"><button type="button" class="btn primary" id="plansRun">Run plans now</button></div>' +
+    '</div>';
+  }
+  function planParty() {
+    return fielded(save.roster, !seasonDone() ? weekSize(save.round) : IL.PARTY_CAP);
+  }
+  function runPlansNow() {
+    const notes = IL.runPlans(save, takeRng(), planParty());
+    notes.forEach(logClub);
+    persist();
+    refreshHub();
+    showNote(notes.length ? notes.join(" ") : "Nothing for the plans to do right now.");
+  }
+
   function clubHomePanel() {
     if (clubPane === "events") return subTabs("club", "events", [["home", "‹ Club"], ["events", "Activities"]]) + eventsPanel();
     if (clubPane === "train") return subTabs("club", "train", [["home", "‹ Club"], ["train", "Training"]]) + trainingPanel();
     if (clubPane === "staff") return subTabs("club", "staff", [["home", "‹ Club"], ["staff", "Staff"]]) + staffPanel();
     if (clubPane === "halls") return subTabs("club", "halls", [["home", "‹ Club"], ["halls", "Halls"]]) + hallsPanel();
     if (clubPane === "academy") return subTabs("club", "academy", [["home", "‹ Club"], ["academy", "Academy"]]) + academyPanel();
+    if (clubPane === "plans") return subTabs("club", "plans", [["home", "‹ Club"], ["plans", "Development Plans"]]) + plansPanel();
     const ev = IL.activeEvent ? IL.activeEvent(Date.now()) : null;
     const fac = save.facilities || {};
-    return '<div class="es-club-grid">' +
+    return agendaHtml() + '<div class="es-club-grid">' +
       '<section><h3 class="section">Activities</h3>' +
         clubTile("events", "Weekly event", ev ? ev.name : "This week", "Boss, gauntlet, horde, king or mirror. A new one each week.", "blue", "PvE") +
         gateTile() +
@@ -3336,7 +3408,8 @@
         }).join("") +
       '</section>' +
       '<section><h3 class="section">Services</h3>' +
-        clubTile("staff", "Staff", (save.staff || []).length + " of " + IL.staffSlots(save) + " hired", "Trainers, medics, scouts, coaches and treasurers. New faces every week.", "teal", "Staff") +
+        clubTile("staff", "Staff", (save.staff || []).length + " of " + IL.staffSlots(save) + " hired", "Trainers, medics, scouts, coaches, treasurers, treasure hunters, legendary experts and shiny catchers.", "teal", "Staff") +
+        clubTile("plans", "Development Plans", IL.PLAN_KEYS.filter(function (k) { return IL.plansOf(save)[k]; }).length + " of " + IL.PLAN_KEYS.length + " on", "Standing orders: upgrades, masteries, academy, relics and healing, run every week.", "blue", "Auto") +
         clubTile("train", "Drills", (save.trainsLeft || 0) + " left this week", "Raise a stat on a bench fighter.", "red", "Train") +
         clubTile("train", "Specialties", (save.specPoints || 0) + " points", "Focus at level 5, mastery at level 10.", "gold", "Spec") +
         clubTile("train", "Tasks", "Earn specialty points", "Crits, KOs, blocks, flawless wins.", "steel", "Goals") +
@@ -3974,11 +4047,11 @@
     const owned = (save.relics || []).map(function (id) {
       const relic = IL.relicById(id);
       if (!relic) return "";
-      const pay = IL.relicSellPrice(id);
+      const pay = IL.relicSellPrice(id, save);
       return '<article class="card stall-card">' +
         '<h3>' + esc(relic.name) + '</h3>' +
         '<p class="fine">Sell for ' + pay + ' gold. It leaves the party, and anyone wearing it.</p>' +
-        '<button type="button" class="btn ghost" data-sell-relic="' + esc(id) + '">Sell — ' + pay + ' gold</button>' +
+        (IL.relicLocked(save, id) ? '<button type="button" class="btn ghost" disabled>Locked</button>' : '<button type="button" class="btn ghost" data-sell-relic="' + esc(id) + '">Sell — ' + pay + ' gold</button>') +
       '</article>';
     }).join("");
     const cost = IL.REFRESH_COST;
@@ -4433,7 +4506,14 @@
       action = '<button type="button" class="btn ' + (on ? "primary" : "ghost") + '" data-equip="' + esc(r.id) + '">' + (on ? "Equipped" : "Equip") + '</button>';
     }
     if (have) {
-      action += '<button type="button" class="btn ghost" data-sell-relic="' + esc(r.id) + '">Sell — ' + IL.relicSellPrice(r.id) + ' gold</button>';
+      const locked = IL.relicLocked(save, r.id);
+      const targets = IL.tradeTargets(save, r.id).length;
+      action += '<div class="relic-acts">' +
+        '<button type="button" class="btn ghost" data-lock-relic="' + esc(r.id) + '" aria-pressed="' + (locked ? 'true' : 'false') + '">' + (locked ? '🔒 Locked' : 'Lock') + '</button>' +
+        '<button type="button" class="btn ghost" data-reroll-relic="' + esc(r.id) + '"' + ((save.renown || 0) < IL.RELIC_REROLL ? ' disabled' : '') + '>Reroll — ' + IL.RELIC_REROLL + ' renown</button>' +
+        '<button type="button" class="btn ghost" data-trade-relic="' + esc(r.id) + '"' + (locked || !targets || (save.renown || 0) < IL.RELIC_TRADE ? ' disabled' : '') + ' title="' + (targets ? targets + ' unowned ' + esc(rarity.toLowerCase()) + ' relics to draw from' : 'You own every relic of this rarity') + '">Trade in — ' + IL.RELIC_TRADE + ' renown</button>' +
+        '<button type="button" class="btn ghost" data-sell-relic="' + esc(r.id) + '"' + (locked ? ' disabled' : '') + '>Sell — ' + IL.relicSellPrice(r.id, save) + ' gold</button>' +
+      '</div><p class="fine">Reroll draws new numbers (85% to 115%). Trade in swaps it for a random unowned relic of the same rarity. A locked relic cannot be sold or traded.</p>';
     }
     return '<div class="sheet-back" id="relicSheetBack"></div>' +
       '<aside class="sheet" id="relicSheet" role="dialog" aria-modal="true" aria-labelledby="relicSheetTitle">' +
@@ -4675,6 +4755,7 @@
     save = save || load();
     if (!save) { showTitle(); return; }
     IL.migrate(save);
+    if (IL.staffBoost) IL.staffBoost(save);
     if (IL.keepRivalsUp && IL.keepRivalsUp(save)) persist();
     if (openMidCup()) persist();
     ensureMarket();
@@ -5441,6 +5522,9 @@
         else pitSound("error");
         return;
       }
+      const planB = ev.target.closest("[data-plan]");
+      if (planB) { const pl = IL.plansOf(save); pl[planB.dataset.plan] = !pl[planB.dataset.plan]; persist(); refreshHub(); return; }
+      if (ev.target.closest("#plansRun")) { runPlansNow(); return; }
       const hallB = ev.target.closest("[data-hall]");
       if (hallB && !hallB.disabled) { startHall(hallB.dataset.hall); return; }
       const tEnter = ev.target.closest("[data-tourney-enter]");
@@ -5704,7 +5788,23 @@
       const clearWorn = ev.target.closest("[data-clear-relic]");
       if (clearWorn) { clearFighterRelic(clearWorn.dataset.clearRelic); return; }
       const sellRelic = ev.target.closest("[data-sell-relic]");
-      if (sellRelic) { sellRelicId(sellRelic.dataset.sellRelic); return; }
+      if (sellRelic && !sellRelic.disabled) { sellRelicId(sellRelic.dataset.sellRelic); return; }
+      const lockB = ev.target.closest("[data-lock-relic]");
+      if (lockB) { const id = lockB.dataset.lockRelic; IL.lockRelic(save, id, !IL.relicLocked(save, id)); persist(); refreshHub(); return; }
+      const rerollB = ev.target.closest("[data-reroll-relic]");
+      if (rerollB && !rerollB.disabled) {
+        const v = IL.rerollRelic(save, rerollB.dataset.rerollRelic, takeRng());
+        if (!v) { pitSound("error"); return; }
+        pitSound("purchase"); persist(); refreshHub(); showNote("New roll: " + Math.round(v * 100) + "%."); return;
+      }
+      const tradeB = ev.target.closest("[data-trade-relic]");
+      if (tradeB && !tradeB.disabled) {
+        const was = IL.relicById(tradeB.dataset.tradeRelic);
+        const got = IL.tradeRelic(save, tradeB.dataset.tradeRelic, takeRng());
+        if (!got) { pitSound("error"); return; }
+        pitSound("purchase"); relicOpen = got.id; logClub("Traded " + (was ? was.name : "a relic") + " for " + got.name + ".");
+        persist(); refreshHub(); showNote("Traded for " + got.name + "."); return;
+      }
     };
   }
 
@@ -5986,8 +6086,9 @@
 
   function sellRelicId(id) {
     if (!id || (save.relics || []).indexOf(id) < 0) return;
+    if (IL.relicLocked(save, id)) { pitSound("error"); showNote("That relic is locked."); return; }
     pitSound("sell");
-    save.gold += IL.relicSellPrice(id);
+    save.gold += IL.relicSellPrice(id, save);
     save.relics = save.relics.filter(function (rid) { return rid !== id; });
     save.equipped = (save.equipped || []).filter(function (rid) { return rid !== id; });
     (save.roster || []).forEach(function (f) {
@@ -5995,6 +6096,7 @@
       if (f && f.relic2 === id) f.relic2 = null;
     });
     if (save.relicRolls) delete save.relicRolls[id];
+    if (save.relicLocks) delete save.relicLocks[id];
     save.relicSalt = (save.relicSalt || 0) + 1;
     const fromSheet = relicOpen === id;
     if (fromSheet) relicOpen = null;
@@ -6046,7 +6148,7 @@
       return;
     }
     if (offer.kind === "chest") {
-      const prize = IL.openChest(takeRng(), save.relics || []);
+      const prize = IL.openChest(takeRng(), save.relics || [], save);
       save.gold -= offer.cost;
       save.gold += prize.gold || 0;
       pitSound("purchase");
@@ -8382,8 +8484,8 @@
     if (IL.DIFFICULTY && mode !== "challenge" && mode !== "daily") gold = Math.round(gold * IL.DIFFICULTY[IL.difficultyOf(save)].gold);
     /* v101 staff: Treasurer on league and cup gold, Trainer on all match XP. */
     if (IL.staffStars) {
-      if (mode === "league" || mode === "cup" || mode === "champions") gold = Math.round(gold * (1 + 0.04 * IL.staffStars(save, "treasurer")));
-      xp = Math.round(xp * (1 + 0.04 * IL.staffStars(save, "trainer")));
+      if (mode === "league" || mode === "cup" || mode === "champions") gold = Math.round(gold * (1 + 0.04 * IL.staffStars(save, "treasurer") + (IL.staffSpec(save, "bookkeeper") ? 0.03 : 0)));
+      xp = Math.round(xp * (1 + 0.04 * IL.staffStars(save, "trainer") + (IL.staffSpec(save, "scholar") ? 0.03 : 0)));
     }
     noteRecords(match, win);
     if (IL.noteTasks) IL.noteTasks(save, match, win);
@@ -8472,6 +8574,7 @@
     let marketLines = [];
     if (mode === "league" || mode === "cup") {
       marketLines = IL.turnMarket(save, takeRng(), rosterAvoid());
+      if (IL.runPlans) marketLines = marketLines.concat(IL.runPlans(save, takeRng(), planParty()));
       save.marketNews = marketLines.slice();
     }
     if (restLine || marketLines.length) persist();

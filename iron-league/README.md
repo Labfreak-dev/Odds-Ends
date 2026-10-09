@@ -201,6 +201,14 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Club tools (v114)
+
+- **Staff**: three new roles. The **Treasure Hunter** finds relics in chests 6% more often a star and cuts relic stall prices 4% a star. The **Legendary Expert** makes legendary recruits 20% more likely a star. The **Shiny Catcher** makes shiny recruits 10% more likely a star. Every hire also rolls one of eight **specializations**: Thrifty, Drillmaster, Restful, Appraiser, Negotiator, Lucky, Scholar or Bookkeeper. The Club House now goes to rank 4, for five staff slots.
+- **Club Agenda**: the top of the Club tab lists what wants doing, and each line jumps to its screen. It covers empty staff slots, an understaffed academy, a ready academy fixture, unspent upgrades, masteries and respec picks, injuries, a tired lineup, an empty club relic slot, drills left this week and an open tournament.
+- **Development Plans**: five standing orders that run after every league and cup week: spend move upgrades (lowest rank first), pick masteries by role, fill the academy, dress the party in relics, and heal the injured while 150 gold stays in the purse. **Run plans now** runs them at once. Evolutions and respec picks stay manual.
+- **Relic tools** on the relic sheet: **Lock** (a locked relic cannot be sold or traded), **Reroll** (new numbers for 250 renown) and **Trade in** (40 renown buys a random unowned relic of the same rarity). Auto-equip and Unequip all were already there.
+- Not copied: duplicate relics and an inventory cap. Here each relic is owned once, with one roll, so neither applies.
+
 ## New modes (v113)
 
 All but the alliance cup and the free draft live in the new **Halls** pane on the Club tab.

@@ -26,6 +26,8 @@
     swing: 1.7,         /* v116 attack animations play this much faster */
     dmg: 0.6,           /* v116 basic hits are lighter; there are many more of them */
     stick: 3,           /* v116 seconds a fighter commits to its target */
+    petDmg: 0.8,        /* v116 summons' swings, lighter than before but less than a fighter's */
+    heal: 1.3,          /* v116 healing scales up to keep pace with faster damage */
     turn: 820,          /* steering acceleration */
     roll: 1,            /* roll travel speed */
     castTime: 1,        /* cast wind-up scale */
@@ -1221,7 +1223,8 @@
        now, so each lands lighter. Abilities keep their full weight. */
     if (src && !opt.reflected && !opt.dot) {
       const tag = opt.tag || src.swingTag;
-      if (src.summon || (tag && tag.id === "basic")) raw *= PACE.dmg;
+      if (src.summon) raw *= PACE.petDmg;
+      else if (tag && tag.id === "basic") raw *= PACE.dmg;
       /* v116 area falloff: in a scrum a blast catches four or five, so
          each extra body hit in the same instant takes less. */
       if (src._aoeT === m.time) src._aoeN = (src._aoeN || 0) + 1;
@@ -1495,7 +1498,8 @@
 
   function healUnit(m, src, dst, raw) {
     if (!dst || dst.hp <= 0) return;
-    let rawN = raw;
+    /* v116 damage comes faster now, so healing keeps up: +30%. */
+    let rawN = raw * PACE.heal;
     if (m.time > (m.suddenAt || SUDDEN_AT)) rawN *= 0.5;
     if (m.mods && m.mods.mercy) rawN *= 1.25;
     if (src && src.oath) rawN *= 1.12;

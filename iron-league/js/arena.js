@@ -104,6 +104,7 @@
     return (means[means.length - 1] - means[0]) / WORLD.w;
   }
 
+  const RETUNE = { warrior: 1.13, archer: 0.93, mage: 0.93, tank: 0.86, rogue: 1.12, healer: 0.94, assassin: 1.1, ranger: 1.03, battlemage: 0.98, shieldbearer: 0.94, skirmisher: 1.09, elementalist: 0.89, monk: 1.04, necromancer: 0.93, paladin: 1.07, warlock: 1.11, samurai: 1.07, spearmaiden: 1.05, summoner: 0.93, beastmaster: 0.89, templar: 0.89, frostknight: 1.03 };
   function scaledStats(fighter, kit) {
     const lv = fighter.level || 1;
     const b = fighter.boosts || {};
@@ -120,6 +121,10 @@
     let speed = kit.speed * (1 + (b.spd || 0) * 0.06) * (1 + (lv - 1) * gSpd);
     if (fighter.champion) { hp *= 1.14; atk *= 1.12; }
     if (fighter.shiny) { hp *= 1.2; atk *= 1.2; }
+    /* v116 the faster, closer fight reshuffled the classes; each one's
+       health and attack is nudged back toward where the v115 band had it. */
+    const retune = RETUNE[fighter.cls] || 1;
+    hp *= retune; atk *= retune;
     const rarityStat = { common: 1, uncommon: 1.04, rare: 1.08, legendary: 1.12 }[fighter.rarity];
     if (rarityStat) { hp *= rarityStat; atk *= rarityStat; }
     const spec = IL.combatSpecialty ? IL.combatSpecialty(fighter) : (IL.specialtyOf && fighter.specialty ? IL.specialtyOf(fighter.specialty) : null);

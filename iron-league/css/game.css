@@ -4867,3 +4867,23 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .relic-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .relic-acts .btn { flex: 1 1 140px; min-width: 0; }
 @media (max-width: 480px) { .relic-acts .btn { flex-basis: 100%; } }
+
+/* v115 history, profile, codex ranges */
+.hist-profile { margin-top: 10px; }
+.vet-badge { display: inline-block; padding: 1px 8px; margin-right: 6px; border-radius: 999px; background: linear-gradient(#e7c26a, #b5862e); color: #1a100c; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.hist-reviews, .hist-cups { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hist-review { padding: 8px 10px; border-radius: 6px; background: rgba(40, 26, 16, 0.5); min-width: 0; }
+.hist-review header { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.hist-review header em { margin-left: auto; font-style: normal; color: var(--copper-2); }
+.hist-review p { margin: 4px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+.hist-cups li { display: grid; grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: baseline; font-size: 13px; padding: 4px 6px; border-bottom: 1px solid rgba(214, 160, 92, 0.15); }
+.hist-cups li b, .hist-cups li em { overflow-wrap: anywhere; min-width: 0; }
+.hist-cups li em { font-style: normal; text-align: right; }
+.hist-cups li.won em { color: #e7c26a; font-weight: 700; }
+.leaders .gone { color: var(--muted, #b9a68a); font-size: 11px; }
+.codex-ranges { width: 100%; border-collapse: collapse; font-size: 13px; }
+.codex-ranges th, .codex-ranges td { padding: 3px 4px; text-align: right; }
+.codex-ranges th:first-child { text-align: left; }
+.codex-evos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.codex-evos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
+.codex-evos li span { color: var(--copper-2); }

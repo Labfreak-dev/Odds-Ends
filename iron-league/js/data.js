@@ -563,6 +563,7 @@
   function classUnlocked(id, renown) {
     const kit = CLASSES[id];
     if (!kit) return false;
+    if (IL.VETERAN) return true;
     return (kit.renown || 0) <= (renown || 0);
   }
 

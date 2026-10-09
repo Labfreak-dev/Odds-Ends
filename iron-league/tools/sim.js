@@ -1913,6 +1913,29 @@ const q4plN = IL.runPlans(q4plSave, IL.mulberry32(9), [q4plF]);
 check("Development Plans spend upgrades and masteries", IL.upgradesPending(q4plF) === 0 && IL.masteriesPending(q4plF) === 0 && q4plN.length === 2);
 check("a front liner's planned masteries lean on health and armor, spread", (q4plF.masteries || []).every(function (id) { return id === "grit" || id === "bulwark"; }) && q4plF.masteries[0] !== q4plF.masteries[1]);
 
+/* v115 club history. */
+const q5Save = { season: 3, round: 4, roster: [{ id: "h1", name: "Ada", cls: "warrior", kos: 12, mvps: 2, wins: 5, losses: 1, career: { dealt: 900, heal: 0 } }, { id: "h2", name: "Bo", cls: "healer", kos: 1, wins: 2, losses: 2, career: { dealt: 100, heal: 700 } }] };
+IL.trackAlltime(q5Save);
+q5Save.roster.pop();
+IL.trackAlltime(q5Save);
+check("lifetime leaders keep a fighter who left", IL.alltimeBoard(q5Save, "heal", 5)[0].name === "Bo" && IL.alltimeBoard(q5Save, "heal", 5)[0].gone && !IL.alltimeBoard(q5Save, "kos", 5)[0].gone);
+const q5Cup = { champion: "you" };
+check("a cup is written to history once", IL.noteCup(q5Save, q5Cup, "Cup", "Us", true) && !IL.noteCup(q5Save, q5Cup, "Cup", "Us", true) && q5Save.cupHistory.length === 1 && q5Save.cupHistory[0].won);
+check("one review a season", IL.noteSeasonReview(q5Save, { season: 3, place: 1 }) && !IL.noteSeasonReview(q5Save, { season: 3, place: 2 }) && q5Save.reviews.length === 1);
+const q5Locked = Object.keys(IL.CLASSES).filter(function (id) { return !IL.classUnlocked(id, 0); });
+IL.VETERAN = true;
+check("the Veteran profile opens every class", q5Locked.length > 0 && q5Locked.every(function (id) { return IL.classUnlocked(id, 0); }));
+IL.VETERAN = false;
+
+/* v115 a second top-level function of the same name silently replaces the
+   first (both hoist); keep every file's names unique. */
+["data", "kits", "gear", "meta", "arena", "game", "render"].forEach(function (name) {
+  const src = fs.readFileSync(path.join(__dirname, "..", "js", name + ".js"), "utf8");
+  const seen = {}, dup = [];
+  (src.match(/^  function [A-Za-z0-9_$]+/gm) || []).forEach(function (m) { const k = m.slice(11); if (seen[k]) dup.push(k); seen[k] = 1; });
+  check(name + ".js declares each top-level function once" + (dup.length ? " (" + dup.join(", ") + ")" : ""), dup.length === 0);
+});
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

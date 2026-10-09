@@ -943,6 +943,10 @@ def check_season(page, label, shot_dir):
     for word in ("mvp", "iron wall", "healer", "standings", "start season"):
         if word not in text:
             raise SystemExit(label + " season end missing " + word + ": " + text[:240])
+    # v115: the ceremony saves a season review, and the closed Champions Cup is in the cup history.
+    hist = page.evaluate("() => { const s = JSON.parse(localStorage.getItem('ironleague.v1')); return [(s.reviews || []).length, (s.reviews || [])[0] && s.reviews[0].season === s.season, (s.cupHistory || []).some(h => h.cup === 'Champions Cup' && h.season === s.season)]; }")
+    if not (hist[0] >= 1 and hist[1] and hist[2]):
+        raise SystemExit(label + " season review or cup history not saved: " + str(hist))
     page.wait_for_function(
         """() => {
           const c = document.querySelector('#awards canvas');

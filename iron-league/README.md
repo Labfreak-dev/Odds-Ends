@@ -201,6 +201,17 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Club history and the Veteran profile (v115)
+
+- **Intel → History**: the new pane holds:
+  - your profile;
+  - a **Season review** saved at every ceremony (finish, record, champion, MVP, top scorer, cups won, promotion or relegation, chest);
+  - a **Cup history** that writes every Cup, Champions Cup, Thunder Cup and Draft Cup once, when it closes;
+  - **all-time leaders** for kills, damage, healing, MVPs, season awards and matches. These count every fighter who ever played for the club, and anyone who has left is marked "gone".
+- **Codex**: each class page now shows **stat ranges** at levels 1, 25 and 50, from a plain common recruit to a legendary with every grade Excellent. It also shows the **evolution** choices for each move.
+- **Veteran profile**: reaching Season 15 marks the browser profile (`ironleague.profile`, kept apart from the save) as Veteran. From then on every class opens without renown and the whole Codex is revealed, in that save and every new one.
+- The sim now fails if a script declares the same top-level function twice. While building this batch, a second `historyHtml` silently replaced the first.
+
 ## Club tools (v114)
 
 - **Staff**: three new roles. The **Treasure Hunter** finds relics in chests 6% more often a star and cuts relic stall prices 4% a star. The **Legendary Expert** makes legendary recruits 20% more likely a star. The **Shiny Catcher** makes shiny recruits 10% more likely a star. Every hire also rolls one of eight **specializations**: Thrifty, Drillmaster, Restful, Appraiser, Negotiator, Lucky, Scholar or Bookkeeper. The Club House now goes to rank 4, for five staff slots.

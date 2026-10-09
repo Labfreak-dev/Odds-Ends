@@ -1886,6 +1886,33 @@ check("Tower teams are fixed per floor, at level 30", JSON.stringify(IL.towerFoe
 const asF = { id: "as1", cls: "warrior", level: 10, allStars: 2 };
 check("All-Star appearances add market value", IL.marketValue(asF) === IL.marketValue(Object.assign({}, asF, { allStars: 0 })) + 200);
 
+/* v114 club tools. */
+const q4stSave = { gold: 9999, season: 1, round: 0, staff: [], facilities: { clubhouse: 4 } };
+check("the Club House reaches five staff slots", IL.staffSlots(q4stSave) === 5);
+q4stSave.staffMarket = [{ id: "s1", role: "shiny", stars: 5, name: "A", spec: "appraiser", cost: 10 }, { id: "s2", role: "expert", stars: 5, name: "B", spec: "lucky", cost: 10 }];
+IL.hireStaff(q4stSave, 0); IL.hireStaff(q4stSave, 0);
+check("hires keep their specialization", IL.staffSpec(q4stSave, "appraiser") && IL.staffSpec(q4stSave, "lucky") && !IL.staffSpec(q4stSave, "thrifty"));
+check("an Appraiser lifts relic sale prices", IL.relicSellPrice("aegis", q4stSave) > IL.relicSellPrice("aegis"));
+const q4bo = IL.staffBoost(q4stSave).legend;
+let q4legN = 0; const q4lr = IL.mulberry32(77); for (let i = 0; i < 4000; i++) if (IL.rollRecruitRarity(q4lr) === "legendary") q4legN++;
+IL.staffBoost({});
+let q4legM = 0; const q4lr2 = IL.mulberry32(77); for (let i = 0; i < 4000; i++) if (IL.rollRecruitRarity(q4lr2) === "legendary") q4legM++;
+check("a Legendary Expert raises legendary odds", q4bo === 5 && q4legN > q4legM * 1.5);
+const q4rlSave = { renown: 600, relics: ["aegis"], relicRolls: { aegis: 1 }, roster: [], equipped: ["aegis"] };
+check("a relic reroll costs 250 renown", IL.rerollRelic(q4rlSave, "aegis", IL.mulberry32(3)) > 0 && q4rlSave.renown === 350);
+IL.lockRelic(q4rlSave, "aegis", true);
+check("a locked relic cannot be traded", IL.tradeRelic(q4rlSave, "aegis", IL.mulberry32(4)) === null);
+IL.lockRelic(q4rlSave, "aegis", false);
+const q4rarA = IL.relicById("aegis").rarity;
+const q4got = IL.tradeRelic(q4rlSave, "aegis", IL.mulberry32(4));
+check("a trade-in swaps for an unowned relic of the same rarity", q4got && q4got.rarity === q4rarA && q4rlSave.relics.length === 1 && q4rlSave.relics[0] === q4got.id && q4rlSave.equipped.length === 0 && q4rlSave.renown === 350 - IL.RELIC_TRADE);
+const q4plF = { id: "pl1", cls: "warrior", level: 40, loadout: [], known: [] };
+IL.ensureMoves && IL.ensureMoves(q4plF);
+const q4plSave = { season: 1, round: 0, gold: 500, roster: [q4plF], relics: [], plans: { upgrades: true, masteries: true } };
+const q4plN = IL.runPlans(q4plSave, IL.mulberry32(9), [q4plF]);
+check("Development Plans spend upgrades and masteries", IL.upgradesPending(q4plF) === 0 && IL.masteriesPending(q4plF) === 0 && q4plN.length === 2);
+check("a front liner's planned masteries lean on health and armor, spread", (q4plF.masteries || []).every(function (id) { return id === "grit" || id === "bulwark"; }) && q4plF.masteries[0] !== q4plF.masteries[1]);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

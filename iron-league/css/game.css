@@ -4848,3 +4848,22 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .hall-row > span:first-child { display: grid; min-width: 0; flex: 1 1 200px; }
 .hall-row b { color: #f2e2c4; overflow-wrap: anywhere; }
 .hall-row small { color: var(--muted); font-size: 12px; }
+
+/* v114 club agenda, development plans, staff specs, relic tools */
+.agenda { margin-top: 10px; display: grid; gap: 6px; }
+.agenda .section { margin: 0; }
+.agenda-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.agenda-row { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(214, 160, 92, 0.35); background: rgba(40, 26, 16, 0.6); color: #f2e2c4; font: inherit; font-size: 13px; cursor: pointer; min-width: 0; }
+.agenda-row span { min-width: 0; overflow-wrap: anywhere; }
+.agenda-row em { font-style: normal; color: var(--copper-2); flex: none; }
+.agenda-row:hover, .agenda-row:focus-visible { border-color: var(--copper-2); }
+.agenda .fine .ctl { margin-left: 6px; }
+.plan-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.plan-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: rgba(40, 26, 16, 0.5); min-width: 0; }
+.plan-row span { display: grid; gap: 2px; min-width: 0; }
+.plan-row small { color: var(--muted, #b9a68a); overflow-wrap: anywhere; }
+.plan-row .chip { flex: none; min-width: 52px; }
+.staff-spec { color: #cfe3c0; }
+.relic-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.relic-acts .btn { flex: 1 1 140px; min-width: 0; }
+@media (max-width: 480px) { .relic-acts .btn { flex-basis: 100%; } }

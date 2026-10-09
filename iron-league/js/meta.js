@@ -352,10 +352,18 @@
 
   function rarityName(id) { return RARITY_NAME[id] || "Common"; }
 
+  /* v114 the Legendary Expert and Shiny Catcher lean on every recruit
+     roll; staffBoost(save) copies their stars in before the market rolls. */
+  const BOOST = { legend: 0, shiny: 0 };
+  function staffBoost(save) {
+    BOOST.legend = staffStars(save, "expert");
+    BOOST.shiny = staffStars(save, "shiny");
+    return BOOST;
+  }
   function rollRarity(rng) {
     const x = rng();
-    if (x < 0.05) return "legendary";
-    if (x < 0.18) return "rare";
+    if (x < 0.05 * (1 + 0.2 * BOOST.legend)) return "legendary";
+    if (x < 0.18 + 0.03 * BOOST.legend) return "rare";
     if (x < 0.46) return "uncommon";
     return "common";
   }
@@ -394,7 +402,7 @@
   function stampRecruit(fighter, rng, rarity) {
     fighter.rarity = rarity || rollRarity(rng);
     fighter.specialty = IL.pick(rng, SPECIALTIES).id;
-    if (!fighter.shiny && rng() < SHINY_ODDS) fighter.shiny = true;
+    if (!fighter.shiny && rng() < SHINY_ODDS * (1 + 0.1 * BOOST.shiny)) fighter.shiny = true;
     if (!fighter.injuryRisk) { const ir = rng(); fighter.injuryRisk = ir < 0.3 ? "low" : ir < 0.8 ? "medium" : "high"; }
     fighter.grades = rollGrades(rng, fighter.rarity, !!fighter.champion, !!fighter.shiny);
     if (fighter.champion && !fighter.champPassive) {
@@ -479,8 +487,8 @@
     return RELIC_COST[(relic && relic.rarity) || "common"] || 48;
   }
 
-  function relicSellPrice(id) {
-    return Math.max(20, Math.round(relicPrice(id) * 0.4));
+  function relicSellPrice(id, save) {
+    return Math.max(20, Math.round(relicPrice(id) * 0.4 * (staffSpec(save, "appraiser") ? 1.25 : 1)));
   }
 
   /* v95 five relics a week, each with its roll shown before you buy.
@@ -494,7 +502,7 @@
     function take(relic) {
       pool.splice(pool.indexOf(relic), 1);
       const roll = Math.round((0.85 + rng() * 0.3) * 100) / 100;
-      out.push({ id: relic.id, roll: roll, cost: Math.max(20, Math.round(relicPrice(relic.id) * (0.55 + 0.45 * roll) / 5) * 5), stock: 1 });
+      out.push({ id: relic.id, roll: roll, cost: Math.max(20, Math.round(relicPrice(relic.id) * (0.55 + 0.45 * roll) * (1 - 0.04 * staffStars(save, "hunter")) / 5) * 5), stock: 1 });
     }
     if (top.length) take(top[Math.floor(rng() * top.length)]);
     while (out.length < 5 && pool.length) take(pool[Math.floor(rng() * pool.length)]);
@@ -610,11 +618,11 @@
     ];
   }
 
-  function openChest(rng, owned) {
+  function openChest(rng, owned, save) {
     const have = owned || [];
-    const gold = 24 + Math.floor(rng() * 46);
+    const gold = Math.round((24 + Math.floor(rng() * 46)) * (staffSpec(save, "lucky") ? 1.25 : 1));
     const missing = RELICS.filter(function (r) { return have.indexOf(r.id) < 0; });
-    if (missing.length && rng() < 0.4) {
+    if (missing.length && rng() < 0.4 + 0.06 * staffStars(save, "hunter")) {
       return { gold: gold, relic: missing[Math.floor(rng() * missing.length)].id, item: null };
     }
     return { gold: gold, relic: null, item: IL.rollLoot ? IL.rollLoot(rng, "chest") : null };
@@ -989,11 +997,31 @@
     medic: { name: "Medic", per: 1, text: function (n) { return "Injury chance -" + n + "% a knockout, healing " + n * 8 + "% cheaper."; } },
     scout: { name: "Scout", per: 25, text: function (n) { return "Champion approaches come " + n * 25 + "% more often, auctions " + n * 20 + "% more often."; } },
     coach: { name: "Captain Coach", per: 3, text: function (n) { return "Your captain fights with +" + n * 3 + "% HP and ATK."; } },
-    treasurer: { name: "Treasurer", per: 4, text: function (n) { return "League and cup gold +" + n * 4 + "%."; } }
+    treasurer: { name: "Treasurer", per: 4, text: function (n) { return "League and cup gold +" + n * 4 + "%."; } },
+    hunter: { name: "Treasure Hunter", per: 6, text: function (n) { return "Chests find a relic " + n * 6 + "% more often; the relic stall is " + n * 4 + "% cheaper."; } },
+    expert: { name: "Legendary Expert", per: 20, text: function (n) { return "Recruits roll legendary " + n * 20 + "% more often, and rare a little more often."; } },
+    shiny: { name: "Shiny Catcher", per: 10, text: function (n) { return "Shiny recruits " + n * 10 + "% more often."; } }
   };
+  /* v114 every hire carries one specialization on top of its role. */
+  const STAFF_SPECS = [
+    { id: "thrifty", name: "Thrifty", text: "Drills cost 3 gold less." },
+    { id: "drillmaster", name: "Drillmaster", text: "Drills teach 3 more XP." },
+    { id: "restful", name: "Restful", text: "The bench rests 4 more stamina a week." },
+    { id: "appraiser", name: "Appraiser", text: "Relics sell for 25% more." },
+    { id: "negotiator", name: "Negotiator", text: "Healing an injury costs 10% less." },
+    { id: "lucky", name: "Lucky", text: "Chests hold 25% more gold." },
+    { id: "scholar", name: "Scholar", text: "Match XP +3%." },
+    { id: "bookkeeper", name: "Bookkeeper", text: "League and cup gold +3%." }
+  ];
+  function staffSpec(save, id) {
+    const list = (save && save.staff) || [];
+    for (let i = 0; i < list.length; i++) if (list[i] && list[i].spec === id) return true;
+    return false;
+  }
+  function specById(id) { return STAFF_SPECS.filter(function (x) { return x.id === id; })[0] || null; }
   const STAFF_COST = [40, 80, 140, 230, 360];
   function staffSlots(save) {
-    const n = save && save.facilities && typeof save.facilities.clubhouse === "number" ? Math.min(2, save.facilities.clubhouse | 0) : 0;
+    const n = save && save.facilities && typeof save.facilities.clubhouse === "number" ? Math.min(4, save.facilities.clubhouse | 0) : 0;
     return 1 + n;
   }
   function staffStars(save, role) {
@@ -1009,7 +1037,8 @@
       const stars = r < 0.35 ? 1 : r < 0.65 ? 2 : r < 0.85 ? 3 : r < 0.96 ? 4 : 5;
       const role = roles[Math.floor(rng() * roles.length)];
       const name = IL.pick(rng, IL.FIRST) + " " + IL.pick(rng, IL.LAST);
-      out.push({ id: "st" + Math.floor(rng() * 1e9).toString(36), role: role, stars: stars, name: name,
+      const spec = STAFF_SPECS[Math.floor(rng() * STAFF_SPECS.length)].id;
+      out.push({ id: "st" + Math.floor(rng() * 1e9).toString(36), role: role, stars: stars, name: name, spec: spec,
         cost: Math.round(STAFF_COST[stars - 1] * (1 + 0.1 * Math.min(10, Math.max(0, (season || 1) - 1))) / 5) * 5 });
     }
     return out;
@@ -1029,13 +1058,15 @@
     if (!same && save.staff.length >= staffSlots(save)) return false;
     save.gold -= row.cost;
     if (same) save.staff.splice(save.staff.indexOf(same), 1);
-    save.staff.push({ id: row.id, role: row.role, stars: row.stars, name: row.name });
+    save.staff.push({ id: row.id, role: row.role, stars: row.stars, name: row.name, spec: row.spec || null });
+    staffBoost(save);
     save.staffMarket.splice(index, 1);
     return true;
   }
   function fireStaff(save, id) {
     const before = (save.staff || []).length;
     save.staff = (save.staff || []).filter(function (s) { return s.id !== id; });
+    staffBoost(save);
     return save.staff.length < before;
   }
 
@@ -1076,7 +1107,7 @@
     if (!isInjured(f)) return 0;
     const div = IL.DIVISIONS && save ? IL.DIVISIONS[IL.divisionOf(save)] : null;
     const mul = div && div.purse ? div.purse : 1;
-    return Math.max(10, Math.round(45 * f.injury.weeks * mul * (1 - 0.25 * bayRank(save)) * (1 - 0.08 * staffStars(save, "medic")) / 5) * 5);
+    return Math.max(10, Math.round(45 * f.injury.weeks * mul * (1 - 0.25 * bayRank(save)) * (1 - 0.08 * staffStars(save, "medic")) * (staffSpec(save, "negotiator") ? 0.9 : 1) / 5) * 5);
   }
   function healInjury(save, f) {
     const cost = healCost(save, f);
@@ -1422,6 +1453,7 @@
 
   function turnMarket(save, rng, avoid) {
     const notes = [];
+    staffBoost(save);
     const kept = [];
     const rivals = IL.CLUBS.filter(function (n) { return n !== save.clubName; });
     (save.market || []).forEach(function (row) {
@@ -1623,6 +1655,127 @@
       }
     };
     return true;
+  }
+
+  /* ---------- v114 relic tools ----------
+     Reroll a relic's numbers for renown, lock it against selling, or
+     trade it in for an unowned relic of the same rarity. */
+  const RELIC_REROLL = 250;
+  const RELIC_TRADE = 40;
+  function relicLocked(save, id) { return !!(save && save.relicLocks && save.relicLocks[id]); }
+  function lockRelic(save, id, on) {
+    if (!save || (save.relics || []).indexOf(id) < 0) return false;
+    if (!save.relicLocks || typeof save.relicLocks !== "object") save.relicLocks = {};
+    if (on) save.relicLocks[id] = true; else delete save.relicLocks[id];
+    return true;
+  }
+  function rerollRelic(save, id, rng) {
+    if (!save || (save.relics || []).indexOf(id) < 0 || (save.renown || 0) < RELIC_REROLL) return 0;
+    save.renown -= RELIC_REROLL;
+    relicRoll(save, id);
+    save.relicRolls[id] = Math.round((0.85 + rng() * 0.3) * 100) / 100;
+    return save.relicRolls[id];
+  }
+  function dropRelic(save, id) {
+    save.relics = (save.relics || []).filter(function (rid) { return rid !== id; });
+    save.equipped = (save.equipped || []).filter(function (rid) { return rid !== id; });
+    (save.roster || []).forEach(function (f) {
+      if (f && f.relic === id) f.relic = null;
+      if (f && f.relic2 === id) f.relic2 = null;
+    });
+    if (save.relicRolls) delete save.relicRolls[id];
+    if (save.relicLocks) delete save.relicLocks[id];
+  }
+  function tradeTargets(save, id) {
+    const r = relicById(id);
+    if (!r) return [];
+    const owned = save.relics || [];
+    return RELICS.filter(function (x) { return x.rarity === r.rarity && x.id !== id && owned.indexOf(x.id) < 0; });
+  }
+  function tradeRelic(save, id, rng) {
+    if (!save || (save.relics || []).indexOf(id) < 0 || relicLocked(save, id) || (save.renown || 0) < RELIC_TRADE) return null;
+    const pool = tradeTargets(save, id);
+    if (!pool.length) return null;
+    const got = pool[Math.floor(rng() * pool.length)];
+    save.renown -= RELIC_TRADE;
+    dropRelic(save, id);
+    save.relics.push(got.id);
+    if (!save.relicRolls || typeof save.relicRolls !== "object") save.relicRolls = {};
+    save.relicRolls[got.id] = Math.round((0.85 + rng() * 0.3) * 100) / 100;
+    return got;
+  }
+
+  /* ---------- v114 Development Plans ----------
+     Standing orders the club runs after each league or cup week: spend
+     move upgrades and masteries, fill the academy, dress the party in
+     relics, and heal the injured while the purse allows. */
+  const PLAN_KEYS = ["upgrades", "masteries", "academy", "relics", "heal"];
+  const HEAL_RESERVE = 150;
+  function plansOf(save) {
+    if (!save.plans || typeof save.plans !== "object") save.plans = {};
+    return save.plans;
+  }
+  function planMastery(f) {
+    const kit = IL.CLASSES[f.cls] || {};
+    const front = kit.role === "melee" || kit.role === "tank" || kit.role === "hybrid";
+    const want = front ? { hp: 1 / 14, def: 0.7 / 2, atk: 0.5 / 2, spd: 0.2 / 5 } : { atk: 1 / 2, spd: 0.5 / 5, hp: 0.45 / 14, def: 0.2 / 2 };
+    const have = {};
+    (f.masteries || []).forEach(function (id) { have[id] = (have[id] || 0) + 1; });
+    let best = null, bestV = -1;
+    MASTERIES.forEach(function (m) {
+      const v = ((m.hp || 0) * want.hp + (m.atk || 0) * want.atk + (m.def || 0) * want.def + (m.spd || 0) * want.spd) * Math.pow(0.5, have[m.id] || 0);
+      if (v > bestV) { bestV = v; best = m; }
+    });
+    return best;
+  }
+  function runPlans(save, rng, party) {
+    const p = plansOf(save);
+    const notes = [];
+    const roster = save.roster || [];
+    if (p.upgrades && IL.upgradesPending) {
+      let n = 0;
+      roster.forEach(function (f) {
+        let guard = 20;
+        while (guard-- > 0 && IL.upgradesPending(f) > 0) {
+          const moves = (f.loadout || []).filter(function (id) { return IL.rankOf(f, id) < IL.RANK_MAX; });
+          if (!moves.length) break;
+          moves.sort(function (a, b) { return IL.rankOf(f, a) - IL.rankOf(f, b); });
+          if (!IL.upgradeMove(f, moves[0])) break;
+          n++;
+        }
+      });
+      if (n) notes.push("Development Plan: " + n + " move upgrade" + (n === 1 ? "" : "s") + " spent.");
+    }
+    if (p.masteries && IL.masteriesPending) {
+      let n = 0;
+      roster.forEach(function (f) {
+        let guard = 10;
+        while (guard-- > 0 && IL.masteriesPending(f) > 0) {
+          const m = planMastery(f);
+          if (!m || !IL.addMastery(f, m.id)) break;
+          n++;
+        }
+      });
+      if (n) notes.push("Development Plan: " + n + " master" + (n === 1 ? "y" : "ies") + " picked.");
+    }
+    if (p.academy && save.academy && save.academy.season === save.season) {
+      const busy = {};
+      (party || []).forEach(function (f) { if (f) busy[f.id] = true; });
+      const pool = roster.filter(function (f) { return academyEligible(f) && !busy[f.id] && save.academy.ids.indexOf(f.id) < 0 && !f.loan; })
+        .sort(function (a, b) { return (a.level || 1) - (b.level || 1); });
+      let n = 0;
+      while (save.academy.ids.length < ACADEMY_SQUAD && pool.length) { if (setAcademy(save, pool.shift().id, true)) n++; }
+      if (n) notes.push("Development Plan: " + n + " fighter" + (n === 1 ? "" : "s") + " sent to the academy.");
+    }
+    if (p.heal) {
+      let n = 0;
+      roster.filter(isInjured).sort(function (a, b) { return (b.level || 1) - (a.level || 1); }).forEach(function (f) {
+        if ((save.gold || 0) - healCost(save, f) >= HEAL_RESERVE && healInjury(save, f)) n++;
+      });
+      if (n) notes.push("Development Plan: " + n + " fighter" + (n === 1 ? "" : "s") + " healed.");
+    }
+    if (p.relics && (save.relics || []).length && autoRelics(save, party || [])) notes.push("Development Plan: relics re-dressed.");
+    return notes;
   }
 
   /* v110 Rebirth: re-roll a fighter's growth grades for renown. */
@@ -2675,7 +2828,7 @@
   }
 
   function gateChest(save, rng, floor) {
-    const c = openChest(rng, save.relics || []);
+    const c = openChest(rng, save.relics || [], save);
     c.gold = Math.round(c.gold * (1 + floor * 0.15));
     return c;
   }
@@ -3056,6 +3209,22 @@
   IL.scoreThunder = scoreThunder;
   IL.thunderTable = thunderTable;
   IL.STAFF_ROLES = STAFF_ROLES;
+  IL.STAFF_SPECS = STAFF_SPECS;
+  IL.RELIC_REROLL = RELIC_REROLL;
+  IL.RELIC_TRADE = RELIC_TRADE;
+  IL.relicLocked = relicLocked;
+  IL.lockRelic = lockRelic;
+  IL.rerollRelic = rerollRelic;
+  IL.tradeRelic = tradeRelic;
+  IL.tradeTargets = tradeTargets;
+  IL.PLAN_KEYS = PLAN_KEYS;
+  IL.HEAL_RESERVE = HEAL_RESERVE;
+  IL.plansOf = plansOf;
+  IL.runPlans = runPlans;
+  IL.staffSpec = staffSpec;
+  IL.specById = specById;
+  IL.staffBoost = staffBoost;
+  IL.rollRecruitRarity = rollRarity;
   IL.staffSlots = staffSlots;
   IL.staffStars = staffStars;
   IL.rollStaff = rollStaff;

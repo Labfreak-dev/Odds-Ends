@@ -357,6 +357,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "New modes: the Hall of Legends, a Tournament Center, an offline Challenge Tower, an All-Star match, alliance rounds in the second Thunder Cup, and a free draft at week 7.",
     "A bigger league: ten clubs over 18 weeks, drawn matches between rivals, and each season the bottom two clubs disband while new ones are founded.",
     "Three new classes (Templar, Frost Knight, Witch Hunter), and every champion now has a signature move of its own.",
     "Milestones: an ability upgrade every 5 levels from 14 and more masteries from level 27. Respec rebuilds a fighter's upgrades, Rebirth re-rolls growth grades, and evolutions can be skipped.",
@@ -2553,6 +2554,8 @@
     }
     otherFights().forEach(function (o) { out.push({ act: true, kind: "go", tab: o.tab, text: o.label + " is open." }); });
     if (save.cup && save.cup.mid && !save.cup.champion && IL.cupOpponent(save.cup)) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The MidCup is open: " + save.cup.size + "v" + save.cup.size + ", free entry." });
+    if (IL.allStarOpen && IL.allStarOpen(save)) out.push({ act: true, kind: "go", tab: "club:halls", text: "The All-Star match is ready this season." });
+    if (freeDraftOpen()) out.push({ act: true, kind: "go", tab: "matches:cups", text: "The free draft is open this week." });
     if (save.academy && save.academy.season === save.season && IL.academyReady(save)) out.push({ act: true, kind: "go", tab: "club:academy", text: "The academy fixture is ready this week." });
     if (thunderLive()) out.push({ act: true, kind: "go", tab: "cup", text: "Chaos Thunder Cup: round " + (save.thunder.round + 1) + " of " + IL.THUNDER_ROUNDS + " is ready." });
     if (seasonDone()) out.push({ act: true, kind: "season", text: "The season is over. The ceremony is waiting." });
@@ -3168,6 +3171,78 @@
     '</div>';
   }
 
+  /* ---------- v113 Halls: Hall of Legends, Tournament Center, Tower, All-Star ---------- */
+  function hallParty() {
+    return (save.roster || []).filter(function (f) { return !IL.isInjured(f); }).slice().sort(function (a, b) { return (b.level || 1) - (a.level || 1); }).slice(0, IL.HALL_SIZE);
+  }
+  function hallsPanel() {
+    const party = hallParty();
+    const tired = party.some(function (f) { return IL.staminaOf(f) < 15; });
+    const hall = save.hall || {};
+    const legends = IL.HALL.map(function (h) {
+      return '<li class="hall-row"><span><b>' + esc(h.name) + '</b><small>' + esc(h.blurb) + '</small></span><span class="acad-acts">' + [1, 2, 3].map(function (th) {
+        const done = hall[h.id + ":" + th];
+        return '<button type="button" class="ctl' + (done ? ' gold' : '') + '" data-hall="' + h.id + ':' + th + '"' + (party.length < 2 || tired ? ' disabled' : '') + ' title="Threat ' + th + ': level ' + (IL.clubAverage(save) + 2 + th * 3) + ', +' + th * 15 + '% strength. First clear: ' + 120 * th + ' gold, ' + 18 * th + ' renown.">' + (done ? '✓ ' : '') + roman(th) + '</button>';
+      }).join("") + '</span></li>';
+    }).join("");
+    const tn = IL.tourneyNow(save);
+    const tr = save.tourney && save.tourney.key === tn.key ? save.tourney : null;
+    const eligible = (save.roster || []).filter(function (f) { return IL.tourneyEligible(save, f) && !IL.isInjured(f); });
+    let tourney = '<p class="fine">' + esc(tn.def.name) + ': ' + esc(tn.def.blurb) + ' Three straight 1v1 wins take it. Entry ' + IL.TOURNEY_FEE + ' gold; pays 60 for a semi-final, 120 for the final, 240 and 30 renown to win. A new event every four league weeks.</p>';
+    if (!tr) {
+      tourney += eligible.length ? '<div class="ms-row">' + eligible.slice(0, 8).map(function (f) {
+        return '<button type="button" class="chip" data-tourney-enter="' + esc(f.id) + '"' + (save.gold < IL.TOURNEY_FEE ? ' disabled' : '') + '>Enter ' + esc(f.name.split(" ")[0]) + ' · Lv ' + (f.level || 1) + '</button>';
+      }).join("") + '</div>' : '<p class="fine">No fighter on the roster fits this event.</p>';
+    } else if (tr.out || tr.stage >= 3) {
+      tourney += '<p class="fine">' + (tr.stage >= 3 ? "You won this one." : "Out after " + tr.stage + " win" + (tr.stage === 1 ? "" : "s") + ".") + ' The next event opens in ' + (4 - ((save.round || 0) % 4)) + ' league week(s).</p>';
+    } else {
+      const tf = fighterById(tr.fid);
+      tourney += '<p class="fine">' + esc(tf ? tf.name : "Your fighter") + ' · ' + ["Quarter-final", "Semi-final", "Final"][tr.stage] + ' next.</p><button type="button" class="btn fight" id="tourneyGo">' + ["Quarter-final", "Semi-final", "Final"][tr.stage] + '</button>';
+    }
+    const tw = IL.towerOf(save);
+    const tower = '<p class="fine">Climb a ladder of teams with both sides set to level ' + IL.TOWER_LV + ', so the build counts, not the level. Your best three go in as copies: no stamina, no XP, no injuries. Rating ' + tw.rating + ' · floor ' + tw.floor + ' (rated ' + IL.towerRating(tw.floor) + ') · best ' + tw.best + ' · ' + tw.wins + '-' + tw.losses + '. A new best floor pays renown.</p>' +
+      '<button type="button" class="btn fight" id="towerGo"' + (fielded(save.roster, 3).length < 1 ? ' disabled' : '') + '>Climb floor ' + tw.floor + '</button>';
+    const as = IL.allStarOpen(save) ? IL.allStarSides(save) : null;
+    const allstar = as ? '<section class="es-card"><h3 class="section">All-Star match · season ' + save.season + '</h3>' +
+      '<p class="fine">Your three highest-Impact fighters against the league\'s three highest-level rivals. An exhibition: no stamina, no injuries. Every appearance adds 100 gold to a fighter\'s market value.</p>' +
+      '<p class="fine">' + as.left.map(function (f) { return esc(f.name); }).join(", ") + ' vs ' + as.right.map(function (f) { return esc(f.name); }).join(", ") + '</p>' +
+      '<button type="button" class="btn fight" id="allStarGo"' + (as.left.length < 1 ? ' disabled' : '') + '>Play the All-Star match</button></section>' : '';
+    return '<div class="halls-pane" id="hallsPane">' + allstar +
+      '<section class="es-card"><h3 class="section">Hall of Legends</h3><p class="fine">Your best ' + IL.HALL_SIZE + ' healthy fighters (' + party.map(function (f) { return esc(f.name.split(" ")[0]); }).join(", ") + ') against a handcrafted four. Each spends 15 stamina.' + (tired ? ' Someone is too tired right now.' : '') + '</p><ul class="acad-list">' + legends + '</ul></section>' +
+      '<section class="es-card"><h3 class="section">Tournament Center</h3>' + tourney + '</section>' +
+      '<section class="es-card"><h3 class="section">Challenge Tower</h3>' + tower + '</section>' +
+    '</div>';
+  }
+  function hallLaunch(mode, left, right, rightName, extra) {
+    launchMatch(Object.assign({ mode: mode, left: left, right: right, leftName: save.clubName, rightName: rightName, size: left.length, returnTab: "club",
+      seed: (save.rngSeed ^ IL.hashStr(mode + ":" + rightName + ":" + save.season + ":" + save.round)) >>> 0 }, extra || {})).catch(function () { refreshHub(); });
+  }
+  function startHall(key) {
+    const bits = key.split(":");
+    const h = IL.HALL.filter(function (x) { return x.id === bits[0]; })[0];
+    const party = hallParty();
+    if (!h || party.length < 2) { pitSound("error"); return; }
+    hallLaunch("hall", party, IL.hallFoes(save, h.id, +bits[1], takeRng()), h.name + " · threat " + roman(+bits[1]), { hallKey: key });
+  }
+  function startTourney() {
+    const tr = save.tourney;
+    const f = tr && fighterById(tr.fid);
+    if (!f) { pitSound("error"); return; }
+    const foe = IL.tourneyFoe(save, tr.stage, takeRng());
+    hallLaunch("tourney", [f], [foe], IL.tourneyNow(save).def.name);
+  }
+  function startTower() {
+    const tw = IL.towerOf(save);
+    const left = fielded(save.roster, 3).map(IL.towerCopy);
+    if (!left.length) { pitSound("error"); return; }
+    hallLaunch("tower", left, IL.towerFoes(tw.floor), "Tower floor " + tw.floor);
+  }
+  function startAllStar() {
+    const as = IL.allStarSides(save);
+    if (!as.left.length) { pitSound("error"); return; }
+    hallLaunch("allstar", as.left, as.right.map(function (f) { return Object.assign({}, f); }), "League All-Stars");
+  }
+
   /* v103 Academy: youth squad, weekly fixture, Development Tomes. */
   function academyPanel() {
     const fresh = !save.academy || save.academy.season !== save.season;
@@ -3231,6 +3306,7 @@
     if (clubPane === "events") return subTabs("club", "events", [["home", "‹ Club"], ["events", "Activities"]]) + eventsPanel();
     if (clubPane === "train") return subTabs("club", "train", [["home", "‹ Club"], ["train", "Training"]]) + trainingPanel();
     if (clubPane === "staff") return subTabs("club", "staff", [["home", "‹ Club"], ["staff", "Staff"]]) + staffPanel();
+    if (clubPane === "halls") return subTabs("club", "halls", [["home", "‹ Club"], ["halls", "Halls"]]) + hallsPanel();
     if (clubPane === "academy") return subTabs("club", "academy", [["home", "‹ Club"], ["academy", "Academy"]]) + academyPanel();
     const ev = IL.activeEvent ? IL.activeEvent(Date.now()) : null;
     const fac = save.facilities || {};
@@ -3238,6 +3314,7 @@
       '<section><h3 class="section">Activities</h3>' +
         clubTile("events", "Weekly event", ev ? ev.name : "This week", "Boss, gauntlet, horde, king or mirror. A new one each week.", "blue", "PvE") +
         gateTile() +
+        clubTile("halls", "Halls", "Legends · Tournament · Tower", "Hard handcrafted challenges, a 1v1 tournament every four weeks, and a ladder of teams at level 30.", "purple", IL.allStarOpen && IL.allStarOpen(save) ? "All-Star" : "Halls") +
         clubTile("academy", "Academy", (save.academy && save.academy.season === save.season ? save.academy.ids.length : 0) + " of " + IL.ACADEMY_SQUAD + " in training", "A weekly 3v3 youth fixture that never costs a week or stamina. Wins earn Development Tomes.", "green", IL.academyReady && save.academy && IL.academyReady(save) ? "Ready" : "Youth") +
         clubTile("events", "Endless pit", "Best wave " + ((save.endless && save.endless.best) || 0), "Waves until you fall. A relic every fifth.", "steel", "PvE") +
         clubTile("events", "Daily challenge", "A seeded pair", "One fight a day for a purse.", "purple", "Daily") +
@@ -3451,7 +3528,9 @@
       return '<li class="' + (c.you ? "you" : "") + '"><b>' + (i + 1) + '</b><span>' + esc(c.name) + '</span><em>' + c.pts + ' pts</em><small>' + (c.places.length ? c.places.map(function (p) { return p === 1 ? "1st" : p === 2 ? "2nd" : p === 3 ? "3rd" : "4th"; }).join(" · ") : "—") + '</small></li>';
     }).join("");
     const ready = !t.done && fielded(save.roster, t.size).length >= t.size;
-    return '<section class="compete-card" id="thunderCard"><header><p class="eyebrow">Free for all · ' + t.size + 'v' + t.size + 'v' + t.size + 'v' + t.size + '</p><h3>Chaos Thunder Cup</h3></header>' +
+    const allyNow = t.format === "alliance" && !t.done ? t.clubs[1 + (t.round % 3)] : null;
+    return '<section class="compete-card" id="thunderCard"><header><p class="eyebrow">' + (t.format === "alliance" ? 'Alliance · ' + t.size + '+' + t.size + ' vs ' + t.size + '+' + t.size : 'Free for all · ' + t.size + 'v' + t.size + 'v' + t.size + 'v' + t.size) + '</p><h3>Chaos Thunder Cup</h3></header>' +
+      (allyNow ? '<p class="fine">This round you fight beside ' + esc(allyNow.name) + ' against the other two. The winning pair scores 2 points each; the ally changes every round.</p>' : '') +
       '<ol class="thunder-table">' + rows + '</ol>' +
       (t.done ? '<p class="fine">Finished ' + (t.finish === 1 ? "1st. The cup is yours." : t.finish === 2 ? "2nd." : t.finish === 3 ? "3rd." : "4th.") + '</p>'
         : '<p class="fine">Round ' + (t.round + 1) + ' of ' + IL.THUNDER_ROUNDS + '. Last club standing places 1st; the rest place by when they fall.</p>' +
@@ -3459,9 +3538,21 @@
     '</section>';
   }
   function startThunderFight() {
+    const btn = document.getElementById("thunderGo");
+    if (save.thunder && save.thunder.format === "alliance") {
+      const al = IL.allianceSides(save);
+      if (!al) { pitSound("error"); return; }
+      if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
+      launchMatch({
+        mode: "thunder", left: al.left, right: al.right,
+        leftName: save.clubName + " & " + al.allyName, rightName: al.foeName,
+        size: al.left.length, returnTab: "cup",
+        seed: (save.rngSeed ^ (0x7D1 + save.thunder.round * 977 + save.season * 31)) >>> 0
+      }).catch(function () { if (btn) btn.disabled = false; });
+      return;
+    }
     const sides = IL.thunderSides(save);
     if (!sides) { pitSound("error"); return; }
-    const btn = document.getElementById("thunderGo");
     if (btn) { btn.disabled = true; btn.textContent = "Opening the pit…"; }
     launchMatch({
       mode: "thunder",
@@ -5157,6 +5248,12 @@
     if (openSeasonBanner) openSeasonBanner.onclick = function () { showSeasonEnd(); };
     const chaosBtn = document.getElementById("chaos");
     if (chaosBtn) chaosBtn.onclick = function () { startChaosFight(); };
+    const tgo = document.getElementById("tourneyGo");
+    if (tgo) tgo.onclick = function () { tgo.disabled = true; startTourney(); };
+    const twgo = document.getElementById("towerGo");
+    if (twgo && !twgo.disabled) twgo.onclick = function () { twgo.disabled = true; startTower(); };
+    const asgo = document.getElementById("allStarGo");
+    if (asgo && !asgo.disabled) asgo.onclick = function () { asgo.disabled = true; startAllStar(); };
     const acadBtn = document.getElementById("academyGo");
     if (acadBtn && !acadBtn.disabled) acadBtn.onclick = function () { startAcademyFight(); };
     const thunderBtn = document.getElementById("thunderGo");
@@ -5342,6 +5439,16 @@
         const row = (save.staffMarket || [])[+stHire.dataset.staffHire];
         if (row && IL.hireStaff(save, +stHire.dataset.staffHire)) { pitSound("purchase"); logClub(row.name + " joins the staff as " + IL.STAFF_ROLES[row.role].name + "."); persist(); refreshHub(); showNote(row.name + " hired."); }
         else pitSound("error");
+        return;
+      }
+      const hallB = ev.target.closest("[data-hall]");
+      if (hallB && !hallB.disabled) { startHall(hallB.dataset.hall); return; }
+      const tEnter = ev.target.closest("[data-tourney-enter]");
+      if (tEnter && !tEnter.disabled) {
+        if (save.gold < IL.TOURNEY_FEE) { pitSound("error"); return; }
+        save.gold -= IL.TOURNEY_FEE;
+        save.tourney = { key: IL.tourneyNow(save).key, fid: tEnter.dataset.tourneyEnter, stage: 0, out: false };
+        persist(); refreshHub();
         return;
       }
       const acIn = ev.target.closest("[data-acad-in]");
@@ -6133,8 +6240,9 @@
   function enterDraft() {
     const d = save.draft;
     if (d && d.stage !== "done") return;
-    if (save.gold < IL.DRAFT_COST) { pitSound("error"); return; }
-    save.gold -= IL.DRAFT_COST;
+    const free = freeDraftOpen();
+    if (!free && save.gold < IL.DRAFT_COST) { pitSound("error"); return; }
+    if (free) save.freeDraftSeason = save.season; else save.gold -= IL.DRAFT_COST;
     save.draftsEntered = (save.draftsEntered || 0) + 1;
     save.draft = IL.startDraft(save, takeRng());
     persist();
@@ -6204,16 +6312,19 @@
     return { melee: "Front", tank: "Wall", kite: "Ranged", cast: "Caster", support: "Support", dash: "Skirmisher", hybrid: "Hybrid" }[role] || "Fighter";
   }
 
+  /* v113 week 7 brings a free draft, once a season. */
+  function freeDraftOpen() { return (save.round || 0) >= 6 && save.freeDraftSeason !== save.season && !seasonDone(); }
+
   function draftPanel() {
     const d = save.draft;
     const head = '<header class="panel-head draft-head"><p class="eyebrow">Draft</p><h3>The draft cup</h3></header>';
     const level = IL.draftLevel(save);
     if (!d || d.stage === "done") {
-      const broke = save.gold < IL.DRAFT_COST;
+      const broke = save.gold < IL.DRAFT_COST && !freeDraftOpen();
       return head +
         '<p class="banner">Your roster stays home. Pick ' + IL.DRAFT_PICKS + ' mercenaries one at a time from offers of three, any class, at level ' + level + '. Three other clubs draft from the same pool. Win the 3 vs 3 bracket and sign one of your picks for free.</p>' +
         (d && d.signed ? '<p class="fine">Last draft: ' + esc(d.signed) + ' signed with the club.</p>' : '') +
-        '<div class="hub-actions"><button type="button" class="btn gold" id="draftEnter"' + (broke ? " disabled" : "") + '>Enter draft — ' + IL.DRAFT_COST + ' gold</button></div>';
+        '<div class="hub-actions"><button type="button" class="btn gold" id="draftEnter"' + (broke ? " disabled" : "") + '>' + (freeDraftOpen() ? 'Enter draft — free this week' : 'Enter draft — ' + IL.DRAFT_COST + ' gold') + '</button></div>';
     }
     const picked = d.picks.length
       ? '<h4 class="section">Your picks</h4><div class="cards dense-grid">' + d.picks.map(function (f) { return draftCard(f, ""); }).join("") + '</div>'
@@ -8063,6 +8174,44 @@
         renown = 4;
         headline = "Through to the draft final";
       }
+    } else if (mode === "hall") {
+      const key = (fight.spec && fight.spec.hallKey) || "";
+      const th = +(key.split(":")[1] || 1);
+      (fight.left || []).forEach(function (f) { if (f) f.stamina = Math.max(0, IL.staminaOf(f) - 15); });
+      xp = win ? 20 + th * 8 : 8;
+      if (win) {
+        const pay = IL.hallPay(save, key.split(":")[0], th);
+        gold = pay.gold; renown = pay.renown;
+        headline = pay.first ? "A legend falls · first clear" : "A legend falls again";
+        if (pay.first) logClub("Hall of Legends: " + fight.match.rightName + " cleared.");
+      } else { gold = 5; renown = 1; headline = "The legends stand"; }
+    } else if (mode === "tourney") {
+      const tr = save.tourney;
+      xp = win ? 18 : 8;
+      gold = 0; renown = 0;
+      if (tr) {
+        if (win) {
+          tr.stage += 1;
+          if (tr.stage >= 3) { gold = 240; renown = 30; headline = IL.tourneyNow(save).def.name + " won"; logClub(IL.tourneyNow(save).def.name + " won."); }
+          else headline = ["", "Through to the semi-final", "Through to the final"][tr.stage];
+        } else {
+          tr.out = true;
+          gold = tr.stage === 1 ? 60 : tr.stage === 2 ? 120 : 0;
+          headline = tr.stage === 0 ? "Out in the quarter-final" : tr.stage === 1 ? "Out in the semi-final" : "Runner-up";
+        }
+      }
+    } else if (mode === "tower") {
+      const res = IL.towerResult(save, win);
+      xp = 0; gold = 0;
+      renown = res.newBest ? 4 + IL.towerOf(save).best : 0;
+      headline = (win ? "Floor cleared" : "Held at the floor") + " · rating " + (res.delta >= 0 ? "+" : "") + res.delta;
+    } else if (mode === "allstar") {
+      save.allStarSeason = save.season;
+      (fight.left || []).forEach(function (f) { if (f) f.allStars = (f.allStars || 0) + 1; });
+      xp = win ? 20 : 10; gold = 0;
+      renown = win ? 20 : 8;
+      headline = win ? "The All-Stars are yours" : "The league's stars win the show";
+      logClub("All-Star match " + (win ? "won" : "lost") + ".");
     } else if (mode === "academy") {
       const mul = IL.DIVISIONS[IL.divisionOf(save)].purse;
       gold = Math.round((win ? 10 : 4) * mul);
@@ -8071,9 +8220,10 @@
       IL.recordAcademy(save, fight.academyClub, win, takeRng());
       headline = win ? "The academy wins · +1 Development Tome" : "The academy learns";
     } else if (mode === "thunder") {
-      const order = IL.placings(match);
-      const place = order.indexOf(0) + 1;
-      const t = IL.scoreThunder(save, order);
+      const alliance = save.thunder && save.thunder.format === "alliance";
+      const order = alliance ? [] : IL.placings(match);
+      const place = alliance ? (win ? 1 : 3) : order.indexOf(0) + 1;
+      const t = alliance ? IL.scoreAlliance(save, win) : IL.scoreThunder(save, order);
       const mul = IL.DIVISIONS[IL.divisionOf(save)].purse;
       gold = Math.round([30, 18, 10, 5][place - 1] * mul);
       renown = [5, 3, 2, 1][place - 1];
@@ -8498,7 +8648,7 @@
   }
 
   function modeLabel(mode) {
-    return { league: "League", cup: "Cup", draft: "Draft cup", chaos: "Chaos pit", thunder: "Thunder Cup", academy: "Academy", boss: "Weekly boss", gauntlet: "Gauntlet", horde: "Horde", king: "King of the pit", mirror: "Mirror", daily: "Daily", challenge: "Friend fight", endless: "Endless" }[mode] || "Fight";
+    return { league: "League", cup: "Cup", draft: "Draft cup", chaos: "Chaos pit", thunder: "Thunder Cup", academy: "Academy", hall: "Hall of Legends", tourney: "Tournament", tower: "Challenge Tower", allstar: "All-Star", boss: "Weekly boss", gauntlet: "Gauntlet", horde: "Horde", king: "King of the pit", mirror: "Mirror", daily: "Daily", challenge: "Friend fight", endless: "Endless" }[mode] || "Fight";
   }
 
   function lootRevealHtml(item) {

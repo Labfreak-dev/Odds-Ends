@@ -1822,6 +1822,29 @@ const opM = (function (open) {
 });
 check("Hold 2s keeps the start line; Rush gets there first", Math.abs(opM("hold")) < 10 && opM("rush") > opM("go"));
 
+/* v110 milestones, respec, rebirth. */
+const msF = IL.randomFighter(IL.mulberry32(1500), "warrior"); IL.ensureMoves(msF); msF.level = 13;
+check("no ability upgrade before level 14", IL.upgradesPending(msF) === 0);
+msF.level = 30;
+check("level 30 holds four upgrades and one later mastery", IL.upgradesPending(msF) === 4 && IL.masteriesPending(msF) === 1);
+const msMove = msF.loadout[0];
+check("an upgrade ranks a move up", IL.upgradeMove(msF, msMove) && IL.rankOf(msF, msMove) === 2 && IL.upgradesPending(msF) === 3);
+const msBase = IL.scaledStats(msF, IL.CLASSES.warrior).hp;
+check("a later mastery stacks stats", IL.addMastery(msF, "grit") && IL.scaledStats(msF, IL.CLASSES.warrior).hp > msBase && IL.masteriesPending(msF) === 0);
+msF.specs = { cleave: { mod: "heavy", tier: 1 } }; msF.talents = [{ id: "keen", tier: 0 }];
+check("respec clears upgrades and offers that many picks", IL.startRespec(msF) === 2 && !Object.keys(msF.specs).length && !msF.talents.length && IL.respecOffer(msF).length >= 1);
+IL.applyRespecPick(msF, 0); IL.applyRespecPick(msF, 0);
+check("respec picks rebuild until none are left", msF.respecPicks === 0 && IL.respecCount(msF) + 0 >= 1);
+const rbSave = { renown: 1000 };
+const rbF = { rarity: "legendary", grades: { hp: "B", atk: "B", def: "B", spd: "B" } };
+check("rebirth re-rolls growth grades for renown, dearer each time", IL.rebirth(rbSave, rbF, IL.mulberry32(9)) && rbSave.renown === 850 && IL.rebirthCost(rbF) === 225);
+const evS = IL.randomFighter(IL.mulberry32(1501), "warrior"); evS.level = 20;
+evS.evoSkips = 1;
+check("a skipped evolution is gone for good", IL.evoPicks(evS) === 0);
+const rvM = IL.randomFighter(IL.mulberry32(1502), "warrior");
+IL.growRival(rvM, IL.mulberry32(1503), 40);
+check("rivals claim their milestones", IL.upgradesPending(rvM) === 0 && IL.masteriesPending(rvM) === 0 && (rvM.masteries || []).length === 2);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

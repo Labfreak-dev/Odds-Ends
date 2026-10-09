@@ -1234,7 +1234,7 @@
     if (!f) return 0;
     const lv = f.level || 1;
     const earned = EVO_LEVELS.filter(function (l) { return lv >= l; }).length;
-    return Math.max(0, earned - Object.keys(f.evos || {}).length);
+    return Math.max(0, earned - Object.keys(f.evos || {}).length - (f.evoSkips || 0));
   }
   function evolveMove(f, abId, evoId) {
     if (!f || evoPicks(f) < 1) return false;
@@ -1261,6 +1261,74 @@
       evolveMove(f, ab.id, ch[Math.floor(rng() * ch.length)]);
     }
     return f;
+  }
+
+  /* ---------- v110 milestones, respec ----------
+     An ability upgrade every five levels from 14 (a move ranks up: +8%
+     power, -6% cooldown a rank, to rank 5) and a mastery at 27, 37 ... 97
+     on top of the level-10 one. Respec clears a fighter's upgrades and
+     passives and rebuilds them one card at a time. */
+  const UPGRADE_LEVELS = [];
+  for (let l = 14; l <= 84; l += 5) UPGRADE_LEVELS.push(l);
+  const MASTERY_LEVELS = [27, 37, 47, 57, 67, 77, 87, 97];
+  function upgradesPending(f) {
+    const lv = (f && f.level) || 1;
+    return Math.max(0, UPGRADE_LEVELS.filter(function (l) { return lv >= l; }).length - ((f && f.upgradesUsed) || 0));
+  }
+  function masteriesPending(f) {
+    const lv = (f && f.level) || 1;
+    return Math.max(0, MASTERY_LEVELS.filter(function (l) { return lv >= l; }).length - ((f && f.masteries) || []).length);
+  }
+  function upgradeMove(f, id) {
+    if (!f || upgradesPending(f) < 1) return false;
+    ensureMoves(f);
+    if (f.known.indexOf(id) < 0 || rankOf(f, id) >= RANK_MAX) return false;
+    if (!f.ranks || typeof f.ranks !== "object") f.ranks = {};
+    f.ranks[id] = rankOf(f, id) + 1;
+    f.upgradesUsed = (f.upgradesUsed || 0) + 1;
+    return true;
+  }
+  function addMastery(f, id) {
+    if (!f || masteriesPending(f) < 1 || !IL.masteryOf || !IL.masteryOf(id)) return false;
+    if (!Array.isArray(f.masteries)) f.masteries = [];
+    f.masteries.push(id);
+    return true;
+  }
+  function respecCost(f) { return 60 + 12 * ((f && f.level) || 1); }
+  function respecCount(f) { return Object.keys((f && f.specs) || {}).length + ((f && f.talents) || []).length; }
+  function startRespec(f) {
+    const n = respecCount(f);
+    if (!f || n < 1 || f.respecPicks > 0) return 0;
+    f.specs = {};
+    f.talents = [];
+    f.respecPicks = n;
+    f.respecs = (f.respecs || 0) + 1;
+    return n;
+  }
+  function respecOffer(f) {
+    if (!f || !(f.respecPicks > 0)) return [];
+    const saved = f.skillRerolls;
+    f.skillRerolls = 1000 + (f.respecs || 0) * 50 + f.respecPicks;
+    const cards = skillOffer(f).filter(function (c) { return c.kind === "spec" || c.kind === "talent" || c.kind === "hone"; });
+    f.skillRerolls = saved;
+    return cards;
+  }
+  function applyRespecPick(f, index) {
+    const card = respecOffer(f)[index];
+    if (!card) return null;
+    if (card.kind === "spec") {
+      if (!f.specs || typeof f.specs !== "object") f.specs = {};
+      f.specs[card.id] = { mod: card.mod, tier: card.tier };
+    } else if (card.kind === "talent") {
+      if (!Array.isArray(f.talents)) f.talents = [];
+      const had = f.talents.filter(function (t) { return t.id === card.id; })[0];
+      if (had) had.tier = Math.max(had.tier | 0, card.tier); else f.talents.push({ id: card.id, tier: card.tier });
+    } else if (card.kind === "hone") {
+      if (!f.rolls || typeof f.rolls !== "object") f.rolls = { hp: 0, atk: 0, def: 0, spd: 0 };
+      f.rolls[card.id] = (f.rolls[card.id] || 0) + (card.pts || 2);
+    }
+    f.respecPicks -= 1;
+    return card;
   }
 
   function modValue(mod, tier) {
@@ -1418,6 +1486,17 @@
   IL.rankOf = rankOf;
   IL.levelOffer = levelOffer;
   IL.applyLevelPick = applyLevelPick;
+  IL.UPGRADE_LEVELS = UPGRADE_LEVELS;
+  IL.MASTERY_LEVELS = MASTERY_LEVELS;
+  IL.upgradesPending = upgradesPending;
+  IL.masteriesPending = masteriesPending;
+  IL.upgradeMove = upgradeMove;
+  IL.addMastery = addMastery;
+  IL.respecCost = respecCost;
+  IL.respecCount = respecCount;
+  IL.startRespec = startRespec;
+  IL.respecOffer = respecOffer;
+  IL.applyRespecPick = applyRespecPick;
   IL.EVOS = EVOS;
   IL.EVO_LEVELS = EVO_LEVELS;
   IL.evoChoices = evoChoices;

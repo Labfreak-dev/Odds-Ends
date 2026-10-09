@@ -355,6 +355,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Milestones: an ability upgrade every 5 levels from 14 and more masteries from level 27. Respec rebuilds a fighter's upgrades, Rebirth re-rolls growth grades, and evolutions can be skipped.",
     "Eleven personalities with their own quirks and default tactics, new Healing priority, Protect and Opening tactics, and five tactic presets.",
     "Transfers: buy, swap or loan fighters straight from rival rosters on the Market, and loan your bench out for gold and XP.",
     "Difficulty: Relaxed, Normal, Hard and Infernus in Settings, plus options for no champion signings and no season modifiers.",
@@ -1840,6 +1841,7 @@
             '<p class="fine">Equip three. A tome teaches the rest.</p>' +
             '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +
             evoHtml(f) +
+            milestoneHtml(f) +
           '</section>' +
           '<section class="es-card"><h3 class="section">Profile and behavior</h3>' +
             '<dl class="es-profile">' +
@@ -2499,6 +2501,7 @@
     });
     (save.roster || []).forEach(function (f) {
       if (IL.evoPicks && IL.evoPicks(f) > 0) out.push({ act: true, kind: "evo", fid: f.id, text: f.name + " can evolve a move." });
+      if (IL.upgradesPending && (IL.upgradesPending(f) > 0 || IL.masteriesPending(f) > 0 || f.respecPicks > 0)) out.push({ act: true, kind: "evo", fid: f.id, text: f.name + " has a milestone to claim." });
       if (IL.isInjured && IL.isInjured(f)) out.push({ act: true, kind: "injury", fid: f.id, text: f.name + " is injured for " + f.injury.weeks + " more league week" + (f.injury.weeks === 1 ? "" : "s") + "." });
     });
     (save.offers || []).forEach(function (o) {
@@ -3694,6 +3697,41 @@
     '</div>';
   }
 
+  /* v110 milestones (ability upgrades, masteries), respec and rebirth. */
+  function milestoneHtml(f) {
+    if (!IL.upgradesPending) return "";
+    const lv = f.level || 1;
+    const up = IL.upgradesPending(f);
+    const ms = IL.masteriesPending(f);
+    const nextUp = IL.UPGRADE_LEVELS.filter(function (l) { return lv < l; })[0];
+    const nextMs = IL.MASTERY_LEVELS.filter(function (l) { return lv < l; })[0];
+    let out = '<h3 class="section">Milestones</h3>';
+    out += '<p class="fine">Ability upgrade every 5 levels from 14 (+8% power, -6% cooldown a rank, to rank ' + IL.RANK_MAX + '). Masteries at 27, 37 … 97.' +
+      (nextUp ? ' Next upgrade: level ' + nextUp + '.' : '') + (nextMs ? ' Next mastery: level ' + nextMs + '.' : '') + '</p>';
+    if (up > 0) {
+      out += '<p class="evo-ready">Upgrade a move · ' + up + ' to spend</p><div class="ms-row">' + (f.loadout || []).map(function (id) {
+        const ab = IL.abilityById(id);
+        const rk = IL.rankOf(f, id);
+        return ab ? '<button type="button" class="chip"' + (rk >= IL.RANK_MAX ? ' disabled' : '') + ' data-upgrade="' + esc(id) + '">' + esc(ab.name) + ' ' + roman(rk) + (rk < IL.RANK_MAX ? ' → ' + roman(rk + 1) : ' max') + '</button>' : '';
+      }).join("") + '</div>';
+    }
+    if (ms > 0) {
+      out += '<p class="evo-ready">Pick a mastery · ' + ms + ' to spend</p><div class="ms-row">' + (IL.MASTERIES || []).map(function (m) {
+        return '<button type="button" class="chip" data-mastery-add="' + esc(m.id) + '" title="' + esc(m.blurb) + '">' + esc(m.name) + ' (' + [m.hp ? "+" + m.hp + " HP" : "", m.atk ? "+" + m.atk + " ATK" : "", m.def ? "+" + m.def + " DEF" : "", m.spd ? "+" + m.spd + " SPD" : ""].filter(Boolean).join(" ") + ')</button>';
+      }).join("") + '</div>';
+    }
+    if ((f.masteries || []).length) out += '<p class="fine">Masteries: ' + f.masteries.map(function (id) { const m = IL.masteryOf(id); return m ? m.name : id; }).join(", ") + '.</p>';
+    if (f.respecPicks > 0) {
+      out += '<p class="evo-ready">Respec · rebuild ' + f.respecPicks + ' upgrade' + (f.respecPicks === 1 ? '' : 's') + '</p><div class="lv-skills respec-cards">' +
+        IL.respecOffer(f).map(function (c, i) { return skillCardHtml(f, c, i).replace('data-pick="' + i + '"', 'data-respec-pick="' + i + '"').replace("Choose skill", "Take it"); }).join("") + '</div>';
+    }
+    const n = IL.respecCount(f);
+    out += '<div class="ms-tools">' +
+      (n > 0 && !(f.respecPicks > 0) ? '<button type="button" class="ctl" data-respec="1"' + (save.gold < IL.respecCost(f) ? ' disabled' : '') + ' title="Clear this fighter\'s ' + n + ' move upgrades and passives, then pick ' + n + ' again from fresh cards">Respec · ' + IL.respecCost(f) + 'g</button>' : '') +
+      '<button type="button" class="ctl" data-rebirth="1"' + ((save.renown || 0) < IL.rebirthCost(f) ? ' disabled' : '') + ' title="Re-roll the growth grades (HP, ATK, DEF, SPD)">Rebirth · ' + IL.rebirthCost(f) + ' renown</button></div>';
+    return out;
+  }
+
   /* v96 evolutions: one move at level 20, another at 50, two choices each. */
   function evoHtml(f) {
     if (!IL.evoChoices) return "";
@@ -3721,7 +3759,7 @@
     const next = IL.EVO_LEVELS.filter(function (l) { return lv < l; })[0];
     return '<h3 class="section">Evolutions</h3>' +
       (done ? '<ul class="evo-list">' + done + '</ul>' : '') +
-      (picks > 0 ? '<p class="evo-ready">Evolve a move · ' + picks + ' to spend</p>' + offer
+      (picks > 0 ? '<p class="evo-ready">Evolve a move · ' + picks + ' to spend <button type="button" class="ctl" data-evo-skip="1" title="Give up this evolution for good">Skip</button></p>' + offer
         : '<p class="fine">' + (next ? "Level " + next + " evolves one move: pick one of two new effects for it." : "Both evolutions spent.") + '</p>');
   }
 
@@ -5621,8 +5659,44 @@
         }
         return;
       }
+      const upB = ev.target.closest("[data-upgrade]");
+      if (upB && !upB.disabled) {
+        const uf = fighterById(detailId);
+        if (uf && IL.upgradeMove(uf, upB.dataset.upgrade)) { pitSound("purchase"); persist(); showHub(hubTab); }
+        return;
+      }
+      const msB = ev.target.closest("[data-mastery-add]");
+      if (msB) {
+        const mf = fighterById(detailId);
+        if (mf && IL.addMastery(mf, msB.dataset.masteryAdd)) { pitSound("purchase"); persist(); showHub(hubTab); }
+        return;
+      }
+      const rsB = ev.target.closest("[data-respec]");
+      if (rsB && !rsB.disabled) {
+        const rf2 = fighterById(detailId);
+        const cost = rf2 ? IL.respecCost(rf2) : 0;
+        if (rf2 && save.gold >= cost && IL.startRespec(rf2)) { save.gold -= cost; pitSound("purchase"); logClub(rf2.name + " started a respec."); persist(); showHub(hubTab); }
+        return;
+      }
+      const rpB = ev.target.closest("[data-respec-pick]");
+      if (rpB) {
+        const pf2 = fighterById(detailId);
+        if (pf2 && IL.applyRespecPick(pf2, +rpB.dataset.respecPick)) { pitSound("purchase"); persist(); showHub(hubTab); }
+        return;
+      }
+      const rbB = ev.target.closest("[data-rebirth]");
+      if (rbB && !rbB.disabled) {
+        const bf = fighterById(detailId);
+        if (bf && IL.rebirth(save, bf, takeRng())) { pitSound("purchase"); logClub(bf.name + " was reborn: new growth grades."); persist(); showHub(hubTab); showNote(bf.name + ": growth grades re-rolled."); }
+        return;
+      }
       const sheetHeal = ev.target.closest("[data-heal]");
       if (sheetHeal && !sheetHeal.disabled) { healFighter(sheetHeal.dataset.heal); return; }
+      if (ev.target.closest("[data-evo-skip]")) {
+        const kf = fighterById(detailId);
+        if (kf && IL.evoPicks(kf) > 0) { kf.evoSkips = (kf.evoSkips || 0) + 1; persist(); showHub(hubTab); }
+        return;
+      }
       const evoBtn = ev.target.closest("[data-evo-move]");
       if (evoBtn) {
         const ef = fighterById(detailId);

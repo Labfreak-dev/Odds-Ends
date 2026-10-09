@@ -201,6 +201,16 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Milestones, Respec and Rebirth (v110)
+
+- **Ability upgrades**: one every 5 levels from 14 (14, 19 … 84). Pick an equipped move to rank up: +8% power and -6% cooldown a rank, to rank 5. Move ranks existed in the arena before but nothing raised them.
+- **More masteries**: at 27, 37 … 97, on top of the level-10 one, stacking their stats.
+- **Respec** (60 + 12 gold a level): clears a fighter's move upgrades and passives, then offers that many picks again from fresh cards.
+- **Rebirth** (150 renown, +75 each time): re-rolls the growth grades.
+- **Skipping**: an evolution can be skipped for good. Level-up picks could already be put off with "Later".
+- **Rivals**: they claim their upgrades and masteries on their own.
+- **Where to find it**: the fighter sheet, and Events flags a milestone to claim.
+
 ## Personalities and deeper tactics (v109)
 
 - **Eleven personalities** (`PERSONAS` in `js/data.js`), each with a hidden mistake chance (Tactician 2% up to Reckless 25%, applied at a quarter), a roll threshold, a small combat passive and default tactics:

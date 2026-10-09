@@ -499,7 +499,8 @@
 
   function drillCap(data) { return TRAIN_CAP + facilityRank(data, "yard"); }
   function rosterCap(data) { return (IL.ROSTER_CAP || 8) + 2 * facilityRank(data, "hq"); }
-  function benchShare(data) { return 0.15 * facilityRank(data, "barracks"); }
+  /* v116 the bench always takes a little (10%); each Barracks rank adds 15%. */
+  function benchShare(data) { return 0.1 + 0.15 * facilityRank(data, "barracks"); }
   function staffSpecOn(data, id) { return !!(IL.staffSpec && IL.staffSpec(data, id)); }
   function restBonus(data) { return 6 * facilityRank(data, "infirmary") + (staffSpecOn(data, "restful") ? 4 : 0); }
   function scoutOdds(data) { const r = facilityRank(data, "scout"); return r >= 2 ? 1 : 0.45 + 0.3 * r; }

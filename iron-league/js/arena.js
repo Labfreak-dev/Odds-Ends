@@ -21,17 +21,20 @@
      turn and cast speed inside the sim instead: casters (druid, summoner)
      fell out of the win band, so the clock does it. */
   const PACE = {
-    tempo: 0.8,         /* sim seconds per real second at 1x */
-    move: 0.7,          /* walk and run speed (sim units) */
+    tempo: 0.95,        /* sim seconds per real second at 1x (v116, was 0.8) */
+    move: 0.92,         /* walk and run speed (v116, was 0.7) */
+    swing: 1.7,         /* v116 attack animations play this much faster */
+    dmg: 0.6,           /* v116 basic hits are lighter; there are many more of them */
+    stick: 3,           /* v116 seconds a fighter commits to its target */
     turn: 820,          /* steering acceleration */
     roll: 1,            /* roll travel speed */
     castTime: 1,        /* cast wind-up scale */
-    meleeRecover: 0.62, /* after a melee swing (was 0.18) */
-    kiteRecover: 1.0,   /* after a shot (was 0.55) */
-    castRecover: 1.5,   /* after a cast (was 1.15) */
-    abilityCd: 1.2,     /* every move's cooldown */
+    meleeRecover: 0.12, /* after a melee swing (v116, was 0.62) */
+    kiteRecover: 0.38,  /* after a shot (v116, was 1.0) */
+    castRecover: 0.6,   /* after a cast (v116, was 1.5) */
+    abilityCd: 1.0,     /* every move's cooldown (v116, was 1.2) */
     rollCd: 4.2,        /* between rolls (was 2.7) */
-    rollChance: 0.55,   /* share of seen threats that get a roll (was 0.8) */
+    rollChance: 0.4,    /* share of seen threats that get a roll (v116, was 0.55) */
     dash: 0.8           /* dash speed */
   };
 
@@ -696,6 +699,36 @@
     return (!plain && smartPick(m, u, best, bestD)) || best;
   }
 
+  /* v116 commitment: a fighter keeps its target for PACE.stick seconds
+     instead of re-picking every frame, unless it dies, a taunt calls, or
+     another foe is right on top of it. Re-picking every frame made the
+     front line walk back and forth between targets and never arrive. */
+  function committed(m, u, dt) {
+    const pick = nearest(m, u);
+    if (!pick || u.summon) return pick;
+    u.lockT = Math.max(0, (u.lockT || 0) - dt);
+    /* A front-liner fights whoever is already in its face rather than
+       running past them to a target behind. */
+    if (u.role === "melee" || u.role === "tank" || u.role === "hybrid") {
+      const close = nearestEnemyOf(m, u, u.team);
+      if (close && !(pick.taunt > 0) && Math.hypot(close.x - u.x, close.y - u.y) <= meleeReach(u, close) + 8) {
+        const cur0 = u.lockId != null ? unitById(m, u.lockId) : null;
+        const curNear = cur0 && cur0.hp > 0 && cur0.team !== u.team && Math.hypot(cur0.x - u.x, cur0.y - u.y) <= meleeReach(u, cur0) + 8;
+        if (!curNear) { u.lockId = close.id; u.lockT = PACE.stick; return close; }
+        return cur0;
+      }
+    }
+    const cur = u.lockId != null ? unitById(m, u.lockId) : null;
+    if (cur && cur !== pick && cur.hp > 0 && cur.team !== u.team && u.lockT > 0 && !(pick.taunt > 0)) {
+      const dc = Math.hypot(cur.x - u.x, cur.y - u.y);
+      const dp = Math.hypot(pick.x - u.x, pick.y - u.y);
+      const crowding = dp < dc * 0.45 && dp < meleeReach(u, pick) + 24;
+      if (!crowding && dc < 560) return cur;
+    }
+    if (pick !== cur) { u.lockId = pick.id; u.lockT = PACE.stick; }
+    return pick;
+  }
+
   /* v92 autobattle targeting, after Eslabong's tactics defaults. Among the
      enemies not much farther than the nearest, prefer one the team is
      already hitting (focus fire), one nearly down (finish it), a caster
@@ -870,6 +903,10 @@
        Both fronts already close the gap in a couple of seconds at kit speed. */
     let s = u.speed * PACE.move;
     if (u.root > 0) return 0;
+    /* v116 zone of control: an enemy fighter in your face halves your
+       walk, so a chaser that arrives can pin what it caught. Divers
+       (the dash role) slip it. */
+    if (u.zoc && u.role !== "dash") s *= 0.5;
     if (u.ai && u.ai.open === "rush" && u.mRushT > 0) s *= 1.15;
     if (u.slow > 0) s *= 0.62;
     if (u.rage > 0) s *= 1.08;
@@ -1171,9 +1208,21 @@
     row[kind] = (row[kind] || 0) + n;
   }
 
+  const AOE_FALLOFF = [1, 0.8, 0.65, 0.55];
   function deal(m, src, dst, raw, opt) {
     opt = opt || {};
     if (!dst || dst.hp <= 0) return;
+    /* v116 basic attacks (and summons' swings) come several times faster
+       now, so each lands lighter. Abilities keep their full weight. */
+    if (src && !opt.reflected && !opt.dot) {
+      const tag = opt.tag || src.swingTag;
+      if (src.summon || (tag && tag.id === "basic")) raw *= PACE.dmg;
+      /* v116 area falloff: in a scrum a blast catches four or five, so
+         each extra body hit in the same instant takes less. */
+      if (src._aoeT === m.time) src._aoeN = (src._aoeN || 0) + 1;
+      else { src._aoeT = m.time; src._aoeN = 0; }
+      raw *= AOE_FALLOFF[Math.min(AOE_FALLOFF.length - 1, src._aoeN)];
+    }
     if (dst.iframe > 0) {
       m.stats.dodges++;
       m.events.push({ type: "dodge", x: dst.x, y: dst.y - 34, team: dst.team });
@@ -1302,14 +1351,16 @@
       }
     }
     dst.flash = 0.14;
-    const big = !!opt.crit || dmg >= 26;
-    m.hitstop = blocked ? 0.02 : (big ? 0.07 : 0.035);
+    const big = !!opt.crit || dmg >= dst.maxHp * 0.1;
+    /* v116 only crits and heavy hits freeze the pit; with a hit every
+       tenth of a second a pause on each one would stutter. */
+    if (big && !blocked) m.hitstop = Math.max(m.hitstop || 0, 0.05);
     m.cheer = 1;
     if (src && !opt.dot && src !== dst) {
       const dx = dst.x - src.x;
       const dy = dst.y - src.y;
       const dist = Math.hypot(dx, dy) || 1;
-      const push = blocked ? 4 : (big ? 22 : 11);
+      const push = blocked ? 3 : (big ? 16 : 4);
       dst.x += (dx / dist) * push;
       dst.y += (dy / dist) * push * 0.35;
       if (big && !blocked) {
@@ -1598,8 +1649,9 @@
       u.swingCue = "";
       cue(m, swing);
     }
-    u.animT += dt;
-    u.actT -= dt;
+    const sw = dt * PACE.swing;
+    u.animT += sw;
+    u.actT -= sw;
     damp(u, 0.9);
     u.x += u.vx * dt;
     u.y += u.vy * dt;
@@ -2000,6 +2052,9 @@
     if (u.role === "tank" && th.kind === "melee" && u.blockCd <= 0 && dist < 110) return false;
     const trader = u.role === "melee" || u.role === "dash" || u.role === "tank";
     if (th.kind === "melee" && trader && u.cool <= 0 && dist <= u.range + 16 && th.score < 112) return false;
+    /* v116 the front line walks through arrows and bolts; only a big
+       marked spell makes it dive aside. */
+    if (trader && th.kind !== "melee" && th.score < 120) return false;
     if (m.rng() > PACE.rollChance) return false;
     startRoll(m, u, th.x, th.y);
     return true;
@@ -2245,7 +2300,7 @@
   function beginCine(m, u, ab) {
     if (!m || !ab || !ab.ult) return;
     if (m.cine && m.cine.t < m.cine.dur) return;
-    m.cine = { name: ab.name, who: u && u.name, t: 0, dur: 0.95 };
+    m.cine = { name: ab.name, who: u && u.name, uid: u && u.id, t: 0, dur: 1.1 };
   }
 
   function paintKind(m, u, t, ab) {
@@ -2837,7 +2892,7 @@
       return;
     }
     const spd = moveSpeed(u);
-    const t = nearest(m, u);
+    const t = committed(m, u, dt);
     if (!t) {
       damp(u, 0.85);
       u.x += u.vx * dt;
@@ -2958,7 +3013,11 @@
       }
       steer(u, spot.x, spot.y, spd, dt);
     } else if (u.role === "kite") {
-      if (dist < kiteMin) steer(u, u.x - (t.x - u.x), u.y - (t.y - u.y), spd, dt);
+      /* v116 backpedalling is slower than walking, so a chaser catches up. */
+      const fleeX = u.x - (t.x - u.x), fleeY = u.y - (t.y - u.y);
+      const pinned = u.x < WORLD.left + 36 || u.x > WORLD.right - 36 || u.y < WORLD.top + 30 || u.y > WORLD.bottom - 30;
+      if (dist < kiteMin && !pinned) steer(u, fleeX, fleeY, spd * 0.7, dt);
+      else if (dist < kiteMin) damp(u, 0.8);
       else if (dist > u.range - 16) steer(u, t.x, t.y, spd, dt);
       else {
         const dx = t.x - u.x;
@@ -2984,7 +3043,7 @@
       else damp(u, 0.7);
     } else if (u.role === "tank") {
       const tankSpot = standAt(u, t);
-      if (dist < 96 && u.blockCd <= 0 && m.rng() < 0.5) {
+      if (dist < reach + 10 && u.blockCd <= 0 && m.rng() < 0.03) {
         startBlock(m, u);
         return;
       }
@@ -3034,10 +3093,17 @@
         const bx = ally.x + (u.team === 0 ? -28 : 28);
         steer(u, bx, ally.y, spd * 0.9, dt);
       } else {
-        /* Hold the edge. Walking backward only piles them on the wall. */
-        const hx = u.homeX != null ? u.homeX : u.x;
-        const hy = u.homeY != null ? u.homeY : u.y;
-        steer(u, hx, hy, spd * 0.9, dt);
+        /* v116 hover just behind our own front line, not back at the wall. */
+        let fx = 0, fy = 0, fn = 0;
+        for (let i = 0; i < m.units.length; i++) {
+          const a = m.units[i];
+          if (a === u || a.team !== u.team || a.hp <= 0 || a.summon || hangsBack(a.role)) continue;
+          fx += a.x; fy += a.y; fn++;
+        }
+        const hx = fn ? fx / fn + (u.team === 0 ? -70 : 70) : (u.homeX != null ? u.homeX : u.x);
+        const hy = fn ? fy / fn : (u.homeY != null ? u.homeY : u.y);
+        if (Math.hypot(hx - u.x, hy - u.y) > 20) steer(u, hx, hy, spd * 0.9, dt);
+        else damp(u, 0.8);
       }
     } else if (u.role === "hybrid") {
       const hy = standAt(u, t);
@@ -3216,14 +3282,15 @@
         let dx = b.x - a.x;
         let dy = b.y - a.y;
         let dist = Math.hypot(dx, dy);
-        const gap = Math.max(a.radius + b.radius, 1.2 * BODY_W);
+        /* v116 the melee is a scrum: foes press into each other, allies keep a little room. */
+        const gap = Math.max(a.radius + b.radius, 1.2 * BODY_W) * (a.team === b.team ? 0.82 : 0.6);
         if (dist >= gap) continue;
         if (dist < 0.001) {
           dx = b.x === a.x ? ((b.team - a.team) || 1) : (b.x > a.x ? 1 : -1);
           dy = 0;
           dist = 1;
         }
-        const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.55;
+        const slip = (a.state === "roll" || b.state === "roll" || a.state === "dash" || b.state === "dash") ? 0.16 : 0.35;
         const push = (gap - dist) * slip;
         const nx = dx / dist;
         const ny = dy / dist;
@@ -3428,6 +3495,14 @@
       u.blockCd = Math.max(0, u.blockCd - dt);
       u.hurtCd = Math.max(0, u.hurtCd - dt);
       u.iframe = Math.max(0, u.iframe - dt);
+      u.zoc = false;
+      if (u.hp > 0 && !u.summon) {
+        for (let k = 0; k < m.units.length; k++) {
+          const e = m.units[k];
+          if (e.team === u.team || e.hp <= 0 || e.summon || !(e.role === "melee" || e.role === "tank" || e.role === "hybrid" || e.role === "dash")) continue;
+          if (Math.hypot(e.x - u.x, e.y - u.y) <= meleeReach(e, u) + 6) { u.zoc = true; break; }
+        }
+      }
       if (u.blink && u.blink.cd > 0) u.blink.cd = Math.max(0, u.blink.cd - dt);
       u.flash = Math.max(0, u.flash - dt);
       u.abilityCd = Math.max(0, u.abilityCd - dt);

@@ -1227,7 +1227,7 @@ const gate8 = IL.gateFloor(gateSave, IL.mulberry32(13), 8);
 check("iron gate floors scale and bosses sit on 5, 7 and 8", IL.GATE_FLOORS === 8 && gate1.foes && gate1.foes.length >= 1 && gate5.boss && gate5.boss.boss && gate5.boss.name === "Gate Warden" && gate8.boss.name === "The Gatekeeper" && gate8.adds.length === 2 && !IL.gateFloor(gateSave, IL.mulberry32(14), 6).boss);
 check("a gate chest grows with the floor", IL.gateChest(gateSave, IL.mulberry32(3), 8).gold >= IL.gateChest(gateSave, IL.mulberry32(3), 1).gold);
 const facSave = { facilities: { hq: 2, barracks: 1, infirmary: 2, scout: 2, treasury: 1 } };
-check("facilities scale the club", IL.rosterCap(facSave) === IL.ROSTER_CAP + 4 && Math.abs(IL.benchShare(facSave) - 0.15) < 1e-9 && IL.restBonus(facSave) === 12 && IL.scoutOdds(facSave) === 1 && IL.clubRelicSlots(facSave) === 3 && IL.rosterCap({}) === IL.ROSTER_CAP);
+check("facilities scale the club", IL.rosterCap(facSave) === IL.ROSTER_CAP + 4 && Math.abs(IL.benchShare(facSave) - 0.25) < 1e-9 && Math.abs(IL.benchShare({}) - 0.1) < 1e-9 && IL.restBonus(facSave) === 12 && IL.scoutOdds(facSave) === 1 && IL.clubRelicSlots(facSave) === 3 && IL.rosterCap({}) === IL.ROSTER_CAP);
 const facMig = IL.migrate({ clubName: "F", roster: [{ id: "a", cls: "warrior" }], facilities: { hq: 9, yard: 5 } });
 check("facility ranks clamp to their max", facMig.facilities.hq === 3 && facMig.facilities.yard === 2 && facMig.facilities.treasury === 0);
 check("an unplayed fighter is unproven", IL.perfScore(rookieMv) === 0 && IL.perfLabel(0) === "Unproven" && IL.perfScore(vetMv) > 150);
@@ -1926,6 +1926,43 @@ const q5Locked = Object.keys(IL.CLASSES).filter(function (id) { return !IL.class
 IL.VETERAN = true;
 check("the Veteran profile opens every class", q5Locked.length > 0 && q5Locked.every(function (id) { return IL.classUnlocked(id, 0); }));
 IL.VETERAN = false;
+
+/* v116 combat engine: many small hits, committed targets, a scrum. */
+(function () {
+  const L = ["warrior", "tank", "archer", "mage", "healer"], R = ["berserker", "paladin", "ranger", "warlock", "bard"];
+  let hits = 0, time = 0, switches = 0, unitTime = 0, reach = 0, frontTime = 0;
+  for (let s = 0; s < 4; s++) {
+    const mk = function (cls, i, p) { return { id: p + i, name: p + i, cls: cls, level: 12 }; };
+    const m = IL.createMatch({ seed: 700 + s, left: L.map(function (c, i) { return mk(c, i, "L"); }), right: R.map(function (c, i) { return mk(c, i, "R"); }), leftName: "A", rightName: "B" });
+    const hp = {}, tg = {};
+    m.units.forEach(function (u) { hp[u.id] = u.hp; });
+    let t = 0;
+    while (!m.over && t < 120) {
+      IL.stepMatch(m, 1 / 60); t += 1 / 60;
+      m.units.forEach(function (u) {
+        if (u.summon) return;
+        if (u.hp < hp[u.id] - 0.01) hits++;
+        hp[u.id] = u.hp;
+        if (u.hp <= 0) return;
+        unitTime += 1 / 60;
+        if (tg[u.id] && u.tgtId !== tg[u.id]) switches++;
+        tg[u.id] = u.tgtId;
+        if (t > 4 && (u.role === "melee" || u.role === "tank")) {
+          frontTime += 1 / 60;
+          let fd = 1e9; m.units.forEach(function (e) { if (e.team !== u.team && e.hp > 0) fd = Math.min(fd, Math.hypot(e.x - u.x, e.y - u.y)); });
+          if (fd <= (u.range || 36) + 20) reach += 1 / 60;
+        }
+      });
+    }
+    time += t;
+  }
+  check("v116 the pit lands at least 3.5 hits a second (was 1.85)", hits / time >= 3.5);
+  check("v116 fighters keep their target (under 0.35 switches a second, was 0.55)", switches / unitTime < 0.35);
+  check("v116 the front line spends most of the fight in reach", reach / frontTime >= 0.45);
+})();
+const q6 = { id: "q6", cls: "warrior", level: 5, levelsTaken: 3 };
+const q6o = IL.statOffer(q6);
+check("v116 one shared quality roll across the stat choice", q6o.every(function (x) { return x.q === q6o[0].q; }) && q6o[0].q >= 0.75 && q6o[0].q <= 1.35);
 
 /* v115 a second top-level function of the same name silently replaces the
    first (both hoist); keep every file's names unique. */

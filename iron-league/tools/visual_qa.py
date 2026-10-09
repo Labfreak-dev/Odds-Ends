@@ -618,7 +618,8 @@ class Run:
                     fails.append("floor is outside the viewport or the page scrolls")
                 if (floor.get("spread") or 0) < 0.7:
                     fails.append(f"spawn spread {floor.get('spread')} < 0.70 of the long axis")
-                if (floor.get("worst") or 0) > 0.55:
+                # v116 the melee is a scrum on purpose (Eslabong's bodies overlap); only flag a pile that never breaks.
+                if (floor.get("worst") or 0) > 6:
                     fails.append(f"bodies overlapped >30% for {floor.get('worst'):.2f}s")
                 if (floor.get("scale") or 0) < 1:
                     fails.append(f"sprite scale {floor.get('scale')} is below 1x")

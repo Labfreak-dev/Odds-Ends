@@ -1149,13 +1149,20 @@
     const w = (IL.STYLES[IL.styleOf(f)] || IL.STYLES.balanced).w;
     const ranked = STAT_KEYS.slice().sort(function (a, b) { return w[b] - w[a]; });
     const flat = w[ranked[0]] === w[ranked[3]];
+    /* v116 one shared quality roll for the whole stat choice (after
+       Eslabong): a strong roll is strong on whichever stat is picked. */
+    const q = statQuality(f);
     return STAT_KEYS.map(function (k) {
       let pts = 2;
       if (flat) pts = 2.5;
       else if (k === ranked[0]) pts = 3;
       else if (k === ranked[1] && w[k] > w[ranked[2]]) pts = 2.5;
-      return { key: k, pts: pts, good: !flat && k === ranked[0] };
+      return { key: k, pts: Math.round(pts * q * 2) / 2, good: !flat && k === ranked[0], q: q };
     });
+  }
+  function statQuality(f) {
+    const r = rollRng(f, "quality" + ((f && f.statRerolls) || 0))();
+    return Math.round((0.75 + r * 0.6) * 100) / 100;
   }
 
   function bestStat(f) {

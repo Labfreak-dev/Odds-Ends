@@ -59,6 +59,7 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v113 | Hall of Legends, Tournament Center, All-Star, alliance Thunder, free draft week, offline Challenge Tower | shipped |
 | v114 | Staff roles and specializations, Club Agenda, Development Plans, relic tools | shipped |
 | v115 | Club history and the Veteran profile | shipped |
+| v116 | Combat engine from the playtester's Eslabong recording: fast small hits, committed targets, the scrum | shipped |
 
 ## System map
 

@@ -201,6 +201,27 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Forged-plate buttons (v117)
+
+Every button in the game now uses one custom CSS style: a plate with cut corners, a 1px metal rim that follows the cuts, a lit top edge and a soft lower shade. The buttons used to be stretched PNG frames (`assets/ui/buttons/*`). Those smeared at most widths, grew spiky arrow ends whose shape changed with the label, and gave Skip, Fight and Next Match three different outlines. Next to them sat a second, flat style for Menu, Daily, Events and the chips.
+
+- **One build:**
+  - The rim is the button's own background.
+  - The face is a `::before` layer inset 1px and cut the same way.
+  - The colours come from CSS variables (`--plate-rim`, `--plate-f1..3`, `--plate-ink`, `--plate-rivet`), so each variant is only a few lines.
+- **Variants:**
+  - ghost: dark iron;
+  - primary: copper;
+  - gold, and the "on" state: gold leaf;
+  - **fight:** an ember plate, uppercase, with a deeper cut;
+  - danger: oxblood.
+  
+  Only Fight and the big Next Match button carry rivets.
+- **The small controls** use the same plate with a 5px cut: chips, the segmented `.ctl` controls, sub-tabs, the dock's Daily and Events, Menu and Later.
+- **States:** hover brightens the plate and press sinks it 1px. Keyboard focus lights the rim, because an outline would be clipped away. Disabled turns the plate to dull, unlit iron.
+- **Badges** (the Events count and the filter counts) now sit inside their plate, because the cut corners would clip anything hanging outside.
+- **Tests:** `smoke.py` now checks that the Fight button is a forged plate rather than a 9-slice image. Since v116 made rolls rare, the smoke tour uses a test-only `IL._roll` hook to ask for one, so the roll animation still has to draw.
+
 ## Combat engine (v116)
 
 This batch comes from a 12-minute recording of Eslabong that the playtester sent: four fights, studied frame by frame. Eslabong's camera is as far out as ours. The difference is in the fight itself. One clash there pops about 20 small numbers in two seconds, and the front lines pile into one moving knot within two seconds of the start. Ours landed about 2 hits a second across all ten fighters, and they wandered. A headless probe ran 12 seeded 5v5 fights before and after the change:

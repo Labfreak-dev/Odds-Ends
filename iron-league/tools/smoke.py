@@ -197,6 +197,9 @@ def run(page, label, shot_dir):
         if snap.get("abilities") and not caught.get("ability"):
             page.screenshot(path=str(shot_dir / f"{label}-ability.png"))
             caught["ability"] = True
+        if _ == 25 and not caught["roll"]:
+            # v116 rolls are rare now (front-liners walk through arrows); ask for one so the roll still has to draw.
+            page.evaluate("() => window.IL._roll && window.IL._roll(window.IL.currentMatch)")
         if snap["over"] or (caught["roll"] and caught["slash"] and caught.get("ability")):
             break
         page.wait_for_timeout(120)
@@ -347,7 +350,7 @@ def tour(page, shot_dir):
 
 
 def check_chrome(page, label):
-    """9-slice assets, a standings crest, and the gold cursor."""
+    """Chrome assets, the forged-plate fight button, a standings crest, and the gold cursor."""
     report = page.evaluate(
         """async () => {
           const urls = [
@@ -373,7 +376,7 @@ def check_chrome(page, label):
           }
           const btn = document.querySelector('#nextMatch');
           const css = getComputedStyle(document.body).cursor || '';
-          const slice = btn ? (getComputedStyle(btn).borderImageSource || '') : '';
+          const slice = btn ? (getComputedStyle(btn).clipPath || '') : '';
           const smooth = crest ? (getComputedStyle(crest).imageRendering || '') : '';
           return {
             status,
@@ -392,8 +395,9 @@ def check_chrome(page, label):
         raise SystemExit(label + " standings crest missing: " + str(report["crest"]))
     if "cursor_default" not in report["cursor"] and "url(" not in report["cursor"]:
         raise SystemExit(label + " cursor css missing: " + report["cursor"])
-    if "button_fight" not in report["slice"]:
-        raise SystemExit(label + " fight button is not a 9-slice: " + report["slice"])
+    # v117 buttons are CSS forged plates (cut corners via clip-path), not stretched PNGs.
+    if "polygon" not in report["slice"]:
+        raise SystemExit(label + " fight button is not a forged plate: " + report["slice"])
     if report["smooth"] == "pixelated":
         raise SystemExit(label + " crest emblem is pixelated")
 

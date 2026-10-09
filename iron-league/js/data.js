@@ -87,7 +87,7 @@
     ranger: {
       id: "ranger", name: "Ranger", renown: 40,
       blurb: "A shot that keeps going through the first body.",
-      hp: 102, atk: 16, def: 2, speed: 122, radius: 14,
+      hp: 96, atk: 15, def: 2, speed: 122, radius: 14,
       range: 250, role: "kite", attacks: ["atk1"], weapon: 4, run: "run2", pierce: 1,
       ability: { id: "pierce", name: "Pierce Shot", kind: "pierce", cd: 7.5, fx: "shot" },
       passive: { id: "trail", name: "Marked Trail" }
@@ -315,7 +315,27 @@
   const ROSTER_CAP = 8;
   const CUP_SIZE = 4;
 
-  const PERSONALITIES = ["bold", "wary", "patient"];
+  /* v109 eleven personalities, after Eslabong's: a hidden mistake chance,
+     a small combat passive, and default tactics. Bold, wary and patient
+     stay for older saves but are no longer rolled. */
+  const PERSONAS = {
+    tactician: { name: "Tactician", mistake: 0.02, roll: 72, fx: { cd: 0.04 }, ai: { aoe: "two", ff: "avoid" }, blurb: "Abilities cool down 4% faster. Rarely slips." },
+    duelist: { name: "Duelist", mistake: 0.03, roll: 80, fx: { crit: 0.04 }, ai: { target: "near" }, blurb: "+4% critical hit chance." },
+    stoic: { name: "Stoic", mistake: 0.03, roll: 92, fx: { def: 2 }, ai: { retreat: "never" }, blurb: "+2 DEF, and holds the line." },
+    hunter: { name: "Hunter", mistake: 0.04, roll: 80, fx: { lowHp: 0.06 }, ai: { target: "weak" }, blurb: "+6% damage to foes under half health; hunts the weakest." },
+    guardian: { name: "Guardian", mistake: 0.04, roll: 84, fx: { hp: 0.04 }, ai: { guard: "back" }, blurb: "+4% HP; stays by the back line." },
+    opportunist: { name: "Opportunist", mistake: 0.06, roll: 76, fx: { crit: 0.05 }, ai: { target: "weak", ult: "finish" }, blurb: "+5% critical hit chance; saves the ultimate to finish." },
+    lonewolf: { name: "Lone Wolf", mistake: 0.07, roll: 78, fx: { alone: 0.08 }, ai: { target: "back" }, blurb: "+8% damage with no ally within 120 px." },
+    cautious: { name: "Cautious", mistake: 0.08, roll: 60, fx: { hp: 0.05 }, ai: { retreat: "low", ff: "avoid" }, blurb: "+5% HP; backs off when hurt and rolls often." },
+    grudger: { name: "Grudger", mistake: 0.08, roll: 82, fx: { grudge: 0.08 }, ai: {}, blurb: "+8% damage to whoever hit them last." },
+    berserker: { name: "Berserker", mistake: 0.1, roll: 98, fx: { atk: 0.06 }, ai: { retreat: "never" }, blurb: "+6% ATK; never backs off." },
+    reckless: { name: "Reckless", mistake: 0.25, roll: 110, fx: { atk: 0.1, def: -2 }, ai: { ff: "natural", evade: "rarely" }, blurb: "+10% ATK, -2 DEF, fires through allies and barely rolls. Slips often." },
+    bold: { name: "Bold", mistake: 0.1, roll: 98, fx: {}, ai: {}, blurb: "Charges in; slips now and then." },
+    wary: { name: "Wary", mistake: 0.05, roll: 66, fx: {}, ai: {}, blurb: "Rolls away from more threats." },
+    patient: { name: "Patient", mistake: 0.03, roll: 78, fx: {}, ai: {}, blurb: "Waits for the moment." }
+  };
+  const PERSONA_ROLL = ["tactician", "duelist", "stoic", "hunter", "guardian", "opportunist", "lonewolf", "cautious", "grudger", "berserker", "reckless"];
+  const PERSONALITIES = Object.keys(PERSONAS);
   const TACTICS = ["strike", "cover", "hold"];
   /* Behavior rows on the fighter sheet. The first choice of each row is
      the default and reproduces the older AI exactly, so a save without
@@ -354,6 +374,22 @@
       { id: "any", name: "Anyone", blurb: "Fire area moves at a single foe as soon as they are up." },
       { id: "three", name: "3 or more", blurb: "Hold area moves for three foes in the area, unless fewer are left." }
     ] },
+    /* v109 healing priority, protect, and opening moves. */
+    { key: "heal", name: "Healing priority", opts: [
+      { id: "lowest", name: "Most wounded", blurb: "Heal and shield whoever is lowest." },
+      { id: "front", name: "Front line", blurb: "Keep the tanks and fighters up first." },
+      { id: "carry", name: "Damage dealers", blurb: "Keep the hardest hitter up first." }
+    ] },
+    { key: "guard", name: "Protect", opts: [
+      { id: "none", name: "Nobody", blurb: "Fight where the fight is." },
+      { id: "captain", name: "Captain", blurb: "Stay near the captain and hit what comes for them." },
+      { id: "back", name: "Back line", blurb: "Stay near the nearest archer, caster or support." }
+    ] },
+    { key: "open", name: "Opening", opts: [
+      { id: "go", name: "Go", blurb: "Start the fight at once." },
+      { id: "hold", name: "Hold 2s", blurb: "Hold the start line for 2 seconds and let them come." },
+      { id: "rush", name: "Rush", blurb: "Move 15% faster for the first 4 seconds." }
+    ] },
     /* v105 friendly fire: blasts hurt allies in the area (40%). */
     { key: "ff", name: "Friendly fire", opts: [
       { id: "avoid", name: "Avoid", blurb: "Hold a blast while an ally stands in it." },
@@ -371,6 +407,14 @@
       out[row.key] = row.opts.some(function (o) { return o.id === want; }) ? want : row.opts[0].id;
     }
     return out;
+  }
+
+  /* The behavior a fighter fights with: its own rows if set, else its
+     personality's defaults. */
+  function aiFor(f) {
+    if (f && f.ai && typeof f.ai === "object") return normAi(f.ai);
+    const p = f && PERSONAS[f.personality];
+    return normAi(p ? p.ai : {});
   }
 
   function aiCustom(raw) {
@@ -539,7 +583,7 @@
       captain: false,
       boosts: { hp: 0, dmg: 0, spd: 0, def: 0 },
       pendingPicks: 0,
-      personality: pick(rng, PERSONALITIES),
+      personality: pick(rng, PERSONA_ROLL),
       tactic: "strike",
       champion: false,
       wins: 0,
@@ -748,6 +792,9 @@
   IL.ROSTER_CAP = ROSTER_CAP;
   IL.CUP_SIZE = CUP_SIZE;
   IL.PERSONALITIES = PERSONALITIES;
+  IL.PERSONAS = PERSONAS;
+  IL.PERSONA_ROLL = PERSONA_ROLL;
+  IL.aiFor = aiFor;
   IL.TACTICS = TACTICS;
   IL.AI_ROWS = AI_ROWS;
   IL.normAi = normAi;

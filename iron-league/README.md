@@ -201,6 +201,29 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Personalities and deeper tactics (v109)
+
+- **Eleven personalities** (`PERSONAS` in `js/data.js`), each with a hidden mistake chance (Tactician 2% up to Reckless 25%, applied at a quarter), a roll threshold, a small combat passive and default tactics:
+  - Tactician: abilities -4% cooldown.
+  - Duelist: +4% crit.
+  - Stoic: +2 DEF.
+  - Hunter: +6% damage to foes under half health.
+  - Guardian: +4% HP.
+  - Opportunist: +5% crit.
+  - Lone Wolf: +8% damage with no ally within 120 px.
+  - Cautious: +5% HP.
+  - Grudger: +8% damage to whoever hit them last.
+  - Berserker: +6% ATK.
+  - Reckless: +10% ATK, -2 DEF.
+
+  New recruits roll one. Bold, Wary and Patient stay on older fighters. Until you set a behavior row, a fighter uses its personality's defaults.
+- **Three new behavior rows**:
+  - **Healing priority**: most wounded, front line, or damage dealers.
+  - **Protect**: nobody, the captain, or the back line.
+  - **Opening**: go, hold the start line for 2 s, or rush at +15% speed for 4 s.
+- **Tactic presets**: save any fighter's behavior as one of five presets and apply it to another in one tap.
+- **Balance**: Ranger rose from 53% to 70% with the new personalities (200 fights). HP 102 → 96 and ATK 16 → 15 bring it back to 54%.
+
 ## Transfers and loans (v108)
 
 - **Rival rosters** on the Market lists every league club's four fighters.

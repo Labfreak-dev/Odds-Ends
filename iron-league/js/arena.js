@@ -185,7 +185,7 @@
       champion: !!fighter.champion,
       personality: fighter.personality || "bold",
       tactic: fighter.tactic || "strike",
-      ai: IL.normAi ? IL.normAi(fighter.ai) : { target: "near", range: "kit", ult: "ready", retreat: "never", evade: "normal" },
+      ai: IL.aiFor ? IL.aiFor(fighter) : IL.normAi ? IL.normAi(fighter.ai) : { target: "near", range: "kit", ult: "ready", retreat: "never", evade: "normal" },
       captain: !!fighter.captain,
       ranks: fighter.ranks && typeof fighter.ranks === "object" ? fighter.ranks : {},
       specs: fighter.specs && typeof fighter.specs === "object" ? fighter.specs : {},
@@ -314,6 +314,15 @@
     if (u.pv.cdCut) u.abilityCdMul *= 1 - u.pv.cdCut;
     u.feintT = 0;
     u.firstShotDone = false;
+    /* v109 personality passives. */
+    const persona = !fighter.summon && IL.PERSONAS && IL.PERSONAS[u.personality];
+    u.persona = persona ? persona.fx : {};
+    u.mRushT = 4;
+    if (u.persona.hp) { u.maxHp = Math.round(u.maxHp * (1 + u.persona.hp)); u.hp = u.maxHp; }
+    if (u.persona.atk) u.atk = Math.round(u.atk * (1 + u.persona.atk));
+    if (u.persona.def) u.def = Math.max(0, u.def + u.persona.def);
+    if (u.persona.crit) u.crit += u.persona.crit;
+    if (u.persona.cd) u.abilityCdMul *= 1 - u.persona.cd;
     /* v96 evolved moves: { moveId: "root" | "drain" | "chain" | "silence" | "lasting" | "shared" }. */
     u.evos = !fighter.summon && fighter.evos && typeof fighter.evos === "object" ? Object.assign({}, fighter.evos) : null;
     return u;
@@ -718,7 +727,8 @@
      Reckless 25%). Bold fighters slip the most. */
   const MISTAKE = { bold: 0.1, wary: 0.05, patient: 0.03 };
   function mistake(m, u) {
-    const p = MISTAKE[u.personality] != null ? MISTAKE[u.personality] : 0.05;
+    const pe = IL.PERSONAS && IL.PERSONAS[u.personality];
+    const p = pe ? pe.mistake : MISTAKE[u.personality] != null ? MISTAKE[u.personality] : 0.05;
     return m.rng() < p * 0.25;
   }
 
@@ -809,14 +819,20 @@
     return best;
   }
 
+  /* v109 healing priority: Most wounded (default), Front line or Damage dealers. */
   function lowestAlly(m, u) {
+    const pri = (u.ai && u.ai.heal) || "lowest";
     let best = null;
-    let ratio = 0.92;
+    let score = 1e9;
     for (let i = 0; i < m.units.length; i++) {
       const a = m.units[i];
       if (a.team !== u.team || a.hp <= 0) continue;
       const r = a.hp / a.maxHp;
-      if (r < ratio) { ratio = r; best = a; }
+      if (r >= 0.92) continue;
+      let v = r;
+      if (pri === "front" && !hangsBack(a.role)) v -= 0.25;
+      if (pri === "carry") v -= Math.min(0.3, (a.atk || 0) / 400);
+      if (v < score) { score = v; best = a; }
     }
     return best;
   }
@@ -838,6 +854,7 @@
        Both fronts already close the gap in a couple of seconds at kit speed. */
     let s = u.speed * PACE.move;
     if (u.root > 0) return 0;
+    if (u.ai && u.ai.open === "rush" && u.mRushT > 0) s *= 1.15;
     if (u.slow > 0) s *= 0.62;
     if (u.rage > 0) s *= 1.08;
     return s;
@@ -1166,6 +1183,17 @@
     if (dst.bleed && dst.bleed.hex) amount *= 1 + dst.bleed.hex;
     if (src && src.pv && src.pv.vsSlowed && dst.slow > 0) amount *= 1 + src.pv.vsSlowed;
     if (src && src.teamDmg && !opt.dot) amount *= 1 + src.teamDmg;
+    if (src && src.persona && src.team !== dst.team && !opt.dot) {
+      const px = src.persona;
+      if (px.lowHp && dst.hp < dst.maxHp * 0.5) amount *= 1 + px.lowHp;
+      if (px.grudge && src.lastHitBy === dst.id) amount *= 1 + px.grudge;
+      if (px.alone) {
+        let near = false;
+        for (let i = 0; i < m.units.length; i++) { const a = m.units[i]; if (a !== src && a.team === src.team && a.hp > 0 && Math.hypot(a.x - src.x, a.y - src.y) < 120) { near = true; break; } }
+        if (!near) amount *= 1 + px.alone;
+      }
+    }
+    if (src && src.team !== dst.team) dst.lastHitBy = src.id;
     if (m.hazard === "sudden" && m.time > 18 && !opt.dot) amount *= 1.4;
     /* v92 sudden death for every fight, after Eslabong: from 45 s hits
        climb 5% a second, to three times at 85 s. */
@@ -1942,7 +1970,8 @@
       return false;
     }
     const th = incomingThreat(m, u);
-    let need = u.personality === "bold" ? 98 : u.personality === "wary" ? 66 : 78;
+    const pr = IL.PERSONAS && IL.PERSONAS[u.personality];
+    let need = pr ? pr.roll : u.personality === "bold" ? 98 : u.personality === "wary" ? 66 : 78;
     if (u.tactic === "hold") need -= 8;
     if (u.ai && u.ai.evade === "often") need -= 16;
     else if (u.ai && u.ai.evade === "rarely") need += 18;
@@ -2851,6 +2880,33 @@
         return;
       }
     }
+    /* v109 Opening: Hold keeps the start line for 2 s unless a foe comes close. */
+    if (u.ai && u.ai.open === "hold" && m.time < 2 && dist > meleeReach(u, t) + 40 && !u.summon) {
+      if (tryClassAbility(m, u, t, dist)) return;
+      damp(u, 0.8);
+      setMoveAnim(u, dt);
+      return;
+    }
+    /* v109 Protect: stay near the captain or the nearest back-liner. */
+    const guardOn = u.ai && u.ai.guard && u.ai.guard !== "none" && !u.summon && order !== "engage";
+    if (guardOn) {
+      let ward = null, wd = 1e9;
+      for (let i = 0; i < m.units.length; i++) {
+        const a = m.units[i];
+        if (a === u || a.team !== u.team || a.hp <= 0 || a.summon) continue;
+        if (u.ai.guard === "captain" ? !a.captain : !hangsBack(a.role)) continue;
+        const d = Math.hypot(a.x - u.x, a.y - u.y);
+        if (d < wd) { wd = d; ward = a; }
+      }
+      if (ward && wd > 110 && dist > meleeReach(u, t) + 20) {
+        if (tryClassAbility(m, u, t, dist)) return;
+        steer(u, ward.x + (u.team === 0 ? 30 : -30), ward.y, spd, dt);
+        u.x += u.vx * dt;
+        u.y += u.vy * dt;
+        setMoveAnim(u, dt);
+        return;
+      }
+    }
     if (tryClassAbility(m, u, t, dist)) return;
     const reach = meleeReach(u, t);
     if (fallingBack(u) && u.role !== "tank" && order !== "engage") {
@@ -3384,6 +3440,7 @@
       u.rage = Math.max(0, u.rage - dt);
       u.slow = Math.max(0, u.slow - dt);
       if (u.root > 0) u.root = Math.max(0, u.root - dt);
+      if (u.mRushT > 0 && !m.engage) u.mRushT = Math.max(0, u.mRushT - dt);
       if (u.mana == null) u.mana = 100;
       if (u.sta == null) u.sta = 100;
       u.mana = Math.min(100, u.mana + (u.role === "cast" || u.role === "support" ? 16 : 12) * dt);

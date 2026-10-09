@@ -355,6 +355,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Eleven personalities with their own quirks and default tactics, new Healing priority, Protect and Opening tactics, and five tactic presets.",
     "Transfers: buy, swap or loan fighters straight from rival rosters on the Market, and loan your bench out for gold and XP.",
     "Difficulty: Relaxed, Normal, Hard and Infernus in Settings, plus options for no champion signings and no season modifiers.",
     "Named rivals: twelve handcrafted clubs with leaders, styles and signature moves. Every rival now has a bench, wears relics, rests tired fighters, and the better ones prepare against your last three lineups.",
@@ -908,9 +909,8 @@
   }
 
   function personalityLabel(id) {
-    if (id === "wary") return "Wary";
-    if (id === "patient") return "Patient";
-    return "Bold";
+    const p = IL.PERSONAS && IL.PERSONAS[id];
+    return p ? p.name : "Bold";
   }
 
   function pendingGrowth() {
@@ -1904,10 +1904,17 @@
   function behaviorHtml(f) {
     const rows = IL.AI_ROWS || [];
     if (!rows.length) return "";
-    const ai = IL.normAi(f.ai);
-    const custom = IL.aiCustom(f.ai);
+    const ai = IL.aiFor(f);
+    const custom = !!f.ai && IL.aiCustom(f.ai);
+    const persona = IL.PERSONAS[f.personality];
+    const presets = Array.isArray(save.tacticPresets) ? save.tacticPresets : [];
     return '<details class="behavior"' + (custom ? " open" : "") + ' id="behaviorBox">' +
-      '<summary><span>Behavior</span><em>' + esc(custom ? behaviorSummary(ai) : "Class default") + '</em></summary>' +
+      '<summary><span>Behavior</span><em>' + esc(custom ? behaviorSummary(ai) : (persona ? persona.name + " defaults" : "Class default")) + '</em></summary>' +
+      (persona ? '<p class="fine ai-persona"><b>' + esc(persona.name) + ':</b> ' + esc(persona.blurb) + ' Mistake chance ' + Math.round(persona.mistake * 100) + '%.</p>' : '') +
+      '<div class="ai-presets"><span class="fine">Presets</span>' + [0, 1, 2, 3, 4].map(function (i) {
+        const p = presets[i];
+        return p ? '<button type="button" class="chip" data-ai-preset="' + i + '" title="Apply ' + esc(behaviorSummary(IL.normAi(p.ai))) + '">' + (i + 1) + '</button>' : '';
+      }).join("") + '<button type="button" class="chip" data-ai-save="1" title="Save this fighter\'s behavior into the next free preset (5 at most; the oldest is replaced)">Save</button></div>' +
       rows.map(function (row) {
         const on = row.opts.filter(function (o) { return o.id === ai[row.key]; })[0] || row.opts[0];
         return '<div class="ai-row"><p class="ai-name">' + esc(row.name) + '</p>' +
@@ -1916,7 +1923,7 @@
           }).join("") + '</div>' +
           '<p class="fine ai-blurb">' + esc(on.blurb) + '</p></div>';
       }).join("") +
-      (custom ? '<button type="button" class="btn ghost" data-ai-reset="1">Back to class default</button>' : '') +
+      (custom ? '<button type="button" class="btn ghost" data-ai-reset="1">Back to personality defaults</button>' : '') +
     '</details>';
   }
 
@@ -1937,7 +1944,7 @@
     const at = pair.indexOf(":");
     const key = pair.slice(0, at);
     const val = pair.slice(at + 1);
-    const ai = IL.normAi(f.ai);
+    const ai = IL.aiFor(f);
     ai[key] = val;
     f.ai = IL.normAi(ai);
     persist();
@@ -5575,6 +5582,25 @@
       if (tactic) { setTactic(detailId, tactic.dataset.tactic); return; }
       const aiChip = ev.target.closest("[data-ai]");
       if (aiChip) { setBehavior(detailId, aiChip.dataset.ai); return; }
+      const aiP = ev.target.closest("[data-ai-preset]");
+      if (aiP) {
+        const pf = fighterById(detailId);
+        const preset = (save.tacticPresets || [])[+aiP.dataset.aiPreset];
+        if (pf && preset) { pf.ai = IL.normAi(preset.ai); persist(); refreshHub(); const bx = document.getElementById("behaviorBox"); if (bx) bx.open = true; showNote("Preset " + (+aiP.dataset.aiPreset + 1) + " applied."); }
+        return;
+      }
+      if (ev.target.closest("[data-ai-save]")) {
+        const sf = fighterById(detailId);
+        if (sf) {
+          if (!Array.isArray(save.tacticPresets)) save.tacticPresets = [];
+          save.tacticPresets.push({ ai: IL.aiFor(sf) });
+          if (save.tacticPresets.length > 5) save.tacticPresets.shift();
+          persist(); refreshHub();
+          const bx = document.getElementById("behaviorBox"); if (bx) bx.open = true;
+          showNote("Behavior saved as preset " + save.tacticPresets.length + ".");
+        }
+        return;
+      }
       if (ev.target.closest("[data-ai-reset]")) {
         const rf = fighterById(detailId);
         if (rf) { delete rf.ai; persist(); refreshHub(); }

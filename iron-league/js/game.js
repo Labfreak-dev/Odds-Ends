@@ -278,7 +278,7 @@
     monk: "preparing_for_an_attack", necromancer: "skull_demon", paladin: "shield",
     druid: "healing_magic", bard: "healing_magic", gunslinger: "bow", warlock: "wizards_cap",
     samurai: "swords", spearmaiden: "sword", summoner: "battle_magic", alchemist: "battle_magic",
-    beastmaster: "swords"
+    beastmaster: "swords", templar: "shield", frostknight: "sword", witchhunter: "bow"
   };
   const NAV_GLYPH = { overview: "shield", matches: "chest", roster: "swords", club: "preparing_for_an_attack", market: "cargo_bag", intel: "wizards_cap" };
   const STAT_GLYPH = { HP: "drop_water_or_blood", ATK: "sword", DEF: "armor_1_body", SPD: "shoes" };
@@ -355,6 +355,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Three new classes (Templar, Frost Knight, Witch Hunter), and every champion now has a signature move of its own.",
     "Milestones: an ability upgrade every 5 levels from 14 and more masteries from level 27. Respec rebuilds a fighter's upgrades, Rebirth re-rolls growth grades, and evolutions can be skipped.",
     "Eleven personalities with their own quirks and default tactics, new Healing priority, Protect and Opening tactics, and five tactic presets.",
     "Transfers: buy, swap or loan fighters straight from rival rosters on the Market, and loan your bench out for gold and XP.",
@@ -1837,6 +1838,7 @@
             '<p class="loadout-style"><strong>' + esc(attack.name) + '</strong> ' + esc(attack.blurb) + '</p>' +
             '<p class="loadout-style"><strong>Passive · ' + esc(passive.name || "Passive") + '</strong> ' + esc(passiveBlurb) + '</p>' +
             (champPassiveOf(f) ? '<p class="loadout-style"><strong>Champion passive · ' + esc(champPassiveOf(f).p.name) + '</strong> ' + esc(champPassiveOf(f).p.blurb) + ' (from the ' + esc(champPassiveOf(f).cls) + ')</p>' : '') +
+            (IL.championMove && IL.championMove(f) ? '<p class="loadout-style"><strong>Champion move · ' + esc(IL.championMove(f).name) + '</strong> ' + esc(moveFacts(IL.championMove(f), null, f.cls)) + ' An extra move on top of the three, fought at rank IV.</p>' : '') +
             '<h3 class="section">Loadout</h3><div class="loadout">' + loadout + '</div>' +
             '<p class="fine">Equip three. A tome teaches the rest.</p>' +
             '<div class="loadout-picks" id="loadoutPicks">' + picks + '</div>' +

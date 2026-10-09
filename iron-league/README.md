@@ -201,6 +201,16 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## New classes and champion moves (v111)
+
+- **Three new classes**, each with 14 moves (3 starters, a twin, 4 more and 6 extras), a passive with set numbers, a champion, and existing art and weapons that fit:
+  - **Templar** (tank, Oath, 40 renown): Sanctify, Smite Rush, Consecrate. *Vigil*: blocked hits do 34%, and the planted guard lasts 30% longer.
+  - **Frost Knight** (melee, Blade, 25 renown): Rime Cleave, Frost Grip (a root), Glacier. *Frostbite*: +12% damage to slowed enemies, knockbacks 30% shorter.
+  - **Witch Hunter** (bow, Mark, 55 renown): Silver Bolt, Hush Bolt (a silence), Purge (a homing shot). *Silver*: the first shot +25%, +5% range.
+
+  The class band (100 fights each) puts them at 42%, 53% and 48%.
+- **Champion moves**: every champion has a signature move of its own, its class's ultimate under the champion's name (e.g. "Brand's Purge"). It is an extra move on top of the three, fought at rank 4 (+24% power, -18% cooldown), and shows on the fighter sheet.
+
 ## Milestones, Respec and Rebirth (v110)
 
 - **Ability upgrades**: one every 5 levels from 14 (14, 19 … 84). Pick an equipped move to rank up: +8% power and -6% cooldown a rank, to rank 5. Move ranks existed in the arena before but nothing raised them.

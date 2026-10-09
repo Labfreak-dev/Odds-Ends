@@ -126,6 +126,30 @@
       range: 40, role: "melee", attacks: ["atk1", "atk2"],
       weapon: 2, run: "run",
       ability: A("hound", "Hound", "summon", 14, "smoke", 1, "A hound joins the fight for a few seconds.", { pet: "Hound", petHp: 0.3, petAtk: 0.4, life: 6 })
+    },
+    /* v111 three new classes. */
+    templar: {
+      id: "templar", name: "Templar", renown: 40, trait: "oath",
+      blurb: "A holy wall that guards itself and burns what stands close.",
+      hp: 170, atk: 15, def: 6, speed: 96, radius: 16,
+      range: 40, role: "tank", attacks: ["atk1", "atk2"], weapon: 1,
+      idle: "idle2", run: "run",
+      ability: A("sanctify", "Sanctify", "shield", 9, "orbit", 1, "A holy shield on themselves.", { power: 0.12, self: true })
+    },
+    frostknight: {
+      id: "frostknight", name: "Frost Knight", renown: 25, trait: "blade",
+      blurb: "Cold steel: wide cuts and a grip that pins them.",
+      hp: 152, atk: 17, def: 5, speed: 106, radius: 15,
+      range: 42, role: "melee", attacks: ["atk1", "atk2", "atk3"],
+      airs: ["air1"], leaps: true, weapon: 1, run: "run",
+      ability: A("rime-cleave", "Rime Cleave", "cleave", 7.6, "slash", 1, "A wide, cold cut.")
+    },
+    witchhunter: {
+      id: "witchhunter", name: "Witch Hunter", renown: 55, trait: "mark",
+      blurb: "A bow, silver arrows, and no patience for spells.",
+      hp: 100, atk: 15, def: 2, speed: 118, radius: 14,
+      range: 236, role: "kite", attacks: ["atk1"], weapon: 4, run: "run2",
+      ability: A("silver-bolt", "Silver Bolt", "pierce", 8, "shot", 1, "A bolt that goes through.")
     }
   };
 
@@ -230,6 +254,21 @@
     A("acid", "Acid", "dot", 8.2, "smoke", 4, "The flask keeps burning.", { power: 0.24, dot: 3.2, reach: 200 }),
     A("tonic-toss", "Tonic", "heal", 11, "plasma", 7, "A thrown tonic on the worst wound.", { power: 0.18 })
   ];
+  CLASSES.templar.abilities = [
+    CLASSES.templar.ability,
+    A("smite-rush", "Smite Rush", "charge", 9.5, "dash", 4, "A charge in behind the shield."),
+    A("consecrate", "Consecrate", "zone", 12, "orbit", 7, "Holy ground that burns whoever stands on it.")
+  ];
+  CLASSES.frostknight.abilities = [
+    CLASSES.frostknight.ability,
+    A("frost-grip", "Frost Grip", "root", 9.5, "smoke", 4, "Ice locks their feet.", { time: 1.3, power: 0.25, reach: 70 }),
+    A("glacier", "Glacier", "shield", 12, "orbit", 7, "A wall of ice on themselves.", { power: 0.15, self: true })
+  ];
+  CLASSES.witchhunter.abilities = [
+    CLASSES.witchhunter.ability,
+    A("hush-bolt", "Hush Bolt", "silence", 10, "shot", 4, "A bolt that stops a spell.", { time: 2, power: 0.3, reach: 260 }),
+    A("purge", "Purge", "homing", 11, "shot", 7, "A blessed bolt that finds its mark.", { power: 1.15, reach: 320 })
+  ];
   CLASSES.beastmaster.abilities = [
     CLASSES.beastmaster.ability,
     A("maul", "Maul", "cleave", 9, "slash", 4, "A wide hit beside the hound."),
@@ -248,7 +287,10 @@
     spearmaiden: { id: "long-point", name: "Long Point", blurb: "The charge reaches a step farther." },
     summoner: { id: "tether", name: "Tether", blurb: "The familiar stays up a little longer." },
     alchemist: { id: "steady-hand", name: "Steady Hand", blurb: "A thrown flask lands a little harder." },
-    beastmaster: { id: "pack-sense", name: "Pack Sense", blurb: "The hound hits a little harder." }
+    beastmaster: { id: "pack-sense", name: "Pack Sense", blurb: "The hound hits a little harder." },
+    templar: { id: "vigil", name: "Vigil", blurb: "Holds the line." },
+    frostknight: { id: "frostbite", name: "Frostbite", blurb: "Cold makes them slow." },
+    witchhunter: { id: "silver", name: "Silver", blurb: "Bad news for casters." }
   };
 
   /* Packed Time Fantasy columns these rows play. item and evade reuse crouch and walk. */
@@ -461,6 +503,24 @@
       M("al-smoke", "Smoke Flask", "debuff", 9, "smoke", "item", ["CC"], "Smoke that slows.", { reach: 190, time: 2 }),
       M("al-draught", "Draught", "heal", 10, "plasma", "item", ["Heal"], "A draught for the worst wound.", { power: 0.16 }),
       M("al-bang", "Bang", "nova", 11, "boom", "spell", ["AoE"], "The mix pops.", { power: 0.7, radius: 58 })
+    ],
+    templar: [
+      M("tp-light", "Light", "heal", 11, "plasma", "item", ["Heal"], "A mend on the most wounded.", { power: 0.14 }),
+      M("tp-rebuke", "Rebuke", "stun", 10.5, "slash", "thrust", ["CC"], "A shield bash that dazes.", { stun: 0.5, power: 0.3 }),
+      M("tp-oath", "Oath", "taunt", 10, "spark", "skill", ["CC"], "They look this way."),
+      M("tp-ward", "Ward", "shield", 11, "orbit", "item", ["Heal"], "A shield on the most wounded ally.", { power: 0.1 })
+    ],
+    frostknight: [
+      M("fk-shatter", "Shatter", "cleave", 10, "slash", "swing", ["AoE"], "The ice breaks on everyone in front."),
+      M("fk-chill", "Chill", "debuff", 9, "smoke", "skill", ["CC"], "A chill that slows them.", { reach: 80, time: 2.4 }),
+      M("fk-lunge", "Ice Lunge", "lunge", 8.4, "slash", "thrust", ["Mobility"], "A cold point."),
+      M("fk-avalanche", "Avalanche", "charge", 11, "dash", "evade", ["Mobility"], "A charge like falling snow.")
+    ],
+    witchhunter: [
+      M("wh-volley", "Volley", "multishot", 10.5, "shot", "missile", ["AoE"], "Three bolts at once."),
+      M("wh-net", "Net", "root", 10, "shot", "missile", ["CC"], "A weighted net.", { time: 1.4, power: 0.2, reach: 240 }),
+      M("wh-roll", "Roll Away", "skirmish", 9, "dash", "evade", ["Mobility"], "A roll and a shot."),
+      M("wh-oil", "Holy Oil", "dot", 8.6, "shot", "missile", ["DoT"], "A bolt dipped in burning oil.", { power: 0.24, dot: 3, reach: 220 })
     ],
     beastmaster: [
       M("bt-whistle", "Whistle", "summon", 14, "smoke", "skill", ["Summon"], "Another hound if the first is down.", { pet: "Hound", petHp: 0.26, petAtk: 0.36, life: 5.5 }),
@@ -687,6 +747,30 @@
       M("x-alchemist-glue-pot", "Glue Pot", "debuff", 9.2, "shot", null, [], "A pot of glue. They slow.", { reach: 240, time: 2.2 }),
       M("x-alchemist-flashbang", "Flashbang", "stun", 11, "boom", null, [], "A bang and a flash. A short daze.", { stun: 0.4, power: 0.25, reach: 200 })
     ],
+    templar: [
+      M("x-templar-judgement", "Judgement", "nova", 12, "boom", null, [], "Light falls on a cluster.", { power: 0.7, radius: 60 }),
+      M("x-templar-bulwark", "Bulwark", "zone", 12, "orbit", null, [], "Plants and holds."),
+      M("x-templar-mercy", "Mercy", "heal", 12, "plasma", null, [], "A deeper mend.", { power: 0.18 }),
+      M("x-templar-crusade", "Crusade", "buff", 13, "spark", null, [], "The team hits harder.", { power: 0.1, time: 3.5, team: true }),
+      M("x-templar-hammer", "Hammer", "knock", 10, "slash", null, [], "A blow that throws them back.", { force: 220, power: 0.32 }),
+      M("x-templar-chain", "Holy Chain", "pull", 11, "slash", null, [], "A chain of light drags them in.", { power: 0.25, reach: 260 })
+    ],
+    frostknight: [
+      M("x-frostknight-blizzard", "Blizzard", "frost", 12, "plasma", null, [], "A storm of cold."),
+      M("x-frostknight-ice-armor", "Ice Armor", "shield", 11, "orbit", null, [], "Ice on themselves.", { power: 0.12, self: true }),
+      M("x-frostknight-cold-cut", "Cold Cut", "dot", 8.4, "slash", null, [], "Frost that keeps biting.", { power: 0.22, dot: 3, reach: 46 }),
+      M("x-frostknight-stun", "Frozen Stiff", "stun", 11, "smoke", null, [], "Frozen for a moment.", { stun: 0.5, power: 0.25, reach: 52 }),
+      M("x-frostknight-leech", "Winter Drain", "drain", 10, "smoke", null, [], "Cold that feeds them.", { power: 0.45, reach: 60 }),
+      M("x-frostknight-glide", "Glide", "skirmish", 9.5, "dash", null, [], "Across the ice.")
+    ],
+    witchhunter: [
+      M("x-witchhunter-silver-rain", "Silver Rain", "multishot", 11, "shot", null, [], "Bolts over the crowd."),
+      M("x-witchhunter-seal", "Seal", "silence", 11, "spark", null, [], "A seal that stops spells.", { time: 2.5, power: 0.2, reach: 280 }),
+      M("x-witchhunter-stake", "Stake", "lunge", 9, "slash", null, [], "Up close with a stake."),
+      M("x-witchhunter-flare", "Flare", "stun", 11, "boom", null, [], "A flash. A short daze.", { stun: 0.4, power: 0.25, reach: 200 }),
+      M("x-witchhunter-hunt", "The Hunt", "homing", 12, "shot", null, [], "A bolt that never misses.", { power: 1, reach: 320 }),
+      M("x-witchhunter-trap", "Trap", "root", 10, "slash", null, [], "A snap trap.", { time: 1.5, power: 0.25, reach: 60 })
+    ],
     beastmaster: [
       M("x-beastmaster-falcon", "Falcon", "summon", 14, "smoke", null, [], "A falcon dives in.", { pet: "Familiar", petHp: 0.2, petAtk: 0.38, life: 5 }),
       M("x-beastmaster-gore", "Gore", "dot", 8.4, "slash", null, [], "A goring cut that keeps bleeding.", { power: 0.22, dot: 3, reach: 46 }),
@@ -730,6 +814,9 @@
     gunslinger: "Slide Shot",
     warlock: "Hex Spark",
     samurai: "Pass",
+    templar: "Sanctum",
+    frostknight: "Rime",
+    witchhunter: "Quarrel",
     spearmaiden: "Leap Point",
     summoner: "Bond",
     alchemist: "Etch",
@@ -793,7 +880,10 @@
     "long-point": { chargeMul: 0.25 },
     tether: { petLife: 0.4, petHp: 0.2 },
     "steady-hand": { vialMul: 0.35 },
-    "pack-sense": { petAtk: 0.25 }
+    "pack-sense": { petAtk: 0.25 },
+    vigil: { blockCut: 0.15, zoneTime: 0.3 },
+    frostbite: { vsSlowed: 0.12, knockResist: 0.3 },
+    silver: { firstShot: 0.25, range: 0.05 }
   };
   function pc(x) { return Math.round(x * 100) + "%"; }
   const PASSIVE_TEXT = {
@@ -822,7 +912,10 @@
     "long-point": function (v) { return "Charges hit " + pc(v.chargeMul) + " harder."; },
     tether: function (v) { return "Summons last " + pc(v.petLife) + " longer and have " + pc(v.petHp) + " more HP."; },
     "steady-hand": function (v) { return "Thrown flasks deal " + pc(v.vialMul) + " more damage."; },
-    "pack-sense": function (v) { return "Summons deal " + pc(v.petAtk) + " more damage."; }
+    "pack-sense": function (v) { return "Summons deal " + pc(v.petAtk) + " more damage."; },
+    vigil: function (v) { return "Blocked hits do " + pc(0.4 * (1 - v.blockCut)) + " damage instead of 40%, and the planted guard lasts " + pc(v.zoneTime) + " longer."; },
+    frostbite: function (v) { return "Deals " + pc(v.vsSlowed) + " more damage to slowed enemies; knockbacks push it " + pc(v.knockResist) + " less."; },
+    silver: function (v) { return "The first shot of each fight deals " + pc(v.firstShot) + " more, and +" + pc(v.range) + " attack range."; }
   };
   Object.keys(CLASSES).forEach(function (id) {
     const p = CLASSES[id].passive;
@@ -1424,6 +1517,9 @@
   };
 
   IL.CHAMPIONS.push(
+    { name: "Grand Warden Ilse", cls: "templar" },
+    { name: "Hoarfrost Kael", cls: "frostknight" },
+    { name: "Inquisitor Brand", cls: "witchhunter" },
     { name: "Brother Cal", cls: "monk" },
     { name: "Vesper Coil", cls: "necromancer" },
     { name: "Dame Holt", cls: "paladin" },
@@ -1437,6 +1533,24 @@
     { name: "Sable Vial", cls: "alchemist" },
     { name: "Houndmaster Grey", cls: "beastmaster" }
   );
+
+  /* v111 every champion has a signature move of its own: its class's
+     ultimate under the champion's name, an extra move on top of the three,
+     fought at rank 4 (+24% power, -18% cooldown). */
+  const CHAMP_MOVES = {};
+  (IL.CHAMPIONS || []).forEach(function (c) {
+    const kit = CLASSES[c.cls];
+    if (!kit) return;
+    const ult = (kit.abilities || []).filter(function (ab) { return ab && ab.unlock === 7; })[0] || (kit.abilities || [])[1];
+    if (!ult) return;
+    const word = String(c.name).split(" ").filter(function (w) { return w.length > 2 && w !== "the" && w !== "Old" && w !== "of"; }).pop() || c.name;
+    const id = "ch-" + String(c.name).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const ab = Object.assign({}, ult, { id: id, name: word + "'s " + ult.name, unlock: 99, champ: c.name, ult: true, twinOf: undefined });
+    delete ab.twinOf;
+    CHAMP_MOVES[c.name] = ab;
+    byId[id] = ab;
+  });
+  IL.championMove = function (f) { return f && f.champion && CHAMP_MOVES[f.name] ? CHAMP_MOVES[f.name] : null; };
 
   /* Presentation only. One signature move per class. Combat numbers stay put. */
   IL.SIGNATURES = {
@@ -1462,6 +1576,9 @@
     bone: { style: "summon", mark: "sigil", sheet: "sig-hex", rgb: "160,110,200", cue: "spell_shadow_cast", anchor: "pet", r: 48, life: 0.9, size: 170 },
     "lay-on": { style: "shield", mark: "cross", sheet: "sig-bloom", rgb: "255,220,140", cue: "spell_holy_cast", anchor: "ally", r: 56, life: 0.8, size: 160 },
     thorns: { style: "ring", mark: "spike", sheet: "sig-bloom", rgb: "70,170,70", cue: "spell_nature_impact", anchor: "foe", r: 68, life: 0.66, size: 180 },
+    "rime-cleave": { style: "ring", mark: "band", sheet: "sig-ice", rgb: "170,220,245", cue: "swing_heavy", anchor: "self", r: 84, life: 0.7, size: 190 },
+    "silver-bolt": { style: "trail", mark: "arrow", sheet: "sig-spark", rgb: "220,230,245", cue: "bow_release", anchor: "foe", r: 10, life: 0.55, size: 100 },
+    sanctify: { style: "shield", mark: "cross", sheet: "sig-bloom", rgb: "255,230,160", cue: "spell_holy_cast", anchor: "self", r: 56, life: 0.8, size: 160 },
     encore: { style: "ring", mark: "soft", sheet: "sig-spark", rgb: "255,170,200", cue: "spell_arcane_cast", anchor: "self", r: 90, life: 0.75, size: 190 },
     fanfire: { style: "trail", mark: "bolt", sheet: "sig-fire", rgb: "255,150,50", cue: "gunshot", anchor: "foe", r: 20, life: 0.45, size: 130 },
     hexbolt: { style: "chain", mark: "cold", sheet: "sig-bolt", rgb: "150,90,255", cue: "spell_lightning_cast", anchor: "foe", r: 0, life: 0.72, size: 190 },

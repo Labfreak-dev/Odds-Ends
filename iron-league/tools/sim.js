@@ -1085,8 +1085,10 @@ function runOut(m, each) {
   return m;
 }
 const comp3 = ["warrior", "archer", "mage"];
-const plain = runOut(IL.createMatch({ seed: 77, left: squadOf(1, comp3), right: squadOf(2, comp3) }));
-const dflt = runOut(IL.createMatch({ seed: 77, left: squadOf(1, comp3, function (f) { f.ai = IL.normAi({}); }), right: squadOf(2, comp3) }));
+/* v109: an unset behavior uses the personality's defaults; Bold has none. */
+const boldAll = function (f) { f.personality = "bold"; };
+const plain = runOut(IL.createMatch({ seed: 77, left: squadOf(1, comp3, boldAll), right: squadOf(2, comp3, boldAll) }));
+const dflt = runOut(IL.createMatch({ seed: 77, left: squadOf(1, comp3, function (f) { f.personality = "bold"; f.ai = IL.normAi({}); }), right: squadOf(2, comp3, boldAll) }));
 check("default behavior fights the same as no behavior", plain.time === dflt.time && plain.winner === dflt.winner);
 check("normAi drops unknown values", IL.normAi({ target: "moon", range: "far" }).target === "near" && IL.normAi({ range: "far" }).range === "far");
 const hunt = runOut(IL.createMatch({ seed: 78, left: squadOf(3, comp3, function (f) { f.ai = { target: "back", retreat: "half", evade: "often", ult: "crowd", range: "far" }; }), right: squadOf(4, comp3) }));
@@ -1782,6 +1784,43 @@ check("a loan out pays a fee and takes the fighter away", trOut && trOut.fee > 0
 const trXp = trSave.loansOut[0].fighter.xp || 0;
 IL.tickLoans(trSave); IL.tickLoans(trSave);
 check("after two weeks loans end both ways", trSave.roster.some(function (f) { return f.id === "z1"; }) && !trSave.roster.some(function (f) { return f.id === trBench[0].id; }) && trSave.clubs[1].fighters.some(function (f) { return f.id === trBench[0].id && !f.loan; }) && (trSave.roster.filter(function (f) { return f.id === "z1"; })[0].xp || 0) > trXp);
+
+/* v109 personalities and deeper tactics. */
+const psSeen = {};
+for (let i = 0; i < 300; i++) psSeen[IL.randomFighter(IL.mulberry32(1300 + i), "warrior").personality] = true;
+check("recruits roll all eleven personalities, never the old three", IL.PERSONA_ROLL.every(function (p) { return psSeen[p]; }) && !psSeen.bold && !psSeen.wary && !psSeen.patient && IL.PERSONA_ROLL.length === 11);
+check("an unset behavior uses the personality's defaults", IL.aiFor({ personality: "hunter" }).target === "weak" && IL.aiFor({ personality: "hunter", ai: IL.normAi({ target: "back" }) }).target === "back");
+function psUnit(persona) {
+  const f = IL.randomFighter(IL.mulberry32(77), "warrior"); f.id = "ps"; f.personality = persona; f.level = 10;
+  const e = IL.randomFighter(IL.mulberry32(78), "warrior"); e.id = "pe";
+  return IL.createMatch({ seed: 2, left: [f], right: [e], mode: "friendly" }).units[0];
+}
+const psBold = psUnit("bold"), psRk = psUnit("reckless"), psSt = psUnit("stoic");
+check("personalities change stats: Reckless hits harder, Stoic is firmer", psRk.atk > psBold.atk && psRk.def < psBold.def && psSt.def === psBold.def + 2);
+const hpM = (function () {
+  const make = function (c, i) { const f = IL.randomFighter(IL.mulberry32(1400 + i), c); f.id = "h" + i; f.level = 10; return f; };
+  const healer = make("healer", 0); healer.ai = IL.normAi({ heal: "front" });
+  const m = IL.createMatch({ seed: 3, left: [healer, make("tank", 1), make("archer", 2)], right: [make("warrior", 3)], mode: "friendly" });
+  m.units[1].hp = m.units[1].maxHp * 0.6; m.units[2].hp = m.units[2].maxHp * 0.5;
+  return m;
+})();
+check("Front line healing picks the tank over a lower archer", (function () {
+  const healer = hpM.units[0];
+  healer.x = 300; healer.y = 300; healer.cool = 0; healer.mana = 100; healer.cds = {};
+  const before = hpM.units[1].hp;
+  IL._fire(hpM, healer, hpM.units[3], 300, IL.abilityById("h-salve"), true);
+  return hpM.units[1].hp > before;
+})());
+const opM = (function (open) {
+  const f = IL.randomFighter(IL.mulberry32(91), "warrior"); f.id = "op"; f.ai = IL.normAi({ open: open }); f.personality = "bold";
+  const e = IL.randomFighter(IL.mulberry32(92), "warrior"); e.id = "oe"; e.personality = "bold";
+  const m = IL.createMatch({ seed: 4, left: [f], right: [e], mode: "friendly" });
+  m.engage = 0;
+  const x0 = m.units[0].x;
+  for (let k = 0; k < 60; k++) { IL.stepMatch(m, 1 / 60); m.events.length = 0; }
+  return m.units[0].x - x0;
+});
+check("Hold 2s keeps the start line; Rush gets there first", Math.abs(opM("hold")) < 10 && opM("rush") > opM("go"));
 
 if (fails) {
   console.error(fails, "failed");

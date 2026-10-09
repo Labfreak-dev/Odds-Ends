@@ -52,8 +52,8 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v106 | Named rival teams; rivals rest, equip relics and counter-build | shipped |
 | v107 | Difficulty: Relaxed, Normal, Hard, Infernus | shipped |
 | v108 | Loans, trades and offers for rival fighters | shipped |
-| v109 | Deeper tactics, 11 personalities, saved tactics | next |
-| v110 | Respec, Rebirth, deferred picks, mastery and upgrade milestones | planned |
+| v109 | Deeper tactics, 11 personalities, saved tactics | shipped |
+| v110 | Respec, Rebirth, deferred picks, mastery and upgrade milestones | next |
 | v111 | Champion abilities and new classes | planned |
 | v112 | Bigger league, draws, disbanding | planned |
 | v113 | Hall of Legends, Tournament Center, All-Star, alliance Thunder, free draft week, offline Challenge Tower | planned |

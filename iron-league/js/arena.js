@@ -328,6 +328,8 @@
       u.ranks = Object.assign({}, u.ranks);
       u.ranks[champMove.id] = 4;
     }
+    /* v113 Hall of Legends and Tower foes carry a strength multiplier. */
+    if (fighter.hallMul && fighter.hallMul !== 1) { u.maxHp = Math.round(u.maxHp * fighter.hallMul); u.hp = u.maxHp; u.atk = Math.round(u.atk * fighter.hallMul); }
     /* v109 personality passives. */
     const persona = !fighter.summon && IL.PERSONAS && IL.PERSONAS[u.personality];
     u.persona = persona ? persona.fx : {};

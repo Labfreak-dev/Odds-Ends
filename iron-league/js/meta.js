@@ -468,6 +468,7 @@
     if (score) v *= 0.85 + Math.min(0.95, score / 600 * 0.6);
     if (IL.staminaOf && IL.staminaOf(f) < 50) v *= 0.9;
     v += gearRefund(f);
+    v += 100 * (f.allStars || 0);
     return Math.max(20, Math.round(v / 5) * 5);
   }
 
@@ -1861,6 +1862,159 @@
     return { ai: { range: "far", aoe: "any" }, formation: "spread", text: "They studied your last " + recent.length + " matches and will spread out and keep away from your front line." };
   }
 
+  /* ---------- v113 new modes ---------- */
+  /* Alliance rounds (the second Thunder Cup): each round you team up with
+     one rival club, rotating, against the other two. The winning pair
+     scores 2 points each. */
+  function allianceSides(save) {
+    const t = save.thunder;
+    if (!t || t.done || t.format !== "alliance") return null;
+    const yours = fielded(save.roster, save.lineup, t.size);
+    if (yours.length < t.size) return null;
+    const ally = 1 + (t.round % 3);
+    const foes = [1, 2, 3].filter(function (i) { return i !== ally; });
+    return {
+      ally: ally,
+      left: yours.concat(t.clubs[ally].fighters.slice(0, t.size)),
+      right: t.clubs[foes[0]].fighters.slice(0, t.size).concat(t.clubs[foes[1]].fighters.slice(0, t.size)),
+      allyName: t.clubs[ally].name,
+      foeName: t.clubs[foes[0]].name + " & " + t.clubs[foes[1]].name
+    };
+  }
+  function scoreAlliance(save, win) {
+    const t = save.thunder;
+    if (!t || t.done) return null;
+    const ally = 1 + (t.round % 3);
+    t.clubs.forEach(function (c, i) {
+      const onYours = i === 0 || i === ally;
+      const won = onYours === !!win;
+      if (won) c.pts += 2;
+      c.places.push(won ? 1 : 2);
+    });
+    t.round += 1;
+    if (t.round >= THUNDER_ROUNDS) {
+      t.done = true;
+      t.finish = thunderTable(t).indexOf(t.clubs[0]) + 1;
+    }
+    return t;
+  }
+
+  /* Hall of Legends: four handcrafted challenges, three threat levels,
+     4v4 against your best four. Each fielded fighter spends 15 stamina.
+     The first clear of each threat pays. */
+  const HALL = [
+    { id: "leaders", name: "Council of Leaders", blurb: "Four named-team leaders, together for once.", classes: ["tank", "healer", "mage", "rogue"], champ: true },
+    { id: "wardens", name: "The Gate Wardens", blurb: "Three giants of the Iron Gate and their keeper.", classes: ["tank", "berserker", "shieldbearer", "warlock"], giant: true },
+    { id: "storm", name: "The Storm Choir", blurb: "Blasts on every side, and they fire through each other.", classes: ["battlemage", "elementalist", "mage", "bard"], ai: { aoe: "any", ff: "natural" } },
+    { id: "blades", name: "Hall of Blades", blurb: "Four masters of the cut.", classes: ["samurai", "duelist", "frostknight", "assassin"], ai: { target: "weak" } }
+  ];
+  const HALL_SIZE = 4;
+  function hallFoes(save, id, threat, rng) {
+    const h = HALL.filter(function (x) { return x.id === id; })[0];
+    if (!h) return [];
+    const lv = Math.min(IL.LEVEL_CAP || 100, clubAverage(save) + 2 + threat * 3);
+    return h.classes.map(function (cls, i) {
+      const f = IL.randomFighter(rng, cls);
+      if (IL.dressRival) IL.dressRival(f, rng, Math.min(4, divisionOf(save) + threat));
+      growRival(f, rng, lv);
+      f.id = "hall-" + id + "-" + i;
+      if (h.champ) { f.champion = true; f.rarity = "legendary"; }
+      if (h.ai) f.ai = Object.assign({}, h.ai);
+      f.hallMul = 1 + 0.15 * threat + (h.giant ? 0.35 : 0);
+      return f;
+    });
+  }
+  function hallPay(save, id, threat) {
+    const key = id + ":" + threat;
+    if (!save.hall || typeof save.hall !== "object") save.hall = {};
+    const first = !save.hall[key];
+    save.hall[key] = (save.hall[key] || 0) + 1;
+    return first ? { gold: 120 * threat, renown: 18 * threat, first: true } : { gold: 15 * threat, renown: 2 * threat, first: false };
+  }
+
+  /* Tournament Center: every four league weeks a different 1v1 event; you
+     enter one eligible fighter, who must win three straight bouts. */
+  const TOURNEYS = [
+    { id: "front", name: "Front-line Open", roles: ["melee", "tank", "dash"], blurb: "Melee fighters, tanks and duelists only." },
+    { id: "marks", name: "Marksman's Cup", roles: ["kite"], blurb: "Bows and guns only." },
+    { id: "spell", name: "Spell Duel", roles: ["cast", "support", "hybrid"], blurb: "Casters, supports and hybrids only." },
+    { id: "rookie", name: "Rookie Development Cup", maxLevel: 12, blurb: "Fighters of level 12 or less." }
+  ];
+  const TOURNEY_FEE = 30;
+  function tourneyNow(save) {
+    const slot = Math.floor((save.round || 0) / 4);
+    return { def: TOURNEYS[(slot + (save.season || 1)) % TOURNEYS.length], key: (save.season || 1) * 100 + slot };
+  }
+  function tourneyEligible(save, f) {
+    const t = tourneyNow(save).def;
+    const kit = IL.CLASSES[f.cls] || {};
+    if (t.maxLevel) return (f.level || 1) <= t.maxLevel;
+    return t.roles.indexOf(kit.role) >= 0;
+  }
+  function tourneyFoe(save, stage, rng) {
+    const t = tourneyNow(save).def;
+    const open = Object.keys(IL.CLASSES).filter(function (c) { return t.maxLevel || t.roles.indexOf(IL.CLASSES[c].role) >= 0; });
+    const f = IL.randomFighter(rng, IL.pick(rng, open));
+    const yours = (save.roster || []).filter(function (x) { return save.tourney && x.id === save.tourney.fid; })[0];
+    const base = yours ? yours.level || 1 : clubAverage(save);
+    growRival(f, rng, Math.max(1, Math.min(t.maxLevel || (IL.LEVEL_CAP || 100), base - 1 + stage)));
+    f.id = "tour-" + stage;
+    return f;
+  }
+
+  /* Challenge Tower (offline): a ladder of generated teams, normalized to
+     level 30 on both sides, with an Elo-style rating from 1500. */
+  const TOWER_LV = 30;
+  function towerOf(save) {
+    if (!save.tower || typeof save.tower !== "object") save.tower = { rating: 1500, floor: 1, best: 0, wins: 0, losses: 0 };
+    return save.tower;
+  }
+  function towerFoes(floor) {
+    const rng = IL.mulberry32((floor * 7919 + 13) >>> 0);
+    const ids = Object.keys(IL.CLASSES);
+    return [0, 1, 2].map(function (i) {
+      const f = IL.randomFighter(rng, IL.pick(rng, ids));
+      growRival(f, rng, TOWER_LV);
+      f.id = "tw-" + floor + "-" + i;
+      f.hallMul = 1 + Math.min(0.6, floor * 0.02);
+      return f;
+    });
+  }
+  function towerRating(floor) { return 1400 + floor * 30; }
+  function towerCopy(f) {
+    const c = JSON.parse(JSON.stringify(f));
+    c.level = TOWER_LV;
+    c.xp = IL.xpFloor ? IL.xpFloor(TOWER_LV) : 0;
+    c.stamina = 100;
+    c.injury = null;
+    return c;
+  }
+  function towerResult(save, win) {
+    const t = towerOf(save);
+    const e = 1 / (1 + Math.pow(10, (towerRating(t.floor) - t.rating) / 400));
+    const delta = Math.round(32 * ((win ? 1 : 0) - e));
+    t.rating += delta;
+    if (win) { t.wins++; t.floor++; } else t.losses++;
+    const newBest = win && t.floor - 1 > t.best;
+    if (newBest) t.best = t.floor - 1;
+    return { delta: delta, newBest: newBest };
+  }
+
+  /* All-Star match: once a season, from week 14, your three highest-Impact
+     fighters against the league's three highest-level rivals. */
+  function allStarOpen(save) {
+    return (save.round || 0) >= 13 && save.allStarSeason !== save.season;
+  }
+  function allStarSides(save) {
+    const mine = (save.roster || []).filter(function (f) { return !isInjured(f); }).slice().sort(function (a, b) {
+      return ((b.season && b.season.impact) || 0) - ((a.season && a.season.impact) || 0) || (b.level || 1) - (a.level || 1);
+    }).slice(0, 3);
+    const theirs = [];
+    (save.clubs || []).forEach(function (c) { if (c && !c.you) (c.fighters || []).forEach(function (f) { theirs.push(f); }); });
+    theirs.sort(function (a, b) { return (b.level || 1) - (a.level || 1); });
+    return { left: mine, right: theirs.slice(0, 3) };
+  }
+
   /* ---------- v103 Academy ----------
      Up to four fighters of level 20 or less train in the academy. Once a
      league week they play a 3v3 academy fixture that does not advance the
@@ -1970,7 +2124,7 @@
       while (names.length < 3 && pool.length) names.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
       while (names.length < 3) names.push(IL.pick(rng, IL.CLUBS.filter(function (n) { return n !== save.clubName && names.indexOf(n) < 0; })));
       save.thunder = {
-        season: save.season, slot: i, size: at.size, round: 0, done: false,
+        season: save.season, slot: i, size: at.size, round: 0, done: false, format: i === 1 ? "alliance" : "ffa",
         clubs: [{ name: save.clubName, you: true, pts: 0, places: [] }].concat(names.map(function (n) {
           const side = makeRivalSide(rng, n, at.size, save);
           return { name: n, you: false, pts: 0, places: [], fighters: side.fighters };
@@ -1984,7 +2138,7 @@
   }
   function thunderSides(save) {
     const t = save.thunder;
-    if (!t || t.done) return null;
+    if (!t || t.done || t.format === "alliance") return null;
     const yours = fielded(save.roster, save.lineup, t.size);
     if (yours.length < t.size) return null;
     return [{ name: save.clubName, fighters: yours }].concat(t.clubs.slice(1).map(function (c) { return { name: c.name, fighters: c.fighters }; }));
@@ -2862,6 +3016,25 @@
   IL.rivalTire = rivalTire;
   IL.dressRivalRelics = dressRivalRelics;
   IL.rivalPrep = rivalPrep;
+  IL.allianceSides = allianceSides;
+  IL.scoreAlliance = scoreAlliance;
+  IL.HALL = HALL;
+  IL.HALL_SIZE = HALL_SIZE;
+  IL.hallFoes = hallFoes;
+  IL.hallPay = hallPay;
+  IL.TOURNEYS = TOURNEYS;
+  IL.TOURNEY_FEE = TOURNEY_FEE;
+  IL.tourneyNow = tourneyNow;
+  IL.tourneyEligible = tourneyEligible;
+  IL.tourneyFoe = tourneyFoe;
+  IL.TOWER_LV = TOWER_LV;
+  IL.towerOf = towerOf;
+  IL.towerFoes = towerFoes;
+  IL.towerRating = towerRating;
+  IL.towerCopy = towerCopy;
+  IL.towerResult = towerResult;
+  IL.allStarOpen = allStarOpen;
+  IL.allStarSides = allStarSides;
   IL.ACADEMY_MAX_LV = ACADEMY_MAX_LV;
   IL.ACADEMY_SQUAD = ACADEMY_SQUAD;
   IL.TOMES_A_SEASON = TOMES_A_SEASON;

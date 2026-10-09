@@ -1855,6 +1855,37 @@ const chF = IL.randomFighter(IL.mulberry32(1600), "warrior"); chF.champion = tru
 const chU = IL.createMatch({ seed: 5, left: [chF], right: [IL.randomFighter(IL.mulberry32(1601), "warrior")], mode: "friendly" }).units[0];
 check("a champion fights with its move at rank 4", IL.pilotAbs(chU).some(function (ab) { return ab.id === "ch-old-marrow"; }) && chU.ranks["ch-old-marrow"] === 4 && !(chF.ranks && chF.ranks["ch-old-marrow"]));
 
+/* v113 new modes. */
+thSave.thunder = null;
+thSave.round = 10;
+thSave.thunderDone = { season: thSave.season, slots: [0] };
+const thA = IL.openThunder(thSave, IL.mulberry32(31));
+const alS = IL.allianceSides(thSave);
+check("the second Thunder Cup plays alliance rounds", thA.format === "alliance" && alS && alS.left.length === 6 && alS.right.length === 6 && IL.thunderSides(thSave) === null);
+IL.scoreAlliance(thSave, true);
+check("the winning pair scores 2 each", thA.clubs[0].pts === 2 && thA.clubs[1].pts === 2 && thA.clubs[2].pts === 0);
+IL.scoreAlliance(thSave, false); IL.scoreAlliance(thSave, true);
+check("three alliance rounds finish the cup", thA.done && thA.finish >= 1);
+const hlSave = { season: 1, division: 0, roster: [{ level: 10 }, { level: 10 }, { level: 10 }, { level: 10 }, { level: 10 }] };
+const hlF = IL.hallFoes(hlSave, "wardens", 2, IL.mulberry32(5));
+check("Hall foes are four, above the club and stronger", hlF.length === 4 && hlF.every(function (f) { return f.level === 18 && f.hallMul > 1.6; }));
+check("a Hall threat pays in full only the first time", IL.hallPay(hlSave, "wardens", 2).first && !IL.hallPay(hlSave, "wardens", 2).first);
+const tnSave = { season: 1, round: 0, roster: [] };
+const tn0 = IL.tourneyNow(tnSave).def.id; tnSave.round = 4; const tn1 = IL.tourneyNow(tnSave).def.id;
+check("the Tournament Center turns over every four weeks", tn0 !== tn1);
+tnSave.round = 0;
+const tnDef = IL.tourneyNow(tnSave).def;
+check("tournament entry follows the event's rule", tnDef.maxLevel ? IL.tourneyEligible(tnSave, { cls: "warrior", level: 5 }) && !IL.tourneyEligible(tnSave, { cls: "warrior", level: 40 }) : IL.tourneyEligible(tnSave, { cls: Object.keys(IL.CLASSES).filter(function (c) { return tnDef.roles.indexOf(IL.CLASSES[c].role) >= 0; })[0], level: 5 }));
+const twSave = {};
+const tw0 = IL.towerOf(twSave).rating;
+const twW = IL.towerResult(twSave, true);
+check("a Tower win climbs a floor and lifts the rating", IL.towerOf(twSave).floor === 2 && IL.towerOf(twSave).rating > tw0 && twW.newBest);
+IL.towerResult(twSave, false);
+check("a Tower loss costs rating, not the floor", IL.towerOf(twSave).floor === 2 && IL.towerOf(twSave).losses === 1);
+check("Tower teams are fixed per floor, at level 30", JSON.stringify(IL.towerFoes(5).map(function (f) { return f.cls; })) === JSON.stringify(IL.towerFoes(5).map(function (f) { return f.cls; })) && IL.towerFoes(5).every(function (f) { return f.level === 30; }));
+const asF = { id: "as1", cls: "warrior", level: 10, allStars: 2 };
+check("All-Star appearances add market value", IL.marketValue(asF) === IL.marketValue(Object.assign({}, asF, { allStars: 0 })) + 200);
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

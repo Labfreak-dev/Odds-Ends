@@ -221,6 +221,7 @@ def states(page):
         page.click("[data-filter-kind='events'][data-filter='" + pane + "']"); yield "club events " + pane, None
     k.press("4"); page.locator("[data-pane='club:staff']").first.click(); yield "club staff", None
     k.press("4"); page.locator("[data-pane='club:academy']").first.click(); yield "club academy", None
+    k.press("4"); page.locator("[data-pane='club:halls']").first.click(); yield "club halls", None
     k.press("4"); page.locator("[data-pane^='club:train']").first.click(); yield "club train", None
     for pane in ("specs", "tasks", "facilities"):
         page.click("[data-filter-kind='train'][data-filter='" + pane + "']"); yield "club train " + pane, None

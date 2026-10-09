@@ -201,6 +201,17 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## New modes (v113)
+
+All but the alliance cup and the free draft live in the new **Halls** pane on the Club tab.
+
+- **Hall of Legends**: four handcrafted 4v4 challenges (Council of Leaders, The Gate Wardens, The Storm Choir, Hall of Blades), each at threat I, II or III. Foes are your club average + 2 + 3 a threat, with +15% strength a threat, and the Wardens are giants. Your four best healthy fighters go in, each spending 15 stamina. The first clear of a threat pays 120/240/360 gold and 18/36/54 renown.
+- **Tournament Center**: a different 1v1 event every four league weeks (Front-line Open, Marksman's Cup, Spell Duel, Rookie Development Cup). Enter one eligible fighter for 30 gold and win three straight bouts. It pays 60 for a semi-final, 120 for the final and 240 + 30 renown to win.
+- **Challenge Tower** (offline): a ladder of generated teams, fixed per floor, with both sides set to level 30. Your best three go in as copies (no stamina, XP or injuries). Your Elo-style rating starts at 1500, and each floor is rated 1400 + 30 a floor. A new best floor pays renown.
+- **All-Star match**: once a season from week 14, your three highest-Impact fighters against the league's three highest-level rivals. Every appearance adds 100 gold to a fighter's market value.
+- **Alliance Thunder**: the second Chaos Thunder Cup is now alliance rounds, 3+3 vs 3+3. Each round you team up with a different rival club, and the winning pair scores 2 points each.
+- **Free draft**: from week 7, the draft cup is free once a season.
+
 ## Bigger league (v112)
 
 - **Ten clubs, home and away**: 18 league weeks, up from 8 clubs and 14 weeks. The week sizes keep their 3-2-3-1-3-2-3 pattern. The MidCup now opens after week 9.

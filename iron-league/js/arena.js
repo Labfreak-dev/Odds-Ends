@@ -104,7 +104,7 @@
     return (means[means.length - 1] - means[0]) / WORLD.w;
   }
 
-  const RETUNE = { warrior: 1.13, archer: 0.93, mage: 0.93, tank: 0.86, rogue: 1.12, healer: 0.94, assassin: 1.1, ranger: 1.03, battlemage: 0.98, shieldbearer: 0.94, skirmisher: 1.09, elementalist: 0.89, monk: 1.04, necromancer: 0.93, paladin: 1.07, warlock: 1.11, samurai: 1.07, spearmaiden: 1.05, summoner: 0.93, beastmaster: 0.89, templar: 0.89, frostknight: 1.03 };
+  const RETUNE = { warrior: 1.16, archer: 0.92, mage: 0.91, tank: 0.82, rogue: 1.12, healer: 0.93, assassin: 1.14, shieldbearer: 0.97, skirmisher: 1.08, elementalist: 0.88, monk: 1.03, necromancer: 0.95, paladin: 1.04, warlock: 1.14, samurai: 1.08, summoner: 0.92, beastmaster: 0.88, templar: 0.91, frostknight: 1.04, lancer: 1.03, druid: 1.04 };
   function scaledStats(fighter, kit) {
     const lv = fighter.level || 1;
     const b = fighter.boosts || {};

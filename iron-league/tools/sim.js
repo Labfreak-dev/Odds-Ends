@@ -1845,6 +1845,16 @@ const rvM = IL.randomFighter(IL.mulberry32(1502), "warrior");
 IL.growRival(rvM, IL.mulberry32(1503), 40);
 check("rivals claim their milestones", IL.upgradesPending(rvM) === 0 && IL.masteriesPending(rvM) === 0 && (rvM.masteries || []).length === 2);
 
+/* v111 new classes and champion moves. */
+check("three new classes with a full kit and a real passive", ["templar", "frostknight", "witchhunter"].every(function (c) {
+  const k = IL.CLASSES[c];
+  return k && k.abilities.length === 14 && k.passive && k.passive.fx && /\d/.test(k.passive.blurb) && k.renown > 0 && IL.CHAMPIONS.some(function (ch) { return ch.cls === c; });
+}));
+check("every champion has its own move", IL.CHAMPIONS.every(function (c) { const ab = IL.championMove({ champion: true, name: c.name }); return ab && ab.id.indexOf("ch-") === 0 && IL.abilityById(ab.id); }));
+const chF = IL.randomFighter(IL.mulberry32(1600), "warrior"); chF.champion = true; chF.name = "Old Marrow"; chF.id = "chm";
+const chU = IL.createMatch({ seed: 5, left: [chF], right: [IL.randomFighter(IL.mulberry32(1601), "warrior")], mode: "friendly" }).units[0];
+check("a champion fights with its move at rank 4", IL.pilotAbs(chU).some(function (ab) { return ab.id === "ch-old-marrow"; }) && chU.ranks["ch-old-marrow"] === 4 && !(chF.ranks && chF.ranks["ch-old-marrow"]));
+
 if (fails) {
   console.error(fails, "failed");
   process.exit(1);

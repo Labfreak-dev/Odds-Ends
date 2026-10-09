@@ -37,7 +37,10 @@
     spearmaiden: "spear",
     summoner: "book",
     alchemist: "staff",
-    beastmaster: "claw"
+    beastmaster: "claw",
+    templar: "mace",
+    frostknight: "sword",
+    witchhunter: "bow"
   };
 
   const GEAR_KIND = {

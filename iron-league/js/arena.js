@@ -320,6 +320,14 @@
     if (u.pv.cdCut) u.abilityCdMul *= 1 - u.pv.cdCut;
     u.feintT = 0;
     u.firstShotDone = false;
+    /* v111 a champion's signature move, an extra move at rank 4. */
+    const champMove = !fighter.summon && IL.championMove ? IL.championMove(fighter) : null;
+    if (champMove) {
+      u.grantAbs = (u.grantAbs || []).concat([champMove]);
+      u.cds[champMove.id] = 3;
+      u.ranks = Object.assign({}, u.ranks);
+      u.ranks[champMove.id] = 4;
+    }
     /* v109 personality passives. */
     const persona = !fighter.summon && IL.PERSONAS && IL.PERSONAS[u.personality];
     u.persona = persona ? persona.fx : {};

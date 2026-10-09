@@ -55,8 +55,8 @@ The playtester's goal: at least equal to Eslabong in abilities, relics, gear, hi
 | v109 | Deeper tactics, 11 personalities, saved tactics | shipped |
 | v110 | Respec, Rebirth, deferred picks, mastery and upgrade milestones | shipped |
 | v111 | Champion abilities and new classes | shipped |
-| v112 | Bigger league, draws, disbanding | next |
-| v113 | Hall of Legends, Tournament Center, All-Star, alliance Thunder, free draft week, offline Challenge Tower | planned |
+| v112 | Bigger league (10 clubs, 18 weeks), draws, disbanding and new clubs | shipped |
+| v113 | Hall of Legends, Tournament Center, All-Star, alliance Thunder, free draft week, offline Challenge Tower | next |
 | v114 | Staff roles and specializations, Club Agenda, Development Plans, relic tools | planned |
 | v115 | Club history and the Veteran profile | planned |
 

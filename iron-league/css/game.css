@@ -4841,3 +4841,5 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .ms-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
 .ms-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .respec-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 6px; margin: 4px 0 8px; }
+.form.d { background: #6b6252; }
+@media (max-width: 420px) { #finalTable th:nth-child(3), #finalTable td:nth-child(3) { display: none; } }

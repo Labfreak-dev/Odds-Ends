@@ -201,6 +201,12 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Bigger league (v112)
+
+- **Ten clubs, home and away**: 18 league weeks, up from 8 clubs and 14 weeks. The week sizes keep their 3-2-3-1-3-2-3 pattern. The MidCup now opens after week 9.
+- **Draws**: a match between two other clubs is drawn 12% of the time, for 1 point each. Your own matches are best-of-three series and cannot draw. Tables show W-D-L and form shows D.
+- **Disbanding**: when a season closes, the two bottom rival clubs (never a named team) disband. Their two best fighters go on the market (10% over value), they sit out the next season, and two newly founded clubs join the pool. The news goes to the market feed and the Club feed.
+
 ## New classes and champion moves (v111)
 
 - **Three new classes**, each with 14 moves (3 starters, a twin, 4 more and 6 extras), a passive with set numbers, a champion, and existing art and weapons that fit:

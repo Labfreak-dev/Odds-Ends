@@ -148,7 +148,9 @@
 
   function buildSeason(keepGold) {
     const rng = takeRng();
-    const pool = IL.CLUBS.filter(function (n) { return n !== save.clubName; });
+    /* v112 disbanded clubs sit a season out; new clubs join the pool. */
+    const gone = save.disbanded && save.disbanded.season === save.season ? save.disbanded.names : [];
+    const pool = IL.CLUBS.concat(save.newClubs || []).filter(function (n) { return n !== save.clubName && gone.indexOf(n) < 0; });
     const rivals = [];
     while (rivals.length < (IL.LEAGUE_CLUBS || 8) - 1 && pool.length) {
       rivals.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
@@ -355,6 +357,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "A bigger league: ten clubs over 18 weeks, drawn matches between rivals, and each season the bottom two clubs disband while new ones are founded.",
     "Three new classes (Templar, Frost Knight, Witch Hunter), and every champion now has a signature move of its own.",
     "Milestones: an ability upgrade every 5 levels from 14 and more masteries from level 27. Respec rebuilds a fighter's upgrades, Rebirth re-rolls growth grades, and evolutions can be skipped.",
     "Eleven personalities with their own quirks and default tactics, new Healing priority, Protect and Opening tactics, and five tactic presets.",
@@ -2136,9 +2139,41 @@
       f.season = { dealt: 0, taken: 0, heal: 0, kos: 0 };
       f.stamina = IL.STAMINA_MAX;
     });
+    disbandBottom();
     buildSeason(true);
     persist();
     showHub("overview");
+  }
+
+  /* v112 the two bottom rival clubs disband: their best fighters go to the
+     market, two new clubs are founded, and the disbanded sit a season out. */
+  const NEW_CLUB_A = ["Ember", "Gilded", "Iron", "Salt", "Thorn", "Ash", "Pale", "Storm", "Rust", "Bell", "Crow", "Oak", "Lantern", "Hollow", "Granite"];
+  const NEW_CLUB_B = ["Wardens", "Pact", "Company", "Hounds", "Choir", "Guild", "Order", "Lanterns", "Ravens", "Marchers", "Brigade", "Watch", "Riders"];
+  function disbandBottom() {
+    const table = sortedClubs().filter(function (c) { return !c.you && !c.named; });
+    const out = table.slice(-2);
+    if (!out.length) return;
+    const rng = takeRng();
+    const names = out.map(function (c) { return c.name; });
+    save.disbanded = { season: save.season, names: names };
+    if (!Array.isArray(save.market)) save.market = [];
+    out.forEach(function (c) {
+      IL.rivalPick(c, 2).forEach(function (f) {
+        f.captain = false; f.leader = false;
+        save.market.unshift({ fighter: f, cost: Math.max(40, Math.round(IL.marketValue(f) * 1.1 / 5) * 5), from: c.name });
+      });
+    });
+    if (!Array.isArray(save.newClubs)) save.newClubs = [];
+    const fresh = [];
+    let guard = 0;
+    while (fresh.length < 2 && guard++ < 40) {
+      const n = IL.pick(rng, NEW_CLUB_A) + " " + IL.pick(rng, NEW_CLUB_B);
+      if (IL.CLUBS.indexOf(n) < 0 && save.newClubs.indexOf(n) < 0 && fresh.indexOf(n) < 0 && n !== save.clubName) fresh.push(n);
+    }
+    save.newClubs = save.newClubs.concat(fresh).slice(-12);
+    const line = names.join(" and ") + " disbanded; their best fighters are on the market. New clubs: " + fresh.join(", ") + ".";
+    save.marketNews = [line].concat(save.marketNews || []).slice(0, 6);
+    logClub(line);
   }
 
   /* v76 Champions Cup: made when the league closes, played before the
@@ -2200,9 +2235,9 @@
     const sorted = sortedClubs();
     const place = Math.max(0, sorted.findIndex(function (c) { return c.you; }));
     const table = sorted.map(function (c, i) {
-      const played = c.w + c.l;
+      const played = c.w + c.l + (c.d || 0);
       const nemesisRow = save.nemesis && c.name === save.nemesis.name;
-      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + (c.d || 0) + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function awardCard(label, fighter) {
       if (!fighter) return '<article class="award"><p class="eyebrow">' + esc(label) + '</p><h3>No one yet</h3></article>';
@@ -2239,7 +2274,7 @@
             : '<b>✓</b><span>relic taken</span>') + '</div>' +
         '</div>' +
         '<section class="panel-frame"><h3 class="section">Final standings</h3>' +
-          '<table class="board" id="finalTable"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table></section>' +
+          '<table class="board" id="finalTable"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table></section>' +
         '<section class="panel-frame" id="awards"><h3 class="section">Awards</h3><div class="awards">' +
           awardCard("MVP", awards.mvp) +
           awardCard("Most KOs", awards.kos) +
@@ -2302,11 +2337,11 @@
     const partyReady = !size || yours.length >= size;
     const done = seasonDone();
     const table = sortedClubs().map(function (c, i) {
-      const played = c.w + c.l;
+      const played = c.w + c.l + (c.d || 0);
       const nemesisRow = save.nemesis && c.name === save.nemesis.name;
       const tierNow = IL.divisionOf(save);
       const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= (save.clubs || []).length - 2 && tierNow > 0) ? " releg" : "";
-      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
+      return '<tr class="' + (c.you ? "you" : "") + (nemesisRow ? " nemesis" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td><td>' + played + '</td><td>' + c.w + '</td><td>' + (c.d || 0) + '</td><td>' + c.l + '</td><td>' + c.pts + '</td></tr>';
     }).join("");
     function previewNames(list) {
       if (!list.length) return '<p class="preview-name">None</p>';
@@ -2369,7 +2404,7 @@
             : clubView === "goals" ? achievementsHtml()
             : '<section class="panel-frame"><h3 class="section">Standings · ' + esc(IL.DIVISIONS[IL.divisionOf(save)].name) + '</h3>' +
                 '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals Lv ' + IL.rivalRange(save).join('–') + '</p>' +
-                '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
+                '<table class="board"><thead><tr><th></th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead><tbody>' + table + '</tbody></table>' +
               '</section>') +
         '</div>' +
       '</div>';
@@ -2819,10 +2854,10 @@
     const tierNow = IL.divisionOf(save);
     const rows = sortedClubs().map(function (c, i) {
       const zone = (i <= 1 && tierNow < IL.DIVISIONS.length - 1) ? " promo" : (i >= (save.clubs || []).length - 2 && tierNow > 0) ? " releg" : "";
-      const form = (c.form || []).slice(-3).map(function (r) { return '<i class="form ' + (r === "W" ? "w" : "l") + '">' + r + '</i>'; }).join("");
+      const form = (c.form || []).slice(-3).map(function (r) { return '<i class="form ' + (r === "W" ? "w" : r === "D" ? "d" : "l") + '">' + r + '</i>'; }).join("");
       const diff = (c.pf || 0) - (c.pa || 0);
       return '<tr class="' + (c.you ? "you" : "") + zone + '"><td>' + (i + 1) + '</td><td class="club-cell">' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) + '<span class="club-name">' + esc(c.name) + '</span></td>' +
-        '<td>' + c.w + '-' + c.l + '</td><td class="' + (diff > 0 ? "up" : diff < 0 ? "down" : "") + '">' + (diff > 0 ? "+" : "") + diff + '</td><td><b>' + c.pts + '</b></td><td class="form-cell">' + form + '</td></tr>';
+        '<td>' + c.w + '-' + (c.d || 0) + '-' + c.l + '</td><td class="' + (diff > 0 ? "up" : diff < 0 ? "down" : "") + '">' + (diff > 0 ? "+" : "") + diff + '</td><td><b>' + c.pts + '</b></td><td class="form-cell">' + form + '</td></tr>';
     }).join("");
     const cal = [];
     for (let r = 0; r < seasonWeeks(); r++) {
@@ -2846,7 +2881,7 @@
     return '<div class="es-split">' +
       '<section class="es-card"><h3 class="section">' + esc(IL.DIVISIONS[tierNow].name) + ' · League standings</h3>' +
         '<p class="fine division-key"><span class="key promo"></span>Top two go up<span class="key releg"></span>Bottom two go down · rivals Lv ' + IL.rivalRange(save).join('–') + '</p>' +
-        '<table class="board es-board"><thead><tr><th>#</th><th>Team</th><th>W-L</th><th>+/-</th><th>Pts</th><th>Form</th></tr></thead><tbody>' + rows + '</tbody></table></section>' +
+        '<table class="board es-board"><thead><tr><th>#</th><th>Team</th><th>W-D-L</th><th>+/-</th><th>Pts</th><th>Form</th></tr></thead><tbody>' + rows + '</tbody></table></section>' +
       '<section class="es-card"><h3 class="section">Season calendar</h3><ol class="es-calendar">' + cal.join("") + '</ol></section>' +
     '</div>';
   }
@@ -3284,7 +3319,7 @@
     return '<div class="intel-rosters">' + sortedClubs().map(function (c, i) {
       const team = c.you ? fielded(save.roster, 3) : IL.rivalPick(c, 3);
       return '<section class="es-card intel-club' + (c.you ? " you" : "") + '"><header>' + crestHtml(c.name, "sm", clubCrest(c), c.you ? save.plate : undefined) +
-        '<h3>' + esc(c.name) + '</h3><span class="fine">' + ordinal(i + 1) + ' · ' + c.w + '-' + c.l + ' · ' + c.pts + ' pts</span></header>' +
+        '<h3>' + esc(c.name) + '</h3><span class="fine">' + ordinal(i + 1) + ' · ' + c.w + '-' + (c.d || 0) + '-' + c.l + ' · ' + c.pts + ' pts</span></header>' +
         '<ul class="intel-fighters">' + team.map(function (f) {
           const kit = IL.CLASSES[f.cls] || {};
           return '<li><canvas class="es-mface" width="40" height="36" data-key="' + esc(IL.hero.keyOf(f.parts)) + '" data-anim="' + (kit.idle || "idle") + '" data-scale="1" data-foot="3"></canvas>' +
@@ -4942,7 +4977,7 @@
     const lines = [];
     if (club) {
       const rank = sortedClubs().indexOf(club) + 1;
-      lines.push(rank + (rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th") + " in the league · " + club.w + " won, " + club.l + " lost · " + club.pts + " pts");
+      lines.push(rank + (rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th") + " in the league · " + club.w + " won, " + (club.d || 0) + " drawn, " + club.l + " lost · " + club.pts + " pts");
     }
     if (club && club.named) lines.push("Named team, led by " + club.leader + ". " + club.style);
     if (spec.prep) lines.push("Rival preparations: " + spec.prep);
@@ -8431,6 +8466,16 @@
       } else {
         const rng = takeRng();
         const p = Math.max(0.22, Math.min(0.78, 0.5 + (a.str - b.str) * 0.3));
+        /* v112 a match between two other clubs can be drawn (1 point each). */
+        if (rng() < 0.12) {
+          const g = Math.floor(rng() * 3);
+          a.form = (a.form || []).concat("D").slice(-5);
+          b.form = (b.form || []).concat("D").slice(-5);
+          a.d = (a.d || 0) + 1; b.d = (b.d || 0) + 1;
+          a.pts += 1; b.pts += 1;
+          a.pf += g; a.pa += g; b.pf += g; b.pa += g;
+          return;
+        }
         const awin = rng() < p;
         const gf = 1 + Math.floor(rng() * 3);
         const ga = Math.floor(rng() * gf);

@@ -309,7 +309,7 @@
   /* v73: an 8-club league, one round robin, seven weeks. Squad size per
      week; an older save keeps the length of its own fixture list. */
   const SEASON_SIZES = [3, 2, 3, 1, 3, 2, 3];
-  const LEAGUE_CLUBS = 8;
+  const LEAGUE_CLUBS = 10; /* v112: ten clubs, home and away, 18 weeks */
   const PARTY_CAP = 3;
 
   const HIRE_COST = 70;

@@ -126,6 +126,12 @@
       def += spec.def || 0;
       speed += spec.spd || 0;
     }
+    /* v110 later masteries stack on top of the first. */
+    (Array.isArray(fighter.masteries) ? fighter.masteries : []).forEach(function (id) {
+      const mm = IL.masteryOf ? IL.masteryOf(id) : null;
+      if (!mm) return;
+      hp += mm.hp || 0; atk += mm.atk || 0; def += mm.def || 0; speed += mm.spd || 0;
+    });
     const mastery = IL.masteryOf && fighter.mastery ? IL.masteryOf(fighter.mastery) : null;
     if (mastery) {
       hp += mastery.hp || 0;

@@ -1624,6 +1624,17 @@
     return true;
   }
 
+  /* v110 Rebirth: re-roll a fighter's growth grades for renown. */
+  function rebirthCost(f) { return 150 + 75 * ((f && f.rebirths) || 0); }
+  function rebirth(save, f, rng) {
+    const cost = rebirthCost(f);
+    if (!f || (save.renown || 0) < cost) return false;
+    save.renown -= cost;
+    f.grades = rollGrades(rng, f.rarity || "common", !!f.champion, !!f.shiny);
+    f.rebirths = (f.rebirths || 0) + 1;
+    return true;
+  }
+
   /* ---------- v108 transfers: buy, swap and loan with rival clubs ----------
      A rival's fighter costs 25% over market value (leaders are never for
      sale). The club signs a replacement so it always keeps four. A bench
@@ -2196,6 +2207,7 @@
     if (IL.ensureMoves) IL.ensureMoves(fighter);
     if (!IL.levelOffer || !IL.applyLevelPick || lv <= from) {
       if (IL.autoEvos) IL.autoEvos(fighter, rng);
+      autoMilestones(fighter, rng);
       return fighter;
     }
     fighter.pendingLevels = lv - from;
@@ -2210,7 +2222,20 @@
     }
     fighter.pendingLevels = 0;
     if (IL.autoEvos) IL.autoEvos(fighter, rng);
+    autoMilestones(fighter, rng);
     return fighter;
+  }
+  /* v110 rivals claim their ability upgrades and masteries on their own. */
+  function autoMilestones(f, rng) {
+    let guard = 0;
+    while (IL.upgradesPending && IL.upgradesPending(f) > 0 && guard++ < 20) {
+      const open = (f.loadout || []).filter(function (id) { return IL.rankOf && IL.rankOf(f, id) < (IL.RANK_MAX || 5); });
+      if (!open.length || !IL.upgradeMove(f, open[Math.floor(rng() * open.length)])) break;
+    }
+    guard = 0;
+    while (IL.masteriesPending && IL.masteriesPending(f) > 0 && guard++ < 10) {
+      if (!IL.addMastery(f, MASTERIES[Math.floor(rng() * MASTERIES.length)].id)) break;
+    }
   }
 
   /* Rival clubs level with the club through the season: whenever the club's
@@ -2813,6 +2838,8 @@
   IL.relicIcon = relicIcon;
   IL.equippedRelics = equippedRelics;
   IL.relicPack = relicPack;
+  IL.rebirthCost = rebirthCost;
+  IL.rebirth = rebirth;
   IL.LOAN_WEEKS = LOAN_WEEKS;
   IL.askingPrice = askingPrice;
   IL.rivalBench = rivalBench;

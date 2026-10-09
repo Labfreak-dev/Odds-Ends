@@ -366,6 +366,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "New buttons everywhere: one forged-plate look with cut corners and a copper rim, in place of the stretched images.",
     "Combat rebuilt from a real Eslabong recording: fast small hits, fighters who commit to a target, and front lines that crash into one scrum.",
     "Club history: season reviews, a cup history and all-time leaders on Intel, Codex stat ranges and evolutions, and a Veteran profile at Season 15 that opens every class.",
     "Club tools: Treasure Hunter, Legendary Expert and Shiny Catcher staff with specializations, a Club Agenda, Development Plans, and relic lock, reroll and trade-in.",

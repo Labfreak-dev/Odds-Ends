@@ -4887,3 +4887,150 @@ button.archive-cell:hover:not(:disabled) { border-color: #e0b25a; }
 .codex-evos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .codex-evos li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
 .codex-evos li span { color: var(--copper-2); }
+
+/* ---------- v117 forged-plate buttons ----------
+   One custom system for every button: a plate with cut corners, a
+   1px metal rim, a lit top edge and, on the loud ones, two rivets.
+   The rim is the element's own background; the face is ::before,
+   inset 1px and cut the same way, so the rim follows the corners.
+   Replaces the stretched PNG frames (assets/ui/buttons/*), which
+   smeared at most widths and gave every button a different outline. */
+:root {
+  --cut: 8px;
+  --cut-s: 5px;
+  --plate-rim: linear-gradient(#9a7a52, #4a3826);
+  --plate-f1: #33281e; --plate-f2: #241b14; --plate-f3: #1a130e;
+  --plate-ink: #f2e2c4;
+  --plate-rivet: transparent;
+}
+.btn, .btn.ghost, .btn.primary, .btn.gold, .btn.fight, .btn.danger, .btn.on,
+.ctl, .chip, .es-subtab, .es-dock .dock-side, .icon-btn, .lv-later {
+  --c: var(--cut);
+  position: relative;
+  isolation: isolate;
+  border: 0 !important;
+  border-image: none !important;
+  border-radius: 0 !important;
+  background: var(--plate-rim) !important;
+  clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+  color: var(--plate-ink) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.65);
+  opacity: 1;
+  transition: filter 0.12s ease, transform 0.08s ease;
+}
+.btn::before, .ctl::before, .chip::before, .es-subtab::before, .es-dock .dock-side::before, .icon-btn::before, .lv-later::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+  background:
+    radial-gradient(circle at 11px 50%, var(--plate-rivet) 0 1.7px, transparent 2.3px),
+    radial-gradient(circle at calc(100% - 11px) 50%, var(--plate-rivet) 0 1.7px, transparent 2.3px),
+    linear-gradient(rgba(255, 240, 210, 0.2), rgba(255, 240, 210, 0) 1.5px, rgba(255, 240, 210, 0) 50%, rgba(0, 0, 0, 0.18)),
+    linear-gradient(var(--plate-f1), var(--plate-f2) 58%, var(--plate-f3));
+}
+.btn, .btn.ghost, .btn.primary, .btn.gold, .btn.fight, .btn.danger, .btn.on {
+  height: 46px;
+  min-height: 44px;
+  padding-inline: 18px !important;
+  font: 700 14px/1.1 var(--ui);
+  letter-spacing: 0.03em;
+  transform: none;
+}
+/* Variants: rim, three face stops, ink, rivets. */
+.btn.primary {
+  --plate-rim: linear-gradient(#f4b47a, #7a3412);
+  --plate-f1: #d97a40; --plate-f2: #b4561f; --plate-f3: #8a3a12;
+  --plate-ink: #fff3e2;
+}
+.btn.gold, .btn.on {
+  --plate-rim: linear-gradient(#fff2bf, #8a6420);
+  --plate-f1: #f1cf72; --plate-f2: #cf9b3a; --plate-f3: #9f6f1e;
+  --plate-ink: #2a1806;
+  text-shadow: 0 1px 0 rgba(255, 238, 190, 0.55);
+}
+.btn.fight {
+  --c: 10px;
+  --plate-rim: linear-gradient(#ffd27a, #6e1a0b);
+  --plate-f1: #ef6a33; --plate-f2: #c23a1b; --plate-f3: #821c0e;
+  --plate-ink: #fff4e0; --plate-rivet: #ffd27a;
+  height: 50px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(70, 10, 2, 0.9), 0 0 8px rgba(255, 140, 60, 0.35);
+}
+.btn.danger {
+  --plate-rim: linear-gradient(#e89a84, #5a1a10);
+  --plate-f1: #8a2c1d; --plate-f2: #6a1f14; --plate-f3: #4a140c;
+  --plate-ink: #ffe2d8;
+}
+.btn.ghost:not(.on) {
+  --plate-rim: linear-gradient(#7c6044, #3a2c1e);
+  --plate-f1: #2a2119; --plate-f2: #1e1712; --plate-f3: #17110d;
+}
+/* States. Focus lights the rim, since an outline is clipped away. */
+.btn:hover:not(:disabled), .ctl:hover:not(:disabled), .chip:hover:not(:disabled), .es-subtab:hover, .es-dock .dock-side:hover:not(:disabled), .icon-btn:hover, .lv-later:hover {
+  filter: brightness(1.14) saturate(1.06);
+}
+.btn:active:not(:disabled), .ctl:active:not(:disabled), .chip:active:not(:disabled), .es-subtab:active, .es-dock .dock-side:active:not(:disabled), .icon-btn:active, .lv-later:active {
+  transform: translateY(1px);
+  filter: brightness(0.9);
+}
+.btn:focus-visible, .ctl:focus-visible, .chip:focus-visible, .es-subtab:focus-visible, .es-dock .dock-side:focus-visible, .icon-btn:focus-visible, .lv-later:focus-visible {
+  outline: none;
+  --plate-rim: linear-gradient(#fff2bf, #e39a62) !important;
+}
+.btn:disabled, .ctl:disabled, .chip:disabled, .es-dock .dock-side:disabled {
+  --plate-rim: linear-gradient(#4a3e33, #2a221b) !important;
+  --plate-f1: #262019 !important; --plate-f2: #1d1813 !important; --plate-f3: #17130f !important;
+  --plate-ink: #7a6a58 !important; --plate-rivet: transparent !important;
+  text-shadow: none;
+  filter: none;
+  opacity: 1 !important;
+}
+/* Close: a small dark plate with a drawn cross. */
+.btn.close-x {
+  --c: 6px;
+  width: 40px; height: 40px; min-height: 40px;
+  padding: 0 !important;
+  font-size: 0;
+  color: transparent !important;
+}
+.btn.close-x::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(45deg, transparent calc(50% - 1.2px), #f2d4a8 calc(50% - 1.2px), #f2d4a8 calc(50% + 1.2px), transparent calc(50% + 1.2px)) center / 16px 16px no-repeat,
+    linear-gradient(-45deg, transparent calc(50% - 1.2px), #f2d4a8 calc(50% - 1.2px), #f2d4a8 calc(50% + 1.2px), transparent calc(50% + 1.2px)) center / 16px 16px no-repeat;
+}
+/* Compact contexts keep their own heights; give them a sane side pad. */
+.card .btn, .gear-card .btn, .gear-slot .btn, .gear-offer .btn, .award .btn, .sheet .btn { padding-inline: 14px !important; height: 42px; }
+.hub .preview-board .btn { padding-inline: 14px !important; height: 36px; min-height: 36px; }
+.roster-row .btn, .roster-row .sell-acts > .btn { --c: var(--cut-s); padding-inline: 8px !important; }
+.fight-controls .btn.primary, #seasonEnd .hub-actions .btn { padding-inline: 10px !important; }
+.es-dock .dock-main { --c: 10px; --plate-rivet: #ffe2a8; padding-inline: 26px !important; }
+.qg-go.btn { --plate-rim: linear-gradient(#fff2bf, #8a6420); --plate-f1: #f1cf72; --plate-f2: #cf9b3a; --plate-f3: #9f6f1e; --plate-ink: #2a1806; }
+.armory-pick .arm-who.btn { --c: var(--cut-s); }
+/* Small controls: chips, segmented controls, sub-tabs, dock sides. */
+.ctl, .chip, .es-subtab, .es-dock .dock-side, .icon-btn, .lv-later { --c: var(--cut-s); }
+.ctl-group { border: 0 !important; overflow: visible !important; gap: 4px !important; }
+.ctl.on, .chip.on, .es-subtab.on, .tab-market .subtabs .chip.on {
+  --plate-rim: linear-gradient(#f4b47a, #7a3412);
+  --plate-f1: #c96a33; --plate-f2: #a04a1a; --plate-f3: #7a3410;
+  --plate-ink: #fff3e2;
+}
+.es-subtab.on { --plate-rim: linear-gradient(#fff2bf, #8a6420); --plate-f1: #4a3620; --plate-f2: #34261a; --plate-f3: #261c13; --plate-ink: #ffe7b0; }
+.ctl-pilot.on { --plate-rim: linear-gradient(#fff2bf, #8a6420); --plate-f1: #f1cf72; --plate-f2: #cf9b3a; --plate-f3: #9f6f1e; --plate-ink: #2a1806; text-shadow: none; }
+.lv-cat.ctl { --plate-rim: linear-gradient(#e2b8ff, #5a2a80); --plate-f1: #b06ad8; --plate-f2: #8a48b4; --plate-f3: #6a3090; --plate-ink: #fbf0ff; }
+.es-dock .dock-side { --plate-rim: linear-gradient(#a58ae6, #3e2a7a); --plate-f1: #2c2146; --plate-f2: #221a38; --plate-f3: #1a142c; --plate-ink: #e8deff; }
+.es-dock #dockInbox { --plate-rim: linear-gradient(#d8b07a, #5a4024); --plate-f1: #33281e; --plate-f2: #261d15; --plate-f3: #1c150f; --plate-ink: #ffe7b0; }
+.es-dock .dock-badge { z-index: 2; }
+/* Badges ride inside the plate: the cut corners would clip anything hung outside. */
+.es-dock .dock-side .dock-badge, .es-dock #dockInbox .dock-badge { top: 3px; right: 4px; left: auto; min-width: 16px; height: 16px; padding: 0 4px; font: 800 11px/16px var(--ui); border-radius: 2px; }
+.es-dock #dockInbox { padding-right: 26px; }
+.es-subtab .es-count { top: 2px; right: 3px; }
+.es-subtab.small:has(.es-count) { padding-right: 24px; }
+.versus-actions .btn { padding-inline: 8px !important; }
+.armory-pick .arm-who.btn { height: auto; min-height: 44px; padding: 6px 12px !important; }

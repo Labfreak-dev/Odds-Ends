@@ -3707,6 +3707,14 @@
   IL.stepMatch = stepMatch;
   IL._deal = deal; /* tools/sim.js only */
   IL._fire = fireOne; /* tools/sim.js only */
+  /* tools/smoke.py only: v116 made rolls rare, so the smoke tour can ask for one to check it draws. */
+  IL._roll = function (m) {
+    const u = m && m.units.filter(function (x) { return x.hp > 0 && !x.summon && x.state !== "roll"; })[0];
+    if (!u) return false;
+    u.rollCd = 0;
+    startRoll(m, u, u.x + (u.facing || 1) * 40, u.y);
+    return true;
+  };
   IL._ready = readyAb; /* tools/sim.js only */
   IL.PACE = PACE;
   IL.SUDDEN_AT = SUDDEN_AT;

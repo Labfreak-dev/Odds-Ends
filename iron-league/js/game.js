@@ -2,6 +2,15 @@
 (function (root) {
   const IL = root.IL = root.IL || {};
   const SAVE_KEY = "ironleague.v1";
+  /* v115 the profile outlives any one save: it holds the Veteran mark. */
+  const PROFILE_KEY = "ironleague.profile";
+  function loadProfile() {
+    try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}"); return p && typeof p === "object" ? p : {}; } catch (err) { return {}; }
+  }
+  function saveProfile(p) {
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (err) { /* private mode */ }
+  }
+  IL.VETERAN = !!loadProfile().veteran;
   /* Raise WIPE to reset every player's progress: a save stamped lower is
      thrown away on the next load. 1 = the October 2026 tester reset. */
   const WIPE = 1;
@@ -357,6 +366,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Club history: season reviews, a cup history and all-time leaders on Intel, Codex stat ranges and evolutions, and a Veteran profile at Season 15 that opens every class.",
     "Club tools: Treasure Hunter, Legendary Expert and Shiny Catcher staff with specializations, a Club Agenda, Development Plans, and relic lock, reroll and trade-in.",
     "New modes: the Hall of Legends, a Tournament Center, an offline Challenge Tower, an All-Star match, alliance rounds in the second Thunder Cup, and a free draft at week 7.",
     "A bigger league: ten clubs over 18 weeks, drawn matches between rivals, and each season the bottom two clubs disband while new ones are founded.",
@@ -2050,6 +2060,38 @@
     toastTimer = setTimeout(function () { box.hidden = true; }, 2500);
   }
 
+  /* v115 cup history: each bracket is written once, when it closes. */
+  function noteCups() {
+    let n = 0;
+    const c = save.cup;
+    if (c && c.champion && IL.noteCup(save, c, "Cup", champsName(c), c.champion === "you")) n++;
+    const ch = save.champs;
+    if (ch && ch.champion && IL.noteCup(save, ch, "Champions Cup", champsName(ch), ch.champion === "you")) n++;
+    const t = save.thunder;
+    if (t && t.done) {
+      const top = IL.thunderTable(t)[0];
+      if (IL.noteCup(save, t, t.format === "alliance" ? "Alliance Thunder Cup" : "Chaos Thunder Cup", top ? top.name : "—", t.finish === 1)) n++;
+    }
+    const d = save.draft;
+    if (d && d.cup && (d.cup.champion || d.stage === "done")) {
+      if (IL.noteCup(save, d.cup, "Draft Cup", d.cup.champion ? champsName(d.cup) : "—", d.cup.champion === "you")) n++;
+    }
+    if (n) persist();
+    return n;
+  }
+  function checkVeteran() {
+    if (IL.VETERAN || (save.season || 1) < IL.VETERAN_SEASON) return false;
+    IL.VETERAN = true;
+    const p = loadProfile();
+    p.veteran = true;
+    p.since = Date.now();
+    p.club = save.clubName;
+    saveProfile(p);
+    logClub("Veteran profile: every class is open, and the whole Codex is revealed, in this save and every new one.");
+    showNote("Veteran profile unlocked.");
+    return true;
+  }
+
   function payCeremony() {
     if (!seasonDone()) return null;
     if (save.ceremonyPaid === save.season) return null;
@@ -2084,6 +2126,18 @@
     save.ceremonyPaid = save.season;
     if (place === 0) save.seasonTitles = (save.seasonTitles || 0) + 1;
     const you = place >= 0 ? sorted[place] : null;
+    noteCups();
+    IL.noteSeasonReview(save, {
+      season: save.season,
+      division: (IL.DIVISIONS[IL.divisionOf(save)] || {}).name || "",
+      place: place + 1, of: sorted.length,
+      w: you ? you.w : 0, d: you ? (you.d || 0) : 0, l: you ? you.l : 0, pts: you ? you.pts : 0,
+      champion: sorted[0] ? sorted[0].name : "",
+      mvp: aw.mvp ? aw.mvp.name : "", kos: aw.kos ? aw.kos.name : "",
+      move: divisionMove(place < 0 ? 5 : place).text,
+      gold: purse.gold, renown: purse.renown,
+      cups: (save.cupHistory || []).filter(function (h) { return h.season === save.season && h.won; }).map(function (h) { return h.cup; })
+    });
     if (you && you.w >= seasonWeeks() && you.l === 0) save.unbeaten = (save.unbeaten || 0) + 1;
     return purse;
   }
@@ -3422,9 +3476,10 @@
   let codexOpen = null;
 
   function intelPanel() {
-    const panes = [["stats", "Stats"], ["rosters", "Rosters"], ["archive", "Archive"], ["goals", "Goals"]];
+    const panes = [["stats", "Stats"], ["history", "History"], ["rosters", "Rosters"], ["archive", "Archive"], ["goals", "Goals"]];
     let body;
-    if (intelPane === "archive") body = archiveHtml();
+    if (intelPane === "history") body = clubHistoryHtml();
+    else if (intelPane === "archive") body = archiveHtml();
     else if (intelPane === "goals") body = achievementsHtml();
     else if (intelPane === "rosters") body = rostersIntelHtml();
     else body = statsIntelHtml();
@@ -3464,6 +3519,41 @@
     '</div>' + clubRecordHtml();
   }
 
+  /* v115 History: the profile, saved season reviews, cup history, and
+     lifetime leaders across everyone who ever played for the club. */
+  function clubHistoryHtml() {
+    IL.trackAlltime(save);
+    const vet = IL.VETERAN;
+    const left = Math.max(0, IL.VETERAN_SEASON - (save.season || 1));
+    const profile = '<section class="es-card hist-profile' + (vet ? ' vet' : '') + '" id="veteranCard"><h3 class="section">Profile</h3>' +
+      (vet ? '<p><b class="vet-badge">Veteran</b> Every class is open without renown, and the whole Codex is revealed, in every save.</p>'
+           : '<p class="fine">Reach Season ' + IL.VETERAN_SEASON + ' for the <b>Veteran</b> profile: every class opens without renown and the whole Codex is revealed, for this save and every new one. ' + left + ' season' + (left === 1 ? '' : 's') + ' to go.</p>') +
+    '</section>';
+    function board(title, key, fmt) {
+      const rows = IL.alltimeBoard(save, key, 5);
+      return '<section class="es-card leader-card"><h3 class="section">' + esc(title) + '</h3>' +
+        (rows.length ? '<ol class="leaders">' + rows.map(function (r, i) {
+          const kit = IL.CLASSES[r.cls] || {};
+          return '<li><b>' + (i + 1) + '</b><span class="es-class ' + (ROLE_TONE[kit.role] || "melee") + '">' + esc(kit.name || "") + '</span><span class="ldr-name">' + esc(r.name) + (r.gone ? ' <small class="gone">gone</small>' : '') + '</span><em>' + esc(fmt ? fmt(r[key]) : String(Math.round(r[key]))) + '</em></li>';
+        }).join("") + '</ol>' : '<p class="fine">Nobody yet.</p>') + '</section>';
+    }
+    const reviews = (save.reviews || []).map(function (r) {
+      return '<li class="hist-review"><header><b>Season ' + r.season + '</b><span>' + esc(r.division) + '</span><em>' + ordinal(r.place) + ' of ' + r.of + '</em></header>' +
+        '<p>' + r.w + '-' + r.d + '-' + r.l + ' · ' + r.pts + ' pts · champion ' + esc(r.champion) + '.</p>' +
+        '<p class="fine">' + [r.mvp ? 'MVP ' + esc(r.mvp) : '', r.kos ? 'top scorer ' + esc(r.kos) : '', r.cups && r.cups.length ? 'won the ' + esc(r.cups.join(", ")) : '', esc((r.move || '').replace(/\.$/, '')), 'chest ' + r.gold + 'g, ' + r.renown + ' renown'].filter(Boolean).join(' · ') + '</p></li>';
+    }).join("");
+    const cups = (save.cupHistory || []).map(function (h) {
+      return '<li class="' + (h.won ? 'won' : '') + '"><span>S' + h.season + '</span><b>' + esc(h.cup) + '</b><em>' + (h.won ? 'You won' : esc(h.champion)) + '</em></li>';
+    }).join("");
+    return profile +
+      '<section class="es-card"><h3 class="section">Season reviews</h3>' + (reviews ? '<ol class="hist-reviews">' + reviews + '</ol>' : '<p class="fine">A review is saved at each season ceremony.</p>') + '</section>' +
+      '<section class="es-card"><h3 class="section">Cup history</h3>' + (cups ? '<ul class="hist-cups">' + cups + '</ul>' : '<p class="fine">Every Cup, Champions Cup, Thunder Cup and Draft Cup lands here when it closes.</p>') + '</section>' +
+      '<h3 class="section">All-time leaders</h3><div class="intel-grid">' +
+        board("Kills", "kos") + board("Damage", "dealt") + board("Healing", "heal") +
+        board("MVPs", "mvps") + board("Season awards", "awards") + board("Matches", "games") +
+      '</div>';
+  }
+
   /* Every club in the division with its record and its three fighters. */
   function rostersIntelHtml() {
     return '<div class="intel-rosters">' + sortedClubs().map(function (c, i) {
@@ -3488,7 +3578,7 @@
       const met = {};
       (save.clubs || []).forEach(function (c) { if (!c.you) met[c.name] = c; });
       body = '<div class="archive-grid wide">' + IL.CLUBS.filter(function (n) { return n !== save.clubName; }).map(function (n) {
-        const known = met[n] || (save.nemesis && save.nemesis.name === n);
+        const known = IL.VETERAN || met[n] || (save.nemesis && save.nemesis.name === n);
         const theme = IL.CLUB_THEMES && IL.CLUB_THEMES[n];
         return '<div class="archive-cell' + (known ? "" : " unknown") + '">' + (known ? crestHtml(n, "md", crestIndexOf(n)) : '<span class="q">???</span>') +
           '<b>' + (known ? esc(n) : "Not yet met") + '</b>' + (known && theme ? '<small>' + esc(theme.map(function (id) { return (IL.CLASSES[id] || {}).name || id; }).join(" · ")) + '</small>' : '') + '</div>';
@@ -3504,7 +3594,8 @@
       const owned = save.relics || [];
       body = '<div class="archive-grid wide">' + (IL.RELICS || []).map(function (r) {
         const has = owned.indexOf(r.id) >= 0;
-        return '<div class="archive-cell relic-' + esc(r.rarity) + (has ? "" : " unknown") + '"><span class="q">' + (has ? "◆" : "?") + '</span><b>' + (has ? esc(r.name) : "Not yet found") + '</b>' + (has ? '<small>' + esc(relicLine(r)) + '</small>' : '<small>' + esc(r.rarity) + '</small>') + '</div>';
+        const shown = has || IL.VETERAN;
+        return '<div class="archive-cell relic-' + esc(r.rarity) + (shown ? "" : " unknown") + '"><span class="q">' + (has ? "◆" : shown ? "◇" : "?") + '</span><b>' + (shown ? esc(r.name) : "Not yet found") + '</b>' + (shown ? '<small>' + esc(relicLine(r)) + '</small>' : '<small>' + esc(r.rarity) + '</small>') + '</div>';
       }).join("") + '</div>';
     } else if (archivePane === "systems") {
       const rows = [
@@ -3522,11 +3613,11 @@
       const ids = Object.keys(IL.CLASSES);
       const owned = {};
       (save.roster || []).forEach(function (f) { owned[f.cls] = true; });
-      const found = ids.filter(function (id) { return owned[id] || seen.indexOf(id) >= 0; }).length;
+      const found = ids.filter(function (id) { return IL.VETERAN || owned[id] || seen.indexOf(id) >= 0; }).length;
       body = '<header class="archive-head"><span class="fine">' + found + ' / ' + ids.length + ' discovered · tap a class for its codex page</span></header>' +
         '<div class="archive-grid">' + ids.map(function (id) {
           const kit = IL.CLASSES[id];
-          const known = owned[id] || seen.indexOf(id) >= 0;
+          const known = IL.VETERAN || owned[id] || seen.indexOf(id) >= 0;
           const sheet = IL.defaultSheet ? IL.defaultSheet(id) : "";
           return '<button type="button" class="archive-cell' + (known ? "" : " unknown") + '"' + (known ? ' data-codex="' + esc(id) + '"' : ' disabled') + '>' +
             (known ? '<canvas width="64" height="64" data-key="' + esc(IL.hero.keyOf({ sheet: sheet })) + '" data-anim="idle" data-scale="2" data-foot="4"></canvas>' : '<span class="q">???</span>') +
@@ -3534,6 +3625,31 @@
         }).join("") + '</div>';
     }
     return '<section class="es-card" id="archive">' + nav + body + '</section>';
+  }
+
+  /* v115 Codex stat ranges: a plain common recruit against a legendary
+     with every growth grade Excellent, at levels 1, 25 and 50. */
+  function codexRangesHtml(kit) {
+    if (!IL.scaledStats) return "";
+    function at(lv, best) {
+      const f = { id: "cx", cls: kit.id, level: lv, rarity: best ? "legendary" : "common", grades: best ? { hp: "E", atk: "E", def: "E", spd: "E" } : { hp: "B", atk: "B", def: "B", spd: "B" } };
+      return IL.scaledStats(f, kit);
+    }
+    const rows = [1, 25, 50].map(function (lv) {
+      const lo = at(lv, false), hi = at(lv, true);
+      function cell(k) { const a = Math.round(lo[k]), b = Math.round(hi[k]); return a === b ? String(a) : a + '–' + b; }
+      return '<tr><th>Lv ' + lv + '</th><td>' + cell("hp") + '</td><td>' + cell("atk") + '</td><td>' + cell("def") + '</td></tr>';
+    }).join("");
+    return '<section class="es-card"><h3 class="section">Stat ranges</h3><table class="codex-ranges"><thead><tr><th></th><th>HP</th><th>ATK</th><th>DEF</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<p class="fine">From a common recruit with Balanced growth to a legendary with every grade Excellent, before gear, relics and masteries.</p></section>';
+  }
+  function codexEvosHtml(pool) {
+    if (!IL.evoChoices || !IL.EVOS) return "";
+    const rows = pool.map(function (ab) {
+      const ch = IL.evoChoices(ab);
+      return ch.length ? '<li><b>' + esc(ab.name) + '</b><span>' + ch.map(function (id) { return esc((IL.EVOS[id] || {}).name || id); }).join(" or ") + '</span></li>' : '';
+    }).join("");
+    return rows ? '<section class="es-card"><h3 class="section">Evolutions</h3><p class="fine">At levels ' + (IL.EVO_LEVELS || [20, 50]).join(" and ") + ' a fighter evolves one move into one of two forms.</p><ul class="codex-evos">' + rows + '</ul></section>' : '';
   }
 
   /* A class's codex page: role, base stats, trait, passive and its moves. */
@@ -3561,6 +3677,8 @@
             (trait ? '<p class="fine"><b>' + esc(trait.name) + ':</b> ' + esc(trait.blurb || "") + '</p>' : '') +
             (kit.passive ? '<p class="fine"><b>Passive · ' + esc(kit.passive.name || "") + ':</b> ' + esc(kit.passive.blurb || abilityBlurb(kit.passive.id)) + '</p>' : '') +
           '</section>' +
+          codexRangesHtml(kit) +
+          codexEvosHtml(pool) +
           '<section class="es-card"><h3 class="section">Ability pool</h3><ul class="codex-pool">' + pool.map(function (ab) {
             return '<li>' + (IL.abilityIcon ? iconTag(IL.abilityIcon(ab.id), 32) : "") + '<span><b>' + esc(ab.name) + '</b><small>' + esc((IL.categoryOf ? IL.categoryOf({ kind: "learn", id: ab.id }) : "") + (ab.cd ? " · " + realCd(ab) + "s cooldown" : "") + (ab.ult ? " · Ultimate" : "")) + '</small><em>' + esc(moveFacts(ab, null, kit.id)) + '</em></span></li>';
           }).join("") + '</ul></section>' +
@@ -4756,6 +4874,9 @@
     if (!save) { showTitle(); return; }
     IL.migrate(save);
     if (IL.staffBoost) IL.staffBoost(save);
+    noteCups();
+    IL.trackAlltime(save);
+    checkVeteran();
     if (IL.keepRivalsUp && IL.keepRivalsUp(save)) persist();
     if (openMidCup()) persist();
     ensureMarket();

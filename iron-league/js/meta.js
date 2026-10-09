@@ -1778,6 +1778,62 @@
     return notes;
   }
 
+  /* ---------- v115 club history ----------
+     Season reviews saved at each ceremony, a cup history written once
+     when each bracket closes, and lifetime numbers for every fighter who
+     ever played for the club, gone or not. A profile that reaches
+     Season 15 turns Veteran: every class opens and the Codex is whole. */
+  const VETERAN_SEASON = 15;
+  const REVIEWS_KEEP = 40;
+  const CUPS_KEEP = 80;
+  const ALLTIME_KEEP = 120;
+  function noteSeasonReview(save, rev) {
+    if (!Array.isArray(save.reviews)) save.reviews = [];
+    if (save.reviews.some(function (r) { return r.season === rev.season; })) return false;
+    save.reviews.unshift(rev);
+    if (save.reviews.length > REVIEWS_KEEP) save.reviews.length = REVIEWS_KEEP;
+    return true;
+  }
+  function noteCup(save, cup, name, champion, won) {
+    if (!cup || cup.logged) return false;
+    cup.logged = true;
+    if (!Array.isArray(save.cupHistory)) save.cupHistory = [];
+    save.cupHistory.unshift({ season: save.season, round: save.round || 0, cup: name, champion: champion || "—", won: !!won });
+    if (save.cupHistory.length > CUPS_KEEP) save.cupHistory.length = CUPS_KEEP;
+    return true;
+  }
+  function trackAlltime(save) {
+    if (!save.alltime || typeof save.alltime !== "object") save.alltime = {};
+    const book = save.alltime;
+    const here = {};
+    (save.roster || []).forEach(function (f) {
+      if (!f || !f.id) return;
+      here[f.id] = true;
+      const c = f.career || {};
+      book[f.id] = {
+        name: f.name, cls: f.cls, level: f.level || 1,
+        kos: f.kos || 0, dealt: Math.round(c.dealt || 0), heal: Math.round(c.heal || 0),
+        mvps: f.mvps || 0, awards: f.awards || 0, games: (f.wins || 0) + (f.losses || 0), wins: f.wins || 0,
+        seen: save.season || 1, gone: false
+      };
+    });
+    Object.keys(book).forEach(function (id) { if (!here[id]) book[id].gone = true; });
+    const ids = Object.keys(book);
+    if (ids.length > ALLTIME_KEEP) {
+      ids.filter(function (id) { return book[id].gone; })
+        .sort(function (a, b) { return (book[a].games || 0) - (book[b].games || 0); })
+        .slice(0, ids.length - ALLTIME_KEEP).forEach(function (id) { delete book[id]; });
+    }
+    return book;
+  }
+  function alltimeBoard(save, key, n) {
+    const book = save.alltime || {};
+    return Object.keys(book).map(function (id) { return Object.assign({ id: id }, book[id]); })
+      .filter(function (r) { return (r[key] || 0) > 0; })
+      .sort(function (a, b) { return (b[key] || 0) - (a[key] || 0); })
+      .slice(0, n || 5);
+  }
+
   /* v110 Rebirth: re-roll a fighter's growth grades for renown. */
   function rebirthCost(f) { return 150 + 75 * ((f && f.rebirths) || 0); }
   function rebirth(save, f, rng) {
@@ -3210,6 +3266,11 @@
   IL.thunderTable = thunderTable;
   IL.STAFF_ROLES = STAFF_ROLES;
   IL.STAFF_SPECS = STAFF_SPECS;
+  IL.VETERAN_SEASON = VETERAN_SEASON;
+  IL.noteSeasonReview = noteSeasonReview;
+  IL.noteCup = noteCup;
+  IL.trackAlltime = trackAlltime;
+  IL.alltimeBoard = alltimeBoard;
   IL.RELIC_REROLL = RELIC_REROLL;
   IL.RELIC_TRADE = RELIC_TRADE;
   IL.relicLocked = relicLocked;

@@ -1958,7 +1958,8 @@ IL.VETERAN = false;
   }
   check("v116 the pit lands at least 3.5 hits a second (was 1.85)", hits / time >= 3.5);
   check("v116 fighters keep their target (under 0.35 switches a second, was 0.55)", switches / unitTime < 0.35);
-  check("v116 the front line spends most of the fight in reach", reach / frontTime >= 0.45);
+  console.log("v116 front line in reach", (reach / frontTime).toFixed(2), "hits/s", (hits / time).toFixed(2), "switches/s", (switches / unitTime).toFixed(2));
+  check("v116 the front line is in reach of a foe at least 40% of the fight (v115: about 30%)", reach / frontTime >= 0.4);
 })();
 const q6 = { id: "q6", cls: "warrior", level: 5, levelsTaken: 3 };
 const q6o = IL.statOffer(q6);

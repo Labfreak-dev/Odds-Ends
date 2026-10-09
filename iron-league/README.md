@@ -207,10 +207,12 @@ This batch comes from a 12-minute recording of Eslabong that the playtester sent
 
 | | v115 | v116 |
 |---|---|---|
-| Hits a second, whole pit | 1.85 | ~3.6–4.6 |
-| Target switches a second, per fighter | 0.55 | ~0.2 |
-| Melee fighters in reach of a foe | 35% | ~55% |
-| Tank's first contact | 11.9 s | ~5 s |
+| Hits a second, whole pit | 1.85 | 3.96 |
+| Target switches a second, per fighter | 0.55 | 0.19 |
+| Melee fighters in reach of a foe | 35% | 45% |
+| Tanks in reach of a foe | 20% | 28% |
+| Tank's first contact | 11.9 s | 5.8 s |
+| Fight length | 48 s | 31 s |
 
 - **Faster attacks, lighter basic hits.** Swing animations play 1.7× faster. Recovery after a melee swing drops from 0.62 s to 0.12 s, after a shot from 1.0 s to 0.38 s, and after a cast from 1.5 s to 0.6 s. Basic attacks and summons' swings deal half damage each to keep the pace fair. Abilities keep their full weight and cool down 30% sooner.
 - **Commitment.** A fighter keeps its target for 3 s unless it dies, a taunt calls, or another foe is right on top of it. A front-liner fights whoever is already in its face instead of running past them.
@@ -222,6 +224,11 @@ This batch comes from a 12-minute recording of Eslabong that the playtester sent
   - the bench always earns 10% of the lineup's match XP, and Barracks adds 15% a rank;
   - a fighter below the club average gains 8% more XP for each level behind, up to +60%;
   - auto-equip leaves locked relics where they are.
+- **Balance.** Basic hits deal 60% of their old damage, and summons' swings 80%. Healing is up 30% to keep pace. In a scrum, each extra body caught by the same blast takes less: 100%, then 80%, 65% and 55%. Divers (the dash role) slip zone of control.
+  - A per-class health and attack nudge (`RETUNE` in arena.js, 0.82 to 1.17) pulls each class back toward its v115 standing.
+  - Class band, 80 fights a class: v115 ran 0.19–0.61, v116 runs 0.17–0.56.
+  - Druid and summoner are the lowest (about 0.17 before a last buff). Healer and beastmaster are about 0.21. They get the next tuning pass.
+  - The sim's own band check passes.
 - `tools/visual_qa.py` flagged any body overlap over 30% held for 0.55 s. It now flags only a pile that holds for 6 s, because the scrum is deliberate.
 
 ## Club history and the Veteran profile (v115)

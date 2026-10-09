@@ -201,6 +201,36 @@ Every effect is anchored to a floor point plus a screen-space offset, so "up" is
 - **Damage numbers**: a little larger; crits are orange with "!".
 - **No camera zoom**: Eslabong keeps the whole arena in view, so Iron League does too.
 
+## Combat engine (v116)
+
+This batch comes from a 12-minute recording of Eslabong that the playtester sent: four fights, studied frame by frame. Eslabong's camera is as far out as ours. The difference is in the fight itself. One clash there pops about 20 small numbers in two seconds, and the front lines pile into one moving knot within two seconds of the start. Ours landed about 2 hits a second across all ten fighters, and they wandered. A headless probe ran 12 seeded 5v5 fights before and after the change:
+
+| | v115 | v116 |
+|---|---|---|
+| Hits a second, whole pit | 1.85 | 3.96 |
+| Target switches a second, per fighter | 0.55 | 0.19 |
+| Melee fighters in reach of a foe | 35% | 45% |
+| Tanks in reach of a foe | 20% | 28% |
+| Tank's first contact | 11.9 s | 5.8 s |
+| Fight length | 48 s | 31 s |
+
+- **Faster attacks, lighter basic hits.** Swing animations play 1.7× faster. Recovery after a melee swing drops from 0.62 s to 0.12 s, after a shot from 1.0 s to 0.38 s, and after a cast from 1.5 s to 0.6 s. Basic attacks and summons' swings deal half damage each to keep the pace fair. Abilities keep their full weight and cool down 30% sooner.
+- **Commitment.** A fighter keeps its target for 3 s unless it dies, a taunt calls, or another foe is right on top of it. A front-liner fights whoever is already in its face instead of running past them.
+- **The scrum.** Foes may press into each other, so bodies overlap the way Eslabong's do. Zone of control halves the walk of anyone with an enemy melee fighter in their face, so a chaser that arrives can pin its target.
+- **No more dancing.** Normal hits shove 4 px instead of 11. Front-liners walk through arrows and only roll from big marked spells. Tanks stop blocking on the approach. Archers backpedal at 70% speed and stand their ground when pinned to a wall. Healers hover behind their own front line instead of at the wall.
+- **Feedback.** Only crits and heavy hits freeze the pit or shake the screen. Damage numbers live longer, rise less and pile up over a scrum. An ultimate's name floats over its caster, like any other call-out, instead of a bar across the whole pit.
+- **From the playtester's transcript** ("10 things the game doesn't tell you"):
+  - the stat choice is one shared quality roll (Poor, Fair, Good or Great), the same on every stat;
+  - the bench always earns 10% of the lineup's match XP, and Barracks adds 15% a rank;
+  - a fighter below the club average gains 8% more XP for each level behind, up to +60%;
+  - auto-equip leaves locked relics where they are.
+- **Balance.** Basic hits deal 60% of their old damage, and summons' swings 80%. Healing is up 30% to keep pace. In a scrum, each extra body caught by the same blast takes less: 100%, then 80%, 65% and 55%. Divers (the dash role) slip zone of control.
+  - A per-class health and attack nudge (`RETUNE` in arena.js, 0.82 to 1.17) pulls each class back toward its v115 standing.
+  - Class band, 80 fights a class: v115 ran 0.19–0.61, v116 runs 0.17–0.56.
+  - Druid and summoner are the lowest (about 0.17 before a last buff). Healer and beastmaster are about 0.21. They get the next tuning pass.
+  - The sim's own band check passes.
+- `tools/visual_qa.py` flagged any body overlap over 30% held for 0.55 s. It now flags only a pile that holds for 6 s, because the scrum is deliberate.
+
 ## Club history and the Veteran profile (v115)
 
 - **Intel → History**: the new pane holds:

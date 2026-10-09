@@ -1608,7 +1608,7 @@
       const at = worldToCss(n.x, n.y, cam);
       if (n.jx == null) n.jx = 0;
       const pop = p < 0.12 ? 1.45 - (p / 0.12) * 0.45 : 1;
-      const rise = (n.heal ? 26 : 32) * Math.min(1, p * 1.6);
+      const rise = (n.heal ? 20 : 16) * Math.min(1, p * 2.2);
       const a = p < 0.7 ? 1 : Math.max(0, 1 - (p - 0.7) / 0.3);
       const base = n.crit ? 21 : n.dodge || n.blocked ? 12 : 15;
       const size = Math.round(base * pop * Math.min(1.3, Math.max(0.9, s / 1.5)));
@@ -1906,21 +1906,25 @@
     if (match.cine && match.cine.dur > 0) {
       const c = match.cine;
       const p = Math.max(0, Math.min(1, c.t / c.dur));
-      const fade = p > 0.78 ? (1 - p) / 0.22 : 1;
-      ctx.fillStyle = "rgba(8,6,12," + (0.72 * fade) + ")";
-      ctx.fillRect(0, view.cssH * 0.3, view.cssW, 96);
-      ctx.fillStyle = "rgba(255,210,122," + fade + ")";
-      ctx.fillRect(0, view.cssH * 0.3, view.cssW, 3);
-      ctx.fillRect(0, view.cssH * 0.3 + 93, view.cssW, 3);
-      ctx.globalAlpha = fade;
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#ffd27a";
-      ctx.font = "13px Palatino, Georgia, serif";
-      ctx.fillText("ULTIMATE", view.cssW / 2, view.cssH * 0.33 + 26);
-      ctx.fillStyle = "#f4ecdf";
-      ctx.font = "28px Palatino, Georgia, serif";
-      ctx.fillText(c.name || "", view.cssW / 2, view.cssH * 0.33 + 58);
-      ctx.globalAlpha = 1;
+      const fade = p > 0.7 ? (1 - p) / 0.3 : 1;
+      /* v116 the ultimate's name floats over the caster, like any other
+         call-out, instead of a bar across the whole pit. */
+      let who = null;
+      for (let i = 0; i < match.units.length; i++) if (match.units[i].id === c.uid) { who = match.units[i]; break; }
+      if (who && cam) {
+        const at = worldToCss(who.x, who.y - 46 - (who.z || 0), cam);
+        ctx.globalAlpha = fade;
+        ctx.textAlign = "center";
+        ctx.lineJoin = "round";
+        ctx.font = "800 15px " + UI_FONT;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(10,6,4,0.9)";
+        const ty = at.y - 10 - p * 10;
+        ctx.strokeText(c.name || "", at.x, ty);
+        ctx.fillStyle = "#ffd27a";
+        ctx.fillText(c.name || "", at.x, ty);
+        ctx.globalAlpha = 1;
+      }
     }
 
     if (match.engage > 0) {

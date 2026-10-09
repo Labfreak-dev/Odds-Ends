@@ -530,15 +530,28 @@
     const owned = save.relics || [];
     const all = owned.map(function (id) { return rolledRelic(save, relicById(id)); }).filter(Boolean);
     const before = JSON.stringify([save.equipped, (save.roster || []).map(function (f) { return [f.relic, f.relic2]; })]);
-    const clubs = all.filter(function (r) { return r.scope !== "fighter"; }).sort(function (a, b) { return relicScore(b) - relicScore(a); });
+    /* v116 a locked relic is a deliberate setup: auto-equip leaves it where it is. */
+    const keepClub = (save.equipped || []).filter(function (id) { return relicLocked(save, id); });
+    const keepWorn = {};
+    (save.roster || []).forEach(function (f) {
+      if (!f) return;
+      if (f.relic && relicLocked(save, f.relic)) keepWorn[f.relic] = { f: f, slot: 1 };
+      if (f.relic2 && relicLocked(save, f.relic2)) keepWorn[f.relic2] = { f: f, slot: 2 };
+    });
+    const clubs = all.filter(function (r) { return r.scope !== "fighter" && keepClub.indexOf(r.id) < 0; }).sort(function (a, b) { return relicScore(b) - relicScore(a); });
     const slots = IL.clubRelicSlots ? IL.clubRelicSlots(save) : 2;
-    save.equipped = clubs.slice(0, slots).map(function (r) { return r.id; });
-    (save.roster || []).forEach(function (f) { if (f) { f.relic = null; f.relic2 = null; } });
-    const free = all.filter(function (r) { return r.scope === "fighter"; });
+    save.equipped = keepClub.concat(clubs.slice(0, Math.max(0, slots - keepClub.length)).map(function (r) { return r.id; }));
+    (save.roster || []).forEach(function (f) {
+      if (!f) return;
+      f.relic = f.relic && keepWorn[f.relic] ? f.relic : null;
+      f.relic2 = f.relic2 && keepWorn[f.relic2] ? f.relic2 : null;
+    });
+    const free = all.filter(function (r) { return r.scope === "fighter" && !keepWorn[r.id]; });
     const team = (party || []).filter(Boolean).slice().sort(function (a, b) { return (b.level || 1) - (a.level || 1); });
     [1, 2].forEach(function (slot) {
       team.forEach(function (f) {
         if (slot === 2 && (f.level || 1) < RELIC_SLOT2_LV) return;
+        if ((slot === 1 && f.relic) || (slot === 2 && f.relic2)) return;
         const kit = IL.CLASSES[f.cls] || {};
         const fit = FIT[FRONT_ROLES[kit.role] ? "front" : "back"];
         const have = wornIds(f).map(function (id) { return relicById(id); });

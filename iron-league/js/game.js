@@ -366,6 +366,7 @@
 
   /* ---------- title ---------- */
   const TITLE_NEWS = [
+    "Combat rebuilt from a real Eslabong recording: fast small hits, fighters who commit to a target, and front lines that crash into one scrum.",
     "Club history: season reviews, a cup history and all-time leaders on Intel, Codex stat ranges and evolutions, and a Veteran profile at Season 15 that opens every class.",
     "Club tools: Treasure Hunter, Legendary Expert and Shiny Catcher staff with specializations, a Club Agenda, Development Plans, and relic lock, reroll and trade-in.",
     "New modes: the Hall of Legends, a Tournament Center, an offline Challenge Tower, an All-Star match, alliance rounds in the second Thunder Cup, and a free draft at week 7.",
@@ -2090,6 +2091,13 @@
     logClub("Veteran profile: every class is open, and the whole Codex is revealed, in this save and every new one.");
     showNote("Veteran profile unlocked.");
     return true;
+  }
+
+  /* v116 catch-up: a fighter below the club average learns faster,
+     8% a level behind, up to +60%. */
+  function catchUp(f) {
+    const avg = IL.clubAverage ? IL.clubAverage(save) : 0;
+    return 1 + Math.min(0.6, Math.max(0, avg - ((f && f.level) || 1)) * 0.08);
   }
 
   function payCeremony() {
@@ -6756,6 +6764,7 @@
     if (!chosen) {
       body =
         '<h2 class="lv-title">Choose a stat</h2>' +
+        (offer.stats[0] && offer.stats[0].q ? '<p class="fine lv-roll">This level rolled <b>' + (offer.stats[0].q >= 1.2 ? 'Great' : offer.stats[0].q >= 1 ? 'Good' : offer.stats[0].q >= 0.88 ? 'Fair' : 'Poor') + '</b> (' + Math.round(offer.stats[0].q * 100) + '%). One roll, the same on every stat.</p>' : '') +
         '<div class="lv-cards stats" id="statChoices">' + offer.stats.map(function (st) {
           const c = STAT_CARD[st.key];
           const gain = statGain(f, st.key, st.pts);
@@ -7828,9 +7837,10 @@
       let stack = 0;
       for (let k = 0; k < fx.nums.length; k++) {
         const o = fx.nums[k];
-        if (o.t < 0.35 && Math.abs(o.x - n.x) < 16 && Math.abs(o.y - n.y) < 16) stack++;
+        if (o.t < 0.8 && Math.abs(o.x - n.x) < 18 && Math.abs(o.y - n.y) < 18) stack++;
       }
-      n.dy = stack * 13;
+      /* v116 numbers pile up over a scrum instead of fading one by one. */
+      n.dy = (stack % 6) * 11;
       fx.nums.push(n);
     }
     /* Arena fx events carry a head-height y. Find the fighter they belong
@@ -7858,9 +7868,10 @@
         else if (e.type === "boom") P.boom(fx, e);
       }
       if (e.type === "dmg") {
-        placeNum({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, team: e.team, t: 0, life: e.crit ? 1.05 : 0.85 });
-        /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units. */
-        if (typeof e.n === "number" && shakeOn()) fx.shake = Math.min(7, fx.shake + (e.blocked ? 1.5 : 3.2));
+        placeNum({ x: e.x, y: e.y, n: e.n, blocked: e.blocked, crit: e.crit, team: e.team, t: 0, life: e.crit ? 1.4 : 1.15 });
+        /* Amplitude is IL.SHAKE_SCALE in render.js. These stay in raw units.
+           v116: with a hit every tenth of a second only crits shake. */
+        if (typeof e.n === "number" && e.crit && shakeOn()) fx.shake = Math.min(7, fx.shake + 3.2);
       } else if (e.type === "heal") {
         placeNum({ x: e.x, y: e.y, n: e.n, heal: true, team: e.team, t: 0, life: 0.9 });
       } else if (e.type === "death") {
@@ -8630,7 +8641,7 @@
       movesBefore[f.id] = f.pendingMoves || 0;
       const kit = IL.CLASSES[f.cls];
       if (kit && IL.scaledStats) statBefore[f.id] = IL.scaledStats(f, kit);
-      IL.grantXp(f, xp);
+      IL.grantXp(f, Math.round(xp * catchUp(f)));
       if ((f.level || 1) > (before[f.id] || 1)) logClub(f.name + " reached level " + f.level + ".");
     });
     /* v75 Barracks: the bench takes a share of the lineup's match XP. */
@@ -8638,7 +8649,7 @@
     if (share > 0 && xp > 0 && (mode === "league" || mode === "cup" || mode === "champions")) {
       const inFight = {};
       fight.left.forEach(function (f) { if (f) inFight[f.id] = true; });
-      (save.roster || []).forEach(function (f) { if (!inFight[f.id]) IL.grantXp(f, Math.max(1, Math.round(xp * share))); });
+      (save.roster || []).forEach(function (f) { if (!inFight[f.id]) IL.grantXp(f, Math.max(1, Math.round(xp * share * catchUp(f)))); });
     }
     /* v100 a fighter knocked out in a league, cup or Champions Cup match may be injured. */
     if (mode === "league" || mode === "cup" || mode === "champions") {

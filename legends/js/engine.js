@@ -4,6 +4,9 @@
   'use strict';
   const MAX_HAND = 10, MAX_BOARD = 7, MAX_MANA = 10, START_HP = 30, MAX_SECRETS = 5;
   const CHOSEN = new Set(['any', 'enemy', 'm', 'em', 'fm']);
+  // only these effects act on a chosen character; draw, summon, armor and the rest never ask for a target
+  const TARGETED = new Set(['dmg', 'heal', 'buff', 'curse', 'kw', 'freeze', 'silence', 'destroy', 'transform', 'bounce']);
+  const picks = e => TARGETED.has(e.op) && CHOSEN.has(e.tg || 'any');
   const KWS = ['taunt', 'charge', 'rush', 'divine', 'windfury', 'stealth', 'poisonous', 'lifesteal', 'reborn', 'frostbite', 'enrage', 'cantattack', 'misfire', 'elusive'];
 
   let DB = null; // { byId, tokens, collectible, heroes }
@@ -161,10 +164,10 @@
 
   // ---------- targeting ----------
   function needsTarget(c, onKeys) {
-    return (c.fx || []).some(e => onKeys.includes(e.on) && CHOSEN.has(e.tg || 'any') && e.op !== 'aoe_heal');
+    return (c.fx || []).some(e => onKeys.includes(e.on) && picks(e));
   }
-  function targetTg(c, onKeys) { const e = (c.fx || []).find(e => onKeys.includes(e.on) && CHOSEN.has(e.tg || 'any') && e.op !== 'aoe_heal'); return e ? (e.tg || 'any') : null; }
-  function chosenEffect(c, onKeys) { return (c.fx || []).find(e => onKeys.includes(e.on) && CHOSEN.has(e.tg || 'any') && e.op !== 'aoe_heal'); }
+  function targetTg(c, onKeys) { const e = (c.fx || []).find(e => onKeys.includes(e.on) && picks(e)); return e ? (e.tg || 'any') : null; }
+  function chosenEffect(c, onKeys) { return (c.fx || []).find(e => onKeys.includes(e.on) && picks(e)); }
   function validTargets(G, pi, tg, opts) {
     // opts: { spell:bool, self:uid, eff }
     opts = opts || {};
@@ -216,6 +219,13 @@
       if (src.kw.includes('lifesteal')) heal(G, G.p[src.owner].hero, dealt);
     } else if (ctx && ctx.lifesteal != null) { heal(G, G.p[ctx.lifesteal].hero, dealt); }
     if (u.kind === 'minion' && !u.silenced) u.fx.forEach(e => { if (e.on === 'dmg') resolve(G, e, { pi: u.owner, src: u }); });
+    // Frenzy: the first time this minion takes damage and lives
+    if (u.kind === 'minion' && !u.silenced && !u.frenzied && u.h > 0 && !u.poisoned && u.fx.some(e => e.on === 'frenzy')) {
+      u.frenzied = true;
+      ev(G, { t: 'frenzy', uid: u.uid });
+      log(G, `${card(u.cid).n} goes into a Frenzy!`);
+      u.fx.forEach(e => { if (e.on === 'frenzy') resolve(G, e, { pi: u.owner, src: u }); });
+    }
     return dealt;
   }
   function heal(G, u, n) {
@@ -271,7 +281,7 @@
     const me = G.p[ctx.pi], op = G.p[1 - ctx.pi];
     const alive = l => l.filter(u => u && !u.dead && (u.kind === 'hero' || u.h > 0));
     switch (e.tg || 'any') {
-      case 'any': case 'enemy': case 'm': case 'em': case 'fm': return ctx.target ? [ctx.target] : [];
+      case 'any': case 'enemy': case 'm': case 'em': case 'fm': return ctx.target && !ctx.target.dead ? [ctx.target] : [];
       case 'self': return ctx.src && ctx.src.kind === 'minion' ? [ctx.src] : [];
       case 'fhero': return [me.hero];
       case 'ehero': return [op.hero];
@@ -329,6 +339,9 @@
       case 'copy': if (srcUnit) summon(G, pi, srcUnit.cid, me.board.indexOf(srcUnit) + 1); break;
       case 'discover': discover(G, pi, e.pool); break;
       case 'equip': equip(G, pi, { a: e.a, h: e.h, kw: [], cid: ctx.cid }); break;
+      case 'hatk': me.hero.tempAtk = (me.hero.tempAtk || 0) + e.n; ev(G, { t: 'buff', uid: me.hero.uid }); break;
+      case 'dredge': dredge(G, pi); break;
+      case 'wbuff': if (me.weapon) { me.weapon.a += e.a || 0; me.weapon.h += e.h || 0; ev(G, { t: 'equip', pi }); } break;
       default: break;
     }
   }
@@ -356,13 +369,44 @@
     for (let k = 0; k < 40 && opts.length < 3; k++) { const c = pick(G, cands); if (c && !opts.includes(c.id)) opts.push(c.id); }
     if (!opts.length) return;
     if (P.isBot || G.autoDiscover) { const best = opts.slice().sort((a, b) => cardValue(card(b)) - cardValue(card(a)))[0]; if (P.hand.length < MAX_HAND) P.hand.push(mkCardInst(G, best)); log(G, `${P.name} discovers a card.`); }
-    else G.pending = { type: 'discover', pi, opts };
+    else setPending(G, { type: 'discover', pi, opts });
+  }
+  // a player's choices (Pick 1 of 3, Dredge) queue up when one card asks for more than one
+  function setPending(G, pd) { if (G.pending) (G.pendingQ = G.pendingQ || []).push(pd); else G.pending = pd; }
+  function nextPending(G) {
+    G.pending = null;
+    while (G.pendingQ && G.pendingQ.length && !G.pending) {
+      const pd = G.pendingQ.shift();
+      if (pd.type === 'dredge' && pd.lazy) dredge(G, pd.pi, true); else G.pending = pd;
+    }
+  }
+  // Dredge: look at the bottom 3 cards of your deck and put one of them on top
+  function dredge(G, pi, now) {
+    const P = G.p[pi];
+    if (!P.isBot && !G.autoDiscover && G.pending && !now) { setPending(G, { type: 'dredge', pi, lazy: true }); return; }
+    const n = Math.min(3, P.deck.length);
+    if (!n) return;
+    const idxs = []; for (let k = P.deck.length - n; k < P.deck.length; k++) idxs.push(k);
+    if (P.isBot || G.autoDiscover) {
+      const want = Math.min(10, P.maxMana + 1);
+      const score = cid => { const c = card(cid); return -Math.abs(Math.min(c.m, 10) - want) * 2 + cardValue(c) * 0.3 - (c.m > want ? 3 : 0); };
+      const best = idxs.slice().sort((a, b) => score(P.deck[b]) - score(P.deck[a]))[0];
+      const cid = P.deck.splice(best, 1)[0]; P.deck.unshift(cid);
+      log(G, `${P.name} dredges a card to the top of their deck.`);
+      ev(G, { t: 'dredge', pi });
+    } else G.pending = { type: 'dredge', pi, opts: idxs.map(k => P.deck[k]), idxs };
+  }
+  function chooseDredge(G, i) {
+    const pd = G.pending; if (!pd || pd.type !== 'dredge') return;
+    const P = G.p[pd.pi]; const k = pd.idxs[i];
+    if (k != null && k < P.deck.length) { const cid = P.deck.splice(k, 1)[0]; P.deck.unshift(cid); log(G, `${P.name} puts ${card(cid).n} on top of their deck.`); }
+    nextPending(G);
   }
   function chooseDiscover(G, idx) {
     const pd = G.pending; if (!pd) return;
     const P = G.p[pd.pi]; const cid = pd.opts[idx];
     if (cid && P.hand.length < MAX_HAND) P.hand.push(mkCardInst(G, cid));
-    G.pending = null;
+    nextPending(G);
     log(G, `${P.name} discovers ${card(cid).n}.`);
   }
 
@@ -437,10 +481,11 @@
       deaths(G);
       if (m.dead || G.phase === 'over') return true;
       (c.fx || []).forEach(e => {
-        if (e.on === 'bc' || (e.on === 'combo' && combo)) resolve(G, e, { pi, src: m, target: CHOSEN.has(e.tg || 'any') ? target : null, cid: c.id });
+        if (e.on === 'bc' || (e.on === 'combo' && combo)) resolve(G, e, { pi, src: m, target: picks(e) ? target : null, cid: c.id });
       });
     } else if (c.t === 'w') {
       equip(G, pi, { a: c.a, h: c.h, kw: c.kw || [], cid: c.id });
+      (c.fx || []).forEach(e => { if (e.on === 'bc') resolve(G, e, { pi, target: picks(e) ? target : null, cid: c.id }); });
     } else if (c.secret) {
       P.secrets.push({ uid: ci.uid, cid: c.id });
       ev(G, { t: 'secretSet', pi });
@@ -452,7 +497,7 @@
         return fireSecret(G, 1 - pi, 'espell', {}).countered;
       })() : false;
       if (!countered) {
-        (c.fx || []).forEach(e => { if (e.on === 'cast') resolve(G, e, { pi, target: CHOSEN.has(e.tg || 'any') ? target : null, spell: true, vfx: c.vfx, cid: c.id }); });
+        (c.fx || []).forEach(e => { if (e.on === 'cast') resolve(G, e, { pi, target: picks(e) ? target : null, spell: true, vfx: c.vfx, cid: c.id }); });
         P.board.slice().forEach(m => { if (!m.silenced && !m.dead) m.fx.forEach(e => { if (e.on === 'fspell') resolve(G, e, { pi, src: m }); }); });
       } else log(G, `${c.n} was countered.`);
     }
@@ -464,22 +509,22 @@
   function canHeroPower(G, pi) {
     const P = G.p[pi]; const hp = P.heroData.hp;
     if (G.phase !== 'play' || G.turn !== pi || P.hpUsed || P.mana < hp.m || G.pending) return false;
-    const e = hp.fx[0];
-    if (CHOSEN.has(e.tg || 'any') && !validTargets(G, pi, e.tg, { spell: true, eff: e }).length) return false;
+    const e = hp.fx.find(picks);
+    if (e && !validTargets(G, pi, e.tg || 'any', { spell: true, eff: e }).length) return false;
     return true;
   }
   function heroPower(G, pi, targetUid) {
     if (!canHeroPower(G, pi)) return false;
-    const P = G.p[pi], hp = P.heroData.hp, e = hp.fx[0];
+    const P = G.p[pi], hp = P.heroData.hp, e = hp.fx.find(picks);
     let target = null;
-    if (CHOSEN.has(e.tg || 'any')) {
-      target = validTargets(G, pi, e.tg, { spell: true, eff: e }).find(u => u.uid === targetUid);
+    if (e) {
+      target = validTargets(G, pi, e.tg || 'any', { spell: true, eff: e }).find(u => u.uid === targetUid);
       if (!target) return false;
     }
     P.mana -= hp.m; P.hpUsed = true;
     ev(G, { t: 'hp', pi, target: target && target.uid });
     log(G, `${P.name} uses ${hp.n}.`);
-    hp.fx.forEach(x => resolve(G, x, { pi, target, src: P.hero }));
+    hp.fx.forEach(x => resolve(G, x, { pi, target: picks(x) ? target : null, src: P.hero }));
     deaths(G);
     return true;
   }
@@ -544,6 +589,7 @@
     if (u.kw.has('taunt')) v += 1; if (u.divine) v += 2; if (u.kw.has('windfury')) v += atkOf(G, u) * 0.6;
     if (u.kw.has('poisonous')) v += 3; if (u.kw.has('lifesteal')) v += 1; if (u.sd) v += 1.5;
     if (u.fx.some(e => ['eot', 'sot', 'edie', 'heal', 'fspell', 'atk', 'dmg'].includes(e.on))) v += 3;
+    if (!u.frenzied && u.fx.some(e => e.on === 'frenzy')) v += 1.5;
     return v;
   }
 
@@ -626,10 +672,10 @@
     }
     // 3. hero power
     if (canHeroPower(G, pi)) {
-      const e = P.heroData.hp.fx[0];
+      const e = P.heroData.hp.fx.find(picks) || P.heroData.hp.fx[0];
       let t = null;
-      if (CHOSEN.has(e.tg || 'any')) t = chooseTargetFor(G, pi, e, { spell: true, eff: e });
-      const useless = (e.op === 'heal' && (!t || (t.kind === 'hero' ? t.hp >= t.max : t.h >= t.max))) || (CHOSEN.has(e.tg || 'any') && !t);
+      if (picks(e)) t = chooseTargetFor(G, pi, e, { spell: true, eff: e });
+      const useless = (e.op === 'heal' && (!t || (t.kind === 'hero' ? t.hp >= t.max : t.h >= t.max))) || (picks(e) && !t);
       if (!useless) return heroPower(G, pi, t && t.uid);
     }
     // 4. attacks: trade into taunts or good targets, otherwise face
@@ -671,6 +717,7 @@
         const c = src[Math.floor(r() * src.length)];
         if (!c) break;
         if (c.t === 's' && deck.filter(id => DB.byId[id].t === 's').length >= 9) continue;
+        if (c.t === 'w' && deck.filter(id => DB.byId[id].t === 'w').length >= 3) continue;
         const copies = r() < 0.55 && c.r < 3 ? 2 : 1;
         for (let k = 0; k < copies; k++) add(c);
       }
@@ -693,6 +740,6 @@
 
   const API = { setData, newGame, mulligan, botMulligan, playCard, canPlay, heroPower, canHeroPower, attack, canAttack, attackTargets,
     endTurn, botStep, botTurn, validTargets, needsTarget, chosenEffect, targetTg, costOf, atkOf, spellDamage, findUnit, chooseDiscover,
-    randomDeck, validateDeck, card: id => DB.byId[id], db: () => DB, KWS, MAX_BOARD, MAX_HAND };
+    randomDeck, validateDeck, chooseDredge, picks, card: id => DB.byId[id], db: () => DB, KWS, MAX_BOARD, MAX_HAND };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.LLE = API;
 })(typeof window !== 'undefined' ? window : globalThis);

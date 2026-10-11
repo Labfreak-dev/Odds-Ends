@@ -3923,6 +3923,9 @@ Hub cards were drawing the outfit sheet under the skin. `cloth_bot` holds the sh
 ## Iron League — skin-hued outfits
 Layer order was already cloth over skin, and most kits read as clothed. Cloth 4 (creator default, color 6) and cloth 16 still looked naked: the leg pixels are baked in a skin hue that does not take the dye, and the brown dye sits on the same hue as the default tan skin, so a distance check reported them covered. `dressCloth` repaints cloth pixels that match the skin in use, rotating the dye off that hue when the whole garment is skin-colored, and fills bare ankles on `cloth_bot`. `check-clothes.py` fails the raw cloth 4 color 6 sheet and an empty `cloth_bot`. Cache query is `?v=6`. Shake scale stays 0.1.
 
+## Labfreak Legends — new standalone game in legends/
+A card battler in the style of Hearthstone, built from the repo's own art: every Glimmerdeep species at all four stages plus its bosses, Dead Man's Pull heroes, skins, enemies, bosses, weapons and relics, the Thankless party and the King, the Odds & Ends paintings (no real people or worshipped deities), and the Labfreak Series 1–3 and Multiverse Rip N Ship card sets. 2,318 cards across five classes, one per game. Standalone like the other game folders: `workshop/` and the generated root were not touched. `js/engine.js` is DOM-free and runs bot-vs-bot in Node (3,000 games, no errors or stuck games). Card text is written from each card's effects with plain keyword names (Guard, Haste, Quick, Shield…), and a fit pass shrinks text so none of the 2,318 cards clip at any size. Progress (owned cards, gold, decks) saves in localStorage under `ll_*`. Sprites were keyed with `lootdaggers/pack-art.py`'s `key_out`; `sfx/` copies Glimmerdeep cues. Iron League art and the third-party packs in `shared-assets/` are left out on purpose.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

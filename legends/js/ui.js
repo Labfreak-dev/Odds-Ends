@@ -1,0 +1,867 @@
+/* Labfreak Legends UI: menus, collection and deck builder, battle board, animations, sound. */
+(function () {
+  'use strict';
+  const D = window.LL_DATA, E = window.LLE;
+  E.setData(D);
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const CLS = ['tamer', 'gambler', 'healer', 'collector', 'scientist'];
+  const CLSN = { tamer: 'Tamer', gambler: 'Gambler', healer: 'Healer', collector: 'Collector', scientist: 'Scientist', neutral: 'Neutral' };
+  const CLSG = { tamer: 'Glimmerdeep', gambler: "Dead Man's Pull", healer: 'Thankless', collector: 'Odds & Ends', scientist: 'Labfreak Series 1 & 2' };
+  const CCOL = c => (D.heroes[c] ? D.heroes[c].col : [190, 180, 160]).join(',');
+  const RN = ['Common', 'Rare', 'Epic', 'Legendary'];
+  // plain-English glossary: [word on the card, what it means, board icon]
+  const GLOSS = [
+    ['Guard', 'Enemies must attack this minion before they can hit anything else.', 'kw:taunt'],
+    ['Haste', 'Can attack the same turn you play it.', 'kw:charge'],
+    ['Quick', 'Can attack enemy minions (but not the hero) the turn you play it.', 'kw:rush'],
+    ['Shield', 'Blocks the first hit completely, then the shield breaks.', 'kw:divine'],
+    ['Double Strike', 'Can attack twice each turn.', 'kw:windfury'],
+    ['Hidden', "Enemies can't attack or target it until it attacks.", 'kw:stealth'],
+    ['Deadly', 'Destroys any minion it damages, no matter its Health.', 'kw:poisonous'],
+    ['Lifesteal', 'Damage it deals also heals your hero by the same amount.', 'kw:lifesteal'],
+    ['Comes Back', 'The first time it dies, it returns with 1 Health.', 'kw:reborn'],
+    ['When played:', 'Happens once, right when you play the card from your hand.'],
+    ['When it dies:', 'Happens when this minion dies.'],
+    ['If you played another card first this turn:', "A bonus that only happens if this isn't the first card you played this turn."],
+    ['Start of your turn:', 'Happens at the start of each of your turns while this minion is on the board.'],
+    ['End of your turn:', 'Happens at the end of each of your turns while this minion is on the board.'],
+    ['When it attacks:', 'Happens every time this minion attacks.'],
+    ['When it takes damage:', 'Happens every time this minion is hurt and survives the hit.'],
+    ['After you cast a spell:', 'Happens every time you cast a spell while this minion is on the board.'],
+    ['When anything is healed:', 'Happens every time any character on either side is healed.'],
+    ['When an enemy minion dies:', 'Happens every time one of your opponent\'s minions dies.'],
+    ['When you summon a minion:', 'Happens every time another minion joins your side.'],
+    ['Trap:', "A hidden spell. It sits face-down by your hero and goes off by itself during your opponent's turn."],
+    ['Freeze', "A Frozen character can't attack during its next turn."],
+    ['Remove all abilities', 'Wipes every ability and bonus from a minion. Damage it already took stays.'],
+    ['Pick 1 of 3', 'You see three random cards and keep the one you choose.'],
+    ['Armor', 'Extra protection for your hero. Damage hits Armor before Health.'],
+    ['Spin!', 'The reels from Dead Man\'s Pull. One of the three results happens at random.'],
+    ['less Mana', 'Strong cards that borrow Mana from your next turn.'],
+    ['spells deal +', 'While this minion is alive, your damage spells deal extra damage.'],
+    ['Freezes anything it damages', 'Anything it hits, or anything that hits it, gets Frozen.'],
+    ["Can't attack", 'This minion only defends.'],
+    ['Attacks a random enemy', 'Whatever you aim it at, it picks a random enemy it is allowed to hit instead.'],
+    ["Spells can't target it", "Spells and Hero Powers can't choose it."],
+    ['+2 Attack while hurt', 'Gets +2 Attack while it is missing Health.'],
+    ['ALL', 'Hits every one of them, not just one.'],
+  ];
+  function explain(c) {
+    const tx = c.tx || '', out = [];
+    GLOSS.forEach(([k, v]) => { if (tx.includes(k) && !(k === 'Shield' && !/\bShield\b/.test(tx)) && !(k === 'Freeze' && tx.includes('Freezes anything'))) out.push([k.replace(/:$/, ''), v]); });
+    if (c.evo) out.unshift(['Evolves from ' + c.evo.from, `Costs 2 less while ${c.evo.from} is on your board. Playing it turns ${c.evo.from} into this card.`]);
+    if (c.t === 'w') out.push(['Weapon', 'Lets your hero attack. Attack is the yellow number; the grey number is how many attacks it lasts.']);
+    return out;
+  }
+  const BOLD = ['When played:', 'When it dies:', 'If you played another card first this turn:', 'Start of your turn:', 'End of your turn:', 'When it attacks:',
+    'When it takes damage:', 'After you cast a spell:', 'When anything is healed:', 'When an enemy minion dies:', 'When you summon a minion:', 'Trap:', 'Spin!',
+    'Double Strike', 'Comes Back', 'Guard', 'Haste', 'Quick', 'Shield', 'Hidden', 'Deadly', 'Lifesteal', 'Freeze', 'ALL'];
+  const KWRE = new RegExp('(^|[^\\w])(' + BOLD.map(w => w.replace(/[.*+?^${}()|[\]\\!]/g, '\\$&')).join('|') + ')(?![\\w])', 'g');
+
+  // ---------------------------------------------------------------- helpers
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  function artCSS(art) {
+    if (!art) return '';
+    const [s, i] = art;
+    return `background-image:url(${D.sheets[s]});background-position:${(i % 8) * 100 / 7}% ${Math.floor(i / 8) * 100 / 7}%;`;
+  }
+  const fmt = tx => esc(tx).replace(KWRE, '$1<b>$2</b>');
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  };
+  function fitCard(card) {
+    const box = card.querySelector('.text'), sp = box && box.firstElementChild;
+    if (sp && box.clientHeight) {
+      let f = parseFloat(sp.dataset.f || 1), n = 0;
+      sp.style.fontSize = f + 'em';
+      while (sp.offsetHeight > box.clientHeight + 1 && f > 0.42 && n++ < 14) { f -= 0.05; sp.style.fontSize = f.toFixed(2) + 'em'; }
+    }
+    const nm = card.querySelector('.name');
+    if (nm && nm.clientWidth) { let f = 1, n = 0; nm.style.letterSpacing = ''; while (nm.scrollWidth > nm.clientWidth + 1 && n++ < 10) { f -= 0.06; nm.style.fontSize = (parseFloat(getComputedStyle(nm).fontSize) * 0.94) + 'px'; } }
+  }
+  const fitQ = new Set(); let fitRaf = 0;
+  function fitAll(root) { (root || document).querySelectorAll('.card').forEach(c => fitQ.add(c)); if (!fitRaf) fitRaf = requestAnimationFrame(() => { fitRaf = 0; fitQ.forEach(c => { if (c.isConnected) fitCard(c); }); fitQ.clear(); }); }
+  new MutationObserver(ms => { for (const m of ms) m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.classList.contains('card')) fitQ.add(n); n.querySelectorAll && n.querySelectorAll('.card').forEach(c => fitQ.add(c)); } }); if (fitQ.size) fitAll(document.createElement('div')); })
+    .observe(document.body, { childList: true, subtree: true });
+  window.LLUI = { fitAll, fitCard, cardHTML: (c, o) => cardHTML(c, o) };
+  function cardHTML(c, o) {
+    o = o || {};
+    const cls = c.c || 'neutral';
+    const cost = o.cost != null ? o.cost : c.m;
+    const tribe = c.tr ? esc(c.tr) : (c.t === 's' ? 'Spell' : c.t === 'w' ? 'Weapon' : '');
+    const nameSize = c.n.length > 20 ? 'font-size:.84em' : c.n.length > 15 ? 'font-size:.96em' : '';
+    const L = (c.tx || '').length;
+    const tf = L <= 45 ? 1 : L <= 75 ? .92 : L <= 105 ? .82 : L <= 135 ? .74 : .68;
+    return `<div class="card t-${c.t} r${c.r} ${o.cls || ''}${o.locked ? ' locked' : ''}" style="--cc:${CCOL(cls)};${o.cw ? '--cw:' + o.cw + ';' : ''}${o.style || ''}" ${o.attrs || ''} data-cid="${c.id}">
+      <div class="art" style="${artCSS(c.art)}"></div>
+      <div class="cost${cost < c.m ? ' cheap' : ''}">${cost}</div>
+      <div class="name" style="${nameSize}">${esc(c.n)}</div>
+      <div class="gem r${c.r}"></div>
+      ${c.evo ? `<div class="evo">Evolves from ${esc(c.evo.from)}</div>` : ''}
+      <div class="text"><span data-f="${tf}" style="font-size:${tf}em">${fmt(c.tx || '')}</span></div>
+      ${c.t !== 's' ? `<div class="atk">${c.a}</div><div class="hp">${c.h}</div>` : ''}
+      <div class="tribe">${tribe}</div>
+      ${o.copies ? `<div class="copies">×${o.copies}</div>` : ''}${o.owned != null ? `<div class="owned${o.owned ? '' : ' none'}">${o.owned ? 'Owned ×' + o.owned : 'Not owned'}</div>` : ''}
+    </div>`;
+  }
+
+  // ---------------------------------------------------------------- sound
+  const SND = {};
+  let soundOn = store.get('ll_sound', false), music = null;
+  function sfx(name, vol) {
+    if (!soundOn) return;
+    try { const a = SND[name] ? SND[name].cloneNode() : new Audio(`sfx/${name}.mp3`); SND[name] = SND[name] || a; a.volume = vol || 0.5; a.play().catch(() => { }); } catch (e) { }
+  }
+  function playMusic(name) {
+    if (music && music.dataset.n === name) { if (soundOn) music.play().catch(() => { }); return; }
+    if (music) { music.pause(); music = null; }
+    if (!soundOn) return;
+    try { music = new Audio(`sfx/${name}.mp3`); music.dataset.n = name; music.loop = true; music.volume = 0.28; music.play().catch(() => { }); } catch (e) { }
+  }
+  function setSound(on) {
+    soundOn = on; store.set('ll_sound', on);
+    $('#b-sound').textContent = 'Sound: ' + (on ? 'on' : 'off');
+    if (!on && music) music.pause(); else playMusic(current === 'battle' ? 'fight' : 'title');
+  }
+
+  // ---------------------------------------------------------------- navigation
+  let current = 'menu';
+  function show(id) {
+    $$('.screen').forEach(s => { s.hidden = s.id !== id; });
+    current = id;
+    if (id === 'menu') { renderMenu(); playMusic('title'); }
+    if (id === 'collection') renderCollection();
+    if (id === 'play') renderPlay();
+    if (id === 'rules') renderRules();
+    if (id === 'shop') renderShop();
+    goldChips();
+  }
+  $$('[data-back]').forEach(b => b.addEventListener('click', () => { sfx('click', .4); show('menu'); }));
+  $('#b-play').onclick = () => { sfx('click', .4); show('play'); };
+  $('#b-coll').onclick = () => { sfx('click', .4); show('collection'); };
+  $('#b-rules').onclick = () => { sfx('click', .4); show('rules'); };
+  $('#b-shop').onclick = () => { sfx('click', .4); show('shop'); };
+  $('#b-sound').onclick = () => setSound(!soundOn);
+
+  // ---------------------------------------------------------------- decks
+  function seeded(s) { return () => { let t = (s += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const STARTERS = CLS.map((c, i) => ({ id: 'starter_' + c, name: `${CLSN[c]} Starter`, cls: c, cards: E.randomDeck(null, c, seeded(1000 + i * 77)), starter: true }));
+  let decks = store.get('ll_decks', []);
+  // ---- collection ownership and gold
+  const CAP = c => (c.r === 3 ? 1 : 2);
+  let owned = store.get('ll_owned', null);
+  if (!owned) { owned = {}; STARTERS.forEach(d => d.cards.forEach(id => { owned[id] = Math.min(CAP(E.card(id)), (owned[id] || 0) + 1); })); store.set('ll_owned', owned); }
+  let gold = store.get('ll_gold', 300);
+  const saveOwned = () => { store.set('ll_owned', owned); store.set('ll_gold', gold); };
+  const ownedTotal = () => Object.values(owned).reduce((a, b) => a + b, 0);
+  function goldChips() { $$('.goldchip').forEach(g => { g.textContent = gold.toLocaleString() + ' gold'; }); }
+  const REFUND = [5, 20, 100, 400];
+  const ODDS_STD = [72, 21, 5.5, 1.5], ODDS_MV = [40, 36, 17, 7];
+  const PACKS = [
+    { id: 'glim', name: 'Glimmerdeep Pack', price: 100, odds: ODDS_STD, cover: 'gd_emdr4', col: '90,200,255', blurb: 'Tamer creatures from every biome, all their evolutions, and the 24 bosses.', f: c => c.g === 'Glimmerdeep' },
+    { id: 'dmp', name: "Dead Man's Pull Pack", price: 100, odds: ODDS_STD, cover: 'dmpb_death3', col: '150,200,90', blurb: 'Gambler heroes and skins, dungeon enemies, Death, weapons, relics and Traps.', f: c => c.g === "Dead Man's Pull" },
+    { id: 'th', name: 'Thankless Pack', price: 100, odds: ODDS_STD, cover: 'th_kingc', col: '240,190,90', blurb: 'The whole ungrateful party, the King, the Brood, and healing spells.', f: c => c.g === 'Thankless' },
+    { id: 'oe', name: 'Odds & Ends Pack', price: 100, odds: ODDS_STD, cover: null, col: '60,210,190', blurb: 'Animals, machines, sea life, myths, cosmos and fortune cards.', f: c => c.g === 'Odds & Ends' },
+    { id: 'lab', name: 'Labfreak Lab Pack', price: 100, odds: ODDS_STD, cover: 's2_200', col: '255,110,225', blurb: 'Scientist creatures from Labfreak Series 1 and 2, plus lab spells.', f: c => /^Labfreak( Series [12])?$/.test(c.g) },
+    { id: 'mv', name: 'Multiverse Pack', price: 250, odds: ODDS_MV, cover: 'mv_labfreak', col: '255,215,90', blurb: 'Any card from any game, with much better odds of Epics and Legendaries.', f: c => true },
+  ];
+  PACKS.forEach(p => {
+    p.pool = [[], [], [], []];
+    D.cards.forEach(c => { if (!c.token && p.f(c)) p.pool[c.r].push(c.id); });
+    p.size = p.pool.reduce((a, l) => a + l.length, 0);
+    if (!p.cover) p.cover = p.pool[3][0] || p.pool[2][0];
+  });
+  function rollRarity(odds) { let r = Math.random() * 100; for (let i = 3; i >= 1; i--) { const t = odds[i]; if (r < t) return i; r -= t; } return 0; }
+  function openPack(p) {
+    const got = [];
+    for (let k = 0; k < 5; k++) {
+      let r = rollRarity(p.odds);
+      if (k === 4 && got.every(g => g.r === 0) && r === 0) r = 1; // every pack has at least one Rare
+      while (r > 0 && !p.pool[r].length) r--;
+      const id = p.pool[r][Math.floor(Math.random() * p.pool[r].length)];
+      const c = E.card(id);
+      const had = owned[id] || 0;
+      let extra = 0;
+      if (had >= CAP(c)) { extra = REFUND[c.r]; gold += extra; } else owned[id] = had + 1;
+      got.push({ id, r: c.r, isNew: had === 0, extra });
+    }
+    saveOwned();
+    return got;
+  }
+  const saveDecks = () => store.set('ll_decks', decks);
+  let chosenDeck = store.get('ll_chosen', 'starter_tamer');
+  let chosenOpp = 'random';
+
+  // ---------------------------------------------------------------- menu
+  function renderMenu() {
+    $('#menubg').style.backgroundImage = `url(${D.boards.bg_core})`;
+    const ids = ['dmpb_death1', 'gdb_wyrm', 'mv_labfreak', 'th_kingc', 's2_200'];
+    const fan = ids.map(id => E.card(id)).filter(Boolean);
+    $('#menufan').innerHTML = fan.map((c, i) => cardHTML(c, { style: `transform:translateX(-50%) rotate(${(i - 2) * 11}deg) translateY(${Math.abs(i - 2) * 8}px);z-index:${10 - Math.abs(i - 2)}` })).join('');
+    $('#menutag').textContent = `${D.cards.length.toLocaleString()} cards from Glimmerdeep, Dead Man's Pull, Thankless, Odds & Ends and Labfreak Series 1\u20133. You own ${ownedTotal().toLocaleString()}.`;
+  }
+
+  // ---------------------------------------------------------------- play screen
+  function deckBox(d, on, attrs) {
+    const h = D.heroes[d.cls];
+    return `<button class="deckbox${on ? ' on' : ''}" ${attrs}><div class="p" style="${artCSS(h.art)}"></div>
+      <div class="t"><b>${esc(d.name)}</b><span>${CLSN[d.cls]} · ${CLSG[d.cls]}${d.cards.length !== 30 ? ' · ' + d.cards.length + '/30' : ''}</span></div></button>`;
+  }
+  function renderPlay() {
+    const valid = decks.filter(d => E.validateDeck(d.cards, d.cls).length === 0);
+    $('#mydecks').innerHTML = valid.length ? valid.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('') :
+      `<p style="color:var(--muted);font-weight:800;margin:0">You haven't built a deck yet. Build one in Collection &amp; Decks, or pick a starter below.</p>`;
+    $('#starters').innerHTML = STARTERS.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('');
+    const opps = [{ id: 'random', name: 'Random Bot', cls: CLS[Math.floor(Math.random() * 5)] }].concat(CLS.map(c => ({ id: c, name: `${CLSN[c]} Bot`, cls: c })));
+    $('#opps').innerHTML = opps.map(o => deckBox({ name: o.name, cls: o.cls, cards: new Array(30) }, o.id === chosenOpp, `data-opp="${o.id}"`)
+      .replace(`${CLSN[o.cls]} · ${CLSG[o.cls]}`, o.id === 'random' ? 'Random class, random deck' : `${CLSG[o.cls]} · random deck`)).join('');
+  }
+  $('#play').addEventListener('click', e => {
+    const b = e.target.closest('[data-deck]'); if (b) { chosenDeck = b.dataset.deck; store.set('ll_chosen', chosenDeck); sfx('click', .4); renderPlay(); }
+    const o = e.target.closest('[data-opp]'); if (o) { chosenOpp = o.dataset.opp; sfx('click', .4); renderPlay(); }
+  });
+  $('#b-start').onclick = () => {
+    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck) || STARTERS[0];
+    const oc = chosenOpp === 'random' ? CLS[Math.floor(Math.random() * 5)] : chosenOpp;
+    startBattle(d, oc);
+  };
+
+  // ---------------------------------------------------------------- collection & deck builder
+  const F = { cls: 'all', mana: null, type: 'all', rar: 'all', game: 'all', q: '', page: 0, own: 'all' };
+  let editing = null; // deck being edited
+  const GAMES = ['Glimmerdeep', "Dead Man's Pull", 'Thankless', 'Odds & Ends', 'Labfreak Series 1', 'Labfreak Series 2', 'Labfreak Multiverse', 'Labfreak'];
+  function filtered() {
+    const q = F.q.trim().toLowerCase();
+    return D.cards.filter(c => {
+      if (editing && c.c !== editing.cls && c.c !== 'neutral') return false;
+      if (F.cls !== 'all' && c.c !== F.cls) return false;
+      if (F.mana != null && (F.mana === 7 ? c.m < 7 : c.m !== F.mana)) return false;
+      if (F.type !== 'all' && c.t !== F.type) return false;
+      if (F.rar !== 'all' && c.r !== +F.rar) return false;
+      if (F.game !== 'all' && c.g !== F.game) return false;
+      if (F.own === 'owned' && !owned[c.id]) return false;
+      if (F.own === 'missing' && owned[c.id]) return false;
+      if (q && !(c.n.toLowerCase().includes(q) || (c.tx || '').toLowerCase().includes(q) || (c.tr || '').toLowerCase().includes(q))) return false;
+      return true;
+    }).sort((a, b) => a.m - b.m || a.n.localeCompare(b.n));
+  }
+  function renderFilters() {
+    const clsList = editing ? [editing.cls, 'neutral'] : ['all', ...CLS, 'neutral'];
+    if (editing && F.cls !== 'all' && !clsList.includes(F.cls)) F.cls = 'all';
+    $('#filters').innerHTML =
+      `<input id="search" placeholder="Search name, text or tribe" value="${esc(F.q)}" aria-label="Search cards">` +
+      (editing ? `<button class="chip${F.cls === 'all' ? ' on' : ''}" data-f="cls" data-v="all">All</button>` : '') +
+      clsList.map(c => `<button class="chip${F.cls === c ? ' on' : ''}" data-f="cls" data-v="${c}">${c === 'all' ? 'All classes' : CLSN[c]}</button>`).join('') +
+      [0, 1, 2, 3, 4, 5, 6, 7].map(m => `<button class="chip mana${F.mana === m ? ' on' : ''}" data-f="mana" data-v="${m}">${m === 7 ? '7+' : m}</button>`).join('') +
+      `<select class="sel" data-f="type" aria-label="Card type"><option value="all">All types</option><option value="m">Minions</option><option value="s">Spells</option><option value="w">Weapons</option></select>` +
+      `<select class="sel" data-f="rar" aria-label="Rarity"><option value="all">All rarities</option>${RN.map((r, i) => `<option value="${i}">${r}</option>`).join('')}</select>` +
+      `<select class="sel" data-f="game" aria-label="Game"><option value="all">All games</option>${GAMES.map(g => `<option>${esc(g)}</option>`).join('')}</select>` +
+      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option></select>`;
+    $$('#filters select').forEach(s => { s.value = F[s.dataset.f]; });
+  }
+  const PER = 40;
+  function renderGrid() {
+    const list = filtered();
+    const pages = Math.max(1, Math.ceil(list.length / PER));
+    F.page = Math.min(F.page, pages - 1);
+    const counts = {};
+    if (editing) editing.cards.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+    $('#grid').innerHTML = list.slice(F.page * PER, F.page * PER + PER).map(c => cardHTML(c, { copies: counts[c.id], owned: owned[c.id] || 0, locked: !owned[c.id], attrs: 'tabindex="0" role="button"' })).join('') ||
+      `<p style="grid-column:1/-1;color:var(--muted);font-weight:800">No cards match these filters.</p>`;
+    $('#pager').innerHTML = `<button class="small" data-pg="-1" ${F.page ? '' : 'disabled'}>Previous</button><span>${list.length.toLocaleString()} cards · page ${F.page + 1} of ${pages}</span><button class="small" data-pg="1" ${F.page < pages - 1 ? '' : 'disabled'}>Next</button>`;
+  }
+  function renderDeckPanel() {
+    $('#collbody').classList.toggle('nodeck', !editing);
+    $('#deckpanel').hidden = !editing;
+    $('#deckpick').innerHTML = `<option value="">Edit a deck\u2026</option>` + decks.map(d => `<option value="${d.id}">${esc(d.name)} (${d.cards.length}/30)</option>`).join('');
+    if (!editing) return;
+    $('#deckname').value = editing.name;
+    $('#deckcls').textContent = `${CLSN[editing.cls]} · ${editing.cards.length}/30 cards · Hero Power: ${D.heroes[editing.cls].hp.n}`;
+    const counts = {};
+    editing.cards.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+    const ids = Object.keys(counts).sort((a, b) => E.card(a).m - E.card(b).m || E.card(a).n.localeCompare(E.card(b).n));
+    const rc = ['#e8e8ef', '#4fa3ff', '#c27bff', '#ff9d2e'];
+    $('#decklist').innerHTML = ids.map(id => { const c = E.card(id); return `<div class="drow" data-rm="${id}" style="--rc:${rc[c.r]}" title="Remove one"><span class="m">${c.m}</span><span class="n">${esc(c.n)}</span><span class="x">${counts[id] > 1 ? '×' + counts[id] : ''}</span></div>`; }).join('') ||
+      `<p style="color:var(--muted);font-weight:800;padding:8px">Click cards on the left to add them.</p>`;
+    const curve = [0, 0, 0, 0, 0, 0, 0, 0];
+    editing.cards.forEach(id => { curve[Math.min(7, E.card(id).m)]++; });
+    const mx = Math.max(4, ...curve);
+    $('#curve').innerHTML = curve.map((n, i) => `<div style="height:${n / mx * 100}%"><span>${i === 7 ? '7+' : i}</span></div>`).join('');
+    const errs = E.validateDeck(editing.cards, editing.cls);
+    $('#deckerrs').textContent = errs[0] || 'Ready to play.';
+    $('#deckerrs').style.color = errs.length ? '#ffb3bb' : 'var(--heal)';
+  }
+  function renderCollection() { if (editing && F.own === 'all') F.own = 'owned'; renderFilters(); renderGrid(); renderDeckPanel(); $('#collsub').textContent = `You own ${ownedTotal().toLocaleString()} cards`; }
+  $('#filters').addEventListener('click', e => {
+    const b = e.target.closest('[data-f]'); if (!b || b.tagName === 'SELECT') return;
+    const f = b.dataset.f; let v = b.dataset.v;
+    if (f === 'mana') v = F.mana === +v ? null : +v;
+    F[f] = v; F.page = 0; renderFilters(); renderGrid();
+  });
+  $('#filters').addEventListener('change', e => { const s = e.target.closest('select'); if (!s) return; F[s.dataset.f] = s.value; F.page = 0; renderGrid(); });
+  $('#filters').addEventListener('input', e => { if (e.target.id === 'search') { F.q = e.target.value; F.page = 0; renderGrid(); } });
+  $('#pager').addEventListener('click', e => { const b = e.target.closest('[data-pg]'); if (!b) return; F.page += +b.dataset.pg; renderGrid(); $('#gridwrap').scrollTop = 0; });
+  function addToDeck(id) {
+    const c = E.card(id);
+    if (editing.cards.length >= 30) return flashErr('This deck already has 30 cards.');
+    const n = editing.cards.filter(x => x === id).length;
+    if (!owned[id]) { const pk = PACKS.find(p => p.id !== 'mv' && p.f(c)); return flashErr(`You don't own ${c.n} yet. Find it in the ${pk ? pk.name : 'Multiverse Pack'}.`); }
+    if (n >= (c.r === 3 ? 1 : 2)) return flashErr(c.r === 3 ? 'Only one copy of each Legendary.' : 'Only two copies of each card.');
+    if (n >= owned[id]) return flashErr(`You only own ${owned[id]} ${c.n}.`);
+    editing.cards.push(id); sfx('click', .3); renderGrid(); renderDeckPanel();
+  }
+  function flashErr(s) { $('#deckerrs').textContent = s; $('#deckerrs').style.color = '#ffb3bb'; }
+  $('#grid').addEventListener('click', e => {
+    const el = e.target.closest('.card'); if (!el) return;
+    if (editing) addToDeck(el.dataset.cid); else zoom(E.card(el.dataset.cid));
+  });
+  $('#grid').addEventListener('keydown', e => { if (e.key === 'Enter') { const el = e.target.closest('.card'); if (el) el.click(); } });
+  $('#grid').addEventListener('contextmenu', e => { const el = e.target.closest('.card'); if (el) { e.preventDefault(); zoom(E.card(el.dataset.cid)); } });
+  $('#decklist').addEventListener('click', e => {
+    const r = e.target.closest('[data-rm]'); if (!r) return;
+    const i = editing.cards.indexOf(r.dataset.rm); if (i >= 0) editing.cards.splice(i, 1);
+    renderGrid(); renderDeckPanel();
+  });
+  $('#deckname').addEventListener('input', e => { if (editing) editing.name = e.target.value || 'Untitled deck'; });
+  $('#b-newdeck').onclick = () => {
+    const m = $('#zoom');
+    m.innerHTML = `<div class="modal" style="position:static;background:none"><div><h3>Pick a class</h3><p>Each class plays the cards of one Labfreak game, plus every Neutral card.</p>
+      <div class="deckgrid" style="max-width:720px">${CLS.map(c => deckBox({ name: CLSN[c], cls: c, cards: new Array(30) }, false, `data-newcls="${c}"`)).join('')}</div>
+      <p style="margin-top:14px"><button class="small" data-close>Cancel</button></p></div></div>`;
+    m.hidden = false;
+  };
+  $('#deckpick').onchange = e => { const d = decks.find(x => x.id === e.target.value); if (d) { editing = d; F.cls = 'all'; F.page = 0; renderCollection(); } };
+  $('#b-save').onclick = () => {
+    if (!editing) return;
+    if (!decks.includes(editing)) decks.push(editing);
+    saveDecks(); renderDeckPanel();
+    const errs = E.validateDeck(editing.cards, editing.cls);
+    $('#deckerrs').textContent = errs.length ? 'Saved. ' + errs[0] : 'Saved. Ready to play.';
+  };
+  $('#b-fill').onclick = () => {
+    if (!editing) return;
+    const fill = E.randomDeck(null, editing.cls, Math.random);
+    const mine = D.cards.filter(c => owned[c.id] && (c.c === editing.cls || c.c === 'neutral')).sort(() => Math.random() - .5);
+    for (const c of mine) { for (let k = 0; k < owned[c.id]; k++) { if (editing.cards.length >= 30) break; if (editing.cards.filter(x => x === c.id).length < owned[c.id]) editing.cards.push(c.id); } }
+    if (editing.cards.length < 30) flashErr(`You only own ${editing.cards.length} cards for this class. Open more packs in the Card Shop.`);
+    renderGrid(); renderDeckPanel();
+  };
+  $('#b-del').onclick = () => {
+    if (!editing) return;
+    const b = $('#b-del');
+    if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Tap again to delete'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = 'Delete'; }, 2500); return; }
+    decks = decks.filter(d => d !== editing); saveDecks(); editing = null; b.dataset.confirm = ''; b.textContent = 'Delete'; renderCollection();
+  };
+  $('#b-close').onclick = () => { if (editing && !decks.includes(editing) && editing.cards.length) decks.push(editing); saveDecks(); editing = null; renderCollection(); };
+  $('#zoom').addEventListener('click', e => {
+    const n = e.target.closest('[data-newcls]');
+    if (n) { const cls = n.dataset.newcls; editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0; $('#zoom').hidden = true; renderCollection(); return; }
+    if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal')) $('#zoom').hidden = true;
+  });
+  function zoom(c) {
+    const kws = explain(c);
+    $('#zoom').innerHTML = `<div class="wrap">${cardHTML(c)}<div class="info"><h3>${esc(c.n)}</h3>
+      <p>${RN[c.r]} ${c.t === 's' ? 'spell' : c.t === 'w' ? 'weapon' : 'minion'} · ${CLSN[c.c]} · ${esc(c.g || '')}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
+      ${c.fl ? `<p style="font-style:italic">“${esc(c.fl)}”</p>` : ''}
+      <p>${owned[c.id] ? `You own ${owned[c.id]} cop${owned[c.id] > 1 ? 'ies' : 'y'}.` : `Not owned yet. Found in the ${esc((PACKS.find(p => p.id !== 'mv' && p.f(c)) || PACKS[5]).name)} and the Multiverse Pack.`}</p>
+      <div class="kwlist">${kws.map(([k, v]) => `<div><b>${esc(k)}</b> ${esc(v)}</div>`).join('')}</div>
+      <p><button class="small" data-close>Close</button></p></div></div>`;
+    $('#zoom').hidden = false;
+  }
+
+  // ---------------------------------------------------------------- rules
+  function renderRules() {
+    const sample = E.card('dmpe_croupier') || D.cards.find(c => c.t === 'm' && c.fx && c.fx.length);
+    const icons = [['🛡', 'Grey armour behind a minion', 'Guard: hit this one first'], ['✦', 'Gold glow around a minion', 'Shield: blocks the next hit'],
+      ['2×', 'Double Strike', 'Attacks twice a turn'], ['☠', 'Deadly', 'Kills any minion it hurts'], ['♥', 'Lifesteal', 'Its damage heals you'],
+      ['↺', 'Comes Back', 'Returns once with 1 Health'], ['✝', 'When it dies', 'Something happens when it dies'],
+      ['ϟ', 'Triggered ability', 'Does something every turn or on an event'], ['+1', 'Spell boost', 'Your spells deal +1 damage'],
+      ['❄', 'Freezes', 'Freezes anything it damages'], ['∅', 'Abilities removed', 'This minion lost its abilities'], ['zz', 'Sleeping', "Just played, can't attack yet"]];
+    $('#rulesbody').innerHTML = `
+      <p class="lead">Two heroes, 30 Health each. Play minions and spells from your hand, attack, and bring the enemy hero to 0 Health to win.</p>
+      <h3>Reading a card</h3>
+      <div class="anatomy">${cardHTML(sample, { cw: '210px' })}
+        <dl>
+          <div><dt><span class="dot mana"></span>Mana cost</dt><dd>Top left. What it costs to play.</dd></div>
+          <div><dt><span class="dot atk"></span>Attack</dt><dd>Bottom left. The damage it deals when it fights.</dd></div>
+          <div><dt><span class="dot hp"></span>Health</dt><dd>Bottom right. When it reaches 0, the minion dies.</dd></div>
+          <div><dt>Ability</dt><dd>The text box. Bold words are explained if you press and hold (or hover) the card.</dd></div>
+          <div><dt>Rarity</dt><dd>The gem under the name: white Common, blue Rare, purple Epic, orange Legendary (with a crown).</dd></div>
+        </dl></div>
+      <h3>Your turn, step by step</h3>
+      <ol class="steps">
+        <li><b>You get Mana.</b> Each turn your max Mana goes up by 1 (to a limit of 10), and it refills. Turn 1 you have 1, turn 5 you have 5.</li>
+        <li><b>You draw a card.</b></li>
+        <li><b>Play cards.</b> Tap a card that glows green. Its cost comes out of your Mana. Minions go on your side of the board (7 at most). Spells happen right away.</li>
+        <li><b>Attack.</b> Tap one of your minions that glows green, then tap an enemy. Minions can't attack on the turn you play them (they're sleeping, <b>zz</b>) unless they have <b>Haste</b> or <b>Quick</b>.</li>
+        <li><b>Use your Hero Power</b> if you have 2 Mana left. It's the round button next to your hero, once per turn.</li>
+        <li><b>Press End Turn.</b> When the button turns gold, you have nothing left to do.</li>
+      </ol>
+      <h3>How fighting works</h3>
+      <p>When a minion attacks, both sides hit each other at the same time: each one takes damage equal to the other's Attack. Damage stays until it's healed.</p>
+      <div class="example"><b>Example:</b> your 3/2 (3 Attack, 2 Health) attacks an enemy 2/4. The enemy takes 3 and is left with 1 Health. Yours takes 2 and dies.</div>
+      <p>You can attack the enemy hero directly, unless they have a minion with <b>Guard</b>; then you must deal with that first. Heroes don't hit back unless they hold a weapon.</p>
+      <h3>Ability words</h3>
+      <div class="gloss">${GLOSS.map(([k, v]) => `<div><b>${esc(k.replace(/:$/, ''))}</b><span>${esc(v)}</span></div>`).join('')}
+        <div><b>Evolves from</b><span>Glimmerdeep creatures cost 2 less while their earlier form is on your board, and playing them replaces it.</span></div></div>
+      <h3>Icons on the board</h3>
+      <div class="legend">${icons.map(([i, a, b]) => `<div><i>${i}</i><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join('')}</div>
+      <h3>Starting a game</h3>
+      <p>A coin flip decides who goes first. The first player starts with 3 cards; the second starts with 4 plus <b>The Coin</b>, a free card that gives 1 extra Mana for one turn. Before the game starts you can swap any starting cards you don't want.</p>
+      <h3>Running out</h3>
+      <p>Your hand holds 10 cards; a card drawn past that is destroyed. If your deck runs out, every draw hurts your hero instead, 1 damage, then 2, then 3, and so on.</p>
+      <h3>Classes</h3><div class="classes">${CLS.map(c => { const h = D.heroes[c]; return `<div class="cls" style="--cc:${CCOL(c)}"><div class="p" style="${artCSS(h.art)}"></div><div><b>${CLSN[c]}</b><span>${esc(CLSG[c])} cards<br>Hero Power, ${esc(h.hp.n)}: ${esc(h.hp.tx)}</span></div></div>`; }).join('')}</div>
+      <h3>Decks, packs and gold</h3>
+      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the five starter decks and 300 gold. Win a battle for 60 gold, lose one for 20, and spend gold on packs in the Card Shop. Extra copies you can't use turn into gold automatically.</p>`;
+  }
+
+  // ================================================================= BATTLE
+  let G = null, sel = null, busy = false, lastDecks = null, popUids = new Set();
+  function startBattle(myDeck, oppCls) {
+    const oppDeck = E.randomDeck(null, oppCls, Math.random);
+    lastDecks = { myDeck, oppCls };
+    G = E.newGame({ decks: [myDeck.cards, oppDeck], classes: [myDeck.cls, oppCls], seed: (Math.random() * 1e9) | 0,
+      names: ['You', D.heroes[oppCls].n] });
+    G.p[1].isBot = true;
+    sel = null; busy = false;
+    const bgk = D.heroes[myDeck.cls].bg;
+    const bgs = Object.keys(D.boards);
+    $('#battlebg').style.backgroundImage = `url(${D.boards[bgk] || D.boards[bgs[Math.floor(Math.random() * bgs.length)]]})`;
+    show('battle'); playMusic('fight'); sfx('fightstart', .5);
+    sizeTable(); render();
+    E.botMulligan(G, 1);
+    showMulligan();
+  }
+  function sizeTable() {
+    const W = innerWidth, H = innerHeight;
+    const mw = Math.max(52, Math.min((W - 24) / 6.4, H / 7.9, 112));
+    $('#table').style.setProperty('--mw', mw + 'px');
+  }
+  addEventListener('resize', () => { if (current === 'battle') { sizeTable(); render(); } });
+
+  function minionHTML(m, o) {
+    const c = E.card(m.cid);
+    const a = E.atkOf(G, m);
+    const cls = ['minion', m.kw.has('taunt') ? 'taunt' : '', m.divine ? 'divine' : '', m.stealth ? 'stealth' : '', m.frozen ? 'frozen' : '', c.r === 3 ? 'leg' : '', o.extra || ''].join(' ');
+    const icons = [];
+    if (m.kw.has('windfury')) icons.push('<i title="Double Strike: attacks twice">2×</i>');
+    if (m.kw.has('poisonous')) icons.push('<i title="Deadly: kills any minion it damages" style="color:#7dff6a">☠</i>');
+    if (m.kw.has('lifesteal')) icons.push('<i title="Lifesteal: its damage heals you" style="color:#ff7b8a">♥</i>');
+    if (m.reborn) icons.push('<i title="Comes Back with 1 Health" style="color:#bff">↺</i>');
+    if (m.fx.some(e => e.on === 'dr')) icons.push('<i title="Something happens when it dies">✝</i>');
+    if (m.fx.some(e => ['eot', 'sot', 'edie', 'heal', 'fspell', 'atk', 'dmg', 'fsum'].includes(e.on))) icons.push('<i title="Triggered ability" style="color:#ffe36a">ϟ</i>');
+    if (m.sd || m.fx.some(e => e.op === 'aura_sd')) icons.push(`<i title="Your spells deal more damage" style="color:#9fdcff">+${m.sd || 1}</i>`);
+    if (m.kw.has('frostbite')) icons.push('<i title="Freezes what it damages" style="color:#9fe6ff">❄</i>');
+    if (m.silenced) icons.push('<i title="Abilities removed">∅</i>');
+    const sleepy = m.owner === 0 && G.turn === 0 && m.sleeping && !m.kw.has('charge') && !m.kw.has('rush') && !m.kw.has('cantattack');
+    return `<div class="${cls}" data-uid="${m.uid}" data-cid="${m.cid}" style="--cc:${CCOL(c.c)}">
+      <div class="port" style="${artCSS(c.art)}"></div>
+      <div class="ma${a > c.a ? ' buffed' : ''}">${a}</div><div class="mh${m.h < m.max ? ' hurt' : m.max > c.h ? ' buffed' : ''}">${m.h}</div>
+      <div class="icons">${icons.join('')}</div>${sleepy ? '<div class="zz">z<small>z</small></div>' : ''}</div>`;
+  }
+  function heroRowHTML(pi) {
+    const P = G.p[pi], h = P.heroData, me = pi === 0;
+    const atk = E.atkOf(G, P.hero);
+    const hpBtn = `<button class="hpower${P.hpUsed ? ' used' : ''}${me && E.canHeroPower(G, 0) && !busy ? ' ready' : ''}" ${me ? 'data-hp="1"' : ''} title="${esc(h.hp.n)}: ${esc(h.hp.tx)}" style="${artCSS(h.art)}" aria-label="Hero Power: ${esc(h.hp.n)}"><span class="c">2</span></button>`;
+    const weap = P.weapon ? `<div class="weapon" data-cid="${P.weapon.cid}" style="${artCSS(E.card(P.weapon.cid) ? E.card(P.weapon.cid).art : null)}"><span class="wa">${P.weapon.a}</span><span class="wd">${P.weapon.h}</span></div>` : '';
+    const crys = Array.from({ length: P.maxMana }, (_, i) => `<span class="crys${i < P.mana ? ' f' : (i >= P.maxMana - P.ovLocked ? ' lock' : '')}"></span>`).join('');
+    const can = me && E.canAttack(G, P.hero) && !busy;
+    const heroEl = `<div class="hero${P.hero.frozen ? ' frozen' : ''}${can ? ' can' : ''}" data-uid="${P.hero.uid}" style="--cc:${CCOL(P.cls)}">
+      <div class="hname">${esc(P.name)}</div><div class="port" style="${artCSS(h.art)}"></div>
+      ${P.hero.armor ? `<div class="harm">${P.hero.armor}</div>` : ''}${atk > 0 ? `<div class="hatk">${atk}</div>` : ''}<div class="hhp">${P.hero.hp}</div></div>`;
+    const side = `<div class="side"><div class="manabar">${P.mana}/${P.maxMana} ${crys}</div>
+      <div class="deckct" title="Cards left in deck">Deck ${P.deck.length}</div>${!me ? `<div class="handct">Hand ${P.hand.length}</div>` : ''}
+      ${P.secrets.length ? `<div class="secrets">${P.secrets.map(s => `<span class="secret" title="${me ? 'Your Trap: ' + esc(E.card(s.cid).n) : 'Enemy Trap'}">?</span>`).join('')}</div>` : ''}</div>`;
+    return me ? `${weap}${heroEl}${hpBtn}${side}` : `${side}${weap}${heroEl}${hpBtn}`;
+  }
+  function render() {
+    if (!G) return;
+    const me = G.p[0], op = G.p[1];
+    const myTurn = G.turn === 0 && G.phase === 'play' && !busy;
+    const atkSet = new Set(), tgtSet = new Set(), friendTgt = new Set();
+    if (myTurn && !sel) [...me.board, me.hero].forEach(u => { if (E.canAttack(G, u)) atkSet.add(u.uid); });
+    if (sel) sel.targets.forEach(u => { tgtSet.add(u.uid); if (u.owner === 0) friendTgt.add(u.uid); });
+    $('#ohand').innerHTML = op.hand.map(() => '<div class="cb"></div>').join('');
+    $('#ohero').innerHTML = heroRowHTML(1);
+    $('#mhero').innerHTML = heroRowHTML(0);
+    const extra = u => (atkSet.has(u.uid) ? ' can' : '') + (tgtSet.has(u.uid) ? ' tgt' : '') + (friendTgt.has(u.uid) ? ' friendly' : '') + (sel && sel.uid === u.uid ? ' picked' : '');
+    $('#oboard').innerHTML = op.board.map(m => minionHTML(m, { extra: extra(m) })).join('');
+    $('#mboard').innerHTML = me.board.map(m => minionHTML(m, { extra: extra(m) })).join('');
+    const mwPx = parseFloat(getComputedStyle($('#table')).getPropertyValue('--mw')) || 86;
+    [['#oboard', op.board.length], ['#mboard', me.board.length]].forEach(([q, n]) => {
+      const need = n * mwPx * 1.12 + 40, avail = innerWidth - 16;
+      $(q).style.setProperty('--k', need > avail ? (avail / need).toFixed(3) : 1);
+    });
+    [me.hero, op.hero].forEach(h => { const el = document.querySelector(`.hero[data-uid="${h.uid}"]`); if (el) el.className += extra(h); });
+    // hand fan
+    const n = me.hand.length;
+    const W = $('#hand').clientWidth || innerWidth;
+    const mw = parseFloat(getComputedStyle($('#table')).getPropertyValue('--mw')) || 86;
+    const cw = mw * 1.18;
+    const step = Math.min(cw * 0.86, (W - cw - 150) / Math.max(1, n - 1));
+    $('#hand').innerHTML = me.hand.map((ci, i) => {
+      const c = E.card(ci.cid);
+      const off = (i - (n - 1) / 2);
+      const playable = myTurn && E.canPlay(G, 0, i);
+      const s = sel && sel.type === 'hand' && sel.idx === i;
+      return cardHTML(c, { cost: E.costOf(G, 0, ci), cls: (playable ? 'playable' : '') + (s ? ' sel' : ''),
+        style: `transform:translateX(calc(-50% + ${off * step}px)) rotate(${off * 3.2}deg) translateY(${Math.abs(off) * Math.abs(off) * 2.2}px);z-index:${i + 1}`,
+        attrs: `data-hand="${i}" tabindex="0" role="button" aria-label="${esc(c.n)}"` });
+    }).join('');
+    $('#mboard').classList.toggle('target-zone', !!(sel && sel.type === 'hand' && sel.place));
+    const et = $('#endturn');
+    et.disabled = !myTurn;
+    et.textContent = G.turn === 0 ? 'End Turn' : 'Enemy Turn';
+    const anyMove = myTurn && (me.hand.some((_, i) => E.canPlay(G, 0, i)) || [...me.board, me.hero].some(u => E.canAttack(G, u)) || E.canHeroPower(G, 0));
+    et.classList.toggle('done', myTurn && !anyMove);
+    coach(myTurn, me, anyMove);
+    $('#loglines').innerHTML = G.log.slice(-80).map(l => `<div>${esc(l)}</div>`).join('');
+    popUids.forEach(uid => { const el = document.querySelector(`[data-uid="${uid}"]`); if (el) el.classList.add('pop'); });
+    popUids.clear();
+  }
+  let tips = store.get('ll_tips', true);
+  function coach(myTurn, me, anyMove) {
+    const el = $('#coach');
+    if (!tips || !myTurn || sel) { el.hidden = true; return; }
+    let t;
+    if (me.hand.some((_, i) => E.canPlay(G, 0, i))) t = `Tap a card glowing green to play it. You have ${me.mana} Mana.`;
+    else if ([...me.board, me.hero].some(u => E.canAttack(G, u))) t = 'Tap one of your minions glowing green, then tap an enemy to attack it.';
+    else if (E.canHeroPower(G, 0)) t = `Use your Hero Power, ${me.heroData.hp.n}: the round button next to your hero (2 Mana).`;
+    else t = 'Nothing left to do. Press End Turn.';
+    el.innerHTML = `${esc(t)} <button class="linkbtn" data-tipsoff>Hide tips</button>`;
+    el.hidden = false;
+  }
+  $('#coach').addEventListener('click', e => { if (e.target.closest('[data-tipsoff]')) { tips = false; store.set('ll_tips', false); $('#coach').hidden = true; } });
+  function hint(s) { const h = $('#hint'); if (!s) { h.hidden = true; return; } h.textContent = s; h.hidden = false; }
+  async function banner(s, ms) { const b = $('#banner'); b.textContent = s; b.classList.add('show'); await sleep(ms || 900); b.classList.remove('show'); }
+
+  // ---------- animation of engine events ----------
+  function elOf(uid) { return document.querySelector(`[data-uid="${uid}"]`); }
+  function centerOf(el) { const r = el.getBoundingClientRect(), b = $('#battle').getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2 }; }
+  function floatText(uid, txt, kind) {
+    const el = elOf(uid); if (!el) return;
+    const p = centerOf(el);
+    const f = document.createElement('div'); f.className = 'float ' + kind; f.textContent = txt; f.style.left = p.x + 'px'; f.style.top = (p.y - 10) + 'px';
+    $('#battle').appendChild(f); setTimeout(() => f.remove(), 950);
+  }
+  function vfxAt(uid, idx) {
+    if (idx == null) return;
+    const el = elOf(uid); if (!el) return;
+    const p = centerOf(el);
+    const rows = Math.ceil(Object.keys(D.fx).length / 8) || 1;
+    const v = document.createElement('div'); v.className = 'vfx';
+    const sheetRows = Math.max(1, Math.ceil((Math.max(...Object.values(D.fx)) + 1) / 8));
+    v.style.cssText = `left:${p.x}px;top:${p.y}px;background-image:url(img/fx.webp);background-size:800% ${sheetRows * 100}%;background-position:${(idx % 8) * 100 / 7}% ${sheetRows > 1 ? Math.floor(idx / 8) * 100 / (sheetRows - 1) : 0}%`;
+    $('#battle').appendChild(v); setTimeout(() => v.remove(), 650);
+  }
+  async function lunge(fromUid, toUid) {
+    const a = elOf(fromUid), d = elOf(toUid); if (!a || !d) return;
+    const pa = centerOf(a), pd = centerOf(d);
+    a.style.transition = 'transform .16s ease-in'; a.style.zIndex = 40;
+    a.style.transform = `translate(${(pd.x - pa.x) * 0.72}px, ${(pd.y - pa.y) * 0.72}px) scale(1.08)`;
+    await sleep(170);
+    vfxAt(toUid, D.fx.fxa_slash_long != null ? D.fx.fxa_slash_long : D.fx.fx_slash);
+    a.style.transition = 'transform .2s ease-out'; a.style.transform = '';
+    await sleep(120);
+    a.style.zIndex = '';
+  }
+  async function showPlayed(cid) {
+    const c = E.card(cid); if (!c) return;
+    const w = document.createElement('div'); w.className = 'played'; w.innerHTML = cardHTML(c);
+    $('#battle').appendChild(w); await sleep(900); w.remove();
+  }
+  async function animate(evs) {
+    let deaths = [];
+    for (const e of evs) {
+      switch (e.t) {
+        case 'play': {
+          const c = E.card(e.cid);
+          sfx(c.t === 's' ? 'ult' : 'summon', .45);
+          if (e.pi === 1) await showPlayed(e.cid);
+          break;
+        }
+        case 'attack': sfx(['hit1', 'hit2', 'hit3'][Math.floor(Math.random() * 3)], .55); await lunge(e.from, e.to); break;
+        case 'dmg': floatText(e.uid, '−' + e.n, 'd'); { const el = elOf(e.uid); if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } } break;
+        case 'heal': floatText(e.uid, '+' + e.n, 'h'); sfx('heal', .35); break;
+        case 'shield': floatText(e.uid, 'Blocked', 's'); sfx('shield', .45); break;
+        case 'freeze': floatText(e.uid, 'Frozen', 's'); break;
+        case 'buff': floatText(e.uid, 'Buffed', 's'); break;
+        case 'silence': floatText(e.uid, 'Abilities removed', 's'); break;
+        case 'armor': floatText(e.uid, '+' + e.n + ' Armor', 's'); sfx('shield', .3); break;
+        case 'vfx': (e.uids || []).forEach(u => vfxAt(u, e.k)); break;
+        case 'death': case 'destroy': deaths.push(e.uid); break;
+        case 'summon': popUids.add(e.uid); break;
+        case 'evolve': popUids.add(e.uid); sfx('lvl', .5); break;
+        case 'secret': sfx('relic', .5); await banner('Trap! ' + E.card(e.cid).n, 1000); break;
+        case 'gamble': floatText(G.p[e.pi].hero.uid, ['Spin: damage!', 'Spin: heal!', 'Spin: draw!'][e.r], 's'); sfx('coin', .4); break;
+        case 'burn': floatText(G.p[e.pi].hero.uid, 'Burned: ' + E.card(e.cid).n, 's'); break;
+        case 'fatigue': floatText(G.p[e.pi].hero.uid, 'Fatigue', 's'); break;
+        case 'hp': sfx('crit', .35); if (e.target) vfxAt(e.target, D.fx.fxa_spark_zap); break;
+        case 'weaponBreak': floatText(G.p[e.pi].hero.uid, 'Weapon broke', 's'); break;
+        default: break;
+      }
+    }
+    if (deaths.length) {
+      sfx('ko', .4);
+      deaths.forEach(u => { const el = elOf(u); if (el) el.classList.add('dying'); });
+      await sleep(420);
+    }
+  }
+  async function act(fn) {
+    if (busy || !G) return false;
+    busy = true;
+    G.ev.length = 0;
+    const ok = fn();
+    const evs = G.ev.splice(0);
+    sel = null; hint(null);
+    await animate(evs);
+    busy = false;
+    render();
+    await afterAction();
+    return ok;
+  }
+  async function afterAction() {
+    if (G.pending && G.pending.type === 'discover' && G.pending.pi === 0) showDiscover();
+    if (G.phase === 'over') await gameOver();
+  }
+
+  // ---------- player input ----------
+  function selectHand(i) {
+    const P = G.p[0], ci = P.hand[i], c = E.card(ci.cid);
+    if (!E.canPlay(G, 0, i)) {
+      const cost = E.costOf(G, 0, ci);
+      hint(cost > P.mana ? `Not enough Mana: it costs ${cost}, you have ${P.mana}.` : c.t === 'm' && P.board.length >= 7 ? 'Your board is full (7 minions).' : c.secret ? 'That Trap is already set.' : 'Nothing it can target right now.');
+      setTimeout(() => hint(null), 1200);
+      return;
+    }
+    const onKeys = c.t === 's' ? ['cast'] : ['bc', 'combo'];
+    if (E.needsTarget(c, onKeys)) {
+      const e = E.chosenEffect(c, onKeys);
+      if (e.on === 'combo' && G.played === 0) { act(() => E.playCard(G, 0, i, null)); return; }
+      const targets = E.validTargets(G, 0, e.tg || 'any', { spell: c.t === 's', eff: e });
+      if (!targets.length && c.t !== 's') { act(() => E.playCard(G, 0, i, null)); return; }
+      sel = { type: 'hand', idx: i, targets };
+      hint(c.t === 's' ? 'Choose a target for this spell' : 'Choose a target for its "When played" ability');
+      render();
+      return;
+    }
+    act(() => E.playCard(G, 0, i, null));
+  }
+  $('#table').addEventListener('click', e => {
+    if (!G || busy || G.phase !== 'play' || G.turn !== 0 || G.pending) return;
+    const h = e.target.closest('[data-hand]');
+    if (h) {
+      const i = +h.dataset.hand;
+      if (sel && sel.type === 'hand' && sel.idx === i) { sel = null; hint(null); render(); return; }
+      sel = null; selectHand(i); return;
+    }
+    if (e.target.closest('[data-hp]')) {
+      if (!E.canHeroPower(G, 0)) { hint(G.p[0].hpUsed ? 'Hero Power already used this turn.' : 'Not enough Mana.'); setTimeout(() => hint(null), 1200); return; }
+      const ef = G.p[0].heroData.hp.fx[0];
+      if (['any', 'enemy', 'm', 'em', 'fm'].includes(ef.tg || 'any')) {
+        sel = { type: 'hp', targets: E.validTargets(G, 0, ef.tg || 'any', { spell: true, eff: ef }) };
+        hint('Choose a target'); render();
+      } else act(() => E.heroPower(G, 0, null));
+      return;
+    }
+    const u = e.target.closest('[data-uid]');
+    if (u) {
+      const uid = +u.dataset.uid;
+      if (sel) {
+        if (sel.targets.some(t => t.uid === uid)) {
+          const s = sel;
+          if (s.type === 'hand') act(() => E.playCard(G, 0, s.idx, uid));
+          else if (s.type === 'hp') act(() => E.heroPower(G, 0, uid));
+          else if (s.type === 'atk') act(() => E.attack(G, s.uid, uid));
+          return;
+        }
+        if (sel.type === 'atk' && sel.uid === uid) { sel = null; hint(null); render(); return; }
+      }
+      const unit = E.findUnit(G, uid);
+      if (unit && unit.owner === 0 && E.canAttack(G, unit)) {
+        sel = { type: 'atk', uid, targets: E.attackTargets(G, unit) };
+        hint(sel.targets.length ? (sel.targets.some(t => t.kind === 'minion' && t.kw.has('taunt')) ? 'Choose what to attack (Guard minions must be hit first)' : 'Choose what to attack') : 'Nothing to attack'); render(); return;
+      }
+      if (unit && unit.kind === 'minion') { peekCard(unit.cid, u); setTimeout(hidePeek, 1600); }
+    }
+    if (sel) { sel = null; hint(null); render(); }
+  });
+  $('#table').addEventListener('keydown', e => { if (e.key === 'Enter') { const el = e.target.closest('[data-hand]'); if (el) el.click(); } });
+  $('#endturn').onclick = async () => {
+    if (busy || !G || G.turn !== 0 || G.phase !== 'play') return;
+    sfx('click', .4);
+    await act(() => E.endTurn(G));
+    if (G.phase === 'play' && G.turn === 1) runBot();
+  };
+  async function runBot() {
+    if (!G) return;
+    const g0 = G;
+    await sleep(350);
+    await banner('Enemy Turn', 700);
+    let guard = 0;
+    while (G === g0 && G.phase === 'play' && G.turn === 1 && guard++ < 60) {
+      await sleep(420);
+      busy = true;
+      G.ev.length = 0;
+      const did = E.botStep(G, 1);
+      const evs = G.ev.splice(0);
+      await animate(evs);
+      busy = false;
+      render();
+      if (G.phase === 'over') { await gameOver(); return; }
+      if (!did) break;
+    }
+    if (G !== g0 || G.phase !== 'play') return;
+    if (G.turn === 1) { await act(() => E.endTurn(G)); }
+    if (G.phase === 'play' && G.turn === 0) { sfx('click', .4); await banner('Your Turn', 800); render(); }
+  }
+  $('#b-log').onclick = () => $('#logpane').classList.add('open');
+  $('#b-help').onclick = () => {
+    const m = $('#modal');
+    m.innerHTML = `<div class="helpbox"><h3>Quick help</h3>
+      <ol class="steps"><li><b>Play cards</b> that glow green. The blue number is the Mana cost; your Mana is shown by your hero.</li>
+      <li><b>Attack</b>: tap your glowing minion, then an enemy. Both hit each other. Health at 0 means it dies.</li>
+      <li><b>Hero Power</b>: the round button by your hero, 2 Mana, once a turn.</li>
+      <li><b>End Turn</b> when you're done. Bring the enemy hero to 0 Health to win.</li></ol>
+      <p>Press and hold (or hover) any card or minion to read it, with every bold word explained.</p>
+      <div class="legend">${[['zz', "Sleeping: can't attack yet"], ['🛡', 'Guard: must be attacked first'], ['✦', 'Shield: blocks one hit'], ['2×', 'Attacks twice'], ['☠', 'Deadly'], ['♥', 'Lifesteal'], ['↺', 'Comes Back'], ['✝', 'Does something when it dies'], ['ϟ', 'Triggered ability'], ['❄', 'Freezes'], ['?', 'A hidden Trap']].map(([i, t]) => `<div><i>${i}</i><span>${esc(t)}</span></div>`).join('')}</div>
+      <div class="row" style="margin-top:14px"><button class="big alt" data-m="stay">Back to the game</button><button class="big alt" data-m="tipson">${tips ? 'Tips are on' : 'Turn tips back on'}</button></div></div>`;
+    m.hidden = false;
+  };
+  $('#b-logx').onclick = () => $('#logpane').classList.remove('open');
+  $('#b-menu').onclick = () => {
+    const m = $('#modal');
+    m.innerHTML = `<div><h3>Leave this battle?</h3><p>The game will count as a loss.</p><div class="row"><button class="big alt" data-m="stay">Keep playing</button><button class="big" data-m="quit">Concede</button></div></div>`;
+    m.hidden = false;
+  };
+
+  // ---------- peek (hover / long-press) ----------
+  let pressT = null;
+  function peekCard(cid, el) {
+    const c = E.card(cid); if (!c) return;
+    const p = $('#peek');
+    const ex = explain(c);
+    p.innerHTML = `<div class="peekwrap">${cardHTML(c)}${ex.length ? `<div class="kwlist">${ex.map(([k, v]) => `<div><b>${esc(k)}</b> ${esc(v)}</div>`).join('')}</div>` : ''}</div>`;
+    const r = el.getBoundingClientRect(), b = $('#battle').getBoundingClientRect();
+    const w = ex.length ? Math.min(420, b.width - 16) : 210, h = 294;
+    let x = r.right - b.left + 12; if (x + w > b.width - 8) x = r.left - b.left - w - 12; if (x < 8) x = Math.max(8, (b.width - w) / 2);
+    let y = r.top - b.top + r.height / 2 - h / 2; y = Math.max(8, Math.min(b.height - h - 8, y));
+    if (b.width < 720) { x = Math.max(8, (b.width - 210) / 2); y = 8; }
+    p.style.left = x + 'px'; p.style.top = y + 'px'; p.hidden = false;
+  }
+  function hidePeek() { $('#peek').hidden = true; }
+  $('#table').addEventListener('mouseover', e => { const el = e.target.closest('.minion[data-cid], .weapon[data-cid], #hand .card'); if (el && matchMedia('(hover: hover)').matches) peekCard(el.dataset.cid, el); });
+  $('#table').addEventListener('mouseout', e => { if (e.target.closest('.minion[data-cid], .weapon[data-cid], #hand .card')) hidePeek(); });
+  $('#table').addEventListener('touchstart', e => { const el = e.target.closest('[data-cid]'); if (!el) return; pressT = setTimeout(() => peekCard(el.dataset.cid, el), 420); }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(t => $('#table').addEventListener(t, () => { clearTimeout(pressT); setTimeout(hidePeek, 900); }, { passive: true }));
+
+  // ---------- modals: mulligan, discover, game over ----------
+  function showMulligan() {
+    const P = G.p[0];
+    const swap = new Set();
+    const m = $('#modal');
+    const draw = () => {
+      m.innerHTML = `<div><h3>${G.first === 0 ? 'You go first' : 'You go second'}</h3>
+        <p>Tap cards to swap them for new ones.${G.first === 1 ? ' You also get The Coin.' : ''}</p>
+        <div class="row">${P.hand.map((ci, i) => cardHTML(E.card(ci.cid), { cls: swap.has(i) ? 'swap' : '', attrs: `data-mull="${i}"` })).join('')}</div>
+        <button class="big" data-m="keep">${swap.size ? `Swap ${swap.size} and start` : 'Keep hand and start'}</button></div>`;
+    };
+    draw(); m.hidden = false;
+    m.onclick = async e => {
+      const c = e.target.closest('[data-mull]');
+      if (c) { const i = +c.dataset.mull; swap.has(i) ? swap.delete(i) : swap.add(i); draw(); return; }
+      const b = e.target.closest('[data-m]'); if (!b) return;
+      if (b.dataset.m === 'keep') {
+        m.hidden = true; m.onclick = modalClick;
+        E.mulligan(G, 0, [...swap]);
+        G.ev.length = 0; render();
+        if (G.turn === 1) runBot(); else { await banner('Your Turn', 800); render(); }
+      }
+    };
+  }
+  function showDiscover() {
+    const pd = G.pending; const m = $('#modal');
+    m.innerHTML = `<div><h3>Pick a card</h3><p>Choose one of these to add to your hand.</p><div class="row">${pd.opts.map((id, i) => cardHTML(E.card(id), { attrs: `data-disc="${i}"` })).join('')}</div></div>`;
+    m.hidden = false;
+  }
+  async function gameOver() {
+    const w = G.winner;
+    sfx(w === 0 ? 'stinger_win' : 'stinger_lose', .6);
+    await sleep(500);
+    const m = $('#modal');
+    const title = w === 0 ? 'Victory!' : w === 1 ? 'Defeat' : 'Draw';
+    const reward = w === 0 ? 60 : 20;
+    gold += reward; saveOwned();
+    const sub = w === 0 ? `You defeated ${G.p[1].name} on turn ${Math.ceil(G.turnNo / 2)}.` : w === 1 ? `${G.p[1].name} wins this one.` : 'Both heroes fell at once.';
+    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p><p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p><div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
+    m.hidden = false;
+  }
+  function modalClick(e) {
+    const d = e.target.closest('[data-disc]');
+    if (d) { E.chooseDiscover(G, +d.dataset.disc); $('#modal').hidden = true; sfx('relic', .4); render(); return; }
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    const k = b.dataset.m;
+    $('#modal').hidden = true;
+    if (k === 'stay') return;
+    if (k === 'tipson') { tips = true; store.set('ll_tips', true); render(); return; }
+    if (k === 'quit') { G = null; show('menu'); return; }
+    if (k === 'again') { startBattle(lastDecks.myDeck, chosenOpp === 'random' ? CLS[Math.floor(Math.random() * 5)] : lastDecks.oppCls); return; }
+    if (k === 'decks') { G = null; show('play'); return; }
+    if (k === 'menu') { G = null; show('menu'); return; }
+    if (k === 'shop') { G = null; show('shop'); return; }
+  }
+  $('#modal').onclick = modalClick;
+  addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#zoom').hidden) $('#zoom').hidden = true; else if (sel) { sel = null; hint(null); render(); } } });
+
+  // ---------------------------------------------------------------- card shop
+  function packHTML(p) {
+    const cv = E.card(p.cover);
+    const pct = p.odds.map(x => (x < 10 ? x.toFixed(1) : Math.round(x)) + '%');
+    return `<div class="packcard" style="--pc:${p.col}">
+      <div class="pack" aria-hidden="true"><div class="crimp"></div><div class="pt">LABFREAK<br><small>LEGENDS</small></div>
+        <div class="pa" style="${cv ? artCSS(cv.art) : ''}"></div><div class="pn">${esc(p.name.replace(' Pack', ''))}</div><div class="crimp b"></div></div>
+      <div class="pinfo"><b>${esc(p.name)}</b><span>${esc(p.blurb)}</span>
+        <span class="odds">5 cards · at least one Rare<br>Common ${pct[0]} · Rare ${pct[1]} · Epic ${pct[2]} · Legendary ${pct[3]}<br>${p.size.toLocaleString()} different cards inside</span>
+        <button class="big buy" data-buy="${p.id}" ${gold < p.price ? 'disabled' : ''}>${gold < p.price ? `Need ${p.price} gold` : `Buy for ${p.price} gold`}</button></div></div>`;
+  }
+  function renderShop() {
+    $('#packgrid').innerHTML = PACKS.map(packHTML).join('');
+    $('#shopnote').textContent = `You own ${ownedTotal().toLocaleString()} of ${D.cards.reduce((a, c) => a + CAP(c), 0).toLocaleString()} collectible copies. Win battles for 60 gold, lose for 20.`;
+    goldChips();
+  }
+  $('#packgrid').addEventListener('click', e => {
+    const b = e.target.closest('[data-buy]'); if (!b) return;
+    const p = PACKS.find(x => x.id === b.dataset.buy);
+    if (gold < p.price) return;
+    gold -= p.price; saveOwned(); sfx('coin', .5);
+    showOpening(p, openPack(p));
+  });
+  function showOpening(p, got) {
+    const o = $('#packopen');
+    const done = new Set();
+    const draw = () => {
+      o.innerHTML = `<div class="opener"><h3>${esc(p.name)}</h3><p>${done.size < 5 ? 'Tap each card to flip it. The glow shows its rarity.' : 'All revealed!'}</p>
+        <div class="row">${got.map((g, i) => done.has(i) ? `<div class="flip">${cardHTML(E.card(g.id), { cls: 'revealed' })}<div class="tagline ${g.isNew ? 'new' : g.extra ? 'dup' : ''}">${g.isNew ? 'New!' : g.extra ? `Extra copy: +${g.extra} gold` : 'Another copy'}</div></div>`
+          : `<button class="cardback g${g.r}" data-flip="${i}" aria-label="Flip card ${i + 1}"><span>LL</span></button>`).join('')}</div>
+        <div class="row">${done.size < 5 ? '<button class="big alt" data-op="all">Flip all</button>' : `<button class="big" data-op="again" ${gold < p.price ? 'disabled' : ''}>Open another (${p.price} gold)</button><button class="big alt" data-op="close">Done</button>`}</div>
+        <p class="reward">${gold.toLocaleString()} gold</p></div>`;
+    };
+    o.onclick = e => {
+      const f = e.target.closest('[data-flip]');
+      if (f) { const i = +f.dataset.flip; done.add(i); sfx(got[i].r >= 2 ? 'lvl' : 'summon', got[i].r >= 2 ? .6 : .4); if (got[i].r === 3) sfx('ult', .5); draw(); return; }
+      const b = e.target.closest('[data-op]'); if (!b) return;
+      if (b.dataset.op === 'all') { got.forEach((_, i) => done.add(i)); sfx('summon', .4); draw(); }
+      else if (b.dataset.op === 'again') { if (gold < p.price) return; gold -= p.price; saveOwned(); sfx('coin', .5); showOpening(p, openPack(p)); }
+      else { o.hidden = true; renderShop(); }
+    };
+    draw(); o.hidden = false;
+  }
+
+  // ---------------------------------------------------------------- boot
+  $('#b-sound').textContent = 'Sound: ' + (soundOn ? 'on' : 'off');
+  const h = (location.hash || '').replace('#', '');
+  show(['collection', 'play', 'rules', 'shop'].includes(h) ? h : 'menu');
+})();

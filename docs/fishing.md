@@ -3936,6 +3936,10 @@ Changed: the second player starts with 5 cards plus The Coin (first player now w
 Result: with random decks every class wins 49–52%; every starter wins 48–52% overall, worst single starter matchup 43/57. Saves keep working: card ids and art are unchanged, and every player is granted the cards in the new starters. Card stats changed on 380+ cards.
 Caveat: these numbers are bot vs bot. A human Healer or Gambler player may do better than the bot does.
 
+## Labfreak Legends — Rip & Ship pack opening
+The Card Shop opens packs the way Odds & Ends' Rip & Ship does, ported from `workshop/ripship.module.js` (the module itself is untouched). Tear the foil with a drag: where the drag starts picks the cut (top band slices the cap, bottom peels the footer, either edge zips down the side, the middle pinches, anywhere else is a slash that locks to the finger). Only travel along the cut counts. When the foil gives, the pack splits into two clipped halves with a poof and spark burst, the five cards are dealt into a spread, and new or Rare+ cards wait face down with the pulsing gold ring and "?". A tap flips one; "Turn them all over" flips the rest in a stagger. Each flip plays a burst sized to the rarity and a sigil bloom (Rare blue, Epic purple, Legendary gold) with the collect_* sounds. "Skip the tear" is there for anyone who just wants the cards. One change from the original: a slash finishes at 85% of the run to the edge instead of 100%, because a diagonal drag on a phone often stops short of the corner.
+Assets: `legends/tools_gen_packs.py` pulls the foil, sigils and sounds out of the workshop modules. The Odds & Ends pack wears the real foil; the other five keep its crimped ends, recoloured, around a Legends face (cover art medallion, logo, pack name). The shop list shows the same foils. Pull logic, gold and saves are unchanged. Tested headless with all six cut kinds on desktop and a phone-size screen: no script errors, and no card text overflowed in the spread.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

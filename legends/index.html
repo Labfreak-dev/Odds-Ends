@@ -280,6 +280,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .pinfo .odds { color: var(--muted); font-size: 12px; }
 .pinfo .buy { font-size: 17px; padding: 10px 14px; }
 .pinfo .buy:disabled { background: #3d3456; color: #9a8fba; border-color: #4c3a74; box-shadow: none; cursor: default; }
+.reward.gift { font-size: 24px; color: #7dffb5 !important; animation: giftGlow .8s infinite alternate; }
+@keyframes giftGlow { from { text-shadow: 0 0 4px rgba(125,255,181,.4); } to { text-shadow: 0 0 18px rgba(125,255,181,1); transform: scale(1.04); } }
 #packopen { position: fixed; inset: 0; z-index: 90; background: radial-gradient(ellipse at 50% 40%, rgba(255,209,90,.14), transparent 65%), rgba(8,5,14,.97); display: grid; place-items: center; padding: 16px; overflow-y: auto; overflow-x: hidden; }
 #pkFx { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
 .pk-box { position: relative; text-align: center; width: min(400px, 94vw); perspective: 900px; }

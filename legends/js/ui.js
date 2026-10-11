@@ -833,11 +833,9 @@
 
   // ---------------------------------------------------------------- card shop
   function packHTML(p) {
-    const cv = E.card(p.cover);
     const pct = p.odds.map(x => (x < 10 ? x.toFixed(1) : Math.round(x)) + '%');
     return `<div class="packcard" style="--pc:${p.col}">
-      <div class="pack" aria-hidden="true"><div class="crimp"></div><div class="pt">LABFREAK<br><small>LEGENDS</small></div>
-        <div class="pa" style="${cv ? artCSS(cv.art) : ''}"></div><div class="pn">${esc(p.name.replace(' Pack', ''))}</div><div class="crimp b"></div></div>
+      <div class="pack" aria-hidden="true" style="background-image:url(img/pack_${p.id}.webp)"></div>
       <div class="pinfo"><b>${esc(p.name)}</b><span>${esc(p.blurb)}</span>
         <span class="odds">5 cards · at least one Rare<br>Common ${pct[0]} · Rare ${pct[1]} · Epic ${pct[2]} · Legendary ${pct[3]}<br>${p.size.toLocaleString()} different cards inside</span>
         <button class="big buy" data-buy="${p.id}" ${gold < p.price ? 'disabled' : ''}>${gold < p.price ? `Need ${p.price} gold` : `Buy for ${p.price} gold`}</button></div></div>`;
@@ -854,25 +852,279 @@
     gold -= p.price; saveOwned(); sfx('coin', .5);
     showOpening(p, openPack(p));
   });
+  // ---------------------------------------------------------------- pack opening (ported from Odds & Ends' Rip & Ship)
+  // Tear the foil with a finger: where the first drag starts picks the cut
+  // (top band = slice the cap, bottom = peel the footer, either edge = zip
+  // down the side, the middle = pinch it open, anywhere else = a slash that
+  // locks to the finger's direction). Progress only counts travel ALONG the
+  // cut. When the foil gives, the pack splits, the cards are dealt into a
+  // spread, and anything new or Rare+ waits face-down for a tap.
+  const PK_W = 236, PK_H = 378;
+  const PK_HINT = {
+    top: 'Slicing the cap. Keep dragging across.', bottom: 'Peeling the footer. Keep dragging across.',
+    left: 'Zipping the left edge. Drag down the side.', right: 'Zipping the right edge. Drag down the side.',
+    slash: 'Slashing the foil. Drag it through.', pinch: 'Pinching it open. Work the middle.' };
+  const RNAME = ['Common', 'Rare', 'Epic', 'Legendary'], RCOL = ['#c9c2d8', '#4fa3ff', '#c27bff', '#ff9d2e'];
+  const SIGILS = ['', 'blue', 'purple', 'gold'];
+  let PO = null;
+  const pkImg = p => `img/pack_${p.id}.webp`;
+  function pkPt(pk, e) { const r = pk.getBoundingClientRect(); return { x: (e.clientX - r.left) * PK_W / r.width, y: (e.clientY - r.top) * PK_H / r.height }; }
+  function pkPickCut(p) {
+    const fx = p.x / PK_W, fy = p.y / PK_H;
+    if (fy < 0.15) return { kind: 'top', px: 8, py: 32, ux: 1, uy: 0, nx: 0, ny: -1, ang: 0, len: PK_W * 0.94, rate: 220 };
+    if (fy > 0.85) return { kind: 'bottom', px: 8, py: 342, ux: 1, uy: 0, nx: 0, ny: 1, ang: 0, len: PK_W * 0.94, rate: 240 };
+    if (fx < 0.16) return { kind: 'left', px: 12, py: 8, ux: 0, uy: 1, nx: -1, ny: 0, ang: 90, len: PK_H * 0.96, rate: 240 };
+    if (fx > 0.84) return { kind: 'right', px: PK_W - 12, py: 8, ux: 0, uy: 1, nx: 1, ny: 0, ang: 90, len: PK_H * 0.96, rate: 240 };
+    if (fx > 0.32 && fx < 0.68 && fy > 0.36 && fy < 0.66) {
+      const a = (fx - 0.5) * 50 * Math.PI / 180;
+      return { kind: 'pinch', px: PK_W / 2, py: PK_H / 2, ux: Math.cos(a), uy: Math.sin(a), nx: -Math.sin(a), ny: Math.cos(a), ang: a * 180 / Math.PI, len: PK_W * 1.15, rate: 150, free: true };
+    }
+    return { kind: 'slash', px: p.x, py: p.y, ux: 0, uy: 0, nx: 0, ny: 1, ang: null, len: 0, rate: 1e9, sx: 0, sy: 0 };
+  }
+  function pkLockSlash(cut, ux, uy) {
+    cut.ux = ux; cut.uy = uy; cut.nx = -uy; cut.ny = ux;
+    cut.ang = Math.atan2(uy, ux) * 180 / Math.PI;
+    let L = 1e9;
+    if (ux > 0.001) L = Math.min(L, (PK_W - cut.px) / ux);
+    if (ux < -0.001) L = Math.min(L, -cut.px / ux);
+    if (uy > 0.001) L = Math.min(L, (PK_H - cut.py) / uy);
+    if (uy < -0.001) L = Math.min(L, -cut.py / uy);
+    cut.len = Math.max(40, L); cut.rate = Math.max(140, cut.len * 0.85);
+  }
+  function pkTearVars(pk, cut) {
+    pk.style.setProperty('--px', cut.px.toFixed(1) + 'px');
+    pk.style.setProperty('--py', cut.py.toFixed(1) + 'px');
+    pk.style.setProperty('--ang', (cut.ang === null ? 0 : cut.ang).toFixed(1) + 'deg');
+  }
+  function pkBuzz(pat) { try { if (navigator.vibrate) navigator.vibrate(pat); } catch (e) { } }
+  // everything but the cap slice splits the foil into two clipped copies along the cut
+  function pkSplit(pk, cut) {
+    const L = 1200;
+    const poly = s => [[cut.px - cut.ux * L, cut.py - cut.uy * L], [cut.px + cut.ux * L, cut.py + cut.uy * L],
+      [cut.px + cut.ux * L + cut.nx * s * L, cut.py + cut.uy * L + cut.ny * s * L],
+      [cut.px - cut.ux * L + cut.nx * s * L, cut.py - cut.uy * L + cut.ny * s * L]].map(q => q[0].toFixed(0) + 'px ' + q[1].toFixed(0) + 'px').join(',');
+    const nx = cut.nx, ny = cut.ny;
+    const M = { bottom: { a: [0, -8, 0, .9], b: [0, 150, 12, 0] }, left: { a: [10, 0, 0, .9], b: [-110, -30, -28, 0] }, right: { a: [-10, 0, 0, .9], b: [110, -30, 28, 0] },
+      slash: { a: [-nx * 30, -ny * 30, -5, .35], b: [nx * 30, ny * 30, 5, .35] }, pinch: { a: [-nx * 42, -ny * 42, -6, .3], b: [nx * 42, ny * 42, 6, .3] } }[cut.kind];
+    if (!M) return;
+    pk.querySelectorAll('.pk-cap,.pk-body').forEach(el => { el.style.visibility = 'hidden'; });
+    [['a', -1, M.a], ['b', 1, M.b]].forEach(([id, s, t]) => {
+      const h = document.createElement('div');
+      h.className = 'pk-half pk-half-' + id;
+      h.style.backgroundImage = `url(${pkImg(PO.p)})`;
+      h.style.clipPath = 'polygon(' + poly(s) + ')';
+      h.style.setProperty('--tx', t[0].toFixed(1) + 'px'); h.style.setProperty('--ty', t[1].toFixed(1) + 'px');
+      h.style.setProperty('--tr', t[2] + 'deg'); h.style.setProperty('--to', t[3]);
+      pk.appendChild(h);
+    });
+  }
+
+  // the fx layer: sparks, stars, puffs and rings on one canvas over the overlay
+  let fxCv = null, fxG = null, fxP = [], fxRun = false;
+  function fxEnsure() {
+    const ov = $('#packopen'); if (!ov) return null;
+    if (!fxCv || fxCv.parentElement !== ov) { fxCv = document.createElement('canvas'); fxCv.id = 'pkFx'; ov.appendChild(fxCv); fxG = fxCv.getContext('2d'); }
+    const w = ov.clientWidth, h = Math.max(ov.clientHeight, ov.scrollHeight); if (fxCv.width !== w || fxCv.height !== h) { fxCv.width = w; fxCv.height = h; }
+    return fxG;
+  }
+  function fxLoop() {
+    if (!fxRun) return;
+    requestAnimationFrame(fxLoop);
+    const g = fxG; if (!g) return;
+    g.clearRect(0, 0, fxCv.width, fxCv.height);
+    for (let i = fxP.length - 1; i >= 0; i--) {
+      const p = fxP[i];
+      p.life -= 1 / 60;
+      if (p.life <= 0) { fxP.splice(i, 1); continue; }
+      p.x += p.vx / 60; p.y += p.vy / 60;
+      if (p.kind !== 'ring') p.vy += 340 * p.g / 60;
+      const a = Math.min(1, p.life / (p.max * 0.55));
+      if (p.kind === 'spark') { g.globalAlpha = a; g.fillStyle = p.col; g.save(); g.translate(p.x, p.y); g.rotate(p.rot += p.vr / 60); g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.4); g.restore(); }
+      else if (p.kind === 'star') { g.globalAlpha = a; g.fillStyle = p.col; g.font = `${p.s}px system-ui`; g.textAlign = 'center'; g.fillText('✦', p.x, p.y); }
+      else if (p.kind === 'puff') { g.globalAlpha = a * 0.5; g.fillStyle = p.col; g.beginPath(); g.arc(p.x, p.y, p.s * (1.6 - p.life / p.max), 0, 7); g.fill(); }
+      else if (p.kind === 'ring') { g.globalAlpha = a; g.strokeStyle = p.col; g.lineWidth = 4 * a + 1; g.beginPath(); g.arc(p.x, p.y, p.s * (1 - p.life / p.max) * 2.4 + 6, 0, 7); g.stroke(); }
+    }
+    g.globalAlpha = 1;
+    if (!fxP.length) { fxRun = false; g.clearRect(0, 0, fxCv.width, fxCv.height); }
+  }
+  function fx(list) { if (!fxEnsure()) return; fxP.push(...list); if (!fxRun) { fxRun = true; fxLoop(); } }
+  function burst(x, y, col, opts) {
+    const o = Object.assign({ n: 26, sp: 260, kind: 'spark', s: 7, g: 1, life: 0.9 }, opts || {});
+    const out = [];
+    for (let i = 0; i < o.n; i++) {
+      const a = Math.random() * 6.283, v = o.sp * (0.35 + Math.random() * 0.75);
+      out.push({ kind: o.kind, x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - o.sp * 0.25, s: o.s * (0.6 + Math.random() * 0.9), col: Array.isArray(col) ? col[i % col.length] : col,
+        g: o.g, life: o.life * (0.6 + Math.random() * 0.6), max: o.life, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14 });
+    }
+    fx(out);
+  }
+  function poof(x, y, col) {
+    fx([{ kind: 'ring', x, y, s: 60, col, life: 0.55, max: 0.55, vx: 0, vy: 0, g: 0 }]);
+    burst(x, y, ['#e8e2d6', '#cfc6b4', col], { n: 12, sp: 120, kind: 'puff', s: 16, g: -0.12, life: 0.85 });
+  }
+  function ovXY(el, fx_, fy_) { const r = el.getBoundingClientRect(), o = $('#packopen').getBoundingClientRect(); return [r.left - o.left + r.width * fx_, r.top - o.top + $('#packopen').scrollTop + r.height * fy_]; }
+  function burstOn(el, g) {
+    try {
+      const [cx, cy] = ovXY(el, .5, .5), col = RCOL[g.r];
+      if (g.r === 3) { poof(cx, cy, col); burst(cx, cy, [col, '#ffd35c', '#ffffff'], { n: 40, sp: 380, kind: 'star', s: 18, g: 0.35, life: 1.5 }); burst(cx, cy, [col, '#ffd35c'], { n: 24, sp: 280, s: 7, life: 1.2 }); }
+      else if (g.r === 2) { poof(cx, cy, col); burst(cx, cy, [col, '#ffd35c'], { n: 24, sp: 280, kind: 'star', s: 14, g: 0.5, life: 1.1 }); }
+      else if (g.r === 1) burst(cx, cy, [col, '#e8e2d6'], { n: 16, sp: 220, s: 6, life: 0.9 });
+      else burst(cx, cy, [col], { n: 8, sp: 150, s: 4, life: 0.7 });
+      if (g.r >= 1) {
+        const box = $('#packopen .pk-box');
+        if (box) {
+          const im = document.createElement('img');
+          im.className = 'pk-sigil' + (g.r === 3 ? ' big' : ''); im.alt = '';
+          im.src = `img/sigil_${SIGILS[g.r]}${Math.floor(Math.random() * 3)}.webp`;
+          const [sx, sy] = (() => { const r = el.getBoundingClientRect(), b = box.getBoundingClientRect(); return [r.left - b.left + r.width / 2, r.top - b.top + r.height / 2]; })();
+          im.style.left = sx + 'px'; im.style.top = sy + 'px';
+          box.appendChild(im);
+          setTimeout(() => im.remove(), 1600);
+        }
+      }
+    } catch (e) { }
+  }
+  function revealSfx(g) {
+    sfx('pk_r' + g.r, g.r >= 2 ? .6 : .45);
+    if (g.isNew) setTimeout(() => sfx('pk_new', .35), 180);
+  }
+
   function showOpening(p, got) {
+    PO = { p, got, stage: 'rip', tear: 0, cut: null, down: got.map(g => g.isNew || g.r >= 1), dealt: false };
     const o = $('#packopen');
-    const done = new Set();
-    const draw = () => {
-      o.innerHTML = `<div class="opener"><h3>${esc(p.name)}</h3><p>${done.size < 5 ? 'Tap each card to flip it. The glow shows its rarity.' : 'All revealed!'}</p>
-        <div class="row">${got.map((g, i) => done.has(i) ? `<div class="flip">${cardHTML(E.card(g.id), { cls: 'revealed' })}<div class="tagline ${g.isNew ? 'new' : g.extra ? 'dup' : ''}">${g.isNew ? 'New!' : g.extra ? `Extra copy: +${g.extra} gold` : 'Another copy'}</div></div>`
-          : `<button class="cardback g${g.r}" data-flip="${i}" aria-label="Flip card ${i + 1}"><span>LL</span></button>`).join('')}</div>
-        <div class="row">${done.size < 5 ? '<button class="big alt" data-op="all">Flip all</button>' : `<button class="big" data-op="again" ${gold < p.price ? 'disabled' : ''}>Open another (${p.price} gold)</button><button class="big alt" data-op="close">Done</button>`}</div>
+    o.onclick = opClick;
+    o.hidden = false;
+    pkRender();
+  }
+  function pkRender() {
+    const o = $('#packopen'), P = PO; if (!P) return;
+    const keepFx = fxCv && fxCv.parentElement === o ? fxCv : null;
+    if (P.stage === 'rip') {
+      o.innerHTML = `<div class="pk-box"><h3>${esc(P.p.name)}</h3>
+        <div class="pk-pack" id="pkPack" style="--pc:${P.p.col}">
+          <div class="pk-cap" style="background-image:url(${pkImg(P.p)})"></div>
+          <div class="pk-body" style="background-image:url(${pkImg(P.p)})"></div>
+          <div class="pk-tearline"></div>
+        </div>
+        <p class="pk-hint">Tear it open: slice the top, zip an edge, slash across, or pinch the middle.</p>
+        <button class="linkbtn" data-op="skip">Skip the tear</button></div>`;
+      const pk = $('#pkPack');
+      let last = null, cut = P.cut;
+      const tick = e => {
+        if (!PO || PO.stage !== 'rip' || !cut) return;
+        const pt = pkPt(pk, e);
+        if (last) {
+          const dx = pt.x - last.x, dy = pt.y - last.y;
+          let along;
+          if (cut.free) along = Math.hypot(dx, dy);
+          else if (cut.ang === null) {
+            cut.sx += dx; cut.sy += dy;
+            const h = Math.hypot(cut.sx, cut.sy);
+            if (h < 14) { last = pt; return; }
+            pkLockSlash(cut, cut.sx / h, cut.sy / h); pkTearVars(pk, cut);
+            along = h;
+          } else along = Math.abs(dx * cut.ux + dy * cut.uy);
+          const before = P.tear;
+          P.tear = Math.min(1, P.tear + along / cut.rate);
+          if (Math.floor(P.tear * 8) !== Math.floor(before * 8)) pkBuzz(6);
+        }
+        last = pt;
+        pk.style.setProperty('--tn', (P.tear * 100).toFixed(1));
+        pk.style.setProperty('--len', (P.tear * cut.len).toFixed(1) + 'px');
+        if (P.tear >= 1) ripDone();
+      };
+      pk.onpointerdown = e => {
+        if (!PO || PO.stage !== 'rip') return;
+        const pt = pkPt(pk, e);
+        if (!cut) {
+          cut = P.cut = pkPickCut(pt);
+          pk.dataset.tear = cut.kind; pkTearVars(pk, cut);
+          const hint = o.querySelector('.pk-hint'); if (hint) hint.textContent = PK_HINT[cut.kind];
+        }
+        P.tearing = true; last = pt;
+        try { pk.setPointerCapture(e.pointerId); } catch (_) { }
+        if (cut.kind === 'top') P.tear = Math.min(1, P.tear + 0.2);
+        else if (cut.ang !== null && P.tear === 0) P.tear = 0.1;
+        tick(e);
+      };
+      pk.onpointermove = e => { if (PO && PO.tearing) tick(e); };
+      pk.onpointerup = pk.onpointercancel = () => { if (PO) PO.tearing = false; last = null; };
+    } else {
+      const downN = P.down.filter(Boolean).length;
+      const deal = !P.dealt; P.dealt = true;
+      const extra = P.got.reduce((a, g) => a + g.extra, 0);
+      o.innerHTML = `<div class="pk-box wide"><h3>${esc(P.p.name)}</h3>
+        <p class="pk-hint">${downN ? `Tap a card to turn it over. ${downN} still face down.` : extra ? `All revealed. Extra copies paid ${extra} gold.` : 'All revealed!'}</p>
+        <div class="pk-spread${deal ? ' deal' : ''}">${P.got.map((g, i) => {
+          const c = E.card(g.id);
+          if (P.down[i]) return `<div class="pk-sp down" data-i="${i}" style="--d:${i}"><button class="pk-back" data-flip="${i}" aria-label="Turn over card ${i + 1}"><i class="pk-glow"></i><span class="pk-ll">LL</span><span class="pk-q">?</span></button><div class="pk-tag hid">tap to turn</div></div>`;
+          return `<div class="pk-sp${g.r === 3 ? ' leg' : ''}" data-i="${i}" style="--d:${i};--rc:${RCOL[g.r]}">${cardHTML(c)}
+            <div class="pk-tag ${g.isNew ? 'new' : g.extra ? 'dup' : ''}"><span class="rn" style="color:${RCOL[g.r]}">${RNAME[g.r]}</span> ${g.isNew ? 'New!' : g.extra ? `Extra copy +${g.extra} gold` : 'Another copy'}</div></div>`;
+        }).join('')}</div>
+        <div class="row">${downN ? '<button class="big alt" data-op="all">Turn them all over</button>' : `<button class="big" data-op="again" ${gold < P.p.price ? 'disabled' : ''}>Open another (${P.p.price} gold)</button><button class="big alt" data-op="close">Done</button>`}</div>
         <p class="reward">${gold.toLocaleString()} gold</p></div>`;
-    };
-    o.onclick = e => {
-      const f = e.target.closest('[data-flip]');
-      if (f) { const i = +f.dataset.flip; done.add(i); sfx(got[i].r >= 2 ? 'lvl' : 'summon', got[i].r >= 2 ? .6 : .4); if (got[i].r === 3) sfx('ult', .5); draw(); return; }
-      const b = e.target.closest('[data-op]'); if (!b) return;
-      if (b.dataset.op === 'all') { got.forEach((_, i) => done.add(i)); sfx('summon', .4); draw(); }
-      else if (b.dataset.op === 'again') { if (gold < p.price) return; gold -= p.price; saveOwned(); sfx('coin', .5); showOpening(p, openPack(p)); }
-      else { o.hidden = true; renderShop(); }
-    };
-    draw(); o.hidden = false;
+    }
+    if (keepFx) o.appendChild(keepFx);
+  }
+  function ripDone() {
+    const P = PO; if (!P || P.ripping) return;
+    P.ripping = true;
+    const pk = $('#pkPack');
+    sfx('pk_tear', .5);
+    if (pk) {
+      pk.classList.add('sliced');
+      const cut = P.cut;
+      if (cut && cut.kind !== 'top') { try { pkSplit(pk, cut); } catch (e) { } }
+      pkBuzz([18, 24, 42]);
+      try {
+        const side = cut && cut.kind !== 'top';
+        const sx = side ? (cut.px + cut.ux * cut.len * 0.5) / PK_W : 0.5, sy = side ? (cut.py + cut.uy * cut.len * 0.5) / PK_H : 0.09;
+        const [cx, cy] = ovXY(pk, sx, sy);
+        poof(cx, cy, '#ffd35c');
+        burst(cx, cy, ['#ffd35c', '#ff9a5c', '#e8e2d6', `rgb(${P.p.col})`], { n: 34, sp: 330, s: 8, life: 1.1 });
+      } catch (e) { }
+      setTimeout(() => { if (PO !== P) return; P.ripping = false; P.stage = 'spread'; pkRender(); }, 620);
+    } else { P.ripping = false; P.stage = 'spread'; pkRender(); }
+  }
+  function pkReveal(i) {
+    const P = PO; if (!P || !P.down[i] || P.flipping) return;
+    P.flipping = true;
+    sfx('pk_flip', .4);
+    const cell = $(`#packopen .pk-sp[data-i="${i}"]`);
+    if (cell) cell.classList.add('flip');
+    setTimeout(() => {
+      if (PO !== P) return;
+      P.flipping = false; P.down[i] = false;
+      pkRender();
+      const el = $(`#packopen .pk-sp[data-i="${i}"]`);
+      if (el) { el.classList.add('just'); burstOn(el, P.got[i]); }
+      revealSfx(P.got[i]);
+    }, 140);
+  }
+  function pkRevealAll() {
+    const P = PO; if (!P) return;
+    const idx = [];
+    P.down.forEach((d, i) => { if (d) { P.down[i] = false; idx.push(i); } });
+    if (!idx.length) return;
+    sfx('pk_all', .4);
+    pkRender();
+    let top = null;
+    idx.forEach((i, k) => {
+      const g = P.got[i];
+      if (!top || g.r > top.r) top = g;
+      setTimeout(() => { if (PO !== P) return; const el = $(`#packopen .pk-sp[data-i="${i}"]`); if (el) { el.classList.add('just'); burstOn(el, g); } }, 90 * k);
+    });
+    if (top) revealSfx(top);
+  }
+  function opClick(e) {
+    const f = e.target.closest('[data-flip]');
+    if (f) { pkReveal(+f.dataset.flip); return; }
+    const b = e.target.closest('[data-op]'); if (!b || !PO) return;
+    const op = b.dataset.op, p = PO.p;
+    if (op === 'skip') { if (PO.stage === 'rip') { if (!PO.cut) PO.cut = pkPickCut({ x: PK_W / 2, y: 10 }); ripDone(); } }
+    else if (op === 'all') pkRevealAll();
+    else if (op === 'again') { if (gold < p.price) return; gold -= p.price; saveOwned(); sfx('coin', .5); showOpening(p, openPack(p)); }
+    else if (op === 'close') { PO = null; fxP.length = 0; $('#packopen').hidden = true; renderShop(); }
   }
 
   // ---------------------------------------------------------------- boot

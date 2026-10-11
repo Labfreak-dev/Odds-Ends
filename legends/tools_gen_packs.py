@@ -7,7 +7,7 @@ Reads the Rip & Ship foil, sigils and card back out of
 workshop/ripship.module.js and the collect_* sounds out of
 workshop/sfx-pack.module.js, then writes:
 
-  legends/img/pack_<id>.webp   one foil per shop pack (472x756, 2x the 236x378 tear stage)
+  legends/img/pack_<id>.webp   one foil per shop pack, the two expansion packs included (472x756, 2x the 236x378 tear stage)
   legends/img/sigil_<tier><n>.webp   the reveal blooms
   legends/sfx/pk_*.mp3          tear, flip, reveal-all and one sting per rarity
 
@@ -24,6 +24,8 @@ W, H = 472, 756
 FONT = '/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf'
 
 PACKS = [  # id, name on the foil, rgb, cover card id (matches PACKS in js/ui.js)
+    ('ih', 'SIEGE OF IRONHOLD', (225, 95, 70), 'ihn_ashking'),
+    ('dc', 'THE DEEP CATCH', (40, 150, 220), 'dcl_drownedking'),
     ('glim', 'GLIMMERDEEP', (90, 200, 255), 'gd_emdr4'),
     ('dmp', "DEAD MAN'S PULL", (150, 200, 90), 'dmpb_death3'),
     ('th', 'THANKLESS', (240, 190, 90), 'th_kingc'),

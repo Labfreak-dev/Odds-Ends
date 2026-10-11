@@ -152,7 +152,10 @@ def eff_value(e):
     if e["on"] == "combo": v *= 0.7
     return v
 
+# per-class stat budget, set by bot-vs-bot simulation (see docs/fishing.md, Labfreak Legends balance entries)
+CLASS_BONUS = {"healer": 0.3}
 def minion(cid, name, cls, rar, cost, frac, kw=(), fx=(), art=None, bonus=0, **extra):
+    bonus += CLASS_BONUS.get(cls, 0)
     kw = list(dict.fromkeys(kw))
     budget = 2 * cost + 1 + (0.5 if rar >= 2 else 0) + (1 if rar >= 3 else 0) + bonus
     spend = sum(KWV.get(k, 0) for k in kw) + sum(eff_value(e) for e in fx)
@@ -666,8 +669,7 @@ for i in man:
             kw = [["taunt", "divine"], ["charge"], ["windfury", "rush"], ["poisonous", "stealth"], ["reborn"], ["lifesteal", "taunt"]][int(r2 * 6)]
             if rar >= 2: fx = [[E("bc", "dmg", n=3, tg="em_all")], [E("bc", "freeze", tg="em_all")], [E("bc", "draw", n=2)], [E("dr", "summon", id="t_wisp", cnt=3)]][int(h(slug + "f") * 4)]
             frac = 0.55; tr = "Myth"
-        # class balance (simulated): Collector's machines get +0.4 stat budget
-        add(minion(f"oe_{slug}", i["subject"], cls, rar, cost, frac, kw, fx, oe_art(slug), bonus=0.4 if tr == "Mech" else 0, g="Odds & Ends", tr=tr))
+        add(minion(f"oe_{slug}", i["subject"], cls, rar, cost, frac, kw, fx, oe_art(slug), g="Odds & Ends", tr=tr))
 
 # ================================================================== SCIENTIST — Labfreak Series 1 & 2
 s1 = json.load(open("/home/claude/LabfreakPack/labfreak_series_1.json"))["cards"]

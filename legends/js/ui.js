@@ -87,6 +87,7 @@
   new MutationObserver(ms => { for (const m of ms) m.addedNodes.forEach(n => { if (n.nodeType === 1) { if (n.classList.contains('card')) fitQ.add(n); n.querySelectorAll && n.querySelectorAll('.card').forEach(c => fitQ.add(c)); } }); if (fitQ.size) fitAll(document.createElement('div')); })
     .observe(document.body, { childList: true, subtree: true });
   window.LLUI = { fitAll, fitCard, cardHTML: (c, o) => cardHTML(c, o) };
+  const spr = (art, k) => `<i class="spr ${k || 'w'}" style="${artCSS(art)}"></i>`;
   function cardHTML(c, o) {
     o = o || {};
     const cls = c.c || 'neutral';
@@ -96,7 +97,7 @@
     const L = (c.tx || '').length;
     const tf = L <= 45 ? 1 : L <= 75 ? .92 : L <= 105 ? .82 : L <= 135 ? .74 : .68;
     return `<div class="card t-${c.t} r${c.r} ${o.cls || ''}${o.locked ? ' locked' : ''}" style="--cc:${CCOL(cls)};${o.cw ? '--cw:' + o.cw + ';' : ''}${o.style || ''}" ${o.attrs || ''} data-cid="${c.id}">
-      <div class="art" style="${artCSS(c.art)}"></div>
+      <div class="art">${spr(c.art)}</div>
       <div class="cost${cost < c.m ? ' cheap' : ''}">${cost}</div>
       <div class="name" style="${nameSize}">${esc(c.n)}</div>
       <div class="gem r${c.r}"></div>
@@ -206,24 +207,32 @@
 
   // ---------------------------------------------------------------- play screen
   function deckBox(d, on, attrs) {
-    const h = D.heroes[d.cls];
-    return `<button class="deckbox${on ? ' on' : ''}" ${attrs}><div class="p" style="${artCSS(h.art)}"></div>
-      <div class="t"><b>${esc(d.name)}</b><span>${CLSN[d.cls]} · ${CLSG[d.cls]}${d.cards.length !== 30 ? ' · ' + d.cards.length + '/30' : ''}</span></div></button>`;
+    const h = D.heroes[d.cls] || D.heroes.tamer;
+    const sub = d.sub || `${CLSN[d.cls]} · ${CLSG[d.cls]}${d.cards && d.cards.length !== 30 ? ' · ' + d.cards.length + '/30' : ''}`;
+    return `<button class="deckbox${on ? ' on' : ''}" style="--cc:${CCOL(d.cls)}" ${attrs}>
+      <div class="dp">${d.mystery ? '<span class="mystery">?</span>' : spr(h.art)}</div>
+      <div class="dt"><b>${esc(d.name)}</b><span>${esc(sub)}</span></div>${on ? '<span class="tick" aria-hidden="true">✓</span>' : ''}</button>`;
   }
   function renderPlay() {
     const valid = decks.filter(d => E.validateDeck(d.cards, d.cls).length === 0);
     $('#mydecks').innerHTML = valid.length ? valid.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('') :
-      `<p style="color:var(--muted);font-weight:800;margin:0">You haven't built a deck yet. Build one in Collection &amp; Decks, or pick a starter below.</p>`;
+      `<p class="empty" style="grid-column:1/-1">No decks of your own yet. Build one in Collection &amp; Decks, or play a starter below.</p>`;
     $('#starters').innerHTML = STARTERS.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('');
-    const opps = [{ id: 'random', name: 'Random Bot', cls: CLS[Math.floor(Math.random() * 5)] }].concat(CLS.map(c => ({ id: c, name: `${CLSN[c]} Bot`, cls: c })));
-    $('#opps').innerHTML = opps.map(o => deckBox({ name: o.name, cls: o.cls, cards: new Array(30) }, o.id === chosenOpp, `data-opp="${o.id}"`)
-      .replace(`${CLSN[o.cls]} · ${CLSG[o.cls]}`, o.id === 'random' ? 'Random class, random deck' : `${CLSG[o.cls]} · random deck`)).join('');
+    const opps = [{ id: 'random', name: 'Random Bot', cls: 'neutral', mystery: true, sub: 'Any class' }].concat(CLS.map(c => ({ id: c, name: `${CLSN[c]} Bot`, cls: c, sub: CLSG[c] })));
+    $('#opps').innerHTML = opps.map(o => deckBox(o, o.id === chosenOpp, `data-opp="${o.id}"`)).join('');
+    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck) || STARTERS[0];
+    const o = opps.find(x => x.id === chosenOpp) || opps[0];
+    const av = x => x.mystery ? '<span class="mystery">?</span>' : spr(D.heroes[x.cls].art);
+    $('#matchbar').innerHTML = `<div class="side"><span class="av">${av(d)}</span><span class="nm"><small>You</small><b>${esc(d.name)}</b></span></div>
+      <span class="vs">VS</span><div class="side"><span class="av">${av(o)}</span><span class="nm"><small>Opponent</small><b>${esc(o.name)}</b></span></div>
+      <button class="big" id="b-start">Battle</button>`;
   }
   $('#play').addEventListener('click', e => {
     const b = e.target.closest('[data-deck]'); if (b) { chosenDeck = b.dataset.deck; store.set('ll_chosen', chosenDeck); sfx('click', .4); renderPlay(); }
     const o = e.target.closest('[data-opp]'); if (o) { chosenOpp = o.dataset.opp; sfx('click', .4); renderPlay(); }
   });
-  $('#b-start').onclick = () => {
+  $('#matchbar').addEventListener('click', e => { if (e.target.closest('#b-start')) startChosen(); });
+  const startChosen = () => {
     const d = decks.concat(STARTERS).find(x => x.id === chosenDeck) || STARTERS[0];
     const oc = chosenOpp === 'random' ? CLS[Math.floor(Math.random() * 5)] : chosenOpp;
     startBattle(d, oc);
@@ -458,7 +467,7 @@
     if (m.silenced) icons.push('<i title="Abilities removed">∅</i>');
     const sleepy = m.owner === 0 && G.turn === 0 && m.sleeping && !m.kw.has('charge') && !m.kw.has('rush') && !m.kw.has('cantattack');
     return `<div class="${cls}" data-uid="${m.uid}" data-cid="${m.cid}" style="--cc:${CCOL(c.c)}">
-      <div class="port" style="${artCSS(c.art)}"></div>
+      <div class="port">${spr(c.art, 't')}</div>
       <div class="ma${a > c.a ? ' buffed' : ''}">${a}</div><div class="mh${m.h < m.max ? ' hurt' : m.max > c.h ? ' buffed' : ''}">${m.h}</div>
       <div class="icons">${icons.join('')}</div>${sleepy ? '<div class="zz">z<small>z</small></div>' : ''}</div>`;
   }

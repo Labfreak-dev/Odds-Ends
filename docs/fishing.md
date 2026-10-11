@@ -3926,6 +3926,9 @@ Layer order was already cloth over skin, and most kits read as clothed. Cloth 4 
 ## Labfreak Legends — new standalone game in legends/
 A card battler in the style of Hearthstone, built from the repo's own art: every Glimmerdeep species at all four stages plus its bosses, Dead Man's Pull heroes, skins, enemies, bosses, weapons and relics, the Thankless party and the King, the Odds & Ends paintings (no real people or worshipped deities), and the Labfreak Series 1–3 and Multiverse Rip N Ship card sets. 2,318 cards across five classes, one per game. Standalone like the other game folders: `workshop/` and the generated root were not touched. `js/engine.js` is DOM-free and runs bot-vs-bot in Node (3,000 games, no errors or stuck games). Card text is written from each card's effects with plain keyword names (Guard, Haste, Quick, Shield…), and a fit pass shrinks text so none of the 2,318 cards clip at any size. Progress (owned cards, gold, decks) saves in localStorage under `ll_*`. Sprites were keyed with `lootdaggers/pack-art.py`'s `key_out`; `sfx/` copies Glimmerdeep cues. Iron League art and the third-party packs in `shared-assets/` are left out on purpose.
 
+## Labfreak Legends — deck picker and unstretched art
+The deck picker stretched each hero's square portrait across a 200px+ wide tile, and the card frames and battle minions did the same to theirs (an atlas cell drawn with `background-size: 800% 800%` takes the box's shape). Art now sits in a square `.spr` element centred and cropped inside its frame, so nothing is distorted. The picker uses compact square tiles in a centred column, a check mark on the chosen deck and opponent, a "?" tile for Random Bot, and a bottom bar showing the matchup with the Battle button. The "can attack" glow follows the minion's oval instead of a square box.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

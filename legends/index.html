@@ -53,7 +53,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
   box-shadow: 0 0 0 calc(var(--cw)*.012) rgba(0,0,0,.7), 0 calc(var(--cw)*.03) calc(var(--cw)*.08) rgba(0,0,0,.55); }
 .card::before { content: ""; position: absolute; inset: calc(var(--cw) * .035); border-radius: calc(var(--cw) * .05);
   background: linear-gradient(180deg, #221836, #140e22); box-shadow: inset 0 0 0 1px rgba(var(--cc),.6); }
-.card .art { position: absolute; left: 12%; right: 12%; top: 7%; height: 46%; border-radius: 50% / 46%; background-repeat: no-repeat; background-size: 800% 800%;
+.card .art { position: absolute; left: 12%; right: 12%; top: 7%; height: 46%; border-radius: 50% / 46%; overflow: hidden;
   box-shadow: 0 0 0 calc(var(--cw)*.018) rgba(var(--cc),.95), 0 0 0 calc(var(--cw)*.03) rgba(0,0,0,.6); }
 .card.t-s .art { border-radius: calc(var(--cw)*.04); left: 9%; right: 9%; }
 .card.t-w .art { border-radius: 50%; left: 16%; right: 16%; }
@@ -129,14 +129,34 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .kwlist b { color: var(--teal); }
 
 /* ---------- deck picker ---------- */
-#play .body { flex: 1; padding: 18px 16px 30px; display: grid; gap: 18px; align-content: start; }
-.deckgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
-.deckbox { position: relative; height: 120px; border-radius: 14px; overflow: hidden; cursor: pointer; border: 2px solid #4c3a74; background: #22183a; text-align: left; padding: 0; color: var(--text); }
-.deckbox .p { position: absolute; inset: 0; background-repeat: no-repeat; background-size: 800% 800%; opacity: .75; }
-.deckbox .t { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 12px 10px; background: linear-gradient(180deg, transparent, rgba(10,6,18,.95)); }
-.deckbox .t b { display: block; font-family: var(--display); font-size: 19px; }
-.deckbox .t span { font-size: 12px; font-weight: 800; color: var(--muted); }
-.deckbox.on { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255,209,90,.35); }
+/* square sprite inside any box: the atlas cell keeps its proportions and is cropped, never stretched */
+.spr { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); aspect-ratio: 1; background-repeat: no-repeat; background-size: 800% 800%; }
+.spr.w { width: 100%; } .spr.t { height: 100%; }
+#play .body { flex: 1; padding: 20px 16px 24px; }
+#play .inner { max-width: 940px; margin: 0 auto; display: grid; gap: 14px; }
+#play .sect { margin-top: 8px; }
+.deckgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 156px)); gap: 14px; }
+.deckbox { position: relative; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; cursor: pointer; border: 2px solid #3b2b5c; background: #1f1633;
+  text-align: left; padding: 0; color: var(--text); transition: transform .12s, border-color .12s, box-shadow .12s; }
+.deckbox:hover { transform: translateY(-3px); border-color: #6a54a3; }
+.deckbox .dp { position: relative; aspect-ratio: 1; overflow: hidden; background: radial-gradient(circle at 50% 40%, rgba(var(--cc),.45), #140e22 70%); }
+.deckbox .dt { padding: 8px 10px 10px; display: grid; gap: 2px; min-width: 0; }
+.deckbox .dt b { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 1.1; }
+.deckbox .dt span { font-size: 12px; font-weight: 800; color: var(--muted); line-height: 1.25; }
+.deckbox.on { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255,209,90,.3), 0 8px 20px rgba(0,0,0,.4); }
+.deckbox .tick { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: #2a1600; font-weight: 900; font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.deckbox .mystery { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 64px; color: #fff;
+  text-shadow: 0 4px 0 #3a1a50, 0 0 24px rgba(255,123,230,.8); background: conic-gradient(from 200deg, #4fb6ff55, #ff7be655, #ffd15a55, #69f0a055, #4fb6ff55), #1a1129; }
+.empty { color: var(--muted); font-weight: 800; margin: 0; padding: 14px 16px; border: 1.5px dashed #3b2b5c; border-radius: 12px; }
+.matchbar { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, #1c1430, #2a1d46); border-top: 2px solid var(--rail); }
+.matchbar .side { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.matchbar .av { position: relative; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: 0 0 0 2px var(--gold-d); background: #1a1129; }
+.matchbar .av .mystery { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 700; color: #fff; font-size: 22px; background: conic-gradient(from 200deg, #4fb6ff66, #ff7be666, #ffd15a66, #69f0a066, #4fb6ff66); }
+.matchbar .nm { display: grid; line-height: 1.15; min-width: 0; } .matchbar .nm small { color: var(--muted); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.matchbar .nm b { font-family: var(--display); font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30vw; }
+.matchbar .vs { font-family: var(--display); font-weight: 700; color: var(--gold); font-size: 18px; }
+.matchbar .big { font-size: 19px; padding: 10px 26px; }
 .sect { font-family: var(--display); font-weight: 600; color: var(--teal); font-size: 18px; margin: 0; letter-spacing: .03em; }
 
 /* ---------- rules ---------- */
@@ -186,7 +206,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .board.mine { border-top: 2px solid rgba(255,209,90,.18); }
 .board.target-zone { background: rgba(89,255,125,.08); }
 .minion { position: relative; width: var(--mw); height: calc(var(--mw) * 1.22); flex: none; transition: transform .18s; }
-.minion .port { position: absolute; inset: 0; border-radius: 50% / 44%; background-size: 800% 800%; box-shadow: 0 0 0 3px rgba(var(--cc),1), 0 0 0 5px #000, 0 6px 12px rgba(0,0,0,.6); }
+.minion .port { position: absolute; inset: 0; border-radius: 50% / 44%; overflow: hidden; box-shadow: 0 0 0 3px rgba(var(--cc),1), 0 0 0 5px #000, 0 6px 12px rgba(0,0,0,.6); }
 .minion.leg .port { box-shadow: 0 0 0 3px #ffb43c, 0 0 0 5px #000, 0 0 16px #ff9d2e; }
 .minion .ma, .minion .mh { position: absolute; bottom: -6px; width: calc(var(--mw) * .36); aspect-ratio: 1; display: grid; place-items: center; font-family: var(--display); font-weight: 700;
   font-size: calc(var(--mw) * .24); color: #fff; text-shadow: 0 2px 0 #000; }
@@ -194,12 +214,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .minion .mh { right: -6px; background: radial-gradient(circle at 35% 30%, #ff9a9a, #d8283a 60%, #6a0612); border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; }
 .minion .mh.hurt { color: #ffb3b3; } .minion .mh.buffed, .minion .ma.buffed { color: #8dff9e; }
 .minion.taunt::before { content: ""; position: absolute; inset: -9px -7px; border-radius: 46% 46% 40% 40% / 30% 30% 60% 60%; background: linear-gradient(180deg, #c8d2e2, #5d6b82); box-shadow: 0 0 0 2px #000; z-index: -1; }
-.minion.divine .port::after { content: ""; position: absolute; inset: -6px; border-radius: 50% / 44%; box-shadow: 0 0 0 4px rgba(255,236,140,.9), 0 0 22px rgba(255,220,100,.9); background: rgba(255,240,170,.15); }
+.minion.divine::after { content: ""; position: absolute; inset: -6px; pointer-events: none; z-index: 1; border-radius: 50% / 44%; box-shadow: 0 0 0 4px rgba(255,236,140,.9), 0 0 22px rgba(255,220,100,.9); background: rgba(255,240,170,.15); }
 .minion.stealth .port { filter: brightness(.55) contrast(1.2); opacity: .75; }
 .minion .icons { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); display: flex; gap: 2px; }
 .minion .icons i { font-style: normal; font-size: calc(var(--mw) * .16); width: calc(var(--mw) * .22); height: calc(var(--mw) * .22); display: grid; place-items: center; border-radius: 50%; background: rgba(8,5,14,.85); box-shadow: 0 0 0 1px rgba(255,255,255,.3); font-family: var(--display); font-weight: 700; }
 .minion .zz { position: absolute; top: 4%; right: 6%; font-family: var(--display); font-weight: 700; color: #cfe6ff; text-shadow: 0 0 6px #000; font-size: calc(var(--mw) * .22); }
-.minion.can, .hero.can .port { box-shadow: 0 0 0 3px #59ff7d, 0 0 0 5px #000, 0 0 18px #59ff7d; }
+.hero.can .port { box-shadow: 0 0 0 3px #59ff7d, 0 0 0 5px #000, 0 0 18px #59ff7d; }
 .minion.can .port { box-shadow: 0 0 0 3px #59ff7d, 0 0 0 5px #000, 0 0 18px #59ff7d; }
 .minion.picked .port, .hero.picked .port { box-shadow: 0 0 0 4px var(--gold), 0 0 0 6px #000, 0 0 24px var(--gold) !important; }
 .tgt .port { box-shadow: 0 0 0 4px var(--crimson), 0 0 0 6px #000, 0 0 22px var(--crimson) !important; cursor: crosshair; }
@@ -337,15 +357,16 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 </section>
 
 <section id="play" class="screen" hidden>
-  <div class="topbar"><button class="small" data-back>Back</button><h2>Choose a deck</h2><span class="grow"></span><button class="big" id="b-start" style="font-size:18px;padding:10px 18px">Battle</button></div>
-  <div class="body scroll">
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Choose your deck</h2></div>
+  <div class="body scroll"><div class="inner">
     <h3 class="sect">Your decks</h3>
     <div class="deckgrid" id="mydecks"></div>
     <h3 class="sect">Starter decks</h3>
     <div class="deckgrid" id="starters"></div>
     <h3 class="sect">Opponent</h3>
     <div class="deckgrid" id="opps"></div>
-  </div>
+  </div></div>
+  <div class="matchbar" id="matchbar"></div>
 </section>
 
 <section id="collection" class="screen" hidden>

@@ -430,7 +430,7 @@
       <p>Your hand holds 10 cards; a card drawn past that is destroyed. If your deck runs out, every draw hurts your hero instead, 1 damage, then 2, then 3, and so on.</p>
       <h3>Classes</h3><div class="classes">${CLS.map(c => { const h = D.heroes[c]; return `<div class="cls" style="--cc:${CCOL(c)}"><div class="p" style="${artCSS(h.art)}"></div><div><b>${CLSN[c]}</b><span>${esc(CLSG[c])} cards<br>Hero Power, ${esc(h.hp.n)}: ${esc(h.hp.tx)}</span></div></div>`; }).join('')}</div>
       <h3>Decks, packs and gold</h3>
-      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the five starter decks and 300 gold. Win a battle for 60 gold, lose one for 20, and spend gold on packs in the Card Shop. Extra copies you can't use turn into gold automatically.</p>`;
+      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the five starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop. Extra copies you can't use turn into gold automatically.</p>`;
   }
 
   // ================================================================= BATTLE
@@ -809,9 +809,13 @@
     const m = $('#modal');
     const title = w === 0 ? 'Victory!' : w === 1 ? 'Defeat' : 'Draw';
     const reward = w === 0 ? 60 : 20;
-    gold += reward; saveOwned();
+    // launch gift: 100,000 gold the first time a player finishes a match (any result).
+    // Players who had already played before this shipped get it on their next match.
+    const gift = store.get('ll_gift100k', false) ? 0 : 100000;
+    if (gift) store.set('ll_gift100k', true);
+    gold += reward + gift; saveOwned();
     const sub = w === 0 ? `You defeated ${G.p[1].name} on turn ${Math.ceil(G.turnNo / 2)}.` : w === 1 ? `${G.p[1].name} wins this one.` : 'Both heroes fell at once.';
-    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p><p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p><div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
+    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p><div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
     m.hidden = false;
   }
   function modalClick(e) {
@@ -842,7 +846,7 @@
   }
   function renderShop() {
     $('#packgrid').innerHTML = PACKS.map(packHTML).join('');
-    $('#shopnote').textContent = `You own ${ownedTotal().toLocaleString()} of ${D.cards.reduce((a, c) => a + CAP(c), 0).toLocaleString()} collectible copies. Win battles for 60 gold, lose for 20.`;
+    $('#shopnote').textContent = `You own ${ownedTotal().toLocaleString()} of ${D.cards.reduce((a, c) => a + CAP(c), 0).toLocaleString()} collectible copies. Win battles for 60 gold, lose for 20.${store.get('ll_gift100k', false) ? '' : ' Finish your first battle for a 100,000 gold bonus!'}`;
     goldChips();
   }
   $('#packgrid').addEventListener('click', e => {

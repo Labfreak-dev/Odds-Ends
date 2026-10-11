@@ -40,7 +40,7 @@
     G.turn = rnd(G) < 0.5 ? 0 : 1; // who goes first
     const first = G.turn;
     for (let k = 0; k < 3; k++) draw(G, first, true);
-    for (let k = 0; k < 4; k++) draw(G, 1 - first, true);
+    for (let k = 0; k < 5; k++) draw(G, 1 - first, true); // second player: 5 cards + The Coin
     G.first = first;
     return G;
   }

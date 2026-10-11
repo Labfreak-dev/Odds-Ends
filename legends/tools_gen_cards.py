@@ -25,8 +25,8 @@ def title(k):
 CLS = {"tamer": "Tamer", "gambler": "Gambler", "healer": "Healer", "collector": "Collector", "scientist": "Scientist", "neutral": "Neutral"}
 CCOL = {"tamer": (90, 200, 255), "gambler": (150, 200, 90), "healer": (240, 190, 90), "collector": (60, 210, 190),
         "scientist": (255, 110, 225), "neutral": (190, 180, 160)}
-KWV = {"taunt": 0.5, "charge": 2.0, "rush": 1.0, "divine": 1.5, "windfury": 2.0, "stealth": 0.5, "poisonous": 1.5,
-       "lifesteal": 1.0, "reborn": 1.5, "frostbite": 1.0, "enrage": 1.0, "cantattack": -2.5, "misfire": -1.0, "elusive": 1.0}
+KWV = {"taunt": 0.75, "charge": 2.0, "rush": 1.0, "divine": 2.0, "windfury": 1.5, "stealth": 0.5, "poisonous": 1.5,
+       "lifesteal": 1.0, "reborn": 2.0, "frostbite": 1.0, "enrage": 1.0, "cantattack": -2.5, "misfire": -1.0, "elusive": 1.0}
 
 # ------------------------------------------------------------------ effect text (plain English)
 TG = {"any": " to any target", "enemy": " to an enemy", "m": " to a minion", "em": " to an enemy minion", "fm": " to one of your minions",
@@ -139,25 +139,29 @@ def describe(card):
 def eff_value(e):
     op, n = e["op"], e.get("n", 0)
     tg = e.get("tg", "any")
-    mult = {"em_all": 2.2, "am_all": 1.2, "others": 1.0, "enemies": 2.6, "rand_enemy": 0.8, "rand_em": 0.8, "friends": 2.0, "fm_all": 2.0, "adj": 1.6}.get(tg, 1)
+    mult = {"em_all": 2.8, "am_all": 1.2, "others": 1.0, "enemies": 3.2, "rand_enemy": 0.8, "rand_em": 0.8, "friends": 2.0, "fm_all": 2.0, "adj": 1.6}.get(tg, 1)
     v = {"dmg": n * 1.0, "heal": n * 0.35, "buff": (e.get("a", 0) + e.get("h", 0)) * 0.8, "kw": 1.0, "armor": n * 0.5,
          "draw": n * 1.6, "freeze": 0.8, "silence": 1.0, "destroy": 3.5, "mana": n * 1.0, "discover": 1.5, "missiles": n * 0.9,
          "resurrect": n * 2.5, "coin": 0.8, "steal": 1.5, "transform": 2.0, "bounce": 1.2, "gamble": n * 0.8, "curse": n * 0.7,
          "copy": 3.0, "aoe_heal": n * 0.7, "aura_adj": e.get("a", 0) * 1.6, "aura_sd": 1.0}.get(op, 1.0)
     if op == "summon":
-        t = TOKENS[e["id"]]; v = (t["a"] + t["h"]) * 0.8 * e.get("cnt", 1)
+        t = TOKENS[e["id"]]; v = ((t["a"] + t["h"]) * 0.8 + sum(KWV.get(k, 0) for k in t["kw"]) * 0.8) * e.get("cnt", 1)
     v *= mult
     if e["on"] in ("eot", "sot", "fspell", "heal", "edie", "fsum", "atk"): v *= 1.6
     if e["on"] == "dr": v *= 0.8
     if e["on"] == "combo": v *= 0.7
     return v
 
-def minion(cid, name, cls, rar, cost, frac, kw=(), fx=(), art=None, **extra):
+def minion(cid, name, cls, rar, cost, frac, kw=(), fx=(), art=None, bonus=0, **extra):
     kw = list(dict.fromkeys(kw))
-    budget = 2 * cost + 1 + (0.5 if rar >= 2 else 0) + (1 if rar >= 3 else 0)
+    budget = 2 * cost + 1 + (0.5 if rar >= 2 else 0) + (1 if rar >= 3 else 0) + bonus
     spend = sum(KWV.get(k, 0) for k in kw) + sum(eff_value(e) for e in fx)
     if extra.get("sd"): spend += extra["sd"]
     if extra.get("ov"): spend -= extra["ov"] * 1.2
+    # abilities worth more than the card's budget raise its cost instead of hiding behind the 2-stat floor
+    while budget - spend < 2 and cost < 10:
+        cost += 1
+        budget = 2 * cost + 1 + (0.5 if rar >= 2 else 0) + (1 if rar >= 3 else 0) + bonus
     total = max(2, round(budget - spend))
     if cost == 0: total = max(1, total)
     a = int(round(total * frac))
@@ -662,7 +666,8 @@ for i in man:
             kw = [["taunt", "divine"], ["charge"], ["windfury", "rush"], ["poisonous", "stealth"], ["reborn"], ["lifesteal", "taunt"]][int(r2 * 6)]
             if rar >= 2: fx = [[E("bc", "dmg", n=3, tg="em_all")], [E("bc", "freeze", tg="em_all")], [E("bc", "draw", n=2)], [E("dr", "summon", id="t_wisp", cnt=3)]][int(h(slug + "f") * 4)]
             frac = 0.55; tr = "Myth"
-        add(minion(f"oe_{slug}", i["subject"], cls, rar, cost, frac, kw, fx, oe_art(slug), g="Odds & Ends", tr=tr))
+        # class balance (simulated): Collector's machines get +0.4 stat budget
+        add(minion(f"oe_{slug}", i["subject"], cls, rar, cost, frac, kw, fx, oe_art(slug), bonus=0.4 if tr == "Mech" else 0, g="Odds & Ends", tr=tr))
 
 # ================================================================== SCIENTIST — Labfreak Series 1 & 2
 s1 = json.load(open("/home/claude/LabfreakPack/labfreak_series_1.json"))["cards"]
@@ -689,7 +694,7 @@ def sci(c, setn, path, box):
     if c["rarity"] == "Labfreak Prime":
         kw = ["divine", "taunt"]; fx = [E("bc", "transform", tg="others")]
     art = add_art(crop_card(path, box))
-    return minion(f"s{setn}_{c['number']}", c["name"], "scientist", rar, cost, frac, kw, fx, art, sd=sd, g=f"Labfreak Series {setn}",
+    return minion(f"s{setn}_{c['number']}", c["name"], "scientist", rar, cost, frac, kw, fx, art, bonus=-0.25, sd=sd, g=f"Labfreak Series {setn}",
                   tr=c["element"], fl=c.get("flavor"))
 for c in s1:
     add(sci(c, "1", f"/home/claude/LabfreakPack/cards/{c['image']}", (90, 86, 410, 406)))
@@ -699,7 +704,7 @@ for c in s2:
 SCI_SPELLS = [("Shrink Ray", 2, [E("cast", "curse", n=3, tg="m")], "fxa_ring_arcane"), ("Mutagen", 2, [E("cast", "buff", a=3, h=1, tg="fm")], "fx_pool_miasma"),
               ("Tesla Coil", 3, [E("cast", "dmg", n=1, tg="enemies"), E("cast", "dmg", n=1, tg="em_all")], "fxa_ring_shock"),
               ("It's Alive!", 4, [E("cast", "resurrect", n=2)], "fx_sigil_necro"), ("Petri Dish", 1, [E("cast", "summon", id="t_spore", cnt=2)], "fx_pool_acid" if cached("fx", "fx_pool_acid") else "fx_spray_acid"),
-              ("Lab Accident", 5, [E("cast", "transform", tg="am_all")], "fx_explosion"), ("Acid Beam", 4, [E("cast", "dmg", n=6, tg="any")], "fx_beam_acid"),
+              ("Lab Accident", 5, [E("cast", "transform", tg="em_all")], "fx_explosion"), ("Acid Beam", 4, [E("cast", "dmg", n=6, tg="any")], "fx_beam_acid"),
               ("Cryo Chamber", 2, [E("cast", "freeze", tg="any"), E("cast", "draw", n=1)], "fx_beam_frost"),
               ("Arcane Spray", 3, [E("cast", "missiles", n=5)], "fx_spray_arcane"), ("Frost Spray", 3, [E("cast", "dmg", n=2, tg="em_all"), E("cast", "freeze", tg="em_all")], "fx_spray_frost"),
               ("Holy Beam", 2, [E("cast", "dmg", n=3, tg="any"), E("cast", "heal", n=3, tg="fhero")], "fx_beam_holy"),
@@ -749,7 +754,7 @@ HEROES = {
     "gambler": ("The Gambler", REPO + "lootdaggers/art-src/portrait_gambler.webp", "Pull the Lever", "Deal 2 damage to a random enemy.",
                 [E("hp", "dmg", n=2, tg="rand_enemy")], "bg_wall_boss"),
     "healer": ("Wren", REPO + "thankless/art-src/face_wren.webp", "Mend", "Heal any character for 3.", [E("hp", "heal", n=3, tg="any")], "th"),
-    "collector": ("The Collector", REPO + "lootdaggers/art-src/portrait_merchant.webp", "Insurance", "Gain 2 Armor.", [E("hp", "armor", n=2)], "bg_title"),
+    "collector": ("The Collector", REPO + "lootdaggers/art-src/portrait_merchant.webp", "Insurance", "Gain 3 Armor.", [E("hp", "armor", n=3)], "bg_title"),
     "scientist": ("Dr. Labfreak", REPO + "lootdaggers/art-src/portrait_drlabfreak.webp", "Zap", "Deal 1 damage to any target.", [E("hp", "dmg", n=1, tg="any")], "bg_wall_lab"),
 }
 heroes = {}

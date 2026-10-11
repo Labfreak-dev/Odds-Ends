@@ -3929,6 +3929,13 @@ A card battler in the style of Hearthstone, built from the repo's own art: every
 ## Labfreak Legends — deck picker and unstretched art
 The deck picker stretched each hero's square portrait across a 200px+ wide tile, and the card frames and battle minions did the same to theirs (an atlas cell drawn with `background-size: 800% 800%` takes the box's shape). Art now sits in a square `.spr` element centred and cropped inside its frame, so nothing is distorted. The picker uses compact square tiles in a centred column, a check mark on the chosen deck and opponent, a "?" tile for Random Bot, and a bottom bar showing the matchup with the Battle button. The "can attack" glow follows the minion's oval instead of a square box.
 
+## Labfreak Legends — balance pass
+Measured with bot-vs-bot simulation (js/engine.js in Node): 25,000 games across all 25 class pairings with random decks, the five starters against each other, and deck-inclusion win rates per card.
+Found: going first won 60%; the starter decks (thrown together by a seeded random pick) ranged from 17% (Tamer) to 75% (Gambler); Shield was underpriced, so Guard + Shield minions topped every class; cheap Collector machines that leave two Shielded Lucky Chips were 1-mana 1/1s because the stat formula floored at 2 total stats and never counted a token's keywords; Lab Accident transformed your own minions too.
+Changed: the second player starts with 5 cards plus The Coin (first player now wins 54%); Shield, Comes Back and Guard cost more stat budget; Double Strike costs less; "damage ALL enemy minions" costs more; summoned tokens count their keywords; a card whose abilities outweigh its mana now costs more instead of hiding behind the stat floor (156 cards); Lab Accident hits enemy minions only; Collector's Hero Power gives 3 Armor; Collector machines +0.4 stat budget, Scientist minions -0.25. Starter decks are now fixed lists chosen by simulation: each candidate was tested against random decks from every class, then refined head to head.
+Result: with random decks every class wins 49–52%; every starter wins 48–52% overall, worst single starter matchup 43/57. Saves keep working: card ids and art are unchanged, and every player is granted the cards in the new starters. Card stats changed on 380+ cards.
+Caveat: these numbers are bot vs bot. A human Healer or Gambler player may do better than the bot does.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

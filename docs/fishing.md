@@ -3974,6 +3974,11 @@ Every thread leads back to Labfreak's open portal. That is 267 lines of dialogue
 Also: the main menu now fits five buttons. The card fan has a box sized to its cards and the logo sits above it, the page scrolls instead of clipping on short screens, and screens shorter than 700px hide the fan.
 Tested headless at desktop and phone sizes: a chapter's title card, dialogue and Skip work, the boss gets its name, Health and signature cards, a win pays and unlocks the next chapter and plays the outro, finishing the Tamer campaign grants the Glimmerwyrm, beating all six opens the finale, and there were no console errors.
 
+## Labfreak Legends — board rows fit the screen (Hearthstone-style)
+The playtester's phone screenshot showed the whole battlefield shifted, with a dark band down one side, once a row filled up with minions. The cause: a full row was shrunk with `transform: scale()`, which shrinks how it looks but not how much room it takes up. Seven minions still took about 600px of layout on a 412px screen, the page grew wider than the phone, and the browser moved the view to fit it.
+Now each row works out its own minion size (a local `--mw` on `#oboard` and `#mboard`), so up to seven minions always fit the width and everything on a minion scales with it. The battle table is a `minmax(0,1fr)` grid with overflow clipped, so nothing can push the page sideways. Like Hearthstone, both boards now sit against the centre line instead of floating in the middle of their halves. On phones End Turn moved off the board to the right end of your hero row, which shifts left to make room, and the mana display there shrinks to a number plus one crystal.
+Tested with full 7-and-7 boards at 412×915, 360×780 (mobile emulation) and 1280×800: the page is exactly as wide as the screen, End Turn never covers a minion, and the inspect and campaign flows still pass.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

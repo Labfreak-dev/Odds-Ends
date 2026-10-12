@@ -475,6 +475,7 @@
     // phones get bigger minions: a board of 5 fills the width, a fuller board shrinks to fit (render() sets --k)
     const mw = W < 720 ? Math.max(56, Math.min((W - 8) / 5, H / 8.4, 112)) : Math.max(52, Math.min((W - 24) / 6.4, H / 7.9, 112));
     $('#table').style.setProperty('--mw', mw + 'px');
+    $('#battle').style.setProperty('--mw', mw + 'px');
   }
   addEventListener('resize', () => { if (current === 'battle') { sizeTable(); render(); } });
 
@@ -526,10 +527,15 @@
     const extra = u => (atkSet.has(u.uid) ? ' can' : '') + (tgtSet.has(u.uid) ? ' tgt' : '') + (friendTgt.has(u.uid) ? ' friendly' : '') + (sel && sel.uid === u.uid ? ' picked' : '');
     $('#oboard').innerHTML = op.board.map(m => minionHTML(m, { extra: extra(m) })).join('');
     $('#mboard').innerHTML = me.board.map(m => minionHTML(m, { extra: extra(m) })).join('');
+    // Hearthstone-style rows: up to 7 minions always fit the width. Each row shrinks its own minion size
+    // (a local --mw) instead of overflowing, so the table never gets wider than the screen and never shifts.
     const mwPx = parseFloat(getComputedStyle($('#table')).getPropertyValue('--mw')) || 86;
+    const tw = $('#table').clientWidth || innerWidth;
     [['#oboard', op.board.length], ['#mboard', me.board.length]].forEach(([q, n]) => {
-      const need = n * mwPx * 1.12 + 40, avail = innerWidth - 16;
-      $(q).style.setProperty('--k', need > avail ? (avail / need).toFixed(3) : 1);
+      const el = $(q), avail = tw - 16, gap = 0.1;
+      const fit = n ? Math.min(mwPx, avail / (n + (n - 1) * gap + 0.25)) : mwPx;
+      el.style.setProperty('--mw', fit.toFixed(1) + 'px');
+      el.style.minHeight = (mwPx * 1.3).toFixed(0) + 'px';
     });
     [me.hero, op.hero].forEach(h => { const el = document.querySelector(`.hero[data-uid="${h.uid}"]`); if (el) el.className += extra(h); });
     // hand fan

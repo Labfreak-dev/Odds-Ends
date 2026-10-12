@@ -187,7 +187,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 /* ---------- battle ---------- */
 #battle { background: #0b0812; }
 #battle .bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(.5) saturate(1.1); }
-#battle .table { position: absolute; inset: 0; display: grid; grid-template-rows: auto auto 1fr 1fr auto auto; --mw: 86px; padding-top: env(safe-area-inset-top, 0px); }
+#battle .table { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr 1fr auto auto; --mw: 86px; padding-top: env(safe-area-inset-top, 0px); }
 .hrow { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 6px 12px; position: relative; z-index: 2; }
 .hero { position: relative; width: calc(var(--mw) * 1.15); height: calc(var(--mw) * 1.15); flex: none; }
 .hero .port { position: absolute; inset: 0; border-radius: 50% 50% 46% 46%; background-size: 800% 800%; box-shadow: 0 0 0 4px var(--gold-d), 0 0 0 6px #000, 0 6px 16px rgba(0,0,0,.6); }
@@ -217,7 +217,12 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .secret { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle, #ff7be6, #7a1f6a); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 14px; color: #fff; box-shadow: 0 0 10px #ff7be6; }
 .ohand { display: flex; justify-content: center; height: calc(var(--mw) * .5); overflow: visible; }
 .ohand .cb { width: calc(var(--mw) * .42); height: calc(var(--mw) * .58); margin: 0 calc(var(--mw) * -.08); border-radius: 6px; background: linear-gradient(135deg, #4b2a7a, #251540); box-shadow: 0 0 0 2px var(--gold-d), 0 2px 6px rgba(0,0,0,.6); transform: translateY(-40%); }
-.board { display: flex; justify-content: center; align-items: center; gap: calc(var(--mw) * .1); padding: 4px 8px; position: relative; z-index: 2; min-height: calc(var(--mw) * 1.3); transform: scale(var(--k, 1)); transform-origin: 50% 50%; }
+.board { display: flex; justify-content: center; align-items: center; gap: calc(var(--mw) * .1); padding: 4px 8px; position: relative; z-index: 2; min-height: calc(var(--mw) * 1.3); min-width: 0; max-width: 100%; }
+#battle, #battle .table { overflow: hidden; max-width: 100vw; }
+/* like Hearthstone, both boards hug the centre line instead of floating in the middle of their halves */
+#oboard { align-self: end; margin-bottom: calc(var(--mw) * .12); }
+#mboard { align-self: start; margin-top: calc(var(--mw) * .12); }
+html { overflow-x: hidden; }
 .board.mine { border-top: 2px solid rgba(255,209,90,.18); }
 .board.target-zone { background: rgba(89,255,125,.08); }
 .minion { position: relative; width: var(--mw); height: calc(var(--mw) * 1.22); flex: none; transition: transform .18s; }
@@ -517,6 +522,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
   #grid .card { --cw: 106px; }
   .ctl { right: 6px; } .tl { left: 6px; }
   #endturn { min-width: 104px; min-height: 48px; font-size: 17px; padding: 12px 12px; }
+  /* End Turn sits at the right end of your hero row, never over the board; your hero row moves left to make room */
+  .ctl { top: auto; transform: none; right: 8px; bottom: calc(var(--mw) * 1.45 + var(--mw) * .3); }
+  #mhero { justify-content: flex-start; padding-left: 10px; }
+  .manabar .crys { display: none; } .manabar .crys:first-of-type { display: inline-block; background: radial-gradient(circle at 40% 30%, #bfe8ff, #2a8ff0 60%, #0f3f86); }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>

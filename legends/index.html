@@ -110,6 +110,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 #collection .body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
 #collection .body.nodeck { grid-template-columns: minmax(0,1fr); }
 #collection .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--rail); align-items: center; }
+#collection .filters .frow, #collection .filters .fmana, #collection .filters .fmore, #collection .filters .fcls, #collection .filters .fsel { display: contents; }
+#collection .filters .ftoggle { display: none; }
 .chip { font-family: var(--body); font-weight: 800; font-size: 13px; padding: 6px 12px; border-radius: 99px; border: 1.5px solid #4c3a74; background: #22183a; color: var(--muted); }
 .chip.on { background: var(--gold); color: #2a1600; border-color: var(--gold); }
 .chip.mana { width: 34px; padding: 6px 0; text-align: center; }
@@ -517,7 +519,33 @@ html { overflow-x: hidden; }
   #packgrid { grid-template-columns: minmax(0,1fr); }
   .peekwrap { flex-direction: column; } .peekwrap .kwlist { width: 210px; }
   #collection .body { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr) auto; }
-  #deckpanel { border-left: 0; border-top: 2px solid var(--rail); max-height: 42vh; }
+  #deckpanel { border-left: 0; border-top: 2px solid var(--rail); max-height: 40vh; }
+  /* phones: the card grid gets the screen. Filters fold into a panel behind one button; the mana row scrolls sideways */
+  #collection .topbar { flex-wrap: nowrap; gap: 8px; padding-inline: 10px; }
+  #collection .topbar h2 { font-size: 20px; }
+  #collection .topbar #collsub, #collection .topbar .goldchip { display: none; }
+  #collection .topbar #deckpick { max-width: 112px; padding-inline: 8px; font-size: 13px; }
+  #collection .topbar h2 { font-size: 19px; white-space: nowrap; }
+  #collection .topbar .small { white-space: nowrap; padding-inline: 10px; font-size: 14px; }
+  #deckpanel .head { padding: 8px 10px; gap: 4px; }
+  #deckpanel .deckfoot { padding: 8px 10px; }
+  #deckpanel .deckfoot .errs { font-size: 12px; }
+  #deckpanel .deckfoot .small { padding: 7px 10px; font-size: 13px; }
+  #collection .filters { display: grid; gap: 8px; padding: 8px 10px; }
+  #collection .filters .frow { display: flex; gap: 8px; }
+  #collection .filters .ftoggle { display: inline-block; white-space: nowrap; }
+  #collection .filters .fmana { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  #collection .filters .fmana .chip { flex: none; width: 40px; }
+  #collection .filters .fmore { display: grid; gap: 8px; }
+  #collection .filters:not(.open) .fmore { display: none; }
+  #collection .filters .fcls { display: flex; flex-wrap: wrap; gap: 6px; }
+  #collection .filters .fsel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #collection .filters .fsel select { width: 100%; }
+  /* while building a deck, the list folds to a bar: tap it to open */
+  #deckpanel.mini .curve, #deckpanel.mini #decklist { display: none; }
+  #deckpanel .head { cursor: pointer; }
+  #deckpanel .head #deckcls::after { content: " \25B4"; }
+  #deckpanel.mini .head #deckcls::after { content: " \25BE  tap to see the list"; }
   #grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 18px 10px; }
   #grid .card { --cw: 106px; }
   .ctl { right: 6px; } .tl { left: 6px; }

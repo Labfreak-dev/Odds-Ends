@@ -149,6 +149,7 @@
     if (id === 'play') renderPlay();
     if (id === 'rules') renderRules();
     if (id === 'shop') renderShop();
+    if (id === 'campaign') renderCampaign();
     goldChips();
   }
   $$('[data-back]').forEach(b => b.addEventListener('click', () => { sfx('click', .4); show('menu'); }));
@@ -453,14 +454,15 @@
 
   // ================================================================= BATTLE
   let G = null, sel = null, busy = false, lastDecks = null, popUids = new Set();
-  function startBattle(myDeck, oppCls) {
-    const oppDeck = E.randomDeck(null, oppCls, Math.random);
-    lastDecks = { myDeck, oppCls };
+  function startBattle(myDeck, oppCls, cmp) {
+    const oppDeck = cmp ? cmp.deck : E.randomDeck(null, oppCls, Math.random);
+    lastDecks = { myDeck, oppCls, cmp };
     G = E.newGame({ decks: [myDeck.cards, oppDeck], classes: [myDeck.cls, oppCls], seed: (Math.random() * 1e9) | 0,
-      names: ['You', D.heroes[oppCls].n] });
+      names: ['You', cmp ? cmp.name : D.heroes[oppCls].n], heroes: cmp ? [null, { n: cmp.name, art: cmp.art }] : null, hp: cmp ? [30, cmp.hp] : null });
     G.p[1].isBot = true;
+    if (cmp) G.camp = { k: cmp.k, i: cmp.i };
     sel = null; busy = false;
-    const bgk = D.heroes[myDeck.cls].bg;
+    const bgk = cmp && D.boards[cmp.bg] ? cmp.bg : D.heroes[myDeck.cls].bg;
     const bgs = Object.keys(D.boards);
     $('#battlebg').style.backgroundImage = `url(${D.boards[bgk] || D.boards[bgs[Math.floor(Math.random() * bgs.length)]]})`;
     show('battle'); playMusic('fight'); sfx('fightstart', .5);
@@ -920,6 +922,16 @@
     if (gift) store.set('ll_gift100k', true);
     gold += reward + gift; saveOwned();
     const sub = w === 0 ? `You defeated ${G.p[1].name} on turn ${Math.ceil(G.turnNo / 2)}.` : w === 1 ? `${G.p[1].name} wins this one.` : 'Both heroes fell at once.';
+    if (G.camp) {
+      const r = campEnd(w === 0);
+      saveOwned();
+      m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}
+        ${r.lines.map(l => `<p class="reward">${esc(l)}</p>`).join('')}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>
+        <div class="row">${w === 0 ? '<button class="big" data-m="cnext">Continue the story</button>' : '<button class="big" data-m="cretry">Try again</button>'}
+        <button class="big alt" data-m="cback">Back to the campaign</button></div></div>`;
+      m.hidden = false;
+      return;
+    }
     m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p><div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
     m.hidden = false;
   }
@@ -944,6 +956,9 @@
     if (k === 'decks') { G = null; show('play'); return; }
     if (k === 'menu') { G = null; show('menu'); return; }
     if (k === 'shop') { G = null; show('shop'); return; }
+    if (k === 'cretry') { const c = G.camp; G = null; startCampBattle(c.k, c.i, lastDecks.myDeck); return; }
+    if (k === 'cback') { campView = G.camp.k; G = null; show('campaign'); return; }
+    if (k === 'cnext') { const c = G.camp; G = null; const ch = storyOf(c.k).chapters[c.i]; campView = c.k; playScene(ch, c.i, 'outro').then(() => show('campaign')); return; }
   }
   $('#modal').onclick = modalClick;
   addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#inspect').hidden) closeInspect(); else if (!$('#zoom').hidden) $('#zoom').hidden = true; else if (sel) { sel = null; hint(null); render(); } } });
@@ -1244,8 +1259,176 @@
     else if (op === 'close') { PO = null; fxP.length = 0; $('#packopen').hidden = true; renderShop(); }
   }
 
+  // ================================================================= CAMPAIGN
+  // Story mode: one campaign per class (js/campaign.js), four chapters each, plus a finale once all six are beaten.
+  // Progress is ll_camp: { <class>: chapters cleared, finale: 0|1 }.
+  const CAMP = window.LL_CAMPAIGN || { order: [], stories: {} };
+  let camp = store.get('ll_camp', {});
+  const saveCamp = () => store.set('ll_camp', camp);
+  const CH_GOLD = [100, 150, 200, 300];
+  let campView = null; // null = list of campaigns, else a story key
+  const storyOf = k => k === 'finale' ? CAMP.finale : CAMP.stories[k];
+  const allSix = () => CAMP.order.every(k => (camp[k] || 0) >= CAMP.stories[k].chapters.length);
+
+  // a speaker spec -> { name, art, cls }
+  function who(spec) {
+    if (!spec || spec === 'n') return null;
+    const [base, rename] = spec.split('=');
+    const [k, id] = base.split(':');
+    if (k === 'h') { const h = D.heroes[id]; return h && { name: rename || h.n, art: h.art, cls: id }; }
+    const c = k === 't' ? D.tokens[id] : E.card(id);
+    return c && { name: rename || c.n, art: c.art, cls: c.c || 'neutral' };
+  }
+  const portrait = (w, big) => w ? `<div class="cport${big ? ' lg' : ''}" style="${artCSS(w.art)};--cc:${CCOL(w.cls)}"></div>` : '';
+
+  function renderCampaign() {
+    const box = $('#campbody');
+    if (!campView) {
+      const tiles = CAMP.order.map(k => {
+        const s = CAMP.stories[k], n = s.chapters.length, done = Math.min(n, camp[k] || 0), w = who(s.hero), rc = E.card(s.reward.card);
+        return `<button class="ctile${done >= n ? ' done' : ''}" data-story="${k}" style="--cc:${CCOL(k)}">
+          ${portrait(w, true)}<div class="ct"><small>${esc(CLSN[k])} · ${esc(CLSG[k])}</small><b>${esc(s.title)}</b><span>${esc(s.blurb)}</span>
+          <span class="pips">${s.chapters.map((_, i) => `<i class="${i < done ? 'on' : ''}"></i>`).join('')}<em>${done >= n ? 'Complete' : `${done} of ${n}`}</em></span>
+          <span class="rw">Reward: ${rc ? esc(rc.n) : ''} + ${s.reward.gold} gold</span></div></button>`;
+      }).join('');
+      const f = CAMP.finale, open = allSix(), fdone = (camp.finale || 0) >= 1;
+      const ftile = f ? `<button class="ctile finale${open ? '' : ' locked'}${fdone ? ' done' : ''}" data-story="finale" ${open ? '' : 'aria-disabled="true"'} style="--cc:255,215,90">
+        ${portrait(who(f.chapters[0].foe.who), true)}<div class="ct"><small>Finale</small><b>${esc(f.title)}</b>
+        <span>${open ? esc(f.blurb) : 'Beat all six campaigns to open the finale.'}</span>
+        <span class="rw">${fdone ? 'Complete' : `Reward: ${esc(E.card(f.reward.card).n)} + ${f.reward.gold} gold`}</span></div></button>` : '';
+      box.innerHTML = `<p class="campintro">Every class has its own story: four battles, cutscenes before and after each, and a boss with more Health at the end. You play your own decks of that class.</p><div class="cgrid">${tiles}${ftile}</div>`;
+      return;
+    }
+    const s = storyOf(campView), k = campView, done = camp[k] || 0;
+    box.innerHTML = `<div class="chead" style="--cc:${CCOL(k === 'finale' ? 'neutral' : k)}">${portrait(who(s.hero), true)}<div><h3>${esc(s.title)}</h3><p>${esc(s.blurb)}</p>
+        <button class="small" data-campback>All campaigns</button></div></div>
+      <div class="clist">${s.chapters.map((ch, i) => {
+        const fw = who(ch.foe.who), state = i < done ? 'won' : i === done ? 'next' : 'locked';
+        return `<div class="chap ${state}${ch.boss ? ' boss' : ''}">${portrait(fw)}
+          <div class="cinfo"><small>Chapter ${i + 1}${ch.boss ? ' · Boss' : ''}</small><b>${esc(ch.title)}</b>
+          <span>vs ${esc(fw.name)} · ${ch.foe.hp} Health${state === 'won' ? ' · Won' : ''}</span></div>
+          <div class="cbtns">${state === 'locked' ? '<span class="lock">Locked</span>' :
+            `<button class="big${state === 'won' ? ' alt' : ''}" data-chap="${i}">${state === 'won' ? 'Replay' : 'Play'}</button>`}
+            ${state === 'won' ? `<button class="small" data-watch="${i}">Watch scenes</button>` : ''}</div></div>`;
+      }).join('')}</div>`;
+  }
+  $('#campbody').addEventListener('click', e => {
+    const st = e.target.closest('[data-story]');
+    if (st) { if (st.getAttribute('aria-disabled')) return; campView = st.dataset.story; sfx('click', .4); renderCampaign(); $('#campaign .body').scrollTop = 0; return; }
+    if (e.target.closest('[data-campback]')) { campView = null; renderCampaign(); return; }
+    const w = e.target.closest('[data-watch]');
+    if (w) { const ch = storyOf(campView).chapters[+w.dataset.watch]; playScene(ch, +w.dataset.watch, 'intro').then(() => playScene(ch, +w.dataset.watch, 'outro', true)); return; }
+    const c = e.target.closest('[data-chap]');
+    if (c) pickCampDeck(campView, +c.dataset.chap);
+  });
+  $('#b-camp').onclick = () => { sfx('click', .4); campView = null; show('campaign'); };
+
+  // choose which of your decks to bring (only asks when there is more than one)
+  function pickCampDeck(k, i) {
+    const ch = storyOf(k).chapters[i];
+    const okDeck = d => E.validateDeck(d.cards, d.cls).length === 0 && (ch.anyDeck || d.cls === k);
+    const list = decks.filter(okDeck).concat(STARTERS.filter(okDeck));
+    const go = d => playScene(ch, i, 'intro').then(() => startCampBattle(k, i, d));
+    if (list.length <= 1) { go(list[0] || STARTERS.find(d => d.cls === k) || STARTERS[0]); return; }
+    const m = $('#campdeck');
+    m.innerHTML = `<div class="cdbox"><h3>Bring which deck?</h3><p>${ch.anyDeck ? 'Any of your decks can fight the finale.' : `Your ${esc(CLSN[k])} decks.`}</p>
+      <div class="deckgrid">${list.map(d => deckBox(d, d.id === chosenDeck, `data-cdeck="${d.id}"`)).join('')}</div>
+      <p><button class="small" data-cdx>Cancel</button></p></div>`;
+    m.hidden = false;
+    m.onclick = e => {
+      const b = e.target.closest('[data-cdeck]');
+      if (b) { m.hidden = true; go(list.find(d => d.id === b.dataset.cdeck)); return; }
+      if (e.target.closest('[data-cdx]') || e.target === m) m.hidden = true;
+    };
+  }
+
+  // the boss: a random deck of its class with its signature cards shuffled in
+  function bossDeck(foe) {
+    const d = E.randomDeck(null, foe.cls, Math.random);
+    const sig = (foe.sig || []).filter(id => E.card(id));
+    const keep = d.filter(id => !sig.includes(id));
+    const cut = Math.max(0, keep.length + sig.length - 30);
+    for (let k = 0; k < cut; k++) keep.splice(Math.floor(Math.random() * keep.length), 1);
+    return keep.concat(sig).slice(0, 30);
+  }
+  function startCampBattle(k, i, myDeck) {
+    const ch = storyOf(k).chapters[i], fw = who(ch.foe.who);
+    startBattle(myDeck, ch.foe.cls, { k, i, deck: bossDeck(ch.foe), name: fw.name, art: fw.art, hp: ch.foe.hp, bg: ch.bg });
+  }
+  // after a campaign battle: rewards on a first win, then the outro
+  function campEnd(won) {
+    const c = G.camp, s = storyOf(c.k), ch = s.chapters[c.i];
+    const first = won && (camp[c.k] || 0) === c.i;
+    let lines = [];
+    if (first) {
+      camp[c.k] = c.i + 1; saveCamp();
+      const g = c.k === 'finale' ? 0 : CH_GOLD[Math.min(c.i, CH_GOLD.length - 1)];
+      gold += g; if (g) lines.push(`Chapter cleared: +${g} gold`);
+      if (camp[c.k] >= s.chapters.length) {
+        const rc = E.card(s.reward.card);
+        gold += s.reward.gold;
+        if (rc) { owned[rc.id] = Math.max(owned[rc.id] || 0, 1); }
+        lines.push(`Campaign complete: ${rc ? rc.n + ' added to your collection, ' : ''}+${s.reward.gold} gold`);
+        if (c.k !== 'finale' && allSix() && !(camp.finale >= 1)) lines.push('All six campaigns beaten: the Finale is open!');
+      }
+      saveOwned();
+    }
+    return { first, lines, ch };
+  }
+
+  // ---------- cutscenes ----------
+  function playScene(ch, idx, part, skipTitle) {
+    return new Promise(resolve => {
+      const lines = (ch[part] || []).slice();
+      if (!lines.length) { resolve(); return; }
+      const cs = $('#cutscene');
+      const bg = D.boards[ch.bg] || D.boards.bg_core;
+      cs.innerHTML = `<div class="cs-bg" style="background-image:url(${bg})"></div><div class="cs-shade"></div>
+        <div class="cs-stage"><div class="cs-p l"></div><div class="cs-p r"></div></div>
+        <div class="cs-box"><div class="cs-name"></div><div class="cs-text"></div><div class="cs-next" aria-hidden="true">▼</div></div>
+        <button class="small cs-skip">Skip</button><div class="cs-flash"></div>
+        ${skipTitle ? '' : `<div class="cs-title"><small>${part === 'intro' ? `Chapter ${idx + 1}` : 'Afterward'}</small><b>${esc(ch.title)}</b></div>`}`;
+      cs.hidden = false; cs.classList.remove('out');
+      playMusic('title');
+      let n = -1, typing = null, full = '', done = false;
+      const side = { l: null, r: null };
+      const finish = () => {
+        if (done) return; done = true; clearInterval(typing);
+        cs.classList.add('out'); document.removeEventListener('keydown', key);
+        setTimeout(() => { cs.hidden = true; resolve(); }, 260);
+      };
+      const next = () => {
+        if (typing) { clearInterval(typing); typing = null; $('#cutscene .cs-text').textContent = full; return; }
+        n++;
+        if (n >= lines.length) { finish(); return; }
+        const [sd, spec, text, fx] = lines[n];
+        const w = who(spec), name = $('#cutscene .cs-name'), tx = $('#cutscene .cs-text'), box = $('#cutscene .cs-box');
+        $$('#cutscene .cs-p').forEach(p => p.classList.remove('on'));
+        if (w) {
+          const p = $(`#cutscene .cs-p.${sd}`);
+          if (side[sd] !== spec) { side[sd] = spec; p.innerHTML = portrait(w, true); p.classList.remove('in'); void p.offsetWidth; p.classList.add('in'); }
+          p.classList.add('on');
+          if (fx === 'pop') { p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop'); }
+          name.textContent = w.name; name.hidden = false; name.style.setProperty('--cc', CCOL(w.cls));
+          box.classList.toggle('right', sd === 'r'); box.classList.remove('narr');
+        } else { name.hidden = true; box.classList.add('narr'); box.classList.remove('right'); }
+        if (fx === 'shake') { cs.classList.remove('shake'); void cs.offsetWidth; cs.classList.add('shake'); sfx('crit', .35); }
+        if (fx === 'flash') { const f = $('#cutscene .cs-flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); sfx('relic', .45); }
+        full = text; tx.textContent = '';
+        let k = 0;
+        typing = setInterval(() => { k += 2; tx.textContent = full.slice(0, k); if (k >= full.length) { clearInterval(typing); typing = null; } }, 24);
+      };
+      const key = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); next(); } else if (e.key === 'Escape') finish(); };
+      document.addEventListener('keydown', key);
+      cs.onclick = e => { if (e.target.closest('.cs-skip')) { finish(); return; } const t = $('#cutscene .cs-title'); if (t && !t.classList.contains('gone')) { t.classList.add('gone'); next(); return; } next(); };
+      const t = $('#cutscene .cs-title');
+      if (t) { sfx('fightstart', .3); setTimeout(() => { if (!t.classList.contains('gone') && !done && n < 0) { t.classList.add('gone'); next(); } }, 1800); }
+      else next();
+    });
+  }
+
   // ---------------------------------------------------------------- boot
   $('#b-sound').textContent = 'Sound: ' + (soundOn ? 'on' : 'off');
   const h = (location.hash || '').replace('#', '');
-  show(['collection', 'play', 'rules', 'shop'].includes(h) ? h : 'menu');
+  show(['collection', 'play', 'rules', 'shop', 'campaign'].includes(h) ? h : 'menu');
 })();

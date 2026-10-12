@@ -33,9 +33,11 @@
     const G = { seed: (opts.seed >>> 0) || 1, uid: 1, turn: 0, turnNo: 0, phase: 'mulligan', winner: null, log: [], ev: [],
       played: 0, pending: null, p: [] };
     for (let i = 0; i < 2; i++) {
-      const hd = DB.heroes[opts.classes[i]];
+      // campaign bosses: opts.heroes[i] overrides the hero's name/art, opts.hp[i] its starting Health
+      const hd = Object.assign({}, DB.heroes[opts.classes[i]], (opts.heroes && opts.heroes[i]) || {});
+      const hp0 = (opts.hp && opts.hp[i]) || START_HP;
       const P = { i, cls: opts.classes[i], name: (opts.names && opts.names[i]) || hd.n, heroData: hd,
-        hero: { uid: G.uid++, kind: 'hero', owner: i, hp: START_HP, max: START_HP, armor: 0, attacks: 0, frozen: false, frozenAt: -1 },
+        hero: { uid: G.uid++, kind: 'hero', owner: i, hp: hp0, max: hp0, armor: 0, attacks: 0, frozen: false, frozenAt: -1 },
         mana: 0, maxMana: 0, ovNext: 0, ovLocked: 0, hpUsed: false, deck: shuffle(G, opts.decks[i].slice()), hand: [], board: [],
         secrets: [], weapon: null, fatigue: 0, dead: [], mull: true };
       G.p.push(P);

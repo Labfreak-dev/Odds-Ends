@@ -20,7 +20,8 @@ the scripts, so use a local server: `python3 -m http.server`, then visit http://
 |---|---|
 | `index.html` | Page shell and all CSS |
 | `js/engine.js` | Rules engine, pure logic with no DOM. Runs in Node for headless bot-vs-bot games |
-| `js/ui.js` | Menus, collection and deck builder, battle board, animation, sound |
+| `js/ui.js` | Menus, collection and deck builder, battle board, campaign and cutscenes, animation, sound |
+| `js/campaign.js` | The campaign: six class stories and a finale, every line of dialogue, bosses and rewards (data only) |
 | `data/cards.js` | GENERATED: 2,660 cards in three sets, tokens, heroes, atlas index (`window.LL_DATA`) |
 | `img/a00–a36.webp` | GENERATED: Core Set art atlases, 8×8 cells of 192 px |
 | `img/a37–a42.webp` | GENERATED: expansion art atlases |
@@ -30,6 +31,6 @@ the scripts, so use a local server: `python3 -m http.server`, then visit http://
 | `tools_gen_sets.py` | The expansion generator: run it after `tools_gen_cards.py`; it appends both expansions to `data/cards.js` and writes `img/a37+`, reading every asset straight from the repo |
 | `tools_gen_packs.py` | Pack foils, reveal sigils and pack sounds for the Card Shop |
 
-Progress saves in the player's browser (localStorage): decks `ll_decks`, owned cards `ll_owned`, gold `ll_gold`, plus `ll_chosen`, `ll_sound`, `ll_tips`.
+Progress saves in the player's browser (localStorage): decks `ll_decks`, owned cards `ll_owned`, gold `ll_gold`, campaign progress `ll_camp`, plus `ll_chosen`, `ll_sound`, `ll_tips`, `ll_read`.
 
 Packs and prices live in the `PACKS` list in `js/ui.js`; battle rewards are in `gameOver()`.

@@ -3959,6 +3959,21 @@ The playtester reported that the battlefield and buttons were too small to use o
 - The menu's card fan no longer covers the logo on phones.
 Tested in mobile emulation (390×844, touch): tapping a card opens the sheet and Play plays it, enemy minions open read-only, the Menu toggle works, there are no console errors and no sideways scrolling on any screen. On desktop, battles and pack opening behave as before.
 
+## Labfreak Legends — Campaign: a story for every class, with cutscenes
+There is a new **Campaign** button on the main menu. Each of the six classes has its own four-chapter story, and a finale opens once all six are beaten. Every chapter has a cutscene before the battle and another after: a painted backdrop that slowly pans, the speakers' portraits sliding in from both sides (the one talking is lit, the other dimmed), a speech box that types itself out, a title card, and screen shake, flash or pop on the big lines. Tap to advance, tap again to finish a line, or press Skip. The writing is comedy that fits each game:
+- **Tamer, "The Leaky Core":** Flicker the wisp vs Mother Bramble, the crypt's only owl, the Abyssqueen and the Glimmerwyrm, who turns out to be the door.
+- **Gambler, "Double or Nothing":** playing Death for his own soul, by way of a Croupier, a Tax Collector who charges a fee for complaining about fees, and a One-Armed Bandit whose accountant is a Mimic.
+- **Healer, "Thanks for Nothing":** Wren keeps an ungrateful party alive until the King finally says thank you.
+- **Collector, "One of Each":** chasing the First Cast lure through a 3D Printer, a Zamboni, a Hydra whose three heads can't agree, and the Kraken.
+- **Scientist, "Lab Safety":** Dr. Labfreak and Gerald the brain in a jar, who has no hands, round up escaped specimens and then face his mutated self.
+- **Champion, "Idle Hands":** eleven years AFK in one field, thirty nemeses, a Bell-Ringer who won't stop, a mirror match, and the Elder Wyrm.
+- **Finale, "The Multiverse":** every hero confronts the Multiverse Dr. Labfreak, who has 50 Health.
+Every thread leads back to Labfreak's open portal. That is 267 lines of dialogue in `legends/js/campaign.js`, which is pure data. Speakers are written as `h:<class>`, `c:<cardId>`, `t:<tokenId>` or `n` for the narrator, with an optional `=Name` override.
+**Battles:** you bring your own deck of that class; the finale takes any deck. If you have more than one, a picker asks which. The boss plays its class's hero power under its own name, portrait and Health (25, 30, 35, then 40 for each final boss). Its deck is a random deck of its class with its signature cards shuffled in, and the battle uses the chapter's board. The engine gained `opts.hp` and `opts.heroes` in `newGame` for this.
+**Rewards:** a first win pays 100, 150, 200 or 300 gold by chapter. Finishing a campaign also adds its boss legendary to your collection plus 500 gold (2,000 for the finale, which gives Dr. Labfreak). Normal battle gold still applies. Progress is saved as `ll_camp`. Cleared chapters can be replayed, and "Watch scenes" replays their cutscenes.
+Also: the main menu now fits five buttons. The card fan has a box sized to its cards and the logo sits above it, the page scrolls instead of clipping on short screens, and screens shorter than 700px hide the fan.
+Tested headless at desktop and phone sizes: a chapter's title card, dialogue and Skip work, the boss gets its name, Health and signature cards, a win pays and unlocks the next chapter and plays the outro, finishing the Tamer campaign grants the Glimmerwyrm, beating all six opens the finale, and there were no console errors.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

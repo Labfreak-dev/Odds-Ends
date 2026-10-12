@@ -26,7 +26,13 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 /* ---------- main menu ---------- */
 #menu { align-items: center; justify-content: center; text-align: center; padding-inline: 16px; background: radial-gradient(ellipse at 50% 40%, rgba(255,209,90,.18), transparent 60%), var(--ink); }
 #menu .bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .45; filter: blur(2px) saturate(1.2); }
-#menu .fan { --cw: clamp(78px, 12.5vh, 132px); position: relative; height: calc(var(--cw) * 1.6); width: min(560px, 92vw); margin-bottom: calc(var(--cw) * .32); }
+#menu .fan { --cw: clamp(60px, 7.8vh, 120px); position: relative; z-index: 1; height: calc(var(--cw) * 3.5); width: min(560px, 92vw); margin-top: auto; flex: none; }
+#menu .logo { z-index: 3; }
+@media (max-height: 700px) { #menu .fan { display: none; } #menu .logo { margin-top: auto; } }
+/* centred when it fits, scrolls when it doesn't (auto margins instead of justify-content, which would cut off the top) */
+#menu { overflow-y: auto; justify-content: flex-start !important; padding-block: 12px; }
+#menu .menu-foot { margin-bottom: auto; }
+@media (max-height: 820px) { .menu-btns { gap: 8px; } .menu-btns .big { padding-block: 9px; } }
 #menu .fan .card { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 120%; }
 .logo { position: relative; font-family: var(--display); font-weight: 700; line-height: .9; margin: 0; }
 .logo .a { display: block; font-size: clamp(44px, 9vw, 92px); color: var(--gold); text-shadow: 0 4px 0 #5a2d0c, 0 0 30px rgba(255,190,80,.45); letter-spacing: .02em; }
@@ -379,6 +385,96 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .peekwrap { display: flex; gap: 10px; align-items: flex-start; }
 .peekwrap .kwlist { width: 190px; }
 .peekwrap .kwlist div { background: rgba(14,9,24,.95); border: 1px solid #4c3a74; }
+/* ---- campaign ---- */
+.big.camp { background: linear-gradient(180deg, #ff9a6b, #d0452f); border-color: #7a1d10; box-shadow: 0 4px 0 #6a1a0c; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.35); }
+#campaign .inner { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.campintro { color: var(--muted); font-weight: 700; margin: 0 0 14px; }
+.cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.ctile { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 14px; align-items: start; text-align: left; padding: 14px; border-radius: 16px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(var(--cc),.22), #1f1633 55%); border: 1.5px solid rgba(var(--cc),.6); color: #fff; font: inherit; }
+.ctile:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.4), 0 0 0 2px rgba(var(--cc),.8); }
+.ctile.done { box-shadow: 0 0 0 2px #59ff7d inset; }
+.ctile.locked { filter: grayscale(.85) brightness(.7); cursor: not-allowed; }
+.ctile.finale { grid-column: 1 / -1; background: linear-gradient(160deg, rgba(255,215,90,.25), #1f1633 60%); }
+.ct { display: grid; gap: 5px; min-width: 0; }
+.ct small { color: rgb(var(--cc)); font-weight: 900; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; }
+.ct b { font-family: var(--display); font-size: 22px; color: var(--gold); line-height: 1.1; }
+.ct > span { color: #ddd3f2; font-weight: 700; font-size: 13.5px; line-height: 1.4; }
+.ct .rw { color: var(--muted); font-size: 12px; }
+.pips { display: flex; gap: 5px; align-items: center; }
+.pips i { width: 14px; height: 14px; border-radius: 50%; background: #3b2b5c; box-shadow: inset 0 0 0 2px #5a477e; }
+.pips i.on { background: #59ff7d; box-shadow: 0 0 8px #59ff7d; }
+.pips em { font-style: normal; margin-left: 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
+.cport { width: 64px; aspect-ratio: 1; border-radius: 50%; background-size: 800% 800%; flex: none;
+  box-shadow: 0 0 0 3px rgba(var(--cc, 190,180,160), 1), 0 0 0 5px #000, 0 6px 14px rgba(0,0,0,.5); }
+.cport.lg { width: 96px; }
+.chead { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; padding: 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(var(--cc),.22), #1f1633 60%); }
+.chead h3 { font-family: var(--display); color: var(--gold); margin: 0 0 4px; font-size: 26px; }
+.chead p { margin: 0 0 8px; color: #ddd3f2; font-weight: 700; line-height: 1.4; }
+.clist { display: grid; gap: 12px; }
+.chap { display: flex; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 14px; background: #1f1633; border: 1.5px solid #3b2b5c; }
+.chap.next { border-color: var(--gold); box-shadow: 0 0 16px rgba(255,209,90,.25); }
+.chap.boss { background: linear-gradient(90deg, rgba(255,80,60,.16), #1f1633 50%); }
+.chap.locked { opacity: .55; }
+.cinfo { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cinfo small { color: var(--muted); font-weight: 900; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.cinfo b { font-family: var(--display); font-size: 19px; color: #fff; }
+.cinfo span { color: #ddd3f2; font-weight: 700; font-size: 13px; }
+.cbtns { display: grid; gap: 6px; justify-items: end; }
+.cbtns .big { font-size: 16px; padding: 9px 18px; }
+.lock { color: var(--muted); font-weight: 800; font-size: 13px; }
+#campdeck { position: fixed; inset: 0; z-index: 85; background: rgba(8,5,14,.86); display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+.cdbox { background: #1a1229; border: 2px solid #4c3a74; border-radius: 18px; padding: 18px; max-width: 760px; width: 100%; text-align: center; }
+.cdbox h3 { font-family: var(--display); color: var(--gold); margin: 0 0 4px; font-size: 24px; }
+.cdbox p { color: var(--muted); font-weight: 700; }
+/* cutscenes: a painted backdrop, two portraits, a speech box that types itself out */
+#cutscene { position: fixed; inset: 0; z-index: 95; overflow: hidden; background: #000; user-select: none; -webkit-user-select: none; cursor: pointer; animation: csIn .3s ease-out; }
+#cutscene.out { animation: csOut .26s ease-in forwards; }
+@keyframes csIn { from { opacity: 0; } } @keyframes csOut { to { opacity: 0; } }
+.cs-bg { position: absolute; inset: -4%; background: center/cover no-repeat; filter: saturate(1.1) brightness(.75); animation: csPan 24s ease-in-out infinite alternate; }
+@keyframes csPan { from { transform: scale(1.04) translateX(-1.5%); } to { transform: scale(1.12) translateX(1.5%); } }
+.cs-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), transparent 30%, transparent 50%, rgba(8,5,14,.9) 82%); }
+.cs-stage { position: absolute; left: 0; right: 0; bottom: 30%; height: 60%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 4vw; pointer-events: none; }
+.cs-p { width: min(40vw, 340px); display: grid; place-items: center; opacity: 0; transition: filter .25s, transform .25s, opacity .25s; filter: brightness(.45) saturate(.6); transform: scale(.92); }
+.cs-p.in { opacity: 1; animation: csSlideL .45s cubic-bezier(.2,.9,.3,1.2); }
+.cs-p.r.in { animation-name: csSlideR; }
+.cs-p.on { filter: none; transform: scale(1); }
+.cs-p.pop.on .cport { animation: csPop .5s ease-out; }
+@keyframes csSlideL { from { transform: translateX(-60%) scale(.9); opacity: 0; } }
+@keyframes csSlideR { from { transform: translateX(60%) scale(.9); opacity: 0; } }
+@keyframes csPop { 0% { transform: scale(1); } 35% { transform: scale(1.12) rotate(-3deg); } 70% { transform: scale(.97) rotate(2deg); } 100% { transform: none; } }
+.cs-p .cport.lg { width: min(40vw, 340px); box-shadow: 0 0 0 5px rgba(var(--cc),1), 0 0 0 8px #000, 0 18px 50px rgba(0,0,0,.7), 0 0 60px rgba(var(--cc),.35); }
+.cs-box { position: absolute; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: min(820px, calc(100% - 24px)); min-height: 128px;
+  background: rgba(14,9,24,.92); border: 2px solid #4c3a74; border-radius: 18px; padding: 26px 22px 18px; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+.cs-name { position: absolute; top: -16px; left: 20px; padding: 4px 14px; border-radius: 99px; background: rgb(var(--cc, 255,209,90)); color: #140b22;
+  font: 700 17px var(--display); box-shadow: 0 3px 8px rgba(0,0,0,.5); }
+.cs-box.right .cs-name { left: auto; right: 20px; }
+.cs-text { color: #fff; font-size: clamp(17px, 2.3vw, 21px); font-weight: 700; line-height: 1.45; min-height: 2.9em; }
+.cs-box.narr { border-color: transparent; background: rgba(8,5,14,.78); text-align: center; }
+.cs-box.narr .cs-text { font-style: italic; color: #e9dcff; }
+.cs-next { position: absolute; right: 16px; bottom: 8px; color: var(--gold); font-size: 14px; animation: csBob 1s ease-in-out infinite; }
+@keyframes csBob { 50% { transform: translateY(4px); } }
+.cs-skip { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: 12px; z-index: 3; min-height: 40px; }
+.cs-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.cs-flash.go { animation: csFlash .5s ease-out; }
+@keyframes csFlash { 0% { opacity: .85; } 100% { opacity: 0; } }
+#cutscene.shake .cs-stage, #cutscene.shake .cs-bg { animation: csShake .45s; }
+@keyframes csShake { 0%,100% { transform: none; } 20% { transform: translate(-10px, 4px); } 40% { transform: translate(9px, -5px); } 60% { transform: translate(-6px, 3px); } 80% { transform: translate(4px, -2px); } }
+.cs-title { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; background: rgba(8,5,14,.72); z-index: 4; animation: csTitle 1.8s ease-out forwards; }
+.cs-title.gone { display: none; }
+.cs-title small { color: var(--teal); font: 700 clamp(16px, 2.6vw, 22px) var(--display); letter-spacing: .3em; text-transform: uppercase; }
+.cs-title b { color: var(--gold); font: 700 clamp(34px, 7vw, 72px) var(--display); text-shadow: 0 4px 0 #5a2d0c, 0 0 30px rgba(255,190,80,.5); }
+@keyframes csTitle { 0% { opacity: 0; letter-spacing: .2em; } 20% { opacity: 1; letter-spacing: 0; } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (max-width: 720px) {
+  #menu .fan { --cw: 58px; }
+  .menu-btns { gap: 10px; } .menu-btns .big { padding-block: 11px; }
+  .cgrid { grid-template-columns: minmax(0,1fr); }
+  .ctile { grid-template-columns: 72px minmax(0,1fr); } .ctile .cport.lg { width: 72px; }
+  .chead .cport.lg { width: 72px; }
+  .chap { flex-wrap: wrap; } .cbtns { width: 100%; grid-auto-flow: column; justify-content: end; }
+  .cs-stage { bottom: 34%; height: 50%; padding: 0 2vw; }
+  .cs-p, .cs-p .cport.lg { width: 46vw; }
+}
 /* inspect: one card, big, with its words explained and the Play / Attack button */
 #battle { touch-action: manipulation; }
 #inspect { position: absolute; inset: 0; z-index: 70; background: rgba(8,5,14,.86); display: grid; place-items: center; padding: 12px; overflow-y: auto; }
@@ -432,11 +528,18 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
   <p class="tag" id="menutag">Every character from every Labfreak game, in one card battler.</p>
   <div class="menu-btns">
     <button class="big" id="b-play">Play</button>
+    <button class="big camp" id="b-camp">Campaign</button>
     <button class="big alt" id="b-shop">Card Shop</button>
     <button class="big alt" id="b-coll">Collection &amp; Decks</button>
     <button class="big alt" id="b-rules">How to Play</button>
   </div>
   <div class="menu-foot"><span class="goldchip"></span><button class="small" id="b-sound">Sound: off</button></div>
+</section>
+
+<section id="campaign" class="screen" hidden>
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Campaign</h2><span class="grow"></span><span class="goldchip"></span></div>
+  <div class="body scroll"><div class="inner" id="campbody"></div></div>
+  <div id="campdeck" hidden></div>
 </section>
 
 <section id="play" class="screen" hidden>
@@ -501,7 +604,9 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 
 <div id="zoom" hidden></div>
 <div id="packopen" hidden></div>
+<div id="cutscene" hidden></div>
 
 <script src="data/cards.js" charset="utf-8"></script>
 <script src="js/engine.js" charset="utf-8"></script>
+<script src="js/campaign.js" charset="utf-8"></script>
 <script src="js/ui.js" charset="utf-8"></script>

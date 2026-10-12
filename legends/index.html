@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Labfreak Legends</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
@@ -25,7 +26,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 /* ---------- main menu ---------- */
 #menu { align-items: center; justify-content: center; text-align: center; padding-inline: 16px; background: radial-gradient(ellipse at 50% 40%, rgba(255,209,90,.18), transparent 60%), var(--ink); }
 #menu .bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .45; filter: blur(2px) saturate(1.2); }
-#menu .fan { --cw: clamp(78px, 12.5vh, 132px); position: relative; height: calc(var(--cw) * 1.6); width: min(560px, 92vw); margin-bottom: 14px; }
+#menu .fan { --cw: clamp(78px, 12.5vh, 132px); position: relative; height: calc(var(--cw) * 1.6); width: min(560px, 92vw); margin-bottom: calc(var(--cw) * .32); }
 #menu .fan .card { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 120%; }
 .logo { position: relative; font-family: var(--display); font-weight: 700; line-height: .9; margin: 0; }
 .logo .a { display: block; font-size: clamp(44px, 9vw, 92px); color: var(--gold); text-shadow: 0 4px 0 #5a2d0c, 0 0 30px rgba(255,190,80,.45); letter-spacing: .02em; }
@@ -239,6 +240,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 #endturn { font-size: 18px; padding: 12px 16px; border-radius: 14px; border: 2px solid #2f7a3e; color: #082a10; background: linear-gradient(180deg, #a6ff9a, #3fcf58); box-shadow: 0 4px 0 #1b5a28; font-weight: 700; min-width: 108px; }
 #endturn.done { background: linear-gradient(180deg, #ffe08a, #e0a024); border-color: var(--gold-d); box-shadow: 0 4px 0 #7a4a0c; color: #2a1600; }
 #endturn:disabled { background: #3d3456; color: #9a8fba; border-color: #4c3a74; box-shadow: none; }
+.tl .ic { display: none; }
 .tl { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); z-index: 15; display: grid; gap: 8px; }
 #hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 40; pointer-events: none; font-family: var(--display); font-weight: 600; font-size: 15px; background: rgba(8,5,14,.85); padding: 6px 14px; border-radius: 99px; color: var(--gold); white-space: nowrap; }
 #banner { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.6); opacity: 0; z-index: 60; pointer-events: none; font-family: var(--display); font-weight: 700; font-size: clamp(32px, 7vw, 64px); color: var(--gold); text-shadow: 0 4px 0 #5a2d0c, 0 0 30px rgba(255,190,80,.6); transition: transform .35s, opacity .35s; white-space: nowrap; }
@@ -377,6 +379,38 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .peekwrap { display: flex; gap: 10px; align-items: flex-start; }
 .peekwrap .kwlist { width: 190px; }
 .peekwrap .kwlist div { background: rgba(14,9,24,.95); border: 1px solid #4c3a74; }
+/* inspect: one card, big, with its words explained and the Play / Attack button */
+#battle { touch-action: manipulation; }
+#inspect { position: absolute; inset: 0; z-index: 70; background: rgba(8,5,14,.86); display: grid; place-items: center; padding: 12px; overflow-y: auto; }
+.isheet { display: grid; grid-template-columns: auto minmax(0, 340px); grid-template-areas: "card info" "btns btns"; gap: 14px 20px; align-items: start; max-width: 720px;
+  background: #1a1229; border: 2px solid #4c3a74; border-radius: 18px; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.icard { grid-area: card; } .icard .card { --cw: min(250px, 56vw); }
+.iinfo { grid-area: info; display: grid; gap: 8px; min-width: 0; }
+.iinfo h3 { font-family: var(--display); color: var(--gold); margin: 0; font-size: 24px; line-height: 1.1; }
+.iinfo p { margin: 0; }
+.iinfo .sub { color: var(--muted); font-weight: 800; font-size: 14px; }
+.iinfo .now { color: #fff; font-weight: 700; font-size: 15px; background: rgba(255,255,255,.06); border-radius: 10px; padding: 6px 10px; }
+.iinfo .itx { font-size: 18px; line-height: 1.4; font-weight: 700; color: #fff; }
+.iinfo .itx b { color: var(--gold); }
+.iinfo .kwlist { display: grid; gap: 6px; }
+.iinfo .kwlist div { font-size: 15px; line-height: 1.35; background: rgba(255,255,255,.05); border-radius: 10px; padding: 6px 10px; color: #ddd3f2; }
+.iinfo .kwlist b { color: var(--teal); }
+.iinfo .fl { font-style: italic; color: var(--muted); font-size: 14px; }
+.ibtns { grid-area: btns; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center; }
+.ibtns .big { font-size: 19px; padding: 14px 22px; min-width: 140px; }
+.ibtns .why { flex-basis: 100%; text-align: center; color: #ffb36b; font-weight: 800; margin: 0; }
+@media (max-width: 720px) {
+  .isheet { grid-template-columns: minmax(0, 1fr); grid-template-areas: "card" "info" "btns"; justify-items: center; padding: 12px; width: 100%; }
+  .iinfo { width: 100%; }
+  .icard .card { --cw: min(230px, 60vw); }
+  .ibtns { width: 100%; } .ibtns .big { flex: 1; }
+  /* bigger touch targets on the board */
+  .tl { top: calc(env(safe-area-inset-top, 0px) + 8px); transform: none; gap: 6px; }
+  .tl .small { width: 44px; height: 44px; padding: 0; font-size: 20px; display: grid; place-items: center; }
+  .tl .lb { display: none; } .tl .ic { display: inline; }
+  .hpower { width: calc(var(--mw) * .74); height: calc(var(--mw) * .74); }
+  #hint { font-size: 16px; white-space: normal; text-align: center; width: max-content; max-width: 90vw; }
+}
 @media (max-width: 720px) {
   .packcard { grid-template-columns: 110px minmax(0,1fr); } .pack { width: 110px; height: 176px; }
   #packgrid { grid-template-columns: minmax(0,1fr); }
@@ -386,7 +420,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
   #grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 18px 10px; }
   #grid .card { --cw: 106px; }
   .ctl { right: 6px; } .tl { left: 6px; }
-  #endturn { min-width: 86px; font-size: 15px; padding: 10px 10px; }
+  #endturn { min-width: 104px; min-height: 48px; font-size: 17px; padding: 12px 12px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
@@ -454,7 +488,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
     <div class="hrow" id="mhero"></div>
     <div class="hand" id="hand"></div>
   </div>
-  <div class="tl"><button class="small" id="b-menu">Menu</button><button class="small" id="b-help">Help</button><button class="small" id="b-log">Log</button></div>
+  <div class="tl"><button class="small" id="b-menu" aria-label="Menu"><span class="ic" aria-hidden="true">☰</span><span class="lb">Menu</span></button><button class="small" id="b-help" aria-label="Help"><span class="ic" aria-hidden="true">?</span><span class="lb">Help</span></button><button class="small" id="b-log" aria-label="Battle log"><span class="ic" aria-hidden="true">≡</span><span class="lb">Log</span></button></div>
   <div id="coach" hidden></div>
   <div class="ctl"><button id="endturn">End Turn</button></div>
   <div id="hint" hidden></div>
@@ -462,6 +496,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
   <div id="peek" hidden></div>
   <div id="logpane"><div class="topbar"><h2 style="font-size:18px">Battle log</h2><span class="grow"></span><button class="small" id="b-logx">Close</button></div><div class="lines scroll" id="loglines"></div></div>
   <div class="modal" id="modal" hidden></div>
+  <div id="inspect" hidden></div>
 </section>
 
 <div id="zoom" hidden></div>

@@ -470,7 +470,8 @@
   }
   function sizeTable() {
     const W = innerWidth, H = innerHeight;
-    const mw = Math.max(52, Math.min((W - 24) / 6.4, H / 7.9, 112));
+    // phones get bigger minions: a board of 5 fills the width, a fuller board shrinks to fit (render() sets --k)
+    const mw = W < 720 ? Math.max(56, Math.min((W - 8) / 5, H / 8.4, 112)) : Math.max(52, Math.min((W - 24) / 6.4, H / 7.9, 112));
     $('#table').style.setProperty('--mw', mw + 'px');
   }
   addEventListener('resize', () => { if (current === 'battle') { sizeTable(); render(); } });
@@ -560,7 +561,7 @@
     const el = $('#coach');
     if (!tips || !myTurn || sel) { el.hidden = true; return; }
     let t;
-    if (me.hand.some((_, i) => E.canPlay(G, 0, i))) t = `Tap a card glowing green to play it. You have ${me.mana} Mana.`;
+    if (me.hand.some((_, i) => E.canPlay(G, 0, i))) t = readFirst ? `Tap a card glowing green to read it, then press Play. You have ${me.mana} Mana.` : `Tap a card glowing green to play it. You have ${me.mana} Mana.`;
     else if ([...me.board, me.hero].some(u => E.canAttack(G, u))) t = 'Tap one of your minions glowing green, then tap an enemy to attack it.';
     else if (E.canHeroPower(G, 0)) t = `Use your Hero Power, ${me.heroData.hp.n}: the round button next to your hero (2 Mana).`;
     else t = 'Nothing left to do. Press End Turn.';
@@ -665,11 +666,15 @@
   }
 
   // ---------- player input ----------
+  function whyNot(i) {
+    const P = G.p[0], ci = P.hand[i], c = E.card(ci.cid), cost = E.costOf(G, 0, ci);
+    if (G.turn !== 0 || G.phase !== 'play') return "It's not your turn.";
+    return cost > P.mana ? `Not enough Mana: it costs ${cost}, you have ${P.mana}.` : c.t === 'm' && P.board.length >= 7 ? 'Your board is full (7 minions).' : c.secret ? 'That Trap is already set.' : 'Nothing it can target right now.';
+  }
   function selectHand(i) {
     const P = G.p[0], ci = P.hand[i], c = E.card(ci.cid);
     if (!E.canPlay(G, 0, i)) {
-      const cost = E.costOf(G, 0, ci);
-      hint(cost > P.mana ? `Not enough Mana: it costs ${cost}, you have ${P.mana}.` : c.t === 'm' && P.board.length >= 7 ? 'Your board is full (7 minions).' : c.secret ? 'That Trap is already set.' : 'Nothing it can target right now.');
+      hint(whyNot(i));
       setTimeout(() => hint(null), 1200);
       return;
     }
@@ -687,13 +692,24 @@
     act(() => E.playCard(G, 0, i, null));
   }
   $('#table').addEventListener('click', e => {
+    if (noClick) { noClick = false; return; }
+    if (G && G.phase === 'play' && !G.pending && (G.turn !== 0 || busy)) {
+      // not your move: tapping still reads cards
+      const h0 = e.target.closest('[data-hand]'), u0 = e.target.closest('.minion[data-uid]'), w0 = e.target.closest('.weapon[data-cid]');
+      if (h0) inspect({ hand: +h0.dataset.hand, look: true }); else if (u0) inspect({ uid: +u0.dataset.uid, look: true }); else if (w0) inspect({ cid: w0.dataset.cid, look: true });
+      return;
+    }
     if (!G || busy || G.phase !== 'play' || G.turn !== 0 || G.pending) return;
     const h = e.target.closest('[data-hand]');
     if (h) {
       const i = +h.dataset.hand;
       if (sel && sel.type === 'hand' && sel.idx === i) { sel = null; hint(null); render(); return; }
-      sel = null; selectHand(i); return;
+      sel = null;
+      if (readFirst) { hint(null); render(); inspect({ hand: i }); return; }
+      selectHand(i); return;
     }
+    const w = e.target.closest('.weapon[data-cid]');
+    if (w && !sel) { inspect({ cid: w.dataset.cid }); return; }
     if (e.target.closest('[data-hp]')) {
       if (!E.canHeroPower(G, 0)) { hint(G.p[0].hpUsed ? 'Hero Power already used this turn.' : 'Not enough Mana.'); setTimeout(() => hint(null), 1200); return; }
       const ef = G.p[0].heroData.hp.fx.find(E.picks);
@@ -721,7 +737,7 @@
         sel = { type: 'atk', uid, targets: E.attackTargets(G, unit) };
         hint(sel.targets.length ? (sel.targets.some(t => t.kind === 'minion' && t.kw.has('taunt')) ? 'Choose what to attack (Guard minions must be hit first)' : 'Choose what to attack') : 'Nothing to attack'); render(); return;
       }
-      if (unit && unit.kind === 'minion') { peekCard(unit.cid, u); setTimeout(hidePeek, 1600); }
+      if (unit && unit.kind === 'minion') { inspect({ uid }); return; }
     }
     if (sel) { sel = null; hint(null); render(); }
   });
@@ -762,7 +778,7 @@
       <li><b>Attack</b>: tap your glowing minion, then an enemy. Both hit each other. Health at 0 means it dies.</li>
       <li><b>Hero Power</b>: the round button by your hero, 2 Mana, once a turn.</li>
       <li><b>End Turn</b> when you're done. Bring the enemy hero to 0 Health to win.</li></ol>
-      <p>Press and hold (or hover) any card or minion to read it, with every bold word explained.</p>
+      <p>Tap any minion, or press and hold any card, to see it big with every bold word explained. ${readFirst ? 'Tapping a card in your hand opens it first; press Play to play it.' : ''} You can change that in Menu.</p>
       <div class="legend">${[['zz', "Sleeping: can't attack yet"], ['🛡', 'Guard: must be attacked first'], ['✦', 'Shield: blocks one hit'], ['2×', 'Attacks twice'], ['☠', 'Deadly'], ['♥', 'Lifesteal'], ['↺', 'Comes Back'], ['✝', 'Does something when it dies'], ['ϟ', 'Triggered ability'], ['❄', 'Freezes'], ['?', 'A hidden Trap']].map(([i, t]) => `<div><i>${i}</i><span>${esc(t)}</span></div>`).join('')}</div>
       <div class="row" style="margin-top:14px"><button class="big alt" data-m="stay">Back to the game</button><button class="big alt" data-m="tipson">${tips ? 'Tips are on' : 'Turn tips back on'}</button></div></div>`;
     m.hidden = false;
@@ -770,7 +786,10 @@
   $('#b-logx').onclick = () => $('#logpane').classList.remove('open');
   $('#b-menu').onclick = () => {
     const m = $('#modal');
-    m.innerHTML = `<div><h3>Leave this battle?</h3><p>The game will count as a loss.</p><div class="row"><button class="big alt" data-m="stay">Keep playing</button><button class="big" data-m="quit">Concede</button></div></div>`;
+    m.innerHTML = `<div><h3>Menu</h3>
+      <p>Tapping a card in your hand ${readFirst ? '<b>opens it big first</b>, with a Play button, so you can read it.' : '<b>plays it right away</b>. Press and hold any card to read it.'}</p>
+      <div class="row"><button class="big alt" data-m="read">${readFirst ? 'Switch to: tap plays right away' : 'Switch to: tap opens the card first'}</button></div>
+      <p>Leaving the battle counts as a loss.</p><div class="row"><button class="big alt" data-m="stay">Keep playing</button><button class="big" data-m="quit">Concede</button></div></div>`;
     m.hidden = false;
   };
 
@@ -791,8 +810,73 @@
   function hidePeek() { $('#peek').hidden = true; }
   $('#table').addEventListener('mouseover', e => { const el = e.target.closest('.minion[data-cid], .weapon[data-cid], #hand .card'); if (el && matchMedia('(hover: hover)').matches) peekCard(el.dataset.cid, el); });
   $('#table').addEventListener('mouseout', e => { if (e.target.closest('.minion[data-cid], .weapon[data-cid], #hand .card')) hidePeek(); });
-  $('#table').addEventListener('touchstart', e => { const el = e.target.closest('[data-cid]'); if (!el) return; pressT = setTimeout(() => peekCard(el.dataset.cid, el), 420); }, { passive: true });
-  ['touchend', 'touchmove', 'touchcancel'].forEach(t => $('#table').addEventListener(t, () => { clearTimeout(pressT); setTimeout(hidePeek, 900); }, { passive: true }));
+  let noClick = false;
+  $('#table').addEventListener('touchstart', e => {
+    const el = e.target.closest('[data-cid]'); if (!el) return;
+    pressT = setTimeout(() => {
+      noClick = true;
+      const h = el.closest('[data-hand]'), u = el.closest('.minion[data-uid]');
+      inspect(h ? { hand: +h.dataset.hand, look: !!sel } : u ? { uid: +u.dataset.uid, look: true } : { cid: el.dataset.cid });
+    }, 450);
+  }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(t => $('#table').addEventListener(t, () => { clearTimeout(pressT); setTimeout(() => { noClick = false; }, 400); }, { passive: true }));
+
+  // ---------- inspect: a big, readable view of a card, then Play or Attack from it ----------
+  // On phones a tap opens this first instead of playing the card straight away (setting: ll_read).
+  let readFirst = store.get('ll_read', matchMedia('(hover: none)').matches || innerWidth < 720);
+  let insp = null;
+  function inspect(o) {
+    if (!G) return;
+    hidePeek();
+    const me = G.p[0];
+    let c, unit = null, ci = null;
+    if (o.hand != null) { ci = me.hand[o.hand]; if (!ci) return; c = E.card(ci.cid); }
+    else if (o.uid != null) { unit = E.findUnit(G, o.uid); if (!unit || unit.kind !== 'minion') return; c = E.card(unit.cid); }
+    else c = E.card(o.cid);
+    if (!c) return;
+    insp = { ...o };
+    const myMove = G.turn === 0 && G.phase === 'play' && !busy && !G.pending && !o.look;
+    const ex = explain(c);
+    let status = '', btn = '';
+    if (unit) {
+      const a = E.atkOf(G, unit), tags = [];
+      if (unit.kw.has('taunt')) tags.push('Guard'); if (unit.divine) tags.push('Shield up'); if (unit.stealth) tags.push('Hidden'); if (unit.frozen) tags.push('Frozen');
+      if (unit.reborn) tags.push('Comes Back ready'); if (unit.silenced) tags.push('Abilities removed');
+      if (unit.owner === 0 && G.turn === 0 && unit.sleeping && !unit.kw.has('charge') && !unit.kw.has('rush')) tags.push('Asleep until your next turn');
+      status = `<p class="now">${unit.owner === 0 ? 'Yours' : 'Enemy'} · now <b>${a}</b> Attack, <b>${unit.h}</b>/${unit.max} Health${tags.length ? ' · ' + tags.join(', ') : ''}</p>`;
+      if (myMove && unit.owner === 0 && E.canAttack(G, unit)) btn = `<button class="big" data-ins="attack">Attack with it</button>`;
+    }
+    if (ci) {
+      const cost = E.costOf(G, 0, ci);
+      if (cost !== c.m) status = `<p class="now">Costs <b>${cost}</b> right now (normally ${c.m}).</p>`;
+      if (myMove) btn = E.canPlay(G, 0, o.hand) ? `<button class="big" data-ins="play">${E.needsTarget(c, c.t === 's' ? ['cast'] : ['bc', 'combo']) ? 'Play, then pick a target' : 'Play it'}</button>`
+        : `<button class="big" disabled>Can't play</button><p class="why">${esc(whyNot(o.hand))}</p>`;
+    }
+    const cardView = unit ? cardHTML(c, {}) : cardHTML(c, ci ? { cost: E.costOf(G, 0, ci) } : {});
+    $('#inspect').innerHTML = `<div class="isheet" role="dialog" aria-label="${esc(c.n)}">
+      <div class="icard">${cardView}</div>
+      <div class="iinfo"><h3>${esc(c.n)}</h3>
+        <p class="sub">${RN[c.r]} ${c.t === 's' ? 'spell' : c.t === 'w' ? 'weapon' : 'minion'} · ${CLSN[c.c] || ''}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
+        ${status}
+        ${c.tx ? `<p class="itx">${fmt(c.tx)}</p>` : ''}
+        ${ex.length ? `<div class="kwlist">${ex.map(([k, v]) => `<div><b>${esc(k)}</b> ${esc(v)}</div>`).join('')}</div>` : ''}
+        ${c.fl ? `<p class="fl">\u201c${esc(c.fl)}\u201d</p>` : ''}
+      </div>
+      <div class="ibtns">${btn}<button class="big alt" data-ins="close">Close</button></div></div>`;
+    $('#inspect').hidden = false;
+  }
+  function closeInspect() { $('#inspect').hidden = true; insp = null; }
+  $('#inspect').addEventListener('click', e => {
+    const b = e.target.closest('[data-ins]');
+    if (!b) { if (e.target === $('#inspect')) closeInspect(); return; }
+    const o = insp; closeInspect();
+    if (!o || !G) return;
+    if (b.dataset.ins === 'play' && o.hand != null) { sel = null; selectHand(o.hand); }
+    else if (b.dataset.ins === 'attack' && o.uid != null) {
+      const unit = E.findUnit(G, o.uid);
+      if (unit && E.canAttack(G, unit)) { sel = { type: 'atk', uid: o.uid, targets: E.attackTargets(G, unit) }; hint(sel.targets.length ? 'Choose what to attack' : 'Nothing to attack'); render(); }
+    }
+  });
 
   // ---------- modals: mulligan, discover, game over ----------
   function showMulligan() {
@@ -854,6 +938,7 @@
     $('#modal').hidden = true;
     if (k === 'stay') return;
     if (k === 'tipson') { tips = true; store.set('ll_tips', true); render(); return; }
+    if (k === 'read') { readFirst = !readFirst; store.set('ll_read', readFirst); return; }
     if (k === 'quit') { G = null; show('menu'); return; }
     if (k === 'again') { startBattle(lastDecks.myDeck, chosenOpp === 'random' ? CLS[Math.floor(Math.random() * CLS.length)] : lastDecks.oppCls); return; }
     if (k === 'decks') { G = null; show('play'); return; }
@@ -861,7 +946,7 @@
     if (k === 'shop') { G = null; show('shop'); return; }
   }
   $('#modal').onclick = modalClick;
-  addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#zoom').hidden) $('#zoom').hidden = true; else if (sel) { sel = null; hint(null); render(); } } });
+  addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#inspect').hidden) closeInspect(); else if (!$('#zoom').hidden) $('#zoom').hidden = true; else if (sel) { sel = null; hint(null); render(); } } });
 
   // ---------------------------------------------------------------- card shop
   function packHTML(p) {

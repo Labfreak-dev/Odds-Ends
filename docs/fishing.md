@@ -3979,6 +3979,13 @@ The playtester's phone screenshot showed the whole battlefield shifted, with a d
 Now each row works out its own minion size (a local `--mw` on `#oboard` and `#mboard`), so up to seven minions always fit the width and everything on a minion scales with it. The battle table is a `minmax(0,1fr)` grid with overflow clipped, so nothing can push the page sideways. Like Hearthstone, both boards now sit against the centre line instead of floating in the middle of their halves. On phones End Turn moved off the board to the right end of your hero row, which shifts left to make room, and the mana display there shrinks to a number plus one crystal.
 Tested with full 7-and-7 boards at 412×915, 360×780 (mobile emulation) and 1280×800: the page is exactly as wide as the screen, End Turn never covers a minion, and the inspect and campaign flows still pass.
 
+## Labfreak Legends — collection on phones: the cards get the screen
+The playtester reported the collection's card window was tiny on a phone because the filters took most of the screen. On a 390×844 phone the card grid had 420px of height, and only 147px while building a deck.
+- The filters fold away on phones. You always see the search box, a **Filters** button (it shows how many filters are on, e.g. "Filters (1)") and the mana-cost row, which scrolls sideways on one line. Classes, type, rarity, set, game and owned live behind the button in a two-column panel with a **Clear filters** button. Desktop is unchanged: everything shows in one bar, as before.
+- The top bar stays on one line: the "You own N cards" text and the gold chip are hidden on phones, and New deck and the deck picker are compact.
+- While building a deck on a phone, the deck list folds into a bar (name, count, Save/Fill/Delete/Done). Tap the line under the deck name to open the list or fold it again.
+Result on a 390×844 phone: the card grid is 696px tall (was 420) and 534px while building a deck (was 147). The page is exactly screen width, with no console errors. Desktop layout measures the same as before.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

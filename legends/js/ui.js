@@ -281,16 +281,22 @@
   function renderFilters() {
     const clsList = editing ? [editing.cls, 'neutral'] : ['all', ...CLS, 'neutral'];
     if (editing && F.cls !== 'all' && !clsList.includes(F.cls)) F.cls = 'all';
+    // phones: search, the filter button and the mana row stay; everything else folds into a panel
+    const active = (F.cls !== 'all') + (F.type !== 'all') + (F.rar !== 'all') + (F.set !== 'all') + (F.game !== 'all') + (F.own !== 'all');
+    $('#filters').classList.toggle('open', filtersOpen);
     $('#filters').innerHTML =
-      `<input id="search" placeholder="Search name, text or tribe" value="${esc(F.q)}" aria-label="Search cards">` +
+      `<div class="frow"><input id="search" placeholder="Search name, text or tribe" value="${esc(F.q)}" aria-label="Search cards">` +
+      `<button class="chip ftoggle${active ? ' on' : ''}" data-ftoggle aria-expanded="${filtersOpen}">Filters${active ? ` (${active})` : ''} ${filtersOpen ? '\u25B4' : '\u25BE'}</button></div>` +
+      `<div class="fmana">${[0, 1, 2, 3, 4, 5, 6, 7].map(m => `<button class="chip mana${F.mana === m ? ' on' : ''}" data-f="mana" data-v="${m}">${m === 7 ? '7+' : m}</button>`).join('')}</div>` +
+      `<div class="fmore"><div class="fcls">` +
       (editing ? `<button class="chip${F.cls === 'all' ? ' on' : ''}" data-f="cls" data-v="all">All</button>` : '') +
-      clsList.map(c => `<button class="chip${F.cls === c ? ' on' : ''}" data-f="cls" data-v="${c}">${c === 'all' ? 'All classes' : CLSN[c]}</button>`).join('') +
-      [0, 1, 2, 3, 4, 5, 6, 7].map(m => `<button class="chip mana${F.mana === m ? ' on' : ''}" data-f="mana" data-v="${m}">${m === 7 ? '7+' : m}</button>`).join('') +
+      clsList.map(c => `<button class="chip${F.cls === c ? ' on' : ''}" data-f="cls" data-v="${c}">${c === 'all' ? 'All classes' : CLSN[c]}</button>`).join('') + `</div><div class="fsel">` +
       `<select class="sel" data-f="type" aria-label="Card type"><option value="all">All types</option><option value="m">Minions</option><option value="s">Spells</option><option value="w">Weapons</option></select>` +
       `<select class="sel" data-f="rar" aria-label="Rarity"><option value="all">All rarities</option>${RN.map((r, i) => `<option value="${i}">${r}</option>`).join('')}</select>` +
       `<select class="sel" data-f="set" aria-label="Card set"><option value="all">All sets</option>${SETS.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('')}</select>` +
       `<select class="sel" data-f="game" aria-label="Game"><option value="all">All games</option>${GAMES.map(g => `<option>${esc(g)}</option>`).join('')}</select>` +
-      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option></select>`;
+      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option></select>` +
+      (active ? `<button class="chip" data-freset>Clear filters</button>` : '') + `</div></div>`;
     $$('#filters select').forEach(s => { s.value = F[s.dataset.f]; });
   }
   const PER = 40;
@@ -304,7 +310,10 @@
       `<p style="grid-column:1/-1;color:var(--muted);font-weight:800">No cards match these filters.</p>`;
     $('#pager').innerHTML = `<button class="small" data-pg="-1" ${F.page ? '' : 'disabled'}>Previous</button><span>${list.length.toLocaleString()} cards · page ${F.page + 1} of ${pages}</span><button class="small" data-pg="1" ${F.page < pages - 1 ? '' : 'disabled'}>Next</button>`;
   }
+  let deckMini = innerWidth < 720;
+  $('#deckpanel').addEventListener('click', e => { if (e.target.closest('#deckcls')) { deckMini = !deckMini; $('#deckpanel').classList.toggle('mini', deckMini); } });
   function renderDeckPanel() {
+    $('#deckpanel').classList.toggle('mini', deckMini && innerWidth < 720);
     $('#collbody').classList.toggle('nodeck', !editing);
     $('#deckpanel').hidden = !editing;
     $('#deckpick').innerHTML = `<option value="">Edit a deck\u2026</option>` + decks.map(d => `<option value="${d.id}">${esc(d.name)} (${d.cards.length}/30)</option>`).join('');
@@ -326,13 +335,16 @@
     $('#deckerrs').style.color = errs.length ? '#ffb3bb' : 'var(--heal)';
   }
   function renderCollection() { if (editing && F.own === 'all') F.own = 'owned'; renderFilters(); renderGrid(); renderDeckPanel(); $('#collsub').textContent = `You own ${ownedTotal().toLocaleString()} cards`; }
+  let filtersOpen = innerWidth >= 720;
   $('#filters').addEventListener('click', e => {
+    if (e.target.closest('[data-ftoggle]')) { filtersOpen = !filtersOpen; renderFilters(); return; }
+    if (e.target.closest('[data-freset]')) { Object.assign(F, { cls: 'all', type: 'all', rar: 'all', set: 'all', game: 'all', own: editing ? 'owned' : 'all', mana: null, page: 0 }); renderFilters(); renderGrid(); return; }
     const b = e.target.closest('[data-f]'); if (!b || b.tagName === 'SELECT') return;
     const f = b.dataset.f; let v = b.dataset.v;
     if (f === 'mana') v = F.mana === +v ? null : +v;
     F[f] = v; F.page = 0; renderFilters(); renderGrid();
   });
-  $('#filters').addEventListener('change', e => { const s = e.target.closest('select'); if (!s) return; F[s.dataset.f] = s.value; F.page = 0; renderGrid(); });
+  $('#filters').addEventListener('change', e => { const s = e.target.closest('select'); if (!s) return; F[s.dataset.f] = s.value; F.page = 0; renderFilters(); renderGrid(); });
   $('#filters').addEventListener('input', e => { if (e.target.id === 'search') { F.q = e.target.value; F.page = 0; renderGrid(); } });
   $('#pager').addEventListener('click', e => { const b = e.target.closest('[data-pg]'); if (!b) return; F.page += +b.dataset.pg; renderGrid(); $('#gridwrap').scrollTop = 0; });
   function addToDeck(id) {

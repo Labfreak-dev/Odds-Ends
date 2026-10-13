@@ -76,8 +76,8 @@ def spell_cost(fx, lo=0, hi=10):
 DATA_JS = os.path.join(LEG, "data", "cards.js")
 raw = open(DATA_JS).read()
 DATA = json.loads(raw[raw.index("{"):raw.rstrip().rstrip(";").rindex("}") + 1])
-DATA["cards"] = [c for c in DATA["cards"] if c.get("s") in (None, "core")]
-for k in [k for k, t in DATA["tokens"].items() if t.get("s") in ("ih", "dc")]: del DATA["tokens"][k]
+DATA["cards"] = [c for c in DATA["cards"] if c.get("s") in (None, "core")]  # drops ih/dc/tt from earlier runs
+for k in [k for k, t in DATA["tokens"].items() if t.get("s") in ("ih", "dc", "tt")]: del DATA["tokens"][k]
 DATA["heroes"].pop("champion", None)
 CORE_SHEETS = [s for s in DATA["sheets"] if int(re.search(r"a(\d+)", s).group(1)) < 37]
 DATA["sheets"] = CORE_SHEETS
@@ -598,6 +598,112 @@ LEGENDS = [
 for k, nm, cls, cost, kw, fx, fl in LEGENDS:
     add(minion(f"dcl_{k}", nm, cls, 3, cost, 0.5, kw, fx, add_art(CINE[k]), g=GF, tr="Legend", fl=fl), "dc")
 
+# ================================================================ TRICKS OF THE TRADE
+# A spell expansion (set "tt"): every class gets new spells built around synergies - tribes, Attack, cost,
+# rarity, weapons, spells cast this turn - drawn on Ironhold Idle's trinkets and the Odds & Ends curios.
+GT = "Tricks of the Trade"
+def oe_item(slug, col):
+    im = Image.open(REPO + f"art/{slug}.webp").convert("RGB")
+    return add_art(im.resize((CELL, CELL), Image.LANCZOS))
+IF = lambda **k: {"if": k}
+TT = {  # class: [(art, name, rarity, effects, cost or None)]  art = Ironhold icon key, or "oe:<slug>" for an Odds & Ends curio
+    "tamer": [
+        ("comp_fairy_pixiedust", "Pixie Dust", 1, [E("cast", "buff", a=1, h=1, tg="fm_all")], None),
+        ("comp_ent_acorn", "Seed of Plenty", 0, [E("cast", "tutor", f={"tr": "Beast"}), E("cast", "reduce", n=1, f={"tr": "Beast"})], None),
+        ("comp_tiger_sabrefang", "Sabre Strike", 0, [E("cast", "dmg", n=3, tg="em"), E("cast", "draw", n=1, **IF(ctrl={"tr": "Beast"}))], None),
+        ("comp_bear_honeypot", "Honeypot", 0, [E("cast", "buff", a=2, h=2, tg="fm", f={"tr": "Beast"}, tx="Give one of your Beasts +2 Attack, +2 Health and Guard"), E("cast", "kw", k="taunt", tg="fm", f={"tr": "Beast"}, tx="")], None),
+        ("comp_fairy_moonflower", "Moonflower", 1, [E("cast", "heal", n=3, tg="fhero", per={"tr": "Bloom"}), E("cast", "draw", n=1)], None),
+        ("comp_ent_heartwood", "Heartwood", 1, [E("cast", "buff", a=0, h=3, tg="fm_all", f={"tr": "Stone"}), E("cast", "armor", n=3)], None),
+        ("comp_fairy_dew", "Morning Dew", 0, [E("cast", "buff", a=1, h=1, tg="fm_all", f={"tr": "Tide"}), E("cast", "draw", n=1)], None),
+        ("comp_tiger_ambereye", "Amber Eye", 2, [E("cast", "discover", pool="legendary", f={"r": 3, "t": "m"})], None),
+        ("comp_ent_leafcrown", "Crown of Leaves", 1, [E("cast", "buff", a=2, h=0, tg="fm_all", f={"amax": 2})], None),
+        ("comp_fairy_wand", "Spark Wand", 1, [E("cast", "dmg", n=1, tg="enemy"), E("cast", "dmg", n=1, tg="enemy", per={"tr": "Volt"}, tx="It takes 1 more damage for each Volt minion you control")], None),
+        ("comp_bear_berries", "Wild Berries", 0, [E("cast", "hbuff", a=1, h=1)], None),
+        ("comp_tiger_bell", "Tamer's Bell", 2, [E("cast", "tutor", f={"r": 2}, tx="Draw two Epic or Legendary cards from your deck"), E("cast", "tutor", f={"r": 2}, tx="")], None),
+    ],
+    "scientist": [
+        ("comp_labfreak_vial", "Unstable Vial", 1, [E("cast", "dmg", n=3, tg="em_all", f={"amax": 3})], None),
+        ("comp_labfreak_formula", "Formula X", 0, [E("cast", "reduce", n=1, f={"t": "s"}), E("cast", "draw", n=1)], None),
+        ("comp_labfreak_flask", "Spore Flask", 0, [E("cast", "summon", id="t_spore", cnt=2), E("cast", "summon", id="t_spore", cnt=2, **IF(ctrl={"tr": "Spore"}), tx="If you control a Spore minion, summon two more")], None),
+        ("comp_labfreak_goggles", "Safety Goggles", 0, [E("cast", "kw", k="divine", tg="fm_all", f={"tr": "Static"}), E("cast", "draw", n=1)], None),
+        ("comp_labfreak_coat", "Lab Coat", 1, [E("cast", "armor", n=4), E("cast", "draw", n=2, **IF(spells=2))], None),
+        ("comp_labfreak_glove", "Rubber Glove", 0, [E("cast", "destroy", tg="em", max=2), E("cast", "draw", n=1, **IF(ctrl={"tr": "Circuit"}))], None),
+        ("comp_necro_voidink", "Void Ink", 0, [E("cast", "discover", pool="spell", f={"t": "s", "mmax": 2}), E("cast", "reduce", n=1, f={"t": "s"})], None),
+        ("comp_necro_soulshard", "Soul Shard", 1, [E("cast", "dmg", n=2, tg="m"), E("cast", "dmg", n=2, tg="m", per={"tr": "Gloom"}, tx="It takes 2 more damage for each Gloom minion you control")], None),
+        ("comp_imp_brimstone", "Brimstone", 1, [E("cast", "destroy", tg="em", min=5)], None),
+        ("comp_imp_contract", "Infernal Contract", 1, [E("cast", "tutor", f={"t": "s"}, tx="Draw two spells from your deck"), E("cast", "tutor", f={"t": "s"}, tx="")], None),
+        ("comp_necro_witherrose", "Wither Rose", 0, [E("cast", "curse", n=1, tg="em_all"), E("cast", "heal", n=2, tg="fhero", per={"tr": "Moss"})], None),
+        ("comp_necro_phylactery", "Phylactery", 2, [E("cast", "resurrect", n=2), E("cast", "hbuff", a=1, h=1)], None),
+    ],
+    "champion": [
+        ("comp_knight_swordcharm", "Sword Charm", 0, [E("cast", "wbuff", a=1, h=1), E("cast", "tutor", f={"t": "w"})], None),
+        ("comp_barbarian_warpaint", "War Paint", 1, [E("cast", "buff", a=1, h=0, tg="fm_all"), E("cast", "buff", a=0, h=1, tg="fm_all", **IF(weapon=True))], None),
+        ("comp_barbarian_meadhorn", "Mead Horn", 0, [E("cast", "dmg", n=1, tg="am_all"), E("cast", "armor", n=1, per={})], None),
+        ("comp_knight_vowscroll", "Vow Scroll", 1, [E("cast", "buff", a=1, h=1, tg="fm_all", f={"tr": ["Lieutenant", "Nemesis"]}), E("cast", "draw", n=1)], None),
+        ("comp_barbarian_throwingaxe", "Throwing Axe", 0, [E("cast", "dmg", n=2, tg="any"), E("cast", "dmg", n=2, tg="any", **IF(weapon=True), tx="If you have a weapon, deal 2 more")], None),
+        ("comp_hound_whistle", "Hound Whistle", 0, [E("cast", "summon", id="t_bonehound", cnt=2)], None),
+        ("comp_knight_heater", "Heater Shield", 1, [E("cast", "armor", n=5), E("cast", "buff", a=1, h=1, tg="fm_all", f={"kw": "taunt"})], None),
+        ("comp_barbarian_oathring", "Oath Ring", 1, [E("cast", "hatk", n=3), E("cast", "draw", n=1, **IF(weapon=True))], None),
+        ("comp_hound_steak", "Raw Steak", 0, [E("cast", "buff", a=3, h=3, tg="fm", f={"tr": ["Beast", "Monster", "Companion"]})], None),
+        ("comp_sword_runeoil", "Rune Oil", 1, [E("cast", "wbuff", a=2, h=0), E("cast", "hatk", n=2)], None),
+        ("comp_knight_pennant", "Battle Pennant", 0, [E("cast", "kw", k="rush", tg="fm_all", f={"tr": ["Lieutenant", "Nemesis"]}, tx="Give your Lieutenants and Nemeses +1 Attack and Quick"), E("cast", "buff", a=1, h=0, tg="fm_all", f={"tr": ["Lieutenant", "Nemesis"]}, tx="")], None),
+        ("comp_sword_prayer", "Last Prayer", 2, [E("cast", "destroy", tg="em", min=5), E("cast", "armor", n=5)], None),
+    ],
+    "healer": [
+        ("comp_cleric_holywater", "Holy Water", 0, [E("cast", "aoe_heal", n=3, tg="friends"), E("cast", "draw", n=1, **IF(hurt=True))], None),
+        ("comp_cleric_scripture", "Scripture", 0, [E("cast", "tutor", f={"tr": ["Party", "Signature"]}), E("cast", "heal", n=3, tg="fhero")], None),
+        ("comp_cleric_bandage", "Bandage Roll", 0, [E("cast", "heal", n=8, tg="m", tx="Heal a minion for 8 and give it Guard"), E("cast", "kw", k="taunt", tg="m", tx="")], None),
+        ("comp_cleric_beads", "Prayer Beads", 1, [E("cast", "buff", a=1, h=2, tg="fm_all", f={"tr": ["Party", "Signature", "Swarm"]})], None),
+        ("comp_cleric_crucifix", "Blessed Ward", 1, [E("cast", "kw", k="divine", tg="fm_all", f={"amax": 2})], None),
+        ("comp_fairy_locket", "Healing Locket", 0, [E("cast", "heal", n=2, tg="fhero", per={}), E("cast", "draw", n=1)], None),
+        ("comp_cleric_sash", "Cleric's Sash", 1, [E("cast", "buff", a=2, h=4, tg="fm", tx="Give one of your minions +2 Attack, +4 Health and Lifesteal"), E("cast", "kw", k="lifesteal", tg="fm", tx="")], None),
+        ("comp_cleric_staffcharm", "Smite the Mighty", 1, [E("cast", "destroy", tg="em", min=6)], None),
+        ("comp_knight_clasp", "Steadfast Clasp", 0, [E("cast", "buff", a=0, h=2, tg="fm_all", f={"kw": "taunt"}), E("cast", "armor", n=3)], None),
+        ("comp_fairy_ribbon", "Second Chance", 1, [E("cast", "kw", k="reborn", tg="fm", tx="Heal one of your minions for 4 and give it Comes Back"), E("cast", "heal", n=4, tg="fm", tx="")], None),
+        ("comp_squire_ribbon", "Thank-You Note", 2, [E("cast", "draw", n=1, per={"tr": ["Party", "Signature"]}), E("cast", "aoe_heal", n=2, tg="friends")], None),
+    ],
+    "collector": [
+        ("comp_goldragon_hoardcoin", "Hoard Coin", 0, [E("cast", "coin"), E("cast", "reduce", n=1, f={"tr": "Mech"})], None),
+        ("comp_goldragon_eyegem", "Dragon's Eye", 1, [E("cast", "discover", pool="minion", f={"tr": "Mech"}), E("cast", "reduce", n=1, f={"tr": "Mech"})], None),
+        ("comp_goldragon_crown", "Gilded Crown", 1, [E("cast", "buff", a=1, h=1, tg="fm_all", f={"tr": "Mech"}), E("cast", "coin")], None),
+        ("comp_goldragon_scale", "Appraisal", 2, [E("cast", "draw", n=1, per={"r": 2}), E("cast", "armor", n=3)], None),
+        ("comp_goldragon_wyrmheart", "Wyrmheart", 2, [E("cast", "armor", n=8), E("cast", "draw", n=2, **IF(ctrl={"r": 3}))], None),
+        ("oe:vintage-pocket-watch", "Pocket Watch", 0, [E("cast", "mana", n=2)], None),
+        ("oe:kaleidoscope", "Kaleidoscope", 1, [E("cast", "discover", pool="any", f={"mmin": 5})], None),
+        ("oe:compass", "Wayfinder's Compass", 0, [E("cast", "tutor", f={"tr": "Mech"}), E("cast", "tutor", f={"t": "s"})], None),
+        ("oe:brass-telescope", "Brass Telescope", 1, [E("cast", "discover", pool="any", f={"r": 2}), E("cast", "draw", n=1)], None),
+        ("oe:swiss-army-knife", "Swiss Army Knife", 0, [E("cast", "dmg", n=2, tg="any"), E("cast", "armor", n=2), E("cast", "coin")], None),
+        ("oe:golden-egg-timer", "Golden Egg Timer", 1, [E("cast", "reduce", n=1, f={"mmin": 5}), E("cast", "draw", n=1)], None),
+        ("oe:genuine-meteorite-fragment", "Meteorite Fragment", 2, [E("cast", "dmg", n=5, tg="em"), E("cast", "dmg", n=2, tg="em_all", f={"amax": 2})], None),
+    ],
+    "gambler": [
+        ("comp_assassin_contract", "Shady Contract", 0, [E("cast", "steal"), E("cast", "steal", **IF(weapon=True), tx="If you have a weapon, steal another")], None),
+        ("comp_assassin_poison", "Poison Vial", 0, [E("cast", "kw", k="poisonous", tg="fm"), E("cast", "draw", n=1)], None),
+        ("comp_assassin_smokebomb", "Smoke Bomb", 1, [E("cast", "kw", k="stealth", tg="fm_all")], None),
+        ("comp_assassin_lotus", "Black Lotus", 1, [E("cast", "destroy", tg="em", max=3), E("cast", "coin")], None),
+        ("comp_imp_hellberries", "Hell Berries", 0, [E("cast", "gamble", n=3, tx="Spin! twice. Each time, randomly: 3 damage to a random enemy, OR heal your hero for 3, OR draw a card"), E("cast", "gamble", n=3, tx="")], None),
+        ("comp_assassin_wristblades", "Wrist Blades", 1, [E("cast", "equip", a=2, h=2), E("cast", "tutor", f={"t": "w"})], None),
+        ("comp_imp_pitchfork", "Pitchfork Rally", 1, [E("cast", "buff", a=2, h=1, tg="fm_all", f={"tr": ["Enemy", "Boss", "Goblin"]})], None),
+        ("oe:grandfather-s-lucky-coin", "Grandfather's Lucky Coin", 2, [E("cast", "coin"), E("cast", "coin"), E("cast", "gamble", n=4)], None),
+        ("oe:straight-razor", "Straight Razor", 0, [E("cast", "dmg", n=2, tg="em"), E("cast", "dmg", n=2, tg="em", **IF(weapon=True), tx="If you have a weapon, deal 2 more")], None),
+    ],
+}
+for cls, lst in TT.items():
+    for art, nm, rar, fx, cost in lst:
+        col = NS["CCOL"][cls]
+        a = oe_item(art[3:], col) if art.startswith("oe:") else icon_art(art, col)
+        add(spell(f"tt_{re.sub(r'[^a-z]+', '_', nm.lower()).strip('_')}", nm, cls, rar, cost if cost is not None else spell_cost(fx, 1), fx, a, g=GT, tr="Trick"), "tt")
+TT_W = [  # weapons: the synergy lands when you equip them
+    ("wep_3_greatsword", "Tower Greatsword", "champion", 3, 1, 3, 2, [E("bc", "buff", a=1, h=0, tg="fm_all", f={"kw": "taunt"})]),
+    ("wep_5_battleaxe", "Frenzied Axe", "champion", 4, 1, 3, 3, [E("bc", "dmg", n=1, tg="am_all")]),
+    ("wep_4_longsword", "Knight's Longsword", "champion", 4, 2, 4, 2, [E("bc", "tutor", f={"tr": ["Lieutenant", "Nemesis"]})]),
+    ("wep_2_dagger", "Coin Dagger", "gambler", 1, 0, 1, 2, [E("bc", "coin")]),
+    ("wep_6_knives", "Twin Knives", "gambler", 3, 1, 2, 3, [E("bc", "kw", k="poisonous", tg="fm")]),
+    ("wep_7_scimitar", "Gilded Scimitar", "gambler", 5, 2, 4, 3, [E("bc", "buff", a=1, h=1, tg="fm_all", f={"tr": ["Enemy", "Boss", "Goblin"]})]),
+]
+for art, nm, cls, cost, rar, a, dur, fx in TT_W:
+    add(weapon(f"ttw_{re.sub(r'[^a-z]+', '_', nm.lower()).strip('_')}", nm, cls, rar, cost, a, dur, [], fx, icon_art(art, NS["CCOL"][cls], 0.85), g=GT, tr="Trick"), "tt")
+
 # ================================================================ write
 def save_sheets():
     out = []
@@ -619,11 +725,11 @@ def clean(c):
 DATA["cards"] += [clean(c) for c in CARDS]
 DATA["tokens"].update({k: clean(v) for k, v in TOKENS.items()})
 DATA["sets"] = [{"id": "core", "n": "Core Set"}, {"id": "ih", "n": "Siege of Ironhold", "kw": "Frenzy"},
-                {"id": "dc", "n": "The Deep Catch", "kw": "Dredge"}]
+                {"id": "dc", "n": "The Deep Catch", "kw": "Dredge"}, {"id": "tt", "n": "Tricks of the Trade", "kw": "Synergy spells"}]
 with open(DATA_JS, "w") as f:
     f.write("window.LL_DATA=" + json.dumps(DATA, separators=(",", ":")) + ";")
 from collections import Counter
-for s in ("ih", "dc"):
+for s in ("ih", "dc", "tt"):
     cs = [c for c in CARDS if c["s"] == s]
     print(s, len(cs), dict(Counter(c["c"] for c in cs)), dict(Counter(c["r"] for c in cs)), dict(Counter(c["t"] for c in cs)))
 print("sheets", len(DATA["sheets"]), "renamed", {k: v for k, v in RENAME.items() if k != v})

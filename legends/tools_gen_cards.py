@@ -42,7 +42,7 @@ TGO = {"any": "any character", "enemy": "an enemy", "m": "a minion", "em": "an e
 TRIG = {"bc": "When played: ", "dr": "When it dies: ", "eot": "End of your turn: ", "sot": "Start of your turn: ",
         "atk": "When it attacks: ", "dmg": "When it takes damage: ", "fspell": "After you cast a spell: ",
         "heal": "When anything is healed: ", "edie": "When an enemy minion dies: ", "combo": "If you played another card first this turn: ",
-        "fsum": "When you summon a minion: ", "cast": ""}
+        "fsum": "When you summon a minion: ", "cast": "", "aura": ""}
 SEC = {"eattack": "when an enemy attacks", "eminion": "after your opponent plays a minion", "espell": "when your opponent casts a spell",
        "fdie": "when one of your minions dies", "ehp": "when your hero takes damage"}
 # plain-English keyword names (internal ids stay the same)
@@ -67,26 +67,67 @@ def stats(a, h):
 def who(tg, default="a minion"):
     return TGO.get(tg, default) if tg not in ("any", "m") else default
 
+# ---- synergy filters: f = {tr, r, amin, amax, mmin, mmax, kw, t} (see match() in js/engine.js)
+RAR_N = ["Common", "Rare", "Epic", "Legendary"]
+def fnoun(f, plural=False, kind="minion"):
+    """'Beast' / 'Beasts', 'Legendary minion', 'minions with 2 or less Attack', 'spell'..."""
+    f = f or {}
+    if f.get("t") == "m": kind = "minion"
+    if f.get("t") == "s": kind = "spell"
+    elif f.get("t") == "w": kind = "weapon"
+    tr = f.get("tr")
+    PLW = {"Fish": "Fish", "Party": "Party members", "Boss": "Bosses", "Mech": "Mechs", "Sea": "Sea creatures", "Signature": "Signatures", "Swarm": "Swarms", "Nemesis": "Nemeses", "Enemy": "Enemies"}
+    if isinstance(tr, list):   # several tribes: name them all, plural if asked
+        names = [(PLW.get(t, t + "s") if plural else t) for t in tr]
+        return (", ".join(names[:-1]) + " or " + names[-1])
+    head = tr if tr else kind
+    if tr and kind == "minion" and isinstance(tr, str) and tr in ELEMENTS: head = f"{tr} minion"
+    if f.get("r") is not None: head = {0: "", 1: "Rare or better ", 2: "Epic or Legendary ", 3: "Legendary "}[f["r"]] + head
+    if plural:
+        last = head.split(" ")[-1]
+        pl = {"Fish": "Fish", "Party": "Party members", "Boss": "Bosses", "Mech": "Mechs", "Sea": "Sea creatures", "Nemesis": "Nemeses", "Enemy": "Enemies"}.get(last, last + "s")
+        head = head[: len(head) - len(last)] + pl
+    tail = []
+    if f.get("amin") is not None: tail.append(f"{f['amin']} or more Attack")
+    if f.get("amax") is not None: tail.append(f"{f['amax']} or less Attack")
+    if f.get("kw"): tail.append(KWN[f["kw"]])
+    s = head + (" with " + " and ".join(tail) if tail else "")
+    if f.get("mmax") is not None: s += f" that cost{'' if plural else 's'} {f['mmax']} or less"
+    if f.get("mmin") is not None: s += f" that cost{'' if plural else 's'} {f['mmin']} or more"
+    return s
+ELEMENTS = {"Ember", "Tide", "Bloom", "Volt", "Stone", "Shade", "Frost", "Gale", "Metal", "Mystic", "Moss", "Rust", "Gloom", "Static", "Circuit", "Spore"}
+def a_(noun): return ("an " if noun[:1].lower() in "aeiou" else "a ") + noun
+def tphrase(e, to=False):
+    """Who an effect hits, in words, honouring a filter."""
+    tg, f = e.get("tg", "any"), e.get("f")
+    if not f: return (TG.get(tg, "") if to else TGO.get(tg, "any character"))
+    one, many = fnoun(f), fnoun(f, True)
+    w = {"any": a_(one), "m": a_(one), "em": "an enemy " + one, "fm": "one of your " + many, "em_all": "ALL enemy " + many,
+         "am_all": "ALL " + many, "others": "ALL other " + many, "fm_all": "your other " + many, "rand_em": "a random enemy " + one}.get(tg, many)
+    return (" to " + w) if to else w
+
 def eff_text(e):
+    if "tx" in e: return e["tx"]   # hand-written wording for an effect that reads better joined to the one before
     op, tg = e["op"], e.get("tg", "any")
     n = e.get("n", 0)
-    if op == "dmg": s = f"Deal {n} damage{TG.get(tg, '')}"
-    elif op == "heal": s = f"Heal {TGO.get(tg, 'any character')} for {n}"
-    elif op == "buff": s = f"Give {who(tg)} {stats(e['a'], e['h'])}" if tg != "self" else f"Gain {stats(e['a'], e['h'])}"
-    elif op == "kw": s = (f"Give {who(tg)} {KWN[e['k']]}" if tg != "self" else f"Gain {KWN[e['k']]}")
+    F = bool(e.get("f"))
+    if op == "dmg": s = f"Deal {n} damage{tphrase(e, True)}"
+    elif op == "heal": s = f"Heal {tphrase(e)} for {n}"
+    elif op == "buff": s = f"Give {tphrase(e) if F else who(tg)} {stats(e['a'], e['h'])}" if tg != "self" else f"Gain {stats(e['a'], e['h'])}"
+    elif op == "kw": s = (f"Give {tphrase(e) if F else who(tg)} {KWN[e['k']]}" if tg != "self" else f"Gain {KWN[e['k']]}")
     elif op == "armor": s = f"Gain {n} Armor"
     elif op == "draw": s = f"Draw {'a card' if n == 1 else str(n) + ' cards'}"
     elif op == "summon":
         t = TOKENS.get(e["id"])
         c = e.get("cnt", 1)
         s = f"Summon {'a' if c == 1 else ['', '', 'two', 'three'][c]} {t['a']}/{t['h']} {t['n']}{'' if c == 1 else 's'}" if t else "Summon a minion"
-    elif op == "freeze": s = f"Freeze {TGO.get(tg, 'any character') if tg != 'any' else 'any character'}"
+    elif op == "freeze": s = f"Freeze {tphrase(e) if F else (TGO.get(tg, 'any character') if tg != 'any' else 'any character')}"
     elif op == "silence": s = f"Remove all abilities from {who(tg)}"
-    elif op == "destroy": s = f"Destroy {who(tg)}" + (f" with {e['max']} or less Attack" if e.get("max") is not None else "")
+    elif op == "destroy": s = f"Destroy {tphrase(e) if F else who(tg)}" + (f" with {e['max']} or less Attack" if e.get("max") is not None else "") + (f" with {e['min']} or more Attack" if e.get("min") is not None else "")
     elif op == "mana": s = f"Get {n} extra Mana this turn"
     elif op == "crystal": s = "Gain 1 more max Mana"
     elif op == "discover":
-        what = {"spell": "spells", "minion": "minions", "legendary": "Legendary cards", "any": "cards"}[e["pool"]]
+        what = fnoun(e["f"], True, "card") if e.get("f") else {"spell": "spells", "minion": "minions", "legendary": "Legendary cards", "any": "cards"}[e["pool"]]
         s = f"Pick 1 of 3 random {what} to add to your hand"
     elif op == "missiles": s = f"Fire {n} shots of 1 damage at random enemies"
     elif op == "resurrect": s = f"Bring back {'a random minion' if n == 1 else str(n) + ' random minions'} of yours that died"
@@ -102,8 +143,23 @@ def eff_text(e):
     elif op == "counter": s = "cancel that spell"
     elif op == "aura_adj": s = f"Minions next to it have +{e['a']} Attack"
     elif op == "aura_sd": s = f"Your spells deal +{n} damage"
+    elif op == "aura_f": s = f"Your other {fnoun(e['f'], True)} have +{e['a']} Attack"
+    elif op == "tutor": s = f"Draw {a_(fnoun(e['f'], kind='card'))} from your deck"
+    elif op == "reduce": s = f"{fnoun(e['f'], True, 'card')[0].upper() + fnoun(e['f'], True, 'card')[1:]} in your hand cost {n} less"
+    elif op == "hbuff": s = f"Give {fnoun(e.get('f'), True)} in your hand {stats(e.get('a', 0), e.get('h', 0))}"
     elif op == "overload": s = ""
     else: s = op
+    if e.get("per") is not None:
+        s = s.replace(" for ", " for ") + f" for each {'other ' if e['on'] != 'cast' else ''}{fnoun(e['per'])} you control"
+    if e.get("if"):
+        c = e["if"]
+        if c.get("ctrl"): cond = (f"If you control another {fnoun(c['ctrl'])}" if e['on'] != 'cast' else f"If you control {a_(fnoun(c['ctrl']))}") if c.get("n", 1) == 1 else f"If you control {c['n']} or more other {fnoun(c['ctrl'], True)}"
+        elif c.get("hand"): cond = f"If you're holding {a_(fnoun(c['hand'], kind='card'))}"
+        elif c.get("weapon"): cond = "If you have a weapon"
+        elif c.get("hurt"): cond = "If your hero is damaged"
+        elif c.get("spells"): cond = f"If you cast {c['spells']} {'spell' if c['spells'] == 1 else 'spells'} this turn"
+        else: cond = "If"
+        s = cond + ", " + s[0].lower() + s[1:]
     return s
 
 def describe(card):
@@ -120,20 +176,24 @@ def describe(card):
     for k in other: parts.append(KWN[k] + ".")
     groups = {}
     for e in card.get("fx", []):
-        groups.setdefault((e["on"], e.get("trig")), []).append(e)
+        groups.setdefault((e["on"], e.get("trig") or (json.dumps(e["sf"], sort_keys=True) if e.get("sf") else None)), []).append(e)
+    if card.get("cred"):
+        cr = card["cred"]; parts.append(f"Costs {cr.get('n', 1)} less for each {fnoun(cr['f'])} you control.")
     for (on, trig), es in groups.items():
         txt = [eff_text(e) for e in es if eff_text(e)]
         if not txt: continue
         body = ". ".join(txt[:1] + [t[0].upper() + t[1:] for t in txt[1:]])
         if on == "sec":
             parts.append(f"Trap: {SEC[trig]}, {body[0].lower() + body[1:]}.")
+        elif on == "fsum" and es[0].get("sf"):
+            parts.append(f"When you summon {a_(fnoun(es[0]['sf']))}: " + body.replace(" to it", " to it") + ".")
         else:
             parts.append(TRIG[on] + body + ".")
     if card.get("ov"): parts.append(f"Next turn you get {card['ov']} less Mana.")
     if card.get("sd"): parts.append(f"Your spells deal +{card['sd']} damage.")
     out = " ".join(parts).replace("..", ".")
-    if card.get("t") == "s" or card.get("hpower"):
-        out = out.replace("your other minions", "your minions").replace(" to itself", "")
+    if card.get("t") in ("s", "w") or card.get("hpower"):
+        out = out.replace("your other ", "your ").replace(" to itself", "").replace("each other ", "each ")
     return out
 
 def eff_value(e):
@@ -146,7 +206,15 @@ def eff_value(e):
          "copy": 3.0, "aoe_heal": n * 0.7, "aura_adj": e.get("a", 0) * 1.6, "aura_sd": 1.0}.get(op, 1.0)
     if op == "summon":
         t = TOKENS[e["id"]]; v = ((t["a"] + t["h"]) * 0.8 + sum(KWV.get(k, 0) for k in t["kw"]) * 0.8) * e.get("cnt", 1)
+    if op == "aura_f": v = e.get("a", 0) * 1.6
+    elif op == "tutor": v = 1.9
+    elif op == "reduce": v = n * 0.9
+    elif op == "hbuff": v = (e.get("a", 0) + e.get("h", 0)) * 0.7
     v *= mult
+    if e.get("f") and tg in ("em_all", "am_all", "others", "fm_all", "enemies", "friends"): v *= 0.45
+    elif e.get("f"): v *= 0.85
+    if e.get("per") is not None: v *= 1.5
+    if e.get("if"): v *= 0.6
     if e["on"] in ("eot", "sot", "fspell", "heal", "edie", "fsum", "atk"): v *= 1.6
     if e["on"] == "dr": v *= 0.8
     if e["on"] == "combo": v *= 0.7
@@ -154,11 +222,67 @@ def eff_value(e):
 
 # per-class stat budget, set by bot-vs-bot simulation (see docs/fishing.md, Labfreak Legends balance entries)
 CLASS_BONUS = {"healer": 0.3}
+# ---- synergies: some minions of a tribe get an ability that pays off for building around that tribe,
+# its stats or its rarity (Hearthstone-style "lords", "for each", "if you control", cost cuts, tutors).
+# Chosen by a stable hash, so the same cards get the same ability on every build.
+def _el(tr):
+    T = {"tr": tr}
+    return {
+        "Ember": ([], [E("bc", "dmg", n=1, tg="rand_enemy", per=T)], {}),
+        "Tide": ([], [E("bc", "draw", n=1, **{"if": {"ctrl": T}})], {}),
+        "Bloom": ([], [E("aura", "aura_f", a=1, f=T)], {}),
+        "Volt": ([], [E("fsum", "buff", a=1, h=0, tg="self", sf=T)], {}),
+        "Stone": ([], [E("bc", "buff", a=0, h=2, tg="fm_all", f=T)], {}),
+        "Shade": ([], [E("bc", "destroy", tg="em", max=2, **{"if": {"ctrl": T}})], {}),
+        "Frost": ([], [E("bc", "freeze", tg="em_all", f={"amax": 3})], {}),
+        "Gale": ([], [], {"cred": {"f": T, "n": 1}}),
+        "Metal": ([], [E("bc", "buff", a=1, h=1, tg="fm_all", f=T)], {}),
+        "Mystic": ([], [E("bc", "tutor", f={"t": "s"})], {}),
+        "Moss": ([], [E("bc", "heal", n=2, tg="fhero", per=T)], {}),
+        "Rust": ([], [E("bc", "buff", a=0, h=1, tg="self", per=T)], {}),
+        "Gloom": ([], [E("bc", "dmg", n=2, tg="em", **{"if": {"ctrl": T}})], {}),
+        "Static": ([], [E("aura", "aura_f", a=1, f=T)], {}),
+        "Circuit": ([], [E("bc", "reduce", n=1, f={"t": "s"})], {}),
+        "Spore": ([], [E("bc", "summon", id="t_spore", cnt=1, **{"if": {"ctrl": T}})], {}),
+    }.get(tr)
+def _tribe(tr, k):
+    T = {"tr": tr}
+    opts = [([], [E("aura", "aura_f", a=1, f=T)], {}),
+            ([], [E("bc", "buff", a=1, h=1, tg="fm_all", f=T)], {}),
+            ([], [], {"cred": {"f": T, "n": 1}}),
+            ([], [E("fsum", "buff", a=1, h=1, tg="self", sf=T)], {}),
+            ([], [E("bc", "tutor", f=T)], {}),
+            ([], [E("bc", "reduce", n=1, f=T)], {})]
+    return opts[k % len(opts)]
+SYN_RATE = {"Beast": .12, "Mech": .16, "Fish": .2, "Sea": .15, "Myth": .3, "Lieutenant": .3, "Party": .5, "Monster": .25, "Boss": .15}
+def synergize(cid, cls, rar, cost, kw, fx, extra):
+    tr = extra.get("tr")
+    if extra.get("nosyn") or not tr: return kw, fx, extra
+    r = h(cid + "syn")
+    add = None
+    if tr in ELEMENTS and r < .22 and (rar >= 1 or cost >= 3): add = _el(tr)
+    elif tr in ("Beast", "Fish", "Mech") and r < SYN_RATE[tr]: add = _tribe(tr, int(h(cid + "k") * 6))
+    elif tr == "Mech" and r < .22: add = ([], [E("fsum", "buff", a=1, h=1, tg="trig", sf={"tr": "Mech"})], {})
+    elif tr == "Sea" and r < SYN_RATE[tr]: add = ([], [E("bc", "buff", a=0, h=2, tg="fm_all", f={"tr": ["Sea", "Fish"]})], {})
+    elif tr == "Myth" and r < SYN_RATE[tr]: add = [([], [E("bc", "buff", a=2, h=2, tg="self", **{"if": {"ctrl": {"r": 3}}})], {}),
+                                                  ([], [E("bc", "destroy", tg="em", min=5)], {})][int(h(cid + "k") * 2)]
+    elif tr in ("Lieutenant",) and r < SYN_RATE[tr]: add = ([], [E("bc", "buff", a=1, h=0, tg="fm_all", f={"tr": ["Lieutenant", "Nemesis"]})], {})
+    elif tr in ("Party", "Signature") and r < .5: add = ([], [E("bc", "buff", a=1, h=1, tg="fm_all", f={"tr": ["Party", "Signature", "Swarm"]})], {})
+    elif tr in ("Knight", "Duelist", "Brute", "Ranger", "Gambler", "Hexpriest") and r < .3: add = ([], [E("bc", "buff", a=2, h=0, tg="self", **{"if": {"weapon": True}})], {})
+    elif tr in ("Monster", "Boss") and r < SYN_RATE[tr] and cost >= 5: add = ([], [E("bc", "destroy", tg="em", min=5)], {})
+    elif r > .97 and cost >= 2: add = ([], [E("bc", "buff", a=2, h=0, tg="fm", f={"amax": 2})], {})
+    if not add: return kw, fx, extra
+    k2, f2, x2 = add
+    if any(e["op"] in ("dmg", "destroy", "freeze", "transform") and e["on"] == "bc" for e in fx) and any(e["on"] == "bc" for e in f2): return kw, fx, extra
+    extra = dict(extra, **x2)
+    return kw + k2, fx + f2, extra
+
 def minion(cid, name, cls, rar, cost, frac, kw=(), fx=(), art=None, bonus=0, **extra):
     bonus += CLASS_BONUS.get(cls, 0)
+    kw, fx, extra = synergize(cid, cls, rar, cost, list(kw), list(fx), extra)
     kw = list(dict.fromkeys(kw))
     budget = 2 * cost + 1 + (0.5 if rar >= 2 else 0) + (1 if rar >= 3 else 0) + bonus
-    spend = sum(KWV.get(k, 0) for k in kw) + sum(eff_value(e) for e in fx)
+    spend = sum(KWV.get(k, 0) for k in kw) + sum(eff_value(e) for e in fx) + (1.2 * extra["cred"].get("n", 1) if extra.get("cred") else 0)
     if extra.get("sd"): spend += extra["sd"]
     if extra.get("ov"): spend -= extra["ov"] * 1.2
     # abilities worth more than the card's budget raise its cost instead of hiding behind the 2-stat floor

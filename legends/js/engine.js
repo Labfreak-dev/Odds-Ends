@@ -22,6 +22,36 @@
   }
   const card = id => DB.byId[id];
 
+  // ---------- synergy filters ----------
+  // f = { tr: tribe or [tribes], r: min rarity, amin/amax: Attack, mmin/mmax: cost, kw: keyword, t: card type }
+  // Works on board units (live Attack and keywords) and on card ids / hand instances (printed values).
+  function match(G, x, f) {
+    if (!f) return true;
+    const unit = x && x.kind === 'minion' ? x : null;
+    const c = card(unit ? x.cid : (x && x.cid) || x);
+    if (!c) return false;
+    if (f.tr) { const l = Array.isArray(f.tr) ? f.tr : [f.tr]; if (!l.includes(c.tr)) return false; }
+    if (f.t && c.t !== f.t) return false;
+    if (f.r != null && (c.r || 0) < f.r) return false;
+    if (f.mmin != null && c.m < f.mmin) return false;
+    if (f.mmax != null && c.m > f.mmax) return false;
+    const a = unit ? atkOf(G, unit) : (c.a || 0);
+    if (f.amin != null && a < f.amin) return false;
+    if (f.amax != null && a > f.amax) return false;
+    if (f.kw && !(unit ? unit.kw.has(f.kw) : (c.kw || []).includes(f.kw))) return false;
+    return true;
+  }
+  const countMine = (G, pi, f, except) => G.p[pi].board.filter(u => !u.dead && u !== except && match(G, u, f)).length;
+  function checkIf(G, pi, cond, src) {
+    const P = G.p[pi];
+    if (cond.ctrl) return countMine(G, pi, cond.ctrl, src) >= (cond.n || 1);
+    if (cond.hand) return P.hand.some(ci => match(G, ci.cid, cond.hand));
+    if (cond.weapon) return !!P.weapon;
+    if (cond.hurt) return P.hero.hp < P.hero.max;
+    if (cond.spells) return (G.spellsThisTurn || 0) >= cond.spells;
+    return true;
+  }
+
   // ---------- rng (mulberry32) ----------
   function rnd(G) { let t = (G.seed += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
   const pick = (G, arr) => arr.length ? arr[Math.floor(rnd(G) * arr.length)] : null;
@@ -95,6 +125,7 @@
         if (m.silenced) return;
         m.fx.forEach(e => {
           if (e.op === 'aura_adj') { [P.board[i - 1], P.board[i + 1]].forEach(n => { if (n) n.aura += e.a; }); }
+          if (e.op === 'aura_f') P.board.forEach(n => { if (n !== m && !n.dead && match(G, n, e.f)) n.aura += e.a; });
         });
       });
     }
@@ -112,7 +143,7 @@
     P.board.splice(pos, 0, m);
     ev(G, { t: 'summon', uid: m.uid, pi });
     // "whenever you summon a minion"
-    P.board.forEach(o => { if (o !== m && !o.silenced) o.fx.forEach(e => { if (e.on === 'fsum') resolve(G, e, { pi, src: o }); }); });
+    P.board.forEach(o => { if (o !== m && !o.silenced) o.fx.forEach(e => { if (e.on === 'fsum' && (!e.sf || match(G, m, e.sf))) resolve(G, e, { pi, src: o, trig: m }); }); });
     recalcAuras(G);
     return m;
   }
@@ -136,7 +167,7 @@
   }
   function startTurn(G, pi) {
     const P = G.p[pi];
-    G.turn = pi; G.turnNo++; G.played = 0;
+    G.turn = pi; G.turnNo++; G.played = 0; G.spellsThisTurn = 0;
     P.maxMana = Math.min(MAX_MANA, P.maxMana + 1);
     P.ovLocked = P.ovNext; P.ovNext = 0;
     P.mana = Math.max(0, P.maxMana - P.ovLocked);
@@ -185,6 +216,8 @@
     list = list.filter(u => !u.dead && u.uid !== opts.self);
     const e = opts.eff;
     if (e && e.op === 'destroy' && e.max != null) list = list.filter(u => u.kind === 'minion' && atkOf(G, u) <= e.max);
+    if (e && e.op === 'destroy' && e.min != null) list = list.filter(u => u.kind === 'minion' && atkOf(G, u) >= e.min);
+    if (e && e.f) list = list.filter(u => u.kind === 'minion' && match(G, u, e.f));
     if (e && ['buff', 'kw', 'silence', 'destroy', 'transform', 'bounce', 'curse'].includes(e.op)) list = list.filter(u => u.kind === 'minion');
     return list;
   }
@@ -196,7 +229,9 @@
     const c = card(ci.cid);
     let m = c.m;
     if (c.evo && G.p[pi].board.some(x => x.cid === c.evo.fromId && !x.dead)) m = Math.max(0, m - 2);
-    return m;
+    if (ci.disc) m -= ci.disc;
+    if (c.cred) m -= countMine(G, pi, c.cred.f) * (c.cred.n || 1);
+    return Math.max(0, m);
   }
 
   // ---------- damage / heal ----------
@@ -302,9 +337,17 @@
   }
   function resolve(G, e, ctx) {
     if (G.phase === 'over') return;
+    if (e.if && !checkIf(G, ctx.pi, e.if, ctx.src)) return;
+    if (e.per) {   // "for each <filter> you control": scale the numbers, then resolve once
+      const k = countMine(G, ctx.pi, e.per, ctx.src && ctx.src.kind === 'minion' ? ctx.src : null);
+      if (!k) return;
+      const e2 = Object.assign({}, e, { per: null });
+      ['n', 'a', 'h'].forEach(f => { if (e2[f] != null) e2[f] *= k; });
+      return resolve(G, e2, ctx);
+    }
     const pi = ctx.pi, me = G.p[pi], op = G.p[1 - pi];
     const sd = ctx.spell ? spellDamage(G, pi) : 0;
-    const us = () => unitsFor(G, e, ctx);
+    const us = () => e.f ? unitsFor(G, e, ctx).filter(u => u.kind === 'minion' && match(G, u, e.f)) : unitsFor(G, e, ctx);
     const srcUnit = ctx.src && ctx.src.kind === 'minion' ? ctx.src : null;
     switch (e.op) {
       case 'dmg': { const n = e.n + sd; us().forEach(u => damage(G, srcUnit, u, n, ctx)); if (ctx.spell) ev(G, { t: 'vfx', k: ctx.vfx, uids: us().map(u => u.uid) }); break; }
@@ -321,7 +364,7 @@
         for (let k = 0; k < cnt; k++) { const m = summon(G, pi, e.id, pos); if (m) pos++; } break; }
       case 'freeze': us().forEach(u => freeze(G, u)); break;
       case 'silence': us().forEach(u => silence(G, u)); break;
-      case 'destroy': us().forEach(u => { if (u.kind === 'minion' && (e.max == null || atkOf(G, u) <= e.max)) { u.destroy = true; ev(G, { t: 'destroy', uid: u.uid }); } }); break;
+      case 'destroy': us().forEach(u => { if (u.kind === 'minion' && (e.max == null || atkOf(G, u) <= e.max) && (e.min == null || atkOf(G, u) >= e.min)) { u.destroy = true; ev(G, { t: 'destroy', uid: u.uid }); } }); break;
       case 'mana': me.mana = Math.min(MAX_MANA, me.mana + e.n); break;
       case 'crystal': me.maxMana = Math.min(MAX_MANA, me.maxMana + 1); break;
       case 'missiles': { const n = e.n + sd; for (let k = 0; k < n; k++) { const l = [...op.board, op.hero].filter(u => !u.dead && (u.kind === 'hero' || u.h > 0));
@@ -339,8 +382,12 @@
         if (r === 0) { const l = [...op.board, op.hero].filter(u => !u.dead); const u = pick(G, l); if (u) damage(G, srcUnit, u, e.n + sd, ctx); log(G, 'The reels land on Daggers.'); }
         else if (r === 1) { heal(G, me.hero, e.n); log(G, 'The reels land on Hearts.'); } else { draw(G, pi); log(G, 'The reels land on Cards.'); } break; }
       case 'copy': if (srcUnit) summon(G, pi, srcUnit.cid, me.board.indexOf(srcUnit) + 1); break;
-      case 'discover': discover(G, pi, e.pool); break;
+      case 'discover': discover(G, pi, e.f || e.pool); break;
       case 'equip': equip(G, pi, { a: e.a, h: e.h, kw: [], cid: ctx.cid }); break;
+      case 'tutor': { const i = me.deck.findIndex(cid => match(G, cid, e.f)); if (i >= 0 && me.hand.length < MAX_HAND) { const cid = me.deck.splice(i, 1)[0]; const ci = mkCardInst(G, cid); me.hand.push(ci); ev(G, { t: 'draw', pi, uid: ci.uid }); } else if (i < 0) draw(G, pi); break; }
+      case 'reduce': me.hand.forEach(ci => { if (match(G, ci.cid, e.f)) ci.disc = (ci.disc || 0) + e.n; }); break;
+      case 'hbuff': me.hand.forEach(ci => { const c = card(ci.cid); if (c.t === 'm' && match(G, ci.cid, e.f)) { ci.ba = (ci.ba || 0) + (e.a || 0); ci.bh = (ci.bh || 0) + (e.h || 0); } }); break;
+      case 'aura_f': recalcAuras(G); break;
       case 'hatk': me.hero.tempAtk = (me.hero.tempAtk || 0) + e.n; ev(G, { t: 'buff', uid: me.hero.uid }); break;
       case 'dredge': dredge(G, pi); break;
       case 'wbuff': if (me.weapon) { me.weapon.a += e.a || 0; me.weapon.h += e.h || 0; ev(G, { t: 'equip', pi }); } break;
@@ -362,7 +409,8 @@
   function discoverPool(G, pi, pool) {
     const cls = G.p[pi].cls;
     return DB.collectible.filter(c => (c.c === cls || c.c === 'neutral') &&
-      (pool === 'any' || (pool === 'spell' && c.t === 's') || (pool === 'minion' && c.t === 'm') || (pool === 'legendary' && c.r === 3)));
+      (pool === 'any' || (pool === 'spell' && c.t === 's') || (pool === 'minion' && c.t === 'm') || (pool === 'legendary' && c.r === 3) ||
+       (typeof pool === 'object' && match(G, c.id, pool))));
   }
   function discover(G, pi, pool) {
     const P = G.p[pi];
@@ -479,6 +527,7 @@
         m = summon(G, pi, c.id, pos);
         if (!m) return true;
       }
+      if (ci.ba || ci.bh) { m.a += ci.ba || 0; m.h += ci.bh || 0; m.max += ci.bh || 0; }
       fireSecret(G, 1 - pi, 'eminion', { trig: m });
       deaths(G);
       if (m.dead || G.phase === 'over') return true;
@@ -498,6 +547,7 @@
         if (i < 0) return false;
         return fireSecret(G, 1 - pi, 'espell', {}).countered;
       })() : false;
+      G.spellsThisTurn = (G.spellsThisTurn || 0) + 1;
       if (!countered) {
         (c.fx || []).forEach(e => { if (e.on === 'cast') resolve(G, e, { pi, target: picks(e) ? target : null, spell: true, vfx: c.vfx, cid: c.id }); });
         P.board.slice().forEach(m => { if (!m.silenced && !m.dead) m.fx.forEach(e => { if (e.on === 'fspell') resolve(G, e, { pi, src: m }); }); });
@@ -742,6 +792,6 @@
 
   const API = { setData, newGame, mulligan, botMulligan, playCard, canPlay, heroPower, canHeroPower, attack, canAttack, attackTargets,
     endTurn, botStep, botTurn, validTargets, needsTarget, chosenEffect, targetTg, costOf, atkOf, spellDamage, findUnit, chooseDiscover,
-    randomDeck, validateDeck, chooseDredge, picks, card: id => DB.byId[id], db: () => DB, KWS, MAX_BOARD, MAX_HAND };
+    randomDeck, validateDeck, chooseDredge, picks, match, card: id => DB.byId[id], db: () => DB, KWS, MAX_BOARD, MAX_HAND };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.LLE = API;
 })(typeof window !== 'undefined' ? window : globalThis);

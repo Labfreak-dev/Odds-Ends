@@ -26,6 +26,7 @@ FONT = '/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf'
 PACKS = [  # id, name on the foil, rgb, cover card id (matches PACKS in js/ui.js)
     ('ih', 'SIEGE OF IRONHOLD', (225, 95, 70), 'ihn_ashking'),
     ('dc', 'THE DEEP CATCH', (40, 150, 220), 'dcl_drownedking'),
+    ('tt', 'TRICKS OF THE TRADE', (255, 140, 230), 'tt_kaleidoscope'),
     ('glim', 'GLIMMERDEEP', (90, 200, 255), 'gd_emdr4'),
     ('dmp', "DEAD MAN'S PULL", (150, 200, 90), 'dmpb_death3'),
     ('th', 'THANKLESS', (240, 190, 90), 'th_kingc'),

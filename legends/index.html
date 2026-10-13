@@ -715,6 +715,14 @@ html { overflow-x: hidden; }
 .brawl small { font-weight: 900; color: #ffcf8a; text-transform: uppercase; letter-spacing: .1em; }
 .brawl h3 { font-size: 40px; } .brawl .btx { color: #f3e6d0 !important; font-size: 18px; } .brawl .brew { color: var(--gold) !important; }
 .codebox.wide { max-width: 760px; text-align: center; } .codebox.wide h4 { font-family: var(--display); color: var(--teal); margin: 6px 0 0; text-align: left; }
+
+/* ---------- Rise of the Pantheon ---------- */
+.card .harmor { position: absolute; right: -4%; bottom: -3%; width: 30%; aspect-ratio: 1; display: grid; place-items: center; font: 700 1.9em var(--display); color: #fff;
+  background: linear-gradient(180deg, #c9d3e0, #6b7a90); clip-path: polygon(50% 0, 100% 15%, 92% 70%, 50% 100%, 8% 70%, 0 15%); text-shadow: 0 2px 0 #1d2533; }
+.card.t-h { background: linear-gradient(160deg, #ffe7a0, rgba(var(--cc),.7) 40%, #22160a 41%, #120c06); }
+.card.echo { opacity: .82; filter: saturate(1.3) hue-rotate(-10deg); box-shadow: 0 0 0 calc(var(--cw)*.02) #9fd8ff, 0 0 calc(var(--cw)*.14) rgba(150,210,255,.8); }
+.qchip { font: 700 12px var(--display); color: #ffe39a; background: #3a2a10; border: 1.5px solid #c89b3c; border-radius: 99px; padding: 1px 8px; white-space: nowrap; }
+.row.choose .card { --cw: min(180px, 40vw); cursor: pointer; } .row.choose .card.locked { opacity: .45; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 

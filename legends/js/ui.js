@@ -14,12 +14,14 @@
   const SETN = Object.fromEntries(SETS.map(x => [x.id, x.n]));
   const setOf = c => c.s || 'core';
   const SET_ICON = {
+    pt: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#3a2a10" stroke="#ffd35c" stroke-width="2"/><path d="M5 18h14M6 18V10M10 18V10M14 18V10M18 18V10M4 10l8-5 8 5z" stroke="#ffd35c" stroke-width="1.8" stroke-linejoin="round" fill="none"/></svg>',
     ih: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z" fill="#2a2f3a" stroke="#ffd35c" stroke-width="2"/><path d="M8 8h8M12 8v9M9 17h6" stroke="#ffd35c" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
     tt: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#3a1d4a" stroke="#ffb3f0" stroke-width="2"/><path d="M12 5l1.9 4.3 4.6.4-3.5 3 1.1 4.6L12 15l-4.1 2.3 1.1-4.6-3.5-3 4.6-.4z" fill="#ffb3f0"/></svg>',
     dc: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#0d3550" stroke="#7fd8ff" stroke-width="2"/><path d="M12 4v11a4 4 0 0 1-8 0M12 4a2 2 0 1 1 0 .01M15 12l-3 3" stroke="#7fd8ff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
   };
   const CCOL = c => (D.heroes[c] ? D.heroes[c].col : [190, 180, 160]).join(',');
   const RN = ['Common', 'Rare', 'Epic', 'Legendary'];
+  const TYPEN = c => c.q ? 'quest' : c.t === 's' ? 'spell' : c.t === 'w' ? 'weapon' : c.t === 'h' ? 'hero card' : 'minion';
   // plain-English glossary: [word on the card, what it means, board icon]
   const GLOSS = [
     ['Guard', 'Enemies must attack this minion before they can hit anything else.', 'kw:taunt'],
@@ -65,16 +67,26 @@
     ["Spells can't target it", "Spells and Hero Powers can't choose it."],
     ['+2 Attack while hurt', 'Gets +2 Attack while it is missing Health.'],
     ['ALL', 'Hits every one of them, not just one.'],
+    ['Choose One:', 'When you play it, you pick which of the two effects happens. (Rise of the Pantheon)'],
+    ['Echo', 'After you play it, a copy comes back to your hand for the rest of the turn. You can keep playing copies while you have the Mana.'],
+    ['Magnetic', 'Play it next to one of your Mechs to fuse into that Mech: it gets this card\'s Attack, Health and abilities instead of taking a space.'],
+    ['Tradeable', 'In your hand, you can pay 1 Mana to shuffle it back into your deck and draw a different card.'],
+    ['Quest:', 'Starts in your opening hand. Play it for 1 Mana, then do what it says; when you finish, the Reward card goes into your hand.'],
+    ['Start of Game:', 'Happens by itself when the game begins, as long as the card is in your deck.'],
+    ['no duplicates', 'Only works if your deck had no two copies of the same card.'],
+    ['Hero Power:', 'A hero card replaces your hero: you keep your Health, gain the Armor on the card, and get this new Hero Power.'],
   ];
   function explain(c) {
     const tx = c.tx || '', out = [];
     GLOSS.forEach(([k, v]) => { if (tx.includes(k) && !(k === 'Shield' && !/\bShield\b/.test(tx)) && !(k === 'Freeze' && tx.includes('Freezes anything'))) out.push([k.replace(/:$/, ''), v]); });
     if (c.evo) out.unshift(['Evolves from ' + c.evo.from, `Costs 2 less while ${c.evo.from} is on your board. Playing it turns ${c.evo.from} into this card.`]);
+    if (c.t === 'h') out.unshift(['Hero card', `Becomes your hero. You gain ${c.h} Armor and the new Hero Power; your Health stays as it is.`]);
+    if (c.q) { const rw = E.card(c.q.rw); if (rw) out.push(['Reward: ' + rw.n, rw.tx || '']); }
     if (c.t === 'w') out.push(['Weapon', 'Lets your hero attack. Attack is the yellow number; the grey number is how many attacks it lasts.']);
     return out;
   }
   const BOLD = ['When played:', 'When it dies:', 'If you played another card first this turn:', 'Start of your turn:', 'End of your turn:', 'When it attacks:',
-    'When it takes damage:', 'Frenzy:', 'Dredge', 'After you cast a spell:', 'When anything is healed:', 'When an enemy minion dies:', 'When you summon a minion:', 'Trap:', 'Spin!',
+    'When it takes damage:', 'Frenzy:', 'Dredge', 'After you cast a spell:', 'When anything is healed:', 'When an enemy minion dies:', 'When you summon a minion:', 'Trap:', 'Spin!', 'Choose One:', 'Echo', 'Magnetic', 'Tradeable', 'Quest:', 'Reward:', 'Start of Game:', 'Hero Power:',
     'Double Strike', 'Comes Back', 'Guard', 'Haste', 'Quick', 'Shield', 'Hidden', 'Deadly', 'Lifesteal', 'Freeze', 'ALL'];
   const KWRE = new RegExp('(^|[^\\w])(' + BOLD.map(w => w.replace(/[.*+?^${}()|[\]\\!]/g, '\\$&')).join('|') + ')(?![\\w])', 'g');
 
@@ -110,7 +122,7 @@
     o = o || {};
     const cls = c.c || 'neutral';
     const cost = o.cost != null ? o.cost : c.m;
-    const tribe = c.tr ? esc(c.tr) : (c.t === 's' ? 'Spell' : c.t === 'w' ? 'Weapon' : '');
+    const tribe = c.tr ? esc(c.tr) : (c.t === 's' ? 'Spell' : c.t === 'w' ? 'Weapon' : c.t === 'h' ? 'Hero' : '');
     const nameSize = c.n.length > 20 ? 'font-size:.84em' : c.n.length > 15 ? 'font-size:.96em' : '';
     const L = (c.tx || '').length;
     const tf = L <= 45 ? 1 : L <= 75 ? .92 : L <= 105 ? .82 : L <= 135 ? .74 : .68;
@@ -121,7 +133,7 @@
       <div class="gem r${c.r}"></div>
       ${c.evo ? `<div class="evo">Evolves from ${esc(c.evo.from)}</div>` : ''}
       <div class="text"><span data-f="${tf}" style="font-size:${tf}em">${fmt(c.tx || '')}</span></div>
-      ${c.t !== 's' ? `<div class="atk">${c.a}</div><div class="hp">${c.h}</div>` : ''}
+      ${c.t === 'h' ? `<div class="harmor" title="Armor">${c.h}</div>` : c.t !== 's' ? `<div class="atk">${c.a}</div><div class="hp">${c.h}</div>` : ''}
       <div class="tribe">${tribe}</div>${c.s && SET_ICON[c.s] ? `<div class="setb" title="${esc(SETN[c.s] || '')}">${SET_ICON[c.s]}</div>` : ''}
       ${o.copies ? `<div class="copies">×${o.copies}</div>` : ''}${o.owned != null ? `<div class="owned${o.owned ? '' : ' none'}">${o.owned ? 'Owned ×' + o.owned : 'Not owned'}</div>` : ''}${o.golden ? '<i class="gsheen" aria-hidden="true"></i>' : ''}
     </div>`;
@@ -234,6 +246,7 @@
   const ODDS_STD = [72, 21, 5.5, 1.5], ODDS_MV = [40, 36, 17, 7];
   const PACKS = [
     { id: 'ih', name: 'Siege of Ironhold Pack', price: 100, odds: ODDS_STD, cover: 'ihn_ashking', col: '225,95,70', set: 'ih', blurb: "New expansion. Ironhold Idle's nemeses, monsters, companions and gear, the Champion's class cards, and the Frenzy keyword.", f: c => c.s === 'ih' },
+    { id: 'pt', name: 'Rise of the Pantheon Pack', price: 100, odds: ODDS_STD, cover: 'pt_zeus_sky_father', col: '255,200,90', set: 'pt', blurb: 'New expansion. Gods and heroes of myth with Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards and Start of Game.', f: c => c.s === 'pt' },
     { id: 'tt', name: 'Tricks of the Trade Pack', price: 100, odds: ODDS_STD, cover: 'tt_kaleidoscope', col: '255,140,230', set: 'tt', blurb: 'New expansion. 74 spells and weapons built for synergy: tribes, Attack, cost, rarity, weapons and spell chains.', f: c => c.s === 'tt' },
     { id: 'dc', name: 'Deep Catch Pack', price: 100, odds: ODDS_STD, cover: 'dcl_drownedking', col: '40,150,220', set: 'dc', blurb: 'New expansion. A hundred fish, sea creatures, sunken treasure, tackle and the six Legend fish, with the Dredge keyword.', f: c => c.s === 'dc' },
     { id: 'glim', name: 'Glimmerdeep Pack', price: 100, odds: ODDS_STD, cover: 'gd_emdr4', col: '90,200,255', blurb: 'Tamer creatures from every biome, all their evolutions, and the 24 bosses.', f: c => c.g === 'Glimmerdeep' },
@@ -629,7 +642,7 @@
       `<div class="fmore"><div class="fcls">` +
       (editing ? `<button class="chip${F.cls === 'all' ? ' on' : ''}" data-f="cls" data-v="all">All</button>` : '') +
       clsList.map(c => `<button class="chip${F.cls === c ? ' on' : ''}" data-f="cls" data-v="${c}">${c === 'all' ? 'All classes' : CLSN[c]}</button>`).join('') + `</div><div class="fsel">` +
-      `<select class="sel" data-f="type" aria-label="Card type"><option value="all">All types</option><option value="m">Minions</option><option value="s">Spells</option><option value="w">Weapons</option></select>` +
+      `<select class="sel" data-f="type" aria-label="Card type"><option value="all">All types</option><option value="m">Minions</option><option value="s">Spells</option><option value="w">Weapons</option><option value="h">Hero cards</option></select>` +
       `<select class="sel" data-f="rar" aria-label="Rarity"><option value="all">All rarities</option>${RN.map((r, i) => `<option value="${i}">${r}</option>`).join('')}</select>` +
       `<select class="sel" data-f="set" aria-label="Card set"><option value="all">All sets</option>${SETS.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('')}</select>` +
       `<select class="sel" data-f="game" aria-label="Game"><option value="all">All games</option>${GAMES.map(g => `<option>${esc(g)}</option>`).join('')}</select>` +
@@ -839,7 +852,7 @@
           <button class="small gold glow" data-craft="1" ${(n < cap ? dust < CRAFT_G[c.r] : (!nm || dust < CRAFT_G[c.r] - DE[c.r])) ? 'disabled' : ''}>${n < cap ? `Craft golden · ${CRAFT_G[c.r]}` : `Make golden · ${CRAFT_G[c.r] - DE[c.r]}`}</button>
           <button class="small" data-de="1" ${!g || !canDE(c.id) ? 'disabled' : ''}>Disenchant golden · +${DE_G[c.r]}</button></div></div>`;
     $('#zoom').innerHTML = `<div class="wrap">${cardHTML(c, { golden: zoomGold })}<div class="info"><h3>${esc(c.n)}</h3>
-      <p>${RN[c.r]} ${c.t === 's' ? 'spell' : c.t === 'w' ? 'weapon' : 'minion'} · ${CLSN[c.c]} · ${esc(c.g || '')}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
+      <p>${RN[c.r]} ${TYPEN(c)} · ${CLSN[c.c]} · ${esc(c.g || '')}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
       ${c.fl ? `<p style="font-style:italic">“${esc(c.fl)}”</p>` : ''}
       <p>${n ? `You own ${n} cop${n > 1 ? 'ies' : 'y'}${g ? (g === n ? (n > 1 ? ', both golden' : ', golden') : ` (${g} golden)`) : ''}.` : `Not owned yet. Found in the ${esc((PACKS.find(p => p.id !== 'mv' && p.f(c)) || PACKS[5]).name)} and the Multiverse Pack, or craft it with dust.`}
         ${g && nm ? `<button class="linkbtn" data-zg>${zoomGold ? 'Show normal' : 'Show golden'}</button>` : ''}</p>
@@ -908,7 +921,7 @@
       <h3>Classes</h3><div class="classes">${CLS.map(c => { const h = D.heroes[c]; return `<div class="cls" style="--cc:${CCOL(c)}"><div class="p" style="${artCSS(h.art)}"></div><div><b>${CLSN[c]}</b><span>${esc(CLSG[c])} cards<br>Hero Power, ${esc(h.hp.n)}: ${esc(h.hp.tx)}</span></div></div>`; }).join('')}</div>
       <h3>Card sets</h3>
       <p>Like Hearthstone, cards come in sets. Every set has its own pack in the Card Shop, and every expansion brings a new keyword. Expansion cards carry the set's symbol under the art, and the collection can be filtered by set.</p>
-      <div class="gloss">${SETS.map(x => `<div><b>${x.id !== 'core' && SET_ICON[x.id] ? `<i class="seti">${SET_ICON[x.id]}</i>` : ''}${esc(x.n)}</b><span>${{ core: 'The original 2,318 cards from Glimmerdeep, Dead Man\'s Pull, Thankless, Odds & Ends and the Labfreak series.', ih: 'Ironhold Idle\'s monsters, nemeses, companions and gear. Brings the Champion class and the Frenzy keyword.', tt: 'Spells and weapons for every class, built for synergy: Beast, Mech, Fish and element decks, low-Attack and big-minion decks, weapon and spell-chain decks.', dc: 'The Odds & Ends fishing game: a hundred species, sea creatures, sunken treasure, tackle and the six Legend fish. Brings the Dredge keyword.' }[x.id] || ''}</span></div>`).join('')}</div>
+      <div class="gloss">${SETS.map(x => `<div><b>${x.id !== 'core' && SET_ICON[x.id] ? `<i class="seti">${SET_ICON[x.id]}</i>` : ''}${esc(x.n)}</b><span>${{ core: 'The original 2,318 cards from Glimmerdeep, Dead Man\'s Pull, Thankless, Odds & Ends and the Labfreak series.', ih: 'Ironhold Idle\'s monsters, nemeses, companions and gear. Brings the Champion class and the Frenzy keyword.', pt: 'Gods and heroes of myth. Brings Hearthstone\'s missing mechanics: Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards and Start of Game.', tt: 'Spells and weapons for every class, built for synergy: Beast, Mech, Fish and element decks, low-Attack and big-minion decks, weapon and spell-chain decks.', dc: 'The Odds & Ends fishing game: a hundred species, sea creatures, sunken treasure, tackle and the six Legend fish. Brings the Dredge keyword.' }[x.id] || ''}</span></div>`).join('')}</div>
       <h3>Decks, packs and gold</h3>
       <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop.</p>
       <h3>Dust, crafting and golden cards</h3>
@@ -996,6 +1009,7 @@
       ${P.hero.armor ? `<div class="harm">${P.hero.armor}</div>` : ''}${atk > 0 ? `<div class="hatk">${atk}</div>` : ''}<div class="hhp">${P.hero.hp}</div></div>`;
     const side = `<div class="side"><div class="manabar">${P.mana}/${P.maxMana} ${crys}</div>
       <div class="deckct" title="Cards left in deck"><i class="dback" style="${backStyle(G.backs && G.backs[pi])}"></i>Deck ${P.deck.length}</div>${!me ? `<div class="handct">Hand ${P.hand.length}</div>` : ''}
+      ${(P.quests || []).map(q => { const qc = E.card(q.cid); return `<div class="qchip" title="${esc(qc.n + ': ' + qc.tx)}">⚑ ${q.prog}/${qc.q.n}</div>`; }).join('')}
       ${P.secrets.length ? `<div class="secrets">${P.secrets.map(s => `<span class="secret" title="${me ? 'Your Trap: ' + esc(E.card(s.cid).n) : 'Enemy Trap'}">?</span>`).join('')}</div>` : ''}</div>`;
     return me ? `${weap}${heroEl}${hpBtn}${side}` : `${side}${weap}${heroEl}${hpBtn}`;
   }
@@ -1035,7 +1049,7 @@
       const off = (i - (n - 1) / 2);
       const playable = myTurn && E.canPlay(G, 0, i);
       const s = sel && sel.type === 'hand' && sel.idx === i;
-      return cardHTML(c, { cost: E.costOf(G, 0, ci), cls: (playable ? 'playable' : '') + (s ? ' sel' : ''), golden: isGold(c.id),
+      return cardHTML(c, { cost: E.costOf(G, 0, ci), cls: (playable ? 'playable' : '') + (s ? ' sel' : '') + (ci.echo ? ' echo' : ''), golden: isGold(c.id),
         style: `transform:translateX(calc(-50% + ${off * step}px)) rotate(${off * 3.2}deg) translateY(${Math.abs(off) * Math.abs(off) * 2.2}px);z-index:${i + 1}`,
         attrs: `data-hand="${i}" tabindex="0" role="button" aria-label="${esc(c.n)}"` });
     }).join('');
@@ -1132,6 +1146,12 @@
         case 'hp': sfx('crit', .35); if (e.target) vfxAt(e.target, D.fx.fxa_spark_zap); break;
         case 'frenzy': floatText(e.uid, 'Frenzy!', 's'); sfx('crit', .4); break;
         case 'dredge': floatText(G.p[e.pi].hero.uid, 'Dredged', 's'); break;
+        case 'magnet': floatText(e.uid, 'Magnetized!', 's'); popUids.add(e.uid); sfx('relic', .45); break;
+        case 'heroCard': sfx('lvl', .55); await banner(`${G.p[e.pi].name === 'You' ? 'You become' : G.p[e.pi].name + ' becomes'} ${E.card(e.cid).n}!`, 1100); break;
+        case 'questSet': floatText(G.p[e.pi].hero.uid, 'Quest started', 's'); sfx('relic', .4); break;
+        case 'quest': sfx('stinger_win', .5); await banner(`Quest complete! ${E.card(e.rw).n}`, 1300); break;
+        case 'trade': floatText(G.p[e.pi].hero.uid, 'Traded', 's'); sfx('pk_flip', .4); break;
+        case 'sog': await banner(`Start of Game: ${E.card(e.cid).n}`, 900); break;
         case 'weaponBreak': floatText(G.p[e.pi].hero.uid, 'Weapon broke', 's'); break;
         default: break;
       }
@@ -1168,13 +1188,18 @@
     if (G.turn !== 0 || G.phase !== 'play') return "It's not your turn.";
     return cost > P.mana ? `Not enough Mana: it costs ${cost}, you have ${P.mana}.` : c.t === 'm' && P.board.length >= 7 ? 'Your board is full (7 minions).' : c.secret ? 'That Trap is already set.' : 'Nothing it can target right now.';
   }
-  function selectHand(i) {
-    const P = G.p[0], ci = P.hand[i], c = E.card(ci.cid);
+  // cont: the Choose One / Magnetic questions were already answered for this play
+  function selectHand(i, cont) {
+    const P = G.p[0], ci = P.hand[i], base = E.card(ci.cid);
+    if (!cont) { if (base.ch) ci.choice = null; ci.mag = null; }
     if (!E.canPlay(G, 0, i)) {
       hint(whyNot(i));
       setTimeout(() => hint(null), 1200);
       return;
     }
+    if (!cont && base.ch) { askChoice(i); return; }
+    if (!cont && (base.kw || []).includes('magnetic') && P.board.some(u => E.card(u.cid).tr === 'Mech')) { askMagnet(i); return; }
+    const c = E.cardOf(ci);
     const onKeys = c.t === 's' ? ['cast'] : ['bc', 'combo'];
     if (E.needsTarget(c, onKeys)) {
       const e = E.chosenEffect(c, onKeys);
@@ -1188,6 +1213,30 @@
     }
     act(() => E.playCard(G, 0, i, null));
   }
+  // Choose One: the two options as cards, like Hearthstone
+  function askChoice(i) {
+    const ci = G.p[0].hand[i], c = E.card(ci.cid), m = $('#modal');
+    const opts = c.ch.map((o, k) => {
+      ci.choice = k; const ok = E.canPlay(G, 0, i); ci.choice = null;
+      const tx = c.tx.match(/Choose One: (.*)\.$/), parts = tx ? tx[1].split('; or ') : [];
+      const v = Object.assign({}, c, { n: o.n, tx: (parts[k] || '').replace(/^./, x => x.toUpperCase()) + '.' });
+      return cardHTML(v, { cls: ok ? 'playable' : 'locked', attrs: ok ? `data-choose="${k}" tabindex="0" role="button"` : '' });
+    }).join('');
+    m.innerHTML = `<div><h3>${esc(c.n)}</h3><p>Choose One:</p><div class="row choose">${opts}</div><button class="big alt" data-m="stay">Cancel</button></div>`;
+    m.hidden = false;
+    pendingPick = i;
+  }
+  // Magnetic: fuse into a Mech, or play it on its own
+  function askMagnet(i) {
+    const P = G.p[0], c = E.card(P.hand[i].cid), m = $('#modal');
+    const mechs = P.board.filter(u => E.card(u.cid).tr === 'Mech');
+    m.innerHTML = `<div><h3>${esc(c.n)} is Magnetic</h3><p>Fuse it into one of your Mechs (+${c.a}/+${c.h}${(c.kw || []).filter(k => k !== 'magnetic').length ? ' and its abilities' : ''}), or play it on its own.</p>
+      <div class="row">${mechs.map(u => `<button class="big alt" data-mag="${u.uid}">${esc(E.card(u.cid).n)} (${E.atkOf(G, u)}/${u.h})</button>`).join('')}
+      ${P.board.length < 7 ? '<button class="big alt" data-mag="none">Play it on its own</button>' : ''}</div><button class="big alt" data-m="stay">Cancel</button></div>`;
+    m.hidden = false;
+    pendingPick = i;
+  }
+  let pendingPick = null;
   $('#table').addEventListener('click', e => {
     if (noClick) { noClick = false; return; }
     if (G && G.phase === 'play' && !G.pending && (G.turn !== 0 || busy)) {
@@ -1435,14 +1484,16 @@
     if (ci) {
       const cost = E.costOf(G, 0, ci);
       if (cost !== c.m) status = `<p class="now">Costs <b>${cost}</b> right now (normally ${c.m}).</p>`;
-      if (myMove) btn = E.canPlay(G, 0, o.hand) ? `<button class="big" data-ins="play">${E.needsTarget(c, c.t === 's' ? ['cast'] : ['bc', 'combo']) ? 'Play, then pick a target' : 'Play it'}</button>`
+      if (myMove) btn = E.canPlay(G, 0, o.hand) ? `<button class="big" data-ins="play">${c.ch ? 'Play, then choose' : E.needsTarget(c, c.t === 's' ? ['cast'] : ['bc', 'combo']) ? 'Play, then pick a target' : 'Play it'}</button>`
         : `<button class="big" disabled>Can't play</button><p class="why">${esc(whyNot(o.hand))}</p>`;
+      if (myMove && E.canTrade(G, 0, o.hand)) btn += `<button class="big alt" data-ins="trade">Trade (1 Mana)</button>`;
+      if (ci.echo) status += `<p class="now">Echo copy: it disappears at the end of your turn.</p>`;
     }
     const cardView = unit ? cardHTML(c, {}) : cardHTML(c, ci ? { cost: E.costOf(G, 0, ci) } : {});
     $('#inspect').innerHTML = `<div class="isheet" role="dialog" aria-label="${esc(c.n)}">
       <div class="icard">${cardView}</div>
       <div class="iinfo"><h3>${esc(c.n)}</h3>
-        <p class="sub">${RN[c.r]} ${c.t === 's' ? 'spell' : c.t === 'w' ? 'weapon' : 'minion'} · ${CLSN[c.c] || ''}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
+        <p class="sub">${RN[c.r]} ${TYPEN(c)} · ${CLSN[c.c] || ''}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
         ${status}
         ${c.tx ? `<p class="itx">${fmt(c.tx)}</p>` : ''}
         ${ex.length ? `<div class="kwlist">${ex.map(([k, v]) => `<div><b>${esc(k)}</b> ${esc(v)}</div>`).join('')}</div>` : ''}
@@ -1458,6 +1509,7 @@
     const o = insp; closeInspect();
     if (!o || !G) return;
     if (b.dataset.ins === 'play' && o.hand != null) { sel = null; selectHand(o.hand); }
+    else if (b.dataset.ins === 'trade' && o.hand != null) { sel = null; act(() => E.trade(G, 0, o.hand)); }
     else if (b.dataset.ins === 'attack' && o.uid != null) {
       const unit = E.findUnit(G, o.uid);
       if (unit && E.canAttack(G, unit)) { sel = { type: 'atk', uid: o.uid, targets: E.attackTargets(G, unit) }; hint(sel.targets.length ? 'Choose what to attack' : 'Nothing to attack'); render(); }
@@ -1483,7 +1535,8 @@
       if (b.dataset.m === 'keep') {
         m.hidden = true; m.onclick = modalClick;
         E.mulligan(G, 0, [...swap]);
-        G.ev.length = 0; render();
+        const sogEv = G.ev.splice(0); render();
+        if (sogEv.some(x => x.t === 'sog')) { busy = true; await animate(sogEv.filter(x => ['sog', 'summon', 'armor'].includes(x.t))); busy = false; render(); }
         if (G.turn === 1) runBot(); else { await banner('Your Turn', 800); render(); ropeStart(); }
       }
     };
@@ -1529,6 +1582,14 @@
     m.hidden = false;
   }
   function modalClick(e) {
+    const ch = e.target.closest('[data-choose]'), mg = e.target.closest('[data-mag]');
+    if ((ch || mg) && pendingPick != null && G) {
+      const i = pendingPick, ci = G.p[0].hand[i]; pendingPick = null; $('#modal').hidden = true;
+      if (!ci) return;
+      if (ch) { ci.choice = +ch.dataset.choose; const b = E.card(ci.cid); if ((b.kw || []).includes('magnetic') && G.p[0].board.some(u => E.card(u.cid).tr === 'Mech')) { askMagnet(i); return; } }
+      if (mg) ci.mag = mg.dataset.mag === 'none' ? null : +mg.dataset.mag;
+      selectHand(i, true); return;
+    }
     const dr = e.target.closest('[data-dredge]');
     if (dr) { E.chooseDredge(G, +dr.dataset.dredge); $('#modal').hidden = true; sfx('relic', .4); render(); afterAction(); return; }
     const d = e.target.closest('[data-disc]');
@@ -2167,7 +2228,7 @@
     const w = AR.wins, out = [];
     const g = ARENA_GOLD[w], d = w * 15 + 10;
     gold += g; dust += d; out.push(`+${g} gold`, `+${d} dust`);
-    const exp = ['ih', 'dc', 'tt'][Math.floor(Math.random() * 3)];
+    const exp = ['ih', 'dc', 'tt', 'pt'][Math.floor(Math.random() * 4)];
     grantReward({ pack: exp, n: 1 }); out.push(`A free ${PACKS.find(p => p.id === exp).name}`);
     if (w >= 7) { grantReward({ pack: 'mv', n: 1 }); out.push('A free Multiverse Pack'); }
     if (w >= 12) { const r = { gl: 1 }; grantReward(r); out.push(`A golden Legendary: ${r.got}`); }

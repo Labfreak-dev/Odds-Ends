@@ -76,8 +76,8 @@ def spell_cost(fx, lo=0, hi=10):
 DATA_JS = os.path.join(LEG, "data", "cards.js")
 raw = open(DATA_JS).read()
 DATA = json.loads(raw[raw.index("{"):raw.rstrip().rstrip(";").rindex("}") + 1])
-DATA["cards"] = [c for c in DATA["cards"] if c.get("s") in (None, "core")]  # drops ih/dc/tt from earlier runs
-for k in [k for k, t in DATA["tokens"].items() if t.get("s") in ("ih", "dc", "tt")]: del DATA["tokens"][k]
+DATA["cards"] = [c for c in DATA["cards"] if c.get("s") in (None, "core")]  # drops ih/dc/tt/pt from earlier runs
+for k in [k for k, t in DATA["tokens"].items() if t.get("s") in ("ih", "dc", "tt", "pt")]: del DATA["tokens"][k]
 DATA["heroes"].pop("champion", None)
 CORE_SHEETS = [s for s in DATA["sheets"] if int(re.search(r"a(\d+)", s).group(1)) < 37]
 DATA["sheets"] = CORE_SHEETS
@@ -704,6 +704,190 @@ TT_W = [  # weapons: the synergy lands when you equip them
 for art, nm, cls, cost, rar, a, dur, fx in TT_W:
     add(weapon(f"ttw_{re.sub(r'[^a-z]+', '_', nm.lower()).strip('_')}", nm, cls, rar, cost, a, dur, [], fx, icon_art(art, NS["CCOL"][cls], 0.85), g=GT, tr="Trick"), "tt")
 
+# ================================================================ RISE OF THE PANTHEON
+# A mythology expansion (set "pt") on the Odds & Ends gods-and-heroes portraits and a few curios. It brings
+# the Hearthstone mechanics Legends was missing: Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards
+# and Start of Game. The engine reads them from: ch (options), kw echo/magnetic/tradeable, q (quest),
+# t "h" (hero card: h = Armor, hp = new Hero Power) and the "sog" trigger.
+GP = "Rise of the Pantheon"
+NS["TRIG"]["sog"] = "Start of Game: "
+NS["KWN"].update(echo="Echo", magnetic="Magnetic", tradeable="Tradeable")
+NS["KWV"].update(echo=1.2, magnetic=0.4, tradeable=0.3)
+_pt_text, _pt_value = NS["eff_text"], NS["eff_value"]
+def eff_text2(e):
+    if "tx" in e: return e["tx"]
+    if (e.get("if") or {}).get("nodup"):
+        s = _pt_text({k: v for k, v in e.items() if k != "if"})
+        return "If your deck has no duplicates, " + s[0].lower() + s[1:]
+    return _pt_text(e)
+def eff_value2(e):
+    v = _pt_value(e)
+    return v
+NS["eff_text"], NS["eff_value"] = eff_text2, eff_value2
+eff_value = eff_value2
+PTC = {c: NS["CCOL"][c] for c in NS["CCOL"]}
+def ptart(slug):
+    return oe_item(slug, None)
+def ptid(nm):
+    return "pt_" + re.sub(r"[^a-z]+", "_", nm.lower()).strip("_")
+def opt_text(fx):
+    t = describe({"t": "s", "fx": [dict(e, on="cast") for e in fx]}).rstrip(".")
+    parts = t.split(". ")
+    return " and ".join(p[0].lower() + p[1:] for p in parts)
+def pt_add(c, pre="", post=""):
+    c.pop("nosyn", None)
+    add(c, "pt")
+    if c.get("ch"):
+        ch = "Choose One: " + opt_text(c["ch"][0]["fx"]) + "; or " + opt_text(c["ch"][1]["fx"]) + "."
+        c["tx"] = (c["tx"] + " " + ch).strip() if c["t"] == "m" and c["tx"] else ch if not c["tx"] else ch + " " + c["tx"]
+    c["tx"] = (pre + " " + c["tx"] + " " + post).strip().replace("  ", " ")
+    return c
+def ch_value(ch):
+    return max(sum(eff_value(dict(e, on="cast")) for e in o["fx"]) for o in ch)
+def pt_minion(slug, nm, cls, rar, cost, frac, kw=(), fx=(), ch=None, tr="God", bonus=0, pre="", fl=None, **extra):
+    bonus -= 0.5  # Pantheon minions skip synergize() and run a little rich otherwise
+    if ch: bonus -= ch_value(ch)
+    c = minion(ptid(nm), nm, cls, rar, cost, frac, list(kw), list(fx), ptart(slug), bonus=bonus, g=GP, tr=tr, nosyn=True, fl=fl, **extra)
+    if ch: c["ch"] = ch
+    return pt_add(c, pre)
+def pt_spell(slug, nm, cls, rar, fx, ch=None, cost=None, kw=(), tr="Myth", fl=None):
+    if cost is None:
+        v = sum(eff_value(e) for e in fx) + (ch_value(ch) if ch else 0) + NS["KWV"].get("echo", 0) * 0.6 * ("echo" in kw)
+        cost = max(0, min(10, int(v / 1.6 + 0.5)))
+    c = spell(ptid(nm), nm, cls, rar, cost, fx, ptart(slug), g=GP, tr=tr, kw=list(kw), fl=fl)
+    if ch: c["ch"] = ch
+    return pt_add(c)
+def O(n, *fx): return {"n": n, "fx": list(fx)}
+def pt_tok(tid, nm, a, hp, slug, cls="neutral", kw=None, tr=None):
+    tok(tid, nm, a, hp, ptart(slug), cls=cls, kw=kw, s="pt")
+    if tr: TOKENS[tid]["tr"] = tr; NS["TOKENS"][tid]["tr"] = tr
+    return tid
+def pt_reward_spell(tid, nm, cls, cost, fx, slug):
+    c = spell(tid, nm, cls, 3, cost, fx, ptart(slug), g=GP, tr="Reward")
+    c.update(token=1, s="pt"); c["tx"] = tidy(describe(c))
+    TOKENS[tid] = c; NS["TOKENS"][tid] = c
+    return tid
+def pt_reward_minion(tid, nm, cls, cost, a, hp, kw, fx, slug, tr="God"):
+    c = {"id": tid, "n": nm, "c": cls, "t": "m", "r": 3, "m": cost, "a": a, "h": hp, "kw": list(kw), "fx": list(fx), "art": ptart(slug), "token": 1, "s": "pt", "g": GP, "tr": tr}
+    c["tx"] = tidy(describe(c)); TOKENS[tid] = c; NS["TOKENS"][tid] = c
+    return tid
+def pt_quest(slug, nm, cls, k, n, f, rw, qtx, fl=None):
+    c = {"id": ptid(nm), "n": nm, "c": cls, "t": "s", "r": 3, "m": 1, "fx": [], "art": ptart(slug), "q": {"k": k, "n": n, "f": f, "rw": rw}, "g": GP, "tr": "Quest", "fl": fl}
+    add(c, "pt")
+    c["tx"] = f"Quest: {qtx}. Reward: {TOKENS[rw]['n']}."
+    return c
+def pt_hero(slug, nm, cls, cost, armor, hpn, hpfx, bc, fl=None):
+    hp = {"n": hpn, "m": 2, "fx": [dict(e, on="hp") for e in hpfx]}
+    hp["tx"] = describe({"t": "s", "fx": [dict(e, on="cast") for e in hpfx]})
+    c = {"id": ptid(nm), "n": nm, "c": cls, "t": "h", "r": 3, "m": cost, "a": 0, "h": armor, "kw": [], "fx": list(bc), "art": ptart(slug), "hp": hp, "g": GP, "tr": "Hero", "fl": fl}
+    add(c, "pt")
+    c["tx"] = (c["tx"] + f" Hero Power: {hpn} ({hp['tx'][0].lower() + hp['tx'][1:].rstrip('.')}).").strip()
+    return c
+
+# --- tokens
+pt_tok("pt_t_sprite", "Grain Sprite", 2, 2, "demeter", "tamer")
+pt_tok("pt_t_stag", "Silver Stag", 3, 3, "artemis", "tamer", tr="Beast")
+pt_tok("pt_t_blossom", "Blossom", 1, 2, "xochiquetzal", "tamer", kw=["taunt"])
+pt_tok("pt_t_fawn", "Antlered Fawn", 1, 1, "cernunnos", "tamer", tr="Beast")
+pt_tok("pt_t_hart", "White Hart", 2, 2, "cernunnos", "tamer", tr="Beast")
+pt_tok("pt_t_bronze", "Bronze Automaton", 1, 2, "hephaestus", "collector", tr="Mech")
+pt_tok("pt_t_maiden", "Shieldmaiden", 1, 3, "valkyrie", "champion", kw=["taunt"])
+pt_tok("pt_t_shade", "Restless Shade", 2, 1, "hades", "neutral")
+pt_reward_minion("pt_r_quetzal", "Quetzalcoatl, Feathered Serpent", "tamer", 5, 7, 7, ["rush"], [E("bc", "buff", a=2, h=2, tg="fm_all")], "quetzalcoatl", tr="Beast")
+pt_reward_minion("pt_r_hercules", "Hercules, Twelve-Labored", "champion", 5, 8, 8, ["taunt", "lifesteal"], [], "hercules", tr="Hero")
+pt_reward_minion("pt_r_antikythera", "The Antikythera Engine", "collector", 4, 6, 6, ["magnetic", "divine"], [E("bc", "kw", k="divine", tg="fm_all", f={"tr": "Mech"})], "vacuum-tube-radio", tr="Mech")
+pt_reward_spell("pt_r_ambrosia", "Ambrosia", "healer", 3, [E("cast", "heal", n=12, tg="fhero"), E("cast", "buff", a=2, h=2, tg="fm_all")], "hestia")
+pt_reward_spell("pt_r_tempest", "Marduk's Tempest", "scientist", 4, [E("cast", "dmg", n=6, tg="enemies")], "marduk")
+pt_reward_spell("pt_r_pandora", "Pandora's Jar", "gambler", 2, [E("cast", "gamble", n=4) for _ in range(5)], "four-leaf-clover-keychain")
+TOKENS["pt_r_pandora"]["tx"] = "Spin! five times. Each time, randomly: 4 damage to a random enemy, OR heal your hero for 4, OR draw a card."
+
+# --- Neutral
+pt_minion("zeus", "Zeus, Sky Father", "neutral", 3, 9, .55, fx=[E("bc", "dmg", n=3, tg="enemies")], fl="Thunder is just applause, if you think about it.")
+pt_minion("poseidon", "Poseidon, Earthshaker", "neutral", 3, 8, .5, fx=[E("bc", "dmg", n=2, tg="em_all"), E("bc", "freeze", tg="em_all")])
+pt_minion("hades", "Hades, Lord Below", "neutral", 3, 7, .45, kw=["taunt"], fx=[E("dr", "resurrect", n=1)], fl="Everyone ends up visiting eventually.")
+pt_minion("odin", "Odin, Allfather", "neutral", 3, 6, .5, fx=[E("sog", "armor", n=10, **{"if": {"nodup": True}}, tx="If your deck has no duplicates, gain 10 Armor and draw a card"), E("sog", "draw", n=1, **{"if": {"nodup": True}}, tx="")], fl="He gave an eye for wisdom. Read the card.")
+pt_minion("heimdall", "Heimdall, the Watchman", "neutral", 2, 5, .4, kw=["taunt"], fx=[E("sog", "armor", n=5)])
+pt_minion("atlas", "Atlas, Sky-Bearer", "neutral", 2, 6, .25, kw=["taunt", "tradeable"])
+pt_minion("icarus", "Icarus", "neutral", 1, 3, .75, kw=["charge"], fl="Flies a little too close to the opponent's face.")
+pt_minion("hera", "Hera, Queen of Olympus", "neutral", 2, 4, .45, kw=["taunt"], fx=[E("bc", "buff", a=0, h=2, tg="fm_all")])
+pt_minion("aphrodite", "Aphrodite", "neutral", 1, 3, .45, kw=["divine", "lifesteal"])
+pt_minion("persephone", "Persephone", "neutral", 2, 3, .5, kw=["reborn"], fx=[E("dr", "summon", id="pt_t_shade")])
+pt_minion("osiris", "Osiris, the Returned", "neutral", 2, 5, .45, kw=["reborn", "taunt"], bonus=-.5)
+pt_minion("anubis", "Anubis, Weigher of Hearts", "neutral", 2, 4, .5, fx=[E("edie", "buff", a=1, h=1, tg="self")])
+pt_minion("bastet", "Bastet", "neutral", 0, 2, .6, kw=["stealth", "rush"], tr="Beast")
+pt_minion("sobek", "Sobek, River Jaw", "neutral", 1, 4, .4, kw=["taunt"], fx=[E("dmg", "buff", a=1, h=0, tg="self")], tr="Beast")
+pt_minion("geb", "Geb, the Earth", "neutral", 0, 5, .3, kw=["taunt", "tradeable"])
+pt_minion("nut", "Nut, Star Mother", "neutral", 1, 3, .45, kw=["echo"], fx=[E("bc", "heal", n=2, tg="fhero")])
+pt_minion("the-morrigan", "The Morrigan", "neutral", 2, 3, .55, kw=["stealth"], fx=[E("edie", "draw", n=1)])
+pt_minion("ra", "Ra, the Sun", "neutral", 3, 10, .5, kw=["charge"], fx=[E("bc", "dmg", n=2, tg="em_all")], fl="Rises every morning. Burns every minion.")
+pt_minion("cassette-walkman", "Walkman Automaton", "neutral", 0, 2, .5, kw=["magnetic"], tr="Mech")
+pt_minion("first-gen-ipod", "Click-Wheel Mite", "neutral", 1, 2, .55, kw=["magnetic", "lifesteal"], tr="Mech")
+
+# --- Tamer: Choose One, Beasts
+pt_hero("cernunnos", "Cernunnos, the Horned Lord", "tamer", 6, 5, "Call of the Wild", [E("hp", "summon", id="pt_t_fawn")], [E("bc", "summon", id="pt_t_hart", cnt=2)], fl="The forest has a landlord.")
+pt_quest("kukulkan", "Return of the Feathered Serpent", "tamer", "play", 7, {"tr": "Beast"}, "pt_r_quetzal", "Play 7 Beasts")
+pt_minion("demeter", "Demeter, Harvest Mother", "tamer", 2, 5, .5, ch=[O("Sprites", E("bc", "summon", id="pt_t_sprite", cnt=2)), O("Harvest", E("bc", "buff", a=2, h=2, tg="fm_all"))])
+pt_minion("artemis", "Artemis, the Huntress", "tamer", 3, 4, .55, ch=[O("Arrow", E("bc", "dmg", n=3, tg="m")), O("Stag", E("bc", "summon", id="pt_t_stag"))])
+pt_spell("brigid", "Brigid's Flame", "tamer", 1, [], ch=[O("Flame", E("cast", "dmg", n=4, tg="m")), O("Hearth", E("cast", "heal", n=6, tg="fhero"), E("cast", "draw", n=1))])
+pt_spell("xochiquetzal", "Xochiquetzal's Bloom", "tamer", 0, [], ch=[O("Bloom", E("cast", "buff", a=1, h=1, tg="fm_all")), O("Blossoms", E("cast", "summon", id="pt_t_blossom", cnt=2))])
+pt_spell("dagda", "The Dagda's Cauldron", "tamer", 2, [], ch=[O("Feast", E("cast", "draw", n=2)), O("Mend", E("cast", "heal", n=8, tg="fhero"))])
+pt_minion("tlaloc", "Tlaloc, Rainbringer", "tamer", 2, 6, .45, fx=[E("eot", "buff", a=0, h=1, tg="fm_all")])
+pt_minion("skadi", "Skadi, Winter Huntress", "tamer", 1, 3, .55, kw=["frostbite", "rush"])
+
+# --- Gambler: Echo, Tradeable, tricks
+pt_hero("loki", "Loki, Trickster King", "gambler", 6, 5, "Mischief", [E("hp", "steal")], [E("bc", "steal"), E("bc", "steal")], fl="He'd tell you the truth, but where's the fun in that?")
+pt_quest("four-leaf-clover-keychain", "Pandora's Wager", "gambler", "face", 25, None, "pt_r_pandora", "Deal 25 damage to the enemy hero")
+pt_minion("hermes", "Hermes, Quickfoot", "gambler", 2, 2, .55, kw=["echo", "rush"])
+pt_minion("dionysus", "Dionysus, Revel Lord", "gambler", 3, 5, .5, fx=[E("bc", "gamble", n=3, tx="Spin! three times. Each time, randomly: 3 damage to a random enemy, OR heal your hero for 3, OR draw a card"), E("bc", "gamble", n=3, tx=""), E("bc", "gamble", n=3, tx="")])
+pt_minion("tezcatlipoca", "Tezcatlipoca, Smoking Mirror", "gambler", 2, 4, .55, kw=["stealth"], fx=[E("atk", "steal")])
+pt_minion("set", "Set, Lord of Chaos", "gambler", 1, 3, .6, kw=["misfire"], bonus=1)
+pt_spell("antique-coin", "Lucky Drachma", "gambler", 0, [E("cast", "coin"), E("cast", "draw", n=1)], kw=["echo"], cost=2)
+pt_spell("silk-scarf", "Silk Scarf Trick", "gambler", 0, [E("cast", "dmg", n=2, tg="em")], kw=["echo"], cost=1)
+add(weapon(ptid("Gilded Letter Opener"), "Gilded Letter Opener", "gambler", 1, 2, 2, 2, ["tradeable"], [], ptart("gold-plated-letter-opener"), g=GP, tr="Myth"), "pt")
+
+# --- Healer: Choose One, Isis, Ambrosia
+pt_hero("isis", "Isis, Mother of Magic", "healer", 6, 5, "Mother's Blessing", [E("hp", "heal", n=4, tg="any")], [E("bc", "aoe_heal", n=6, tg="friends"), E("bc", "draw", n=1)])
+pt_quest("hathor", "Hathor's Feast", "healer", "play", 6, {"tr": ["Party", "Signature"]}, "pt_r_ambrosia", "Play 6 Party members")
+pt_minion("apollo", "Apollo, Sun Healer", "healer", 3, 6, .5, ch=[O("Sunlight", E("bc", "aoe_heal", n=6, tg="friends")), O("Sunburst", E("bc", "dmg", n=3, tg="em_all"))])
+pt_minion("frigg", "Frigg, Weaver of Fate", "healer", 2, 4, .45, ch=[O("Ward", E("bc", "kw", k="divine", tg="fm")), O("Foresight", E("bc", "draw", n=1))])
+pt_minion("baldr", "Baldr, the Beloved", "healer", 2, 5, .45, kw=["divine", "reborn"])
+pt_spell("ma-at", "Feather of Ma'at", "healer", 1, [], ch=[O("Mercy", E("cast", "heal", n=6, tg="m", tx="Heal a minion for 6 and give it Guard"), E("cast", "kw", k="taunt", tg="m", tx="")), O("Justice", E("cast", "destroy", tg="em", max=2))])
+pt_spell("handwoven-wool-poncho", "Woolen Poncho", "healer", 0, [E("cast", "buff", a=0, h=3, tg="m", tx="Give a minion +3 Health and Guard"), E("cast", "kw", k="taunt", tg="m", tx="")], kw=["tradeable"])
+pt_minion("hestia", "Hestia, Keeper of the Hearth", "healer", 1, 2, .3, fx=[E("eot", "heal", n=2, tg="fhero")])
+
+# --- Collector: Magnetic Mechs, Tradeable treasures
+pt_hero("hephaestus", "Hephaestus, Forgemaster", "collector", 7, 5, "Forge", [E("hp", "summon", id="pt_t_bronze")], [E("bc", "summon", id="pt_t_bronze", cnt=2), E("bc", "buff", a=1, h=1, tg="fm_all", f={"tr": "Mech"})])
+pt_quest("solid-gold-paperclip", "The Golden Paperclip", "collector", "play", 6, {"tr": "Mech"}, "pt_r_antikythera", "Play 6 Mechs", fl="It holds the plans together. Barely.")
+pt_minion("athena", "Athena, Owl-Eyed", "collector", 3, 5, .45, kw=["taunt"], fx=[E("fsum", "buff", a=1, h=1, tg="trig", sf={"tr": "Mech"})])
+pt_minion("njord", "Njord, Lord of Riches", "collector", 2, 4, .45, kw=["tradeable"], fx=[E("bc", "coin"), E("bc", "coin")])
+pt_minion("old-nokia-phone", "Brick Phone Drone", "collector", 0, 1, .55, kw=["magnetic", "rush"], tr="Mech", fl="Indestructible. Mostly.")
+pt_minion("typewriter", "Typewriter Golem", "collector", 2, 4, .45, kw=["magnetic", "taunt", "divine"], tr="Mech")
+pt_minion("lugh", "Lugh of the Long Arm", "collector", 1, 3, .5, fx=[E("bc", "tutor", f={"tr": "Mech"})])
+
+# --- Scientist: Echo spells, Prometheus
+pt_hero("prometheus", "Prometheus, Fire-Bringer", "scientist", 8, 5, "Stolen Fire", [E("hp", "dmg", n=2, tg="any")], [E("bc", "dmg", n=2, tg="enemies")], fl="Borrowed one match. Never gave it back.")
+pt_quest("enki", "The Tablets of Destiny", "scientist", "cast", 10, None, "pt_r_tempest", "Cast 10 spells")
+pt_minion("thoth", "Thoth, Scribe of the Gods", "scientist", 3, 4, .45, fx=[E("bc", "tutor", f={"t": "s"}, tx="Draw two spells from your deck"), E("bc", "tutor", f={"t": "s"}, tx="")], sd=1)
+pt_spell("anu", "Anu's Judgement", "scientist", 2, [E("cast", "dmg", n=3, tg="m")], kw=["echo"], cost=3)
+pt_spell("enlil", "Enlil's Gale", "scientist", 0, [E("cast", "dmg", n=1, tg="any")], kw=["echo"], cost=1)
+pt_minion("ishtar", "Ishtar, Morning Star", "scientist", 1, 3, .5, kw=["echo"], fx=[E("bc", "dmg", n=1, tg="any")])
+pt_minion("hel", "Hel, Queen of the Dead", "scientist", 3, 6, .5, fx=[E("bc", "resurrect", n=2)])
+pt_spell("vintage-denim-jacket", "Hand-Me-Down Jacket", "scientist", 0, [E("cast", "armor", n=4), E("cast", "draw", n=1)], kw=["tradeable"])
+
+# --- Champion: the Twelve Labors, Thor, heroes of legend
+pt_hero("thor", "Thor, God of Thunder", "champion", 7, 5, "Stormguard", [E("hp", "armor", n=2), E("hp", "hatk", n=2)], [E("bc", "equip", a=4, h=2), E("bc", "dmg", n=2, tg="em_all")])
+pt_quest("hercules", "The Twelve Labors", "champion", "kill", 12, None, "pt_r_hercules", "Destroy 12 enemy minions")
+pt_minion("valkyrie", "Valkyrie, Chooser of the Slain", "champion", 2, 4, .5, fx=[E("sog", "summon", id="pt_t_maiden")])
+pt_minion("tyr", "Tyr, the Just", "champion", 1, 4, .45, kw=["taunt", "lifesteal"])
+pt_minion("achilles", "Achilles", "champion", 3, 5, .6, kw=["divine", "windfury"], bonus=-1, fl="Wears boots. Just in case.")
+pt_minion("perseus", "Perseus, Gorgon-Slayer", "champion", 3, 4, .5, fx=[E("bc", "destroy", tg="em", min=5)])
+pt_minion("odysseus", "Odysseus, Far-Wanderer", "champion", 2, 3, .5, kw=["tradeable"], fx=[E("bc", "tutor", f={"t": "w"})])
+pt_minion("gilgamesh", "Gilgamesh, Two-Thirds Divine", "champion", 2, 6, .55, kw=["rush"], fx=[E("atk", "armor", n=2)])
+pt_minion("ares", "Ares, Bloodthirst", "champion", 1, 4, .65, kw=["charge"])
+pt_minion("huitzilopochtli", "Huitzilopochtli, Sun Warrior", "champion", 1, 5, .5, fx=[E("bc", "dmg", n=2, tg="others")])
+pt_minion("sekhmet", "Sekhmet, the Lioness", "champion", 0, 3, .5, kw=["rush", "enrage"], tr="Beast")
+add(weapon(ptid("Hand-Forged Cleaver"), "Hand-Forged Cleaver", "champion", 0, 1, 2, 2, ["tradeable"], [], ptart("hand-forged-chef-s-knife"), g=GP, tr="Myth"), "pt")
+
 # ================================================================ write
 def save_sheets():
     out = []
@@ -725,11 +909,12 @@ def clean(c):
 DATA["cards"] += [clean(c) for c in CARDS]
 DATA["tokens"].update({k: clean(v) for k, v in TOKENS.items()})
 DATA["sets"] = [{"id": "core", "n": "Core Set"}, {"id": "ih", "n": "Siege of Ironhold", "kw": "Frenzy"},
-                {"id": "dc", "n": "The Deep Catch", "kw": "Dredge"}, {"id": "tt", "n": "Tricks of the Trade", "kw": "Synergy spells"}]
+                {"id": "dc", "n": "The Deep Catch", "kw": "Dredge"}, {"id": "tt", "n": "Tricks of the Trade", "kw": "Synergy spells"},
+                {"id": "pt", "n": "Rise of the Pantheon", "kw": "Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards, Start of Game"}]
 with open(DATA_JS, "w") as f:
     f.write("window.LL_DATA=" + json.dumps(DATA, separators=(",", ":")) + ";")
 from collections import Counter
-for s in ("ih", "dc", "tt"):
+for s in ("ih", "dc", "tt", "pt"):
     cs = [c for c in CARDS if c["s"] == s]
     print(s, len(cs), dict(Counter(c["c"] for c in cs)), dict(Counter(c["r"] for c in cs)), dict(Counter(c["t"] for c in cs)))
 print("sheets", len(DATA["sheets"]), "renamed", {k: v for k, v in RENAME.items() if k != v})

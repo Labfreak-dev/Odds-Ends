@@ -15,6 +15,7 @@
   const setOf = c => c.s || 'core';
   const SET_ICON = {
     ih: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5z" fill="#2a2f3a" stroke="#ffd35c" stroke-width="2"/><path d="M8 8h8M12 8v9M9 17h6" stroke="#ffd35c" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
+    tt: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#3a1d4a" stroke="#ffb3f0" stroke-width="2"/><path d="M12 5l1.9 4.3 4.6.4-3.5 3 1.1 4.6L12 15l-4.1 2.3 1.1-4.6-3.5-3 4.6-.4z" fill="#ffb3f0"/></svg>',
     dc: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#0d3550" stroke="#7fd8ff" stroke-width="2"/><path d="M12 4v11a4 4 0 0 1-8 0M12 4a2 2 0 1 1 0 .01M15 12l-3 3" stroke="#7fd8ff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
   };
   const CCOL = c => (D.heroes[c] ? D.heroes[c].col : [190, 180, 160]).join(',');
@@ -43,6 +44,12 @@
     ['When you summon a minion:', 'Happens every time another minion joins your side.'],
     ['Frenzy:', 'Happens once, the first time this minion takes damage and survives. (Siege of Ironhold)'],
     ['Dredge', 'Look at the bottom 3 cards of your deck and put one of them on top, so you draw it next. (The Deep Catch)'],
+    ['for each', 'The number grows with how many of those you have on your side of the board when it happens.'],
+    ['If you control', 'Only happens if you have that kind of minion on your board at the time.'],
+    ['less for each', 'This card gets cheaper in your hand while you have those minions on your board.'],
+    ['in your hand cost', 'Makes those cards in your hand cheaper until you play them.'],
+    ['from your deck', 'Searches your deck for a matching card and puts it in your hand. If none is left, you draw a normal card.'],
+    ['in your hand +', 'The bonus stays with each minion card and lands when you play it.'],
     ['Your hero gets +', 'Your hero can attack this turn, or hits harder if it already holds a weapon. The bonus ends when your turn does.'],
     ['Trap:', "A hidden spell. It sits face-down by your hero and goes off by itself during your opponent's turn."],
     ['Freeze', "A Frozen character can't attack during its next turn."],
@@ -163,7 +170,7 @@
   function seeded(s) { return () => { let t = (s += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   // Starter lists were picked by simulation: candidates tested against random decks from every class, then refined so each
   // starter is close to even against the other four (bot vs bot, both seats).
-  const STARTER_LISTS = {"tamer":["gd_mepa1","gd_mepa1","gd_emfl1","gds_mystic0","gds_mystic0","gd_emsp1","gd_shdm1","gd_shdm1","oe_northern-cardinal","oe_northern-cardinal","oe_ladybug","gd_voyk2","gd_voyk2","oe_great-blue-heron","oe_great-blue-heron","oe_blue-crab","gd_gaff2","gd_pyrp2","gd_meot2","gd_buzz2","dcm_dolphin5","dcm_dolphin5","gd_mytd3","gd_frow3","gd_gasw3","gd_gasw3","oe_dragon","oe_platypus","oe_platypus","ihm_frost_matriarch"],"gambler":["dmpr_61","dmpr_61","oe_atlantic-salmon","dmpw_13","oe_american-crow","oe_american-crow","dmpr_54","dmp_brute_base","oe_carpenter-ant","oe_carpenter-ant","dmpg_68","oe_great-white-shark","oe_great-white-shark","dmpe_brainjar","oe_great-blue-heron","oe_great-blue-heron","dmpg_74","dmp_duelist_crimson","dmpg_54","dmpg_54","dmp_gambler_goldengrin","dmpw_24","dmpw_24","oe_neptune-s-trident","oe_barracuda","dmp_ranger_spectral","dmp_hexpriest_voidcardinal","dmp_brute_siege","oe_hydra","dmpb_labmut"],"healer":["ths_m_barrier","ths_m_barrier","ths_eyebrows","ths_eyebrows","ths_stew","ths_a_volley","ths_a_volley","ths_cushion","ths_cushion","dcf_little_sunfish","oe_prairie-dog","ihc_cleric","ihc_cleric","th_wren","th_wren","dcf_smallmouth_bass","dcf_smallmouth_bass","oe_grevy-s-zebra","oe_grevy-s-zebra","th_ult_tank_nap_c","th_ult_tank_nap_c","th_ivy_c","th_ivy_c","th_ult_mage_swarm_b","th_robot_c","oe_african-elephant","oe_orb-weaver-spider","oe_orb-weaver-spider","th_ansel_c","ihm_mark_twins"],"collector":["oe_diamond","oe_garter-snake","oe_whirlpool-galaxy","oe_orion-nebula","oe_orion-nebula","oe_oil-tanker","oe_oil-tanker","oe_nile-crocodile","oe_nile-crocodile","oe_aldebaran","oe_american-beaver","oe_coyote","oe_eurasian-hoopoe","oe_cottonmouth","oe_cottonmouth","oe_blimp","oe_blimp","oe_grandfather-clock","oe_grandfather-clock","oe_rocket","oe_rocket","oe_red-panda","oe_red-panda","oe_orb-weaver-spider","ihm_mark_dead","ihm_mark_dead","oe_tourmaline","oe_grizzly-bear","oe_moose","ihc_goldragon"],"scientist":["scs_12","scs_12","oe_black-capped-chickadee","oe_black-capped-chickadee","s2_39","oe_american-bison","oe_the-old-lighthouse","oe_the-old-lighthouse","s2_139","s2_91","s2_91","oe_reindeer","s1_110","s1_110","s2_155","oe_common-loon","s1_7","s2_44","s2_132","s2_93","s2_45","s1_24","s1_24","s2_169","s2_169","s2_188","s2_188","oe_dragon","oe_dragon","mv_labfreak"],"champion":["ihc_squire","ihc_squire","ihl_stitched","oe_sandhill-crane","oe_sandhill-crane","ihl_vexil","ihl_vexil","ihg_goblin","ihl_kael","ihl_maldrek","ihl_ash","ihl_ash","oe_giant-isopod","oe_mermaid-s-comb","oe_mermaid-s-comb","ihm_mark_famine","oe_orca","oe_orca","oe_horned-lizard","oe_emperor-penguin","ihc_necro","ihc_necro","oe_sunken-wreck","dcf_bull_shark","dcf_bull_shark","ihk_lk_set_saint","dcf_mako_shark","ihw_glass_fang","ihm_mark_twins","mv_188"]};
+  const STARTER_LISTS = {"tamer":["dcf_rainbow_darter","dcf_rainbow_darter","gd_frst1","gd_frst1","gds_frost1","gd_frki1","gd_frki1","oe_american-flamingo","oe_american-flamingo","tt_pixie_dust","tt_pixie_dust","gd_gahu2","gd_gahu2","oe_sturgeon","gd_frmo2","gd_frmo2","gds_tide1","dct_medal7","gd_gaki2","gd_gaki2","gd_tisq2","gd_tisq2","oe_orb-weaver-spider","ihm_mark_iron","ihm_mark_iron","gd_gasw3","gd_meot3","gd_meot3","gdb_prism","gdb_geartyrant"],"gambler":["dmpg_5","dmpg_5","oe_cockatiel","oe_cockatiel","dcf_bluntnose_minnow","oe_river-otter","oe_river-otter","oe_naga-serpent","oe_naga-serpent","oe_taimen","dmpa_17","dmpa_17","dmpr_45","dmpr_45","oe_boa-constrictor","oe_boa-constrictor","dmpg_61","dmpg_61","oe_green-iguana","oe_green-iguana","dmpg_69","dmp_brute_demolition","dmp_brute_demolition","ihm_bull","ihm_bull","dmp_knight_gravepaladin","dcw_pole7","dmpb_death3","dcl_drownedking","mv_199"],"healer":["ths_m_barrier","ths_m_barrier","ths_eyebrows","ths_eyebrows","ths_stew","ths_a_volley","ths_a_volley","ths_cushion","ths_cushion","dcf_little_sunfish","oe_prairie-dog","ihc_cleric","ihc_cleric","th_wren","th_wren","dcf_smallmouth_bass","dcf_smallmouth_bass","oe_grevy-s-zebra","oe_grevy-s-zebra","th_ult_tank_nap_c","th_ult_tank_nap_c","th_ivy_c","th_ivy_c","th_ult_mage_swarm_b","th_robot_c","oe_african-elephant","oe_orb-weaver-spider","oe_orb-weaver-spider","th_ansel_c","ihm_mark_twins"],"collector":["oe_blizzard","oe_blizzard","tt_pocket_watch","oe_sandhill-crane","oe_bryce-canyon-hoodoos","oe_bryce-canyon-hoodoos","oe_tiger-swallowtail-butterfly","oe_tiger-swallowtail-butterfly","oe_iceberg","oe_iceberg","oe_vega","oe_vega","oe_cargo-plane","oe_cargo-plane","oe_common-snapping-turtle","oe_great-blue-heron","oe_bush-plane","oe_rickshaw","oe_rickshaw","oe_helicopter","oe_sewing-machine","dcf_yellowfin_tuna","dcf_yellowfin_tuna","ihm_bull","oe_water-wheel","oe_water-wheel","oe_skydiving-plane","oe_jukebox","mv_199","oe_snow-leopard"],"scientist":["tt_formula_x","s1_137","oe_double-crested-cormorant","dcf_gudgeon","oe_blue-jay","oe_moonlit-eel","oe_moonlit-eel","s1_4","s1_4","s2_54","oe_gray-wolf","oe_gray-wolf","s1_122","s2_145","s2_1","s1_65","s1_65","oe_european-starling","oe_european-starling","s2_158","s2_28","oe_chimera","oe_chimera","dcf_abyssal_anglerfish","dcf_abyssal_anglerfish","oe_zhulong","s2_192","s2_192","ihm_blue_dragon","ihm_blue_dragon"],"champion":["ihl_stitched","tt_battle_pennant","ihc_squire","dcm_crab1","dct_medal3","dct_medal3","ihc_hound","ihw_meadowhorn","ihw_meadowhorn","ihs_hero_hurt","ihs_hero_hurt","ihg_hold","ihg_hold","oe_sloth","ihl_ossira","ihw_sewer_needle","oe_cockroach","oe_flying-squirrel","oe_flying-squirrel","ihc_barbarian","ihc_barbarian","ihn_ossira","ihs_sov_burst","dcf_giant_trevally","dcf_giant_trevally","ihm_bull","ihm_bull","oe_moose","dcf_alligator_gar","ihh_3"]};
   const STARTERS = CLS.map(c => ({ id: 'starter_' + c, name: `${CLSN[c]} Starter`, cls: c, cards: STARTER_LISTS[c].filter(id => E.card(id)), starter: true }));
   let decks = store.get('ll_decks', []);
   // ---- collection ownership and gold
@@ -181,6 +188,7 @@
   const ODDS_STD = [72, 21, 5.5, 1.5], ODDS_MV = [40, 36, 17, 7];
   const PACKS = [
     { id: 'ih', name: 'Siege of Ironhold Pack', price: 100, odds: ODDS_STD, cover: 'ihn_ashking', col: '225,95,70', set: 'ih', blurb: "New expansion. Ironhold Idle's nemeses, monsters, companions and gear, the Champion's class cards, and the Frenzy keyword.", f: c => c.s === 'ih' },
+    { id: 'tt', name: 'Tricks of the Trade Pack', price: 100, odds: ODDS_STD, cover: 'tt_kaleidoscope', col: '255,140,230', set: 'tt', blurb: 'New expansion. 74 spells and weapons built for synergy: tribes, Attack, cost, rarity, weapons and spell chains.', f: c => c.s === 'tt' },
     { id: 'dc', name: 'Deep Catch Pack', price: 100, odds: ODDS_STD, cover: 'dcl_drownedking', col: '40,150,220', set: 'dc', blurb: 'New expansion. A hundred fish, sea creatures, sunken treasure, tackle and the six Legend fish, with the Dredge keyword.', f: c => c.s === 'dc' },
     { id: 'glim', name: 'Glimmerdeep Pack', price: 100, odds: ODDS_STD, cover: 'gd_emdr4', col: '90,200,255', blurb: 'Tamer creatures from every biome, all their evolutions, and the 24 bosses.', f: c => c.g === 'Glimmerdeep' },
     { id: 'dmp', name: "Dead Man's Pull Pack", price: 100, odds: ODDS_STD, cover: 'dmpb_death3', col: '150,200,90', blurb: 'Gambler heroes and skins, dungeon enemies, Death, weapons, relics and Traps.', f: c => c.g === "Dead Man's Pull" },
@@ -459,7 +467,7 @@
       <h3>Classes</h3><div class="classes">${CLS.map(c => { const h = D.heroes[c]; return `<div class="cls" style="--cc:${CCOL(c)}"><div class="p" style="${artCSS(h.art)}"></div><div><b>${CLSN[c]}</b><span>${esc(CLSG[c])} cards<br>Hero Power, ${esc(h.hp.n)}: ${esc(h.hp.tx)}</span></div></div>`; }).join('')}</div>
       <h3>Card sets</h3>
       <p>Like Hearthstone, cards come in sets. Every set has its own pack in the Card Shop, and every expansion brings a new keyword. Expansion cards carry the set's symbol under the art, and the collection can be filtered by set.</p>
-      <div class="gloss">${SETS.map(x => `<div><b>${x.id !== 'core' && SET_ICON[x.id] ? `<i class="seti">${SET_ICON[x.id]}</i>` : ''}${esc(x.n)}</b><span>${{ core: 'The original 2,318 cards from Glimmerdeep, Dead Man\'s Pull, Thankless, Odds & Ends and the Labfreak series.', ih: 'Ironhold Idle\'s monsters, nemeses, companions and gear. Brings the Champion class and the Frenzy keyword.', dc: 'The Odds & Ends fishing game: a hundred species, sea creatures, sunken treasure, tackle and the six Legend fish. Brings the Dredge keyword.' }[x.id] || ''}</span></div>`).join('')}</div>
+      <div class="gloss">${SETS.map(x => `<div><b>${x.id !== 'core' && SET_ICON[x.id] ? `<i class="seti">${SET_ICON[x.id]}</i>` : ''}${esc(x.n)}</b><span>${{ core: 'The original 2,318 cards from Glimmerdeep, Dead Man\'s Pull, Thankless, Odds & Ends and the Labfreak series.', ih: 'Ironhold Idle\'s monsters, nemeses, companions and gear. Brings the Champion class and the Frenzy keyword.', tt: 'Spells and weapons for every class, built for synergy: Beast, Mech, Fish and element decks, low-Attack and big-minion decks, weapon and spell-chain decks.', dc: 'The Odds & Ends fishing game: a hundred species, sea creatures, sunken treasure, tackle and the six Legend fish. Brings the Dredge keyword.' }[x.id] || ''}</span></div>`).join('')}</div>
       <h3>Decks, packs and gold</h3>
       <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop. Extra copies you can't use turn into gold automatically.</p>`;
   }
@@ -1344,22 +1352,33 @@
   // choose which of your decks to bring (only asks when there is more than one)
   function pickCampDeck(k, i) {
     const ch = storyOf(k).chapters[i];
-    const okDeck = d => E.validateDeck(d.cards, d.cls).length === 0 && (ch.anyDeck || d.cls === k);
-    const list = decks.filter(okDeck).concat(STARTERS.filter(okDeck));
-    const go = d => playScene(ch, i, 'intro').then(() => startCampBattle(k, i, d));
-    if (list.length <= 1) { go(list[0] || STARTERS.find(d => d.cls === k) || STARTERS[0]); return; }
+    const ok = d => E.validateDeck(d.cards, d.cls).length === 0;
+    const mine = decks.filter(ok), starters = STARTERS.filter(ok);
+    const story = k === 'finale' ? null : k;
+    const sortCls = l => l.slice().sort((a, b) => (b.cls === story) - (a.cls === story));
+    const go = d => { chosenDeck = d.id; store.set('ll_chosen', chosenDeck); playScene(ch, i, 'intro').then(() => startCampBattle(k, i, d)); };
     const m = $('#campdeck');
-    m.innerHTML = `<div class="cdbox"><h3>Bring which deck?</h3><p>${ch.anyDeck ? 'Any of your decks can fight the finale.' : `Your ${esc(CLSN[k])} decks.`}</p>
-      <div class="deckgrid">${list.map(d => deckBox(d, d.id === chosenDeck, `data-cdeck="${d.id}"`)).join('')}</div>
-      <p><button class="small" data-cdx>Cancel</button></p></div>`;
+    const pick = d => deckBox(d, d.id === chosenDeck, `data-cdeck="${d.id}"`);
+    m.innerHTML = `<div class="cdbox"><h3>Bring which deck?</h3>
+      <p>Any deck of yours can fight this battle${story ? `. The story follows the ${esc(CLSN[story])}, but you can bring whichever class you like` : ''}.</p>
+      ${mine.length ? `<h4>Your decks</h4><div class="deckgrid">${sortCls(mine).map(pick).join('')}</div>` : `<p class="empty">You haven't built a deck yet. Build one, then come back here to take it into the story.</p>`}
+      <h4>Starter decks</h4><div class="deckgrid">${sortCls(starters).map(pick).join('')}</div>
+      <p class="cdrow"><button class="small gold" data-cbuild>Build a new ${story ? esc(CLSN[story]) + ' ' : ''}deck</button><button class="small" data-cdx>Cancel</button></p></div>`;
     m.hidden = false;
+    m.scrollTop = 0;
     m.onclick = e => {
       const b = e.target.closest('[data-cdeck]');
-      if (b) { m.hidden = true; go(list.find(d => d.id === b.dataset.cdeck)); return; }
+      if (b) { m.hidden = true; go(mine.concat(starters).find(d => d.id === b.dataset.cdeck)); return; }
+      if (e.target.closest('[data-cbuild]')) {
+        m.hidden = true;
+        const cls = story || 'tamer';
+        editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0;
+        show('collection');
+        return;
+      }
       if (e.target.closest('[data-cdx]') || e.target === m) m.hidden = true;
     };
   }
-
   // the boss: a random deck of its class with its signature cards shuffled in
   function bossDeck(foe) {
     const d = E.randomDeck(null, foe.cls, Math.random);

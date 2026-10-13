@@ -11,6 +11,9 @@ adds its own pack, a set symbol on its cards and a new keyword:
 | Core Set | 2,318 | Glimmerdeep, Dead Man's Pull, Thankless, Odds & Ends, Labfreak series | the five original classes |
 | Siege of Ironhold (`ih`) | 190 | Ironhold Idle's art (`ironhold/art.js`, its item icons) | the Champion class; **Frenzy** (acts the first time it survives damage) |
 | The Deep Catch (`dc`) | 152 | the Odds & Ends fishing art (`workshop/fishing-*.module.js`) | **Dredge** (look at the bottom 3 cards of your deck, put one on top) |
+| Tricks of the Trade (`tt`) | 74 | Ironhold Idle's trinket icons and the Odds & Ends curios | synergy spells and weapons for every class |
+
+Many minions in every set carry synergy abilities (tribe lords, "for each", "if you control", cost cuts, deck tutors). The rules for which cards get them live in `synergize()` in `tools_gen_cards.py`.
 
 No build step. Open `index.html` from any static host (GitHub Pages works; drop this folder in as
 `/legends/`). Opening the file straight from disk won't work in most browsers because of
@@ -22,7 +25,7 @@ the scripts, so use a local server: `python3 -m http.server`, then visit http://
 | `js/engine.js` | Rules engine, pure logic with no DOM. Runs in Node for headless bot-vs-bot games |
 | `js/ui.js` | Menus, collection and deck builder, battle board, campaign and cutscenes, animation, sound |
 | `js/campaign.js` | The campaign: six class stories and a finale, every line of dialogue, bosses and rewards (data only) |
-| `data/cards.js` | GENERATED: 2,660 cards in three sets, tokens, heroes, atlas index (`window.LL_DATA`) |
+| `data/cards.js` | GENERATED: 2,734 cards in four sets, tokens, heroes, atlas index (`window.LL_DATA`) |
 | `img/a00–a36.webp` | GENERATED: Core Set art atlases, 8×8 cells of 192 px |
 | `img/a37–a42.webp` | GENERATED: expansion art atlases |
 | `img/fx.webp`, `img/bg_*.webp` | Spell effects and battle boards |

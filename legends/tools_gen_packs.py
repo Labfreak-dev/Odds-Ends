@@ -48,6 +48,14 @@ def main():
         for n, s in enumerate(arr):
             b64img(s).save(os.path.join(LEG, 'img', f'sigil_{tier}{n}.webp'), lossless=True)
 
+    # the six Rip & Ship card backs, worn as cosmetics in Legends (img/back_<id>.webp, 240 px wide)
+    backs = [('cream', re.search(r'const RZ_CARDBACK = "([^"]+)"', rs).group(1))]
+    blk = rs[rs.index('const RZ_BACKS = ['):]
+    backs += re.findall(r'\{ id:"(\w+)",\s*name:"[^"]*",\s*need:"[^"]*",\s*img:"(data:[^"]+)"', blk[:blk.index('];')])
+    for bid, s in backs:
+        im = b64img(s).convert('RGBA')
+        im.resize((240, round(240 * im.height / im.width)), Image.LANCZOS).save(os.path.join(LEG, 'img', f'back_{bid}.webp'), quality=86)
+
     sp = open(os.path.join(ROOT, 'workshop', 'sfx-pack.module.js')).read()
     for key, out in [('collect_pack_tear', 'pk_tear'), ('collect_card_flip', 'pk_flip'),
                      ('collect_reveal_all', 'pk_all'), ('collect_common', 'pk_r0'),

@@ -135,12 +135,14 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--teal);
 .curve span { position: absolute; bottom: -16px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 800; color: var(--muted); }
 .deckfoot { padding: 22px 12px 12px; display: grid; gap: 8px; border-top: 1px solid var(--rail); }
 .errs { color: #ffb3bb; font-size: 12px; font-weight: 800; }
-#zoom { position: fixed; inset: 0; background: rgba(8,5,14,.82); display: grid; place-items: center; z-index: 80; padding: 16px; }
+#zoom { position: fixed; inset: 0; background: rgba(8,5,14,.82); display: flex; overflow-y: auto; z-index: 80; padding: 16px; box-sizing: border-box; }
+#zoom > * { margin: auto; max-width: 100%; min-width: 0; box-sizing: border-box; }
 #zoom .wrap { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; justify-content: center; max-width: 760px; }
 #zoom .card { --cw: min(300px, 70vw); }
 #zoom .info { max-width: 340px; display: grid; gap: 8px; }
 #zoom .info h3 { font-family: var(--display); color: var(--gold); margin: 0; font-size: 26px; }
 #zoom .info p { margin: 0; color: var(--muted); font-weight: 700; line-height: 1.45; }
+@media (max-width: 720px) { #zoom .card { --cw: min(200px, 54vw); } #zoom .wrap { gap: 12px; } #zoom .info { max-width: 100%; } }
 .kwlist { display: grid; gap: 6px; }
 .kwlist div { background: #22183a; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .kwlist b { color: var(--teal); }
@@ -525,7 +527,8 @@ html { overflow-x: hidden; }
   /* phones: the card grid gets the screen. Filters fold into a panel behind one button; the mana row scrolls sideways */
   #collection .topbar { flex-wrap: nowrap; gap: 8px; padding-inline: 10px; }
   #collection .topbar h2 { font-size: 20px; }
-  #collection .topbar #collsub, #collection .topbar .goldchip { display: none; }
+  #collection .topbar #collsub, #collection .topbar .goldchip, #collection .topbar .dustchip { display: none; }
+  #collection .topbar .lg { display: none; }
   #collection .topbar #deckpick { max-width: 112px; padding-inline: 8px; font-size: 13px; }
   #collection .topbar h2 { font-size: 19px; white-space: nowrap; }
   #collection .topbar .small { white-space: nowrap; padding-inline: 10px; font-size: 14px; }
@@ -557,6 +560,99 @@ html { overflow-x: hidden; }
   #mhero { justify-content: flex-start; padding-left: 10px; }
   .manabar .crys { display: none; } .manabar .crys:first-of-type { display: inline-block; background: radial-gradient(circle at 40% 30%, #bfe8ff, #2a8ff0 60%, #0f3f86); }
 }
+
+/* ---------- golden cards ---------- */
+.card.golden { background: linear-gradient(160deg, #fff1b0, #e7b23a 18%, rgba(var(--cc),.6) 42%, #2a1a08 43%, #160d04);
+  box-shadow: 0 0 0 calc(var(--cw)*.018) #ffd35c, 0 0 calc(var(--cw)*.14) rgba(255,205,90,.65), 0 calc(var(--cw)*.03) calc(var(--cw)*.08) rgba(0,0,0,.55); }
+.card.golden .name { color: #fff4c4; text-shadow: 0 1px 0 #6a4300, 0 0 8px rgba(255,210,90,.7); }
+.gsheen { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 6; overflow: hidden; mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 32%, rgba(255,236,170,.0) 38%, rgba(255,240,190,.55) 46%, rgba(255,255,255,.8) 50%, rgba(255,214,120,.5) 54%, transparent 64%);
+  background-size: 280% 100%; animation: gSheen 3.4s linear infinite; }
+@keyframes gSheen { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+.minion.golden { box-shadow: 0 0 0 3px #ffd35c, 0 0 14px rgba(255,205,90,.75); border-radius: 50% 50% 46% 46%; }
+.card.crafted { animation: crafted .7s ease-out; } .card.dusted { animation: dusted .6s ease-out; }
+@keyframes crafted { 0% { transform: scale(.6); filter: brightness(3); opacity: 0; } 60% { transform: scale(1.06); filter: brightness(1.6); opacity: 1; } 100% { transform: scale(1); filter: none; } }
+@keyframes dusted { 0% { filter: brightness(2.2) saturate(0); transform: scale(1.04); } 100% { filter: none; transform: none; } }
+.pk-tag.gld .rn { text-shadow: 0 0 8px rgba(255,211,92,.9); color: #ffe39a !important; }
+
+/* ---------- dust, level, crafting ---------- */
+.dustchip, .lvlchip { font-family: var(--display); font-weight: 600; font-size: 15px; border-radius: 99px; padding: 6px 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dustchip { color: #bfe9ff; background: #142a46; border: 1.5px solid #3d79b4; }
+.lvlchip { color: #e9d6ff; background: #2d1a4a; border: 1.5px solid #8a5fd0; }
+.dustchip:empty, .lvlchip:empty { display: none; }
+.menu-foot { flex-wrap: wrap; }
+.craft { display: grid; gap: 8px; padding: 10px; border-radius: 12px; background: rgba(20,42,70,.45); border: 1px solid #2c5684; }
+.craft .crow, .codebox .crow { display: flex; gap: 8px; flex-wrap: wrap; }
+.craft .crow .small { flex: 1 1 140px; }
+.small.glow { box-shadow: 0 0 10px rgba(255,211,92,.55); }
+.small:disabled { opacity: .45; cursor: not-allowed; }
+.dustline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0; }
+.dustline small { color: var(--muted); font-weight: 700; font-size: 12px; }
+.codebox { background: #1a1229; border: 2px solid #4c3a74; border-radius: 18px; padding: 18px; max-width: 560px; width: 100%; display: grid; gap: 10px; }
+.codebox h3 { font-family: var(--display); color: var(--gold); margin: 0; font-size: 24px; }
+.codebox p { margin: 0; color: var(--muted); font-weight: 700; }
+.codebox textarea { width: 100%; box-sizing: border-box; background: #0f0a19; color: var(--text); border: 1.5px solid #4c3a74; border-radius: 10px; padding: 10px; font: 700 13px ui-monospace, monospace; resize: vertical; }
+.codebox .cinfo b { color: var(--text); } .codebox .cmiss { color: #ffcf8a; } .codebox .cmsg { color: #ffb3bb; }
+
+/* ---------- toasts ---------- */
+.toast { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 200; background: #1d4d33; color: #c8ffe0; border: 2px solid #3fbf7f;
+  font: 700 15px var(--display); padding: 10px 16px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.55); max-width: min(560px, 92vw); text-align: center; animation: toastIn .3s ease-out; transition: opacity .4s, transform .4s; }
+.toast.out { opacity: 0; transform: translate(-50%, -20px); }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -20px); } }
+
+/* ---------- main menu grid ---------- */
+.mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: inherit; }
+.mgrid .big { font-size: 18px; padding-inline: 8px; position: relative; }
+.mgrid .dot { position: absolute; top: 6px; right: 8px; width: 12px; height: 12px; border-radius: 50%; background: #ff4d5e; box-shadow: 0 0 0 2px #fff, 0 0 10px #ff4d5e; }
+
+/* ---------- quests & rewards ---------- */
+#journal .inner { max-width: 1000px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+.jhead { display: flex; gap: 14px; align-items: center; }
+.jlvl { width: 76px; height: 76px; border-radius: 50%; display: grid; place-content: center; text-align: center; flex: none;
+  background: radial-gradient(circle at 40% 35%, #a77bff, #3b1f73); box-shadow: 0 0 0 3px var(--gold-d), 0 6px 16px rgba(0,0,0,.5); }
+.jlvl b { font: 700 32px/1 var(--display); color: #fff; } .jlvl small { font-weight: 800; font-size: 11px; color: #e9d6ff; text-transform: uppercase; letter-spacing: .08em; }
+.jxp { flex: 1; display: grid; gap: 6px; } .jxp small, .jnote { color: var(--muted); font-weight: 700; }
+.jnote { margin: 0; }
+.xpbar { display: block; height: 14px; border-radius: 99px; background: #170f27; box-shadow: inset 0 0 0 1.5px #4c3a74; overflow: hidden; }
+.xpbar i { display: block; height: 100%; background: linear-gradient(90deg, #8a5fd0, #d6a6ff); border-radius: inherit; transition: width .6s; }
+.jtabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.qgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.quest { position: relative; display: grid; gap: 8px; padding: 14px; border-radius: 14px; background: #22183a; border: 2px solid #4c3a74; }
+.quest b { font-family: var(--display); font-size: 18px; color: var(--text); }
+.quest.done { border-color: #3fbf7f; background: #173325; }
+.qbar { display: block; height: 10px; border-radius: 99px; background: #120c1e; overflow: hidden; } .qbar i { display: block; height: 100%; background: linear-gradient(90deg, #3fbf7f, #a8ffcb); }
+.qmeta { color: var(--muted); font-weight: 800; font-size: 13px; }
+.quest .small, .quest .qok { justify-self: start; } .qok { color: #7dffb5; font-weight: 900; }
+.track { position: relative; display: flex; gap: 10px; overflow-x: auto; padding: 8px 4px 14px; scroll-snap-type: x proximity; }
+.trl { flex: none; width: 112px; display: grid; justify-items: center; gap: 6px; padding: 10px 6px; border-radius: 14px; background: #1c1430; border: 2px solid #3b2b5c; text-align: center; scroll-snap-align: center; opacity: .8; }
+.trl small { font: 700 14px var(--display); color: var(--muted); } .trl span { font-weight: 800; font-size: 12px; color: var(--muted); line-height: 1.2; }
+.trl.got { opacity: 1; border-color: #3fbf7f; background: #16291f; } .trl.got small::after { content: ' ✓'; color: #7dffb5; }
+.trl.next { opacity: 1; border-color: var(--gold); box-shadow: 0 0 14px rgba(255,209,90,.35); }
+.trl i { display: block; width: 46px; height: 64px; border-radius: 6px; background-size: cover; background-position: center; }
+.trl .tic { display: grid; place-items: center; font-style: normal; font-size: 30px; height: 64px; width: 64px; border-radius: 50%; }
+.tic.go { color: var(--gold); } .tic.du { color: #8fd6ff; } .tic.gl { color: #ffd35c; text-shadow: 0 0 12px #ffb02e; }
+.tback { box-shadow: 0 0 0 2px var(--gold-d); }
+.bgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.bk, .pt { display: grid; justify-items: center; gap: 6px; padding: 12px 8px; border-radius: 14px; background: #1c1430; border: 2px solid #3b2b5c; color: var(--text); text-align: center; }
+.bk.on, .pt.on { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255,209,90,.3); }
+.bk.locked .bkimg, .pt.locked .ptimg { filter: grayscale(1) brightness(.45); }
+.bk b, .pt b { font-family: var(--display); font-size: 15px; } .bk small, .pt small { color: var(--muted); font-weight: 800; font-size: 12px; line-height: 1.25; }
+.pt small .buy { color: var(--gold); }
+.bkimg { display: grid; place-items: center; width: 96px; height: 134px; border-radius: 9px; background-size: cover; background-position: center; box-shadow: 0 6px 14px rgba(0,0,0,.5); font-style: normal; }
+.bkimg.classic { background: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 6px, transparent 6px 14px), radial-gradient(circle at 50% 45%, #5b3a96, #241444 70%); border: 3px solid var(--gold-d); box-sizing: border-box; }
+.bkimg.classic span { font: 700 34px var(--display); color: var(--gold); text-shadow: 0 3px 0 #3a1a00; }
+.ptcls { font-family: var(--display); color: var(--teal); margin: 8px 0 0; }
+.ptrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.ptimg { display: block; width: 84px; height: 84px; border-radius: 50%; background-size: 800% 800%; box-shadow: 0 0 0 3px rgba(var(--cc),.9), 0 0 0 5px #000; }
+.goprog { display: grid; gap: 4px; margin: 6px 0; } .goprog p { margin: 0; }
+.qline { color: var(--muted) !important; font-weight: 800; } .qdone { color: #7dffb5 !important; font-weight: 900; }
+.xprow { display: flex; gap: 8px; align-items: center; justify-content: center; } .xprow b { font-family: var(--display); color: #e9d6ff; } .xprow .xpbar { width: min(260px, 50vw); } .xprow small { color: #d6a6ff; font-weight: 900; }
+
+/* ---------- card backs in battle and packs ---------- */
+.ohand .cb[style*="background-image"] { box-shadow: 0 0 0 1.5px #000, 0 2px 6px rgba(0,0,0,.6); }
+.dback { display: inline-block; width: 12px; height: 17px; border-radius: 2px; background: radial-gradient(circle at 50% 45%, #5b3a96, #241444 70%); box-shadow: 0 0 0 1px var(--gold-d); }
+.pk-back.img { border-color: #000; } .pk-back.img .pk-ll { display: none; }
+.big.free { background: linear-gradient(180deg, #8affc1, #2fb173); border-color: #17643f; box-shadow: 0 4px 0 #12502f; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 
@@ -568,11 +664,14 @@ html { overflow-x: hidden; }
   <div class="menu-btns">
     <button class="big" id="b-play">Play</button>
     <button class="big camp" id="b-camp">Campaign</button>
-    <button class="big alt" id="b-shop">Card Shop</button>
-    <button class="big alt" id="b-coll">Collection &amp; Decks</button>
-    <button class="big alt" id="b-rules">How to Play</button>
+    <div class="mgrid">
+      <button class="big alt" id="b-shop">Card Shop</button>
+      <button class="big alt" id="b-coll">Collection</button>
+      <button class="big alt" id="b-journal">Quests &amp; Rewards<i class="dot" id="questdot" hidden></i></button>
+      <button class="big alt" id="b-rules">How to Play</button>
+    </div>
   </div>
-  <div class="menu-foot"><span class="goldchip"></span><button class="small" id="b-sound">Sound: off</button></div>
+  <div class="menu-foot"><span class="lvlchip"></span><span class="goldchip"></span><span class="dustchip"></span><button class="small" id="b-sound">Sound: off</button></div>
 </section>
 
 <section id="campaign" class="screen" hidden>
@@ -595,8 +694,8 @@ html { overflow-x: hidden; }
 </section>
 
 <section id="collection" class="screen" hidden>
-  <div class="topbar"><button class="small" data-back>Back</button><h2>Collection</h2><span id="collsub" class="sub"></span><span class="grow"></span><span class="goldchip"></span>
-    <button class="small gold" id="b-newdeck">New deck</button><select class="sel" id="deckpick" aria-label="Edit a deck"></select></div>
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Collection</h2><span id="collsub" class="sub"></span><span class="grow"></span><span class="dustchip"></span>
+    <button class="small gold" id="b-newdeck">New<span class="lg"> deck</span></button><button class="small" id="b-paste">Paste<span class="lg"> code</span></button><select class="sel" id="deckpick" aria-label="Edit a deck"></select></div>
   <div class="filters" id="filters"></div>
   <div class="body nodeck" id="collbody">
     <div class="scroll" id="gridwrap"><div id="grid"></div><div class="pager" id="pager"></div></div>
@@ -605,13 +704,18 @@ html { overflow-x: hidden; }
       <div class="curve" id="curve"></div>
       <div id="decklist" class="scroll"></div>
       <div class="deckfoot"><div class="errs" id="deckerrs"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small gold" id="b-save">Save deck</button><button class="small" id="b-fill">Fill randomly</button><button class="small" id="b-del">Delete</button><button class="small" id="b-close">Done</button></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small gold" id="b-save">Save deck</button><button class="small" id="b-fill">Fill randomly</button><button class="small" id="b-code">Copy code</button><button class="small" id="b-del">Delete</button><button class="small" id="b-close">Done</button></div></div>
     </aside>
   </div>
 </section>
 
+<section id="journal" class="screen" hidden>
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Quests &amp; Rewards</h2><span class="grow"></span><span class="dustchip"></span></div>
+  <div class="body scroll"><div class="inner" id="journalbody"></div></div>
+</section>
+
 <section id="shop" class="screen" hidden>
-  <div class="topbar"><button class="small" data-back>Back</button><h2>Card Shop</h2><span class="grow"></span><span class="goldchip"></span></div>
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Card Shop</h2><span class="grow"></span><span class="goldchip"></span><span class="dustchip"></span></div>
   <div class="scroll" style="flex:1"><div class="shopbody"><p class="shopnote" id="shopnote"></p><div id="packgrid"></div></div></div>
 </section>
 

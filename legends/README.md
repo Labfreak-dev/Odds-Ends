@@ -32,8 +32,10 @@ the scripts, so use a local server: `python3 -m http.server`, then visit http://
 | `sfx/` | Copied from `glimmerdeep/sfx` and `glimmerdeep/music` |
 | `tools_gen_cards.py` | The Core Set generator (writes `data/cards.js` and `img/a00–a36`) |
 | `tools_gen_sets.py` | The expansion generator: run it after `tools_gen_cards.py`; it appends both expansions to `data/cards.js` and writes `img/a37+`, reading every asset straight from the repo |
-| `tools_gen_packs.py` | Pack foils, reveal sigils and pack sounds for the Card Shop |
+| `tools_gen_packs.py` | Pack foils, reveal sigils, card backs and pack sounds for the Card Shop |
 
-Progress saves in the player's browser (localStorage): decks `ll_decks`, owned cards `ll_owned`, gold `ll_gold`, campaign progress `ll_camp`, plus `ll_chosen`, `ll_sound`, `ll_tips`, `ll_read`.
+Progress saves in the player's browser (localStorage): decks `ll_decks`, owned cards `ll_owned`, golden copies `ll_golden`, gold `ll_gold`, dust `ll_dust`, campaign progress `ll_camp`, daily quests `ll_quests`, reward-track level `ll_prog`, free packs `ll_free`, cosmetics `ll_cos` (card back, hero portraits), win counts `ll_stats`, plus `ll_chosen`, `ll_sound`, `ll_tips`, `ll_read`, `ll_jseen`.
+
+Economy, in `js/ui.js`: crafting and disenchant costs (`CRAFT`, `DE`, `CRAFT_G`, `DE_G`), golden odds (`GOLD_ODDS`), quests (`QDEF`), the reward track (`trackReward`, `xpNeed`), card backs (`BACKS`, art from Rip & Ship, written to `img/back_*.webp` by `tools_gen_packs.py`) and hero portraits (`PORTS`). Deck codes are `LL1.<class>.<singles>.<doubles>`, five base-36 characters per card (an FNV hash of its id).
 
 Packs and prices live in the `PACKS` list in `js/ui.js`; battle rewards are in `gameOver()`.

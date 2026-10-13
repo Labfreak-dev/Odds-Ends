@@ -114,7 +114,7 @@
     const nameSize = c.n.length > 20 ? 'font-size:.84em' : c.n.length > 15 ? 'font-size:.96em' : '';
     const L = (c.tx || '').length;
     const tf = L <= 45 ? 1 : L <= 75 ? .92 : L <= 105 ? .82 : L <= 135 ? .74 : .68;
-    return `<div class="card t-${c.t} r${c.r} ${o.cls || ''}${o.locked ? ' locked' : ''}" style="--cc:${CCOL(cls)};${o.cw ? '--cw:' + o.cw + ';' : ''}${o.style || ''}" ${o.attrs || ''} data-cid="${c.id}">
+    return `<div class="card t-${c.t} r${c.r} ${o.cls || ''}${o.locked ? ' locked' : ''}${o.golden ? ' golden' : ''}" style="--cc:${CCOL(cls)};${o.cw ? '--cw:' + o.cw + ';' : ''}${o.style || ''}" ${o.attrs || ''} data-cid="${c.id}">
       <div class="art">${spr(c.art)}</div>
       <div class="cost${cost < c.m ? ' cheap' : ''}">${cost}</div>
       <div class="name" style="${nameSize}">${esc(c.n)}</div>
@@ -123,7 +123,7 @@
       <div class="text"><span data-f="${tf}" style="font-size:${tf}em">${fmt(c.tx || '')}</span></div>
       ${c.t !== 's' ? `<div class="atk">${c.a}</div><div class="hp">${c.h}</div>` : ''}
       <div class="tribe">${tribe}</div>${c.s && SET_ICON[c.s] ? `<div class="setb" title="${esc(SETN[c.s] || '')}">${SET_ICON[c.s]}</div>` : ''}
-      ${o.copies ? `<div class="copies">×${o.copies}</div>` : ''}${o.owned != null ? `<div class="owned${o.owned ? '' : ' none'}">${o.owned ? 'Owned ×' + o.owned : 'Not owned'}</div>` : ''}
+      ${o.copies ? `<div class="copies">×${o.copies}</div>` : ''}${o.owned != null ? `<div class="owned${o.owned ? '' : ' none'}">${o.owned ? 'Owned ×' + o.owned : 'Not owned'}</div>` : ''}${o.golden ? '<i class="gsheen" aria-hidden="true"></i>' : ''}
     </div>`;
   }
 
@@ -157,6 +157,7 @@
     if (id === 'rules') renderRules();
     if (id === 'shop') renderShop();
     if (id === 'campaign') renderCampaign();
+    if (id === 'journal') { store.set('ll_jseen', dayKey()); renderJournal(); }
     goldChips();
   }
   $$('[data-back]').forEach(b => b.addEventListener('click', () => { sfx('click', .4); show('menu'); }));
@@ -165,6 +166,7 @@
   $('#b-rules').onclick = () => { sfx('click', .4); show('rules'); };
   $('#b-shop').onclick = () => { sfx('click', .4); show('shop'); };
   $('#b-sound').onclick = () => setSound(!soundOn);
+  $('#b-journal').onclick = () => { sfx('click', .4); show('journal'); };
 
   // ---------------------------------------------------------------- decks
   function seeded(s) { return () => { let t = (s += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -181,10 +183,50 @@
   STARTERS.forEach(d => { const n = {}; d.cards.forEach(id => { n[id] = (n[id] || 0) + 1; }); Object.entries(n).forEach(([id, k]) => { if ((owned[id] || 0) < k) owned[id] = k; }); });
   store.set('ll_owned', owned);
   let gold = store.get('ll_gold', 300);
-  const saveOwned = () => { store.set('ll_owned', owned); store.set('ll_gold', gold); };
+  let dust = store.get('ll_dust', 0);
+  let golden = store.get('ll_golden', {}); // id -> how many of the owned copies are golden
+  const saveOwned = () => { store.set('ll_owned', owned); store.set('ll_gold', gold); store.set('ll_dust', dust); store.set('ll_golden', golden); };
   const ownedTotal = () => Object.values(owned).reduce((a, b) => a + b, 0);
-  function goldChips() { $$('.goldchip').forEach(g => { g.textContent = gold.toLocaleString() + ' gold'; }); }
-  const REFUND = [5, 20, 100, 400];
+  function goldChips() {
+    $$('.goldchip').forEach(g => { g.textContent = gold.toLocaleString() + ' gold'; });
+    $$('.dustchip').forEach(g => { g.textContent = dust.toLocaleString() + ' dust'; });
+    $$('.lvlchip').forEach(g => { g.textContent = 'Level ' + prog.lvl; });
+  }
+  // Hearthstone's crafting table: extra copies and disenchanted cards become dust, dust becomes any card
+  const CRAFT = [40, 100, 400, 1600], DE = [5, 20, 100, 400], CRAFT_G = [400, 800, 1600, 3200], DE_G = [50, 100, 400, 1600];
+  const GOLD_ODDS = [0.02, 0.03, 0.05, 0.08];
+  const starterNeed = {}; // copies every player keeps (the starter decks are always playable)
+  STARTERS.forEach(d => { const n = {}; d.cards.forEach(id => { n[id] = (n[id] || 0) + 1; }); Object.entries(n).forEach(([id, k]) => { starterNeed[id] = Math.max(starterNeed[id] || 0, k); }); });
+  const goldN = id => Math.min(golden[id] || 0, owned[id] || 0);
+  const isGold = id => goldN(id) > 0;
+  const canDE = id => (owned[id] || 0) > (starterNeed[id] || 0);
+  function craft(id, gld) {
+    const c = E.card(id), had = owned[id] || 0;
+    if (had < CAP(c)) {
+      const cost = gld ? CRAFT_G[c.r] : CRAFT[c.r];
+      if (dust < cost) return false;
+      dust -= cost; owned[id] = had + 1; if (gld) golden[id] = goldN(id) + 1;
+    } else if (gld && goldN(id) < had) { // at the limit: turn a normal copy golden, paying the difference
+      const cost = CRAFT_G[c.r] - DE[c.r];
+      if (dust < cost) return false;
+      dust -= cost; golden[id] = goldN(id) + 1;
+    } else return false;
+    saveOwned(); return true;
+  }
+  function disenchant(id, gld) {
+    const c = E.card(id);
+    if (!canDE(id) || (gld ? !goldN(id) : goldN(id) >= owned[id])) return false;
+    dust += gld ? DE_G[c.r] : DE[c.r];
+    const g0 = goldN(id);
+    owned[id]--;
+    golden[id] = Math.min(gld ? g0 - 1 : g0, owned[id]);
+    if (!golden[id]) delete golden[id];
+    if (!owned[id]) delete owned[id];
+    // a deck can't keep more copies than you own
+    decks.forEach(d => { while (d.cards.filter(x => x === id).length > (owned[id] || 0)) d.cards.splice(d.cards.lastIndexOf(id), 1); });
+    store.set('ll_decks', decks);
+    saveOwned(); return true;
+  }
   const ODDS_STD = [72, 21, 5.5, 1.5], ODDS_MV = [40, 36, 17, 7];
   const PACKS = [
     { id: 'ih', name: 'Siege of Ironhold Pack', price: 100, odds: ODDS_STD, cover: 'ihn_ashking', col: '225,95,70', set: 'ih', blurb: "New expansion. Ironhold Idle's nemeses, monsters, companions and gear, the Champion's class cards, and the Frenzy keyword.", f: c => c.s === 'ih' },
@@ -213,19 +255,294 @@
       const id = p.pool[r][Math.floor(Math.random() * p.pool[r].length)];
       const c = E.card(id);
       const had = owned[id] || 0;
-      let extra = 0;
-      if (had >= CAP(c)) { extra = REFUND[c.r]; gold += extra; } else owned[id] = had + 1;
-      got.push({ id, r: c.r, isNew: had === 0, extra });
+      const g = Math.random() < GOLD_ODDS[c.r];
+      let extra = 0, up = false;
+      if (had >= CAP(c)) {
+        // an extra golden copy upgrades a normal one; any other extra copy becomes dust
+        if (g && goldN(id) < had) { golden[id] = goldN(id) + 1; up = true; } else { extra = g ? DE_G[c.r] : DE[c.r]; dust += extra; }
+      } else { owned[id] = had + 1; if (g) golden[id] = goldN(id) + 1; }
+      got.push({ id, r: c.r, isNew: had === 0, extra, g, up });
     }
     saveOwned();
+    questBump('packs', 1);
     return got;
   }
   const saveDecks = () => store.set('ll_decks', decks);
   let chosenDeck = store.get('ll_chosen', 'starter_tamer');
   let chosenOpp = 'random';
 
+  // ================================================================= PROGRESSION
+  // Daily quests, the reward track (XP and levels), and cosmetics (card backs, hero portraits).
+  const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const TRIBES = ['Beast', 'Mech', 'Fish'];
+  const hasTribe = (c, t) => (c.tr || '').split(/[\s,/]+/).includes(t);
+  // k = what counts. {p} is a class or a tribe, picked when the quest is dealt.
+  const QDEF = [
+    { k: 'win', n: 3, xp: 600, gold: 60, tx: 'Win 3 games' },
+    { k: 'games', n: 5, xp: 450, gold: 40, tx: 'Play 5 games' },
+    { k: 'minion', n: 25, xp: 450, gold: 40, tx: 'Play 25 minions' },
+    { k: 'spell', n: 12, xp: 450, gold: 40, tx: 'Cast 12 spells' },
+    { k: 'kill', n: 25, xp: 450, gold: 40, tx: 'Destroy 25 enemy minions' },
+    { k: 'face', n: 60, xp: 450, gold: 40, tx: 'Deal 60 damage to enemy heroes' },
+    { k: 'leg', n: 4, xp: 500, gold: 50, tx: 'Play 4 Legendary cards' },
+    { k: 'heroatk', n: 8, xp: 450, gold: 40, tx: 'Attack with your hero 8 times' },
+    { k: 'clswin', n: 2, xp: 650, gold: 60, p: 'cls', tx: 'Win 2 games as the {p}' },
+    { k: 'clsplay', n: 30, xp: 500, gold: 50, p: 'cls', tx: 'Play 30 {p} cards' },
+    { k: 'tribe', n: 12, xp: 500, gold: 50, p: 'tribe', tx: 'Play 12 {p} minions' },
+    { k: 'camp', n: 1, xp: 500, gold: 50, tx: 'Win a Campaign battle' },
+    { k: 'packs', n: 3, xp: 400, gold: 0, tx: 'Open 3 packs' },
+    { k: 'arena', n: 2, xp: 600, gold: 60, tx: 'Win 2 Arena games' },
+    { k: 'ranked', n: 3, xp: 650, gold: 60, tx: 'Win 3 Ranked games' },
+    { k: 'brawl', n: 1, xp: 500, gold: 50, tx: 'Play a Tavern Brawl' },
+  ];
+  const qDef = q => QDEF.find(d => d.k === q.k) || QDEF[0];
+  const qText = q => qDef(q).tx.replace('{p}', CLSN[q.p] || q.p || '');
+  let Q = store.get('ll_quests', null);
+  const saveQ = () => store.set('ll_quests', Q);
+  function newQuest() {
+    const have = new Set(Q.list.map(q => q.k));
+    for (let t = 0; t < 60; t++) {
+      const d = QDEF[Math.floor(Math.random() * QDEF.length)];
+      if (have.has(d.k)) continue;
+      const p = d.p === 'cls' ? CLS[Math.floor(Math.random() * CLS.length)] : d.p === 'tribe' ? TRIBES[Math.floor(Math.random() * TRIBES.length)] : '';
+      return { id: 'q' + Math.random().toString(36).slice(2, 9), k: d.k, p, n: d.n, xp: d.xp, gold: d.gold, prog: 0 };
+    }
+    return { id: 'q' + Date.now().toString(36), k: 'games', p: '', n: 5, xp: 450, gold: 40, prog: 0 };
+  }
+  // three quests a day. Unfinished ones carry over; finished ones make room for new ones the next day.
+  function questsFresh() {
+    if (!Q || !Array.isArray(Q.list)) Q = { day: '', list: [], swap: '' };
+    if (Q.day !== dayKey()) {
+      Q.day = dayKey();
+      Q.list = Q.list.filter(q => q.prog < q.n);
+      while (Q.list.length < 3) Q.list.push(newQuest());
+      saveQ();
+    }
+    return Q;
+  }
+  // progress outside battle (opening packs): applies at once
+  function questBump(k, n) {
+    questsFresh();
+    const lines = [];
+    Q.list.forEach(q => { if (q.k === k && q.prog < q.n) { q.prog = Math.min(q.n, q.prog + n); if (q.prog >= q.n) lines.push(questDone(q)); } });
+    saveQ();
+    if (lines.length) toast(lines.join(' · '));
+  }
+  let xpPending = 0;
+  function questDone(q) { gold += q.gold; xpPending += q.xp; saveOwned(); const s = `Quest complete: ${qText(q)}! +${q.xp} XP${q.gold ? `, +${q.gold} gold` : ''}`; if (current !== 'battle') gainXP(0); return s; }
+
+  // ---- the reward track: XP from every game and quest. Levels give gold, dust, packs, golden cards and card backs.
+  let prog = store.get('ll_prog', { lvl: 1, xp: 0 });
+  const saveProg = () => store.set('ll_prog', prog);
+  const xpNeed = L => 500 + 40 * Math.min(L, 25);
+  const TRACK_LEN = 60;
+  const BACK_AT = { 5: 'ribbons', 15: 'teal', 30: 'red' };
+  const STD_PACKS = () => PACKS.filter(p => p.id !== 'mv');
+  function trackReward(L) {
+    if (L > TRACK_LEN) return { gold: 150 };
+    if (BACK_AT[L]) return { back: BACK_AT[L] };
+    if (L === 25 || L === 50 || L === 60) return { gl: 1 };
+    if (L % 10 === 0) return { pack: 'mv', n: 2 };
+    if (L % 5 === 0) return { pack: 'mv', n: 1 };
+    if (L % 3 === 0) { const s = STD_PACKS(); return { pack: s[(L / 3) % s.length].id, n: 1 }; }
+    if (L % 2 === 0) return { dust: 100 };
+    return { gold: 100 };
+  }
+  function rewardText(r) {
+    if (r.back) return `Card back: ${BACKS.find(b => b.id === r.back).n}`;
+    if (r.gl) return 'A golden Legendary';
+    if (r.pack) { const p = PACKS.find(x => x.id === r.pack); return `${r.n > 1 ? r.n + ' × ' : ''}${p.name}`; }
+    if (r.dust) return `${r.dust} dust`;
+    return `${r.gold} gold`;
+  }
+  let freePacks = store.get('ll_free', {});
+  function grantReward(r) {
+    if (r.back) unlockBack(r.back);
+    else if (r.pack) { freePacks[r.pack] = (freePacks[r.pack] || 0) + r.n; store.set('ll_free', freePacks); }
+    else if (r.dust) dust += r.dust;
+    else if (r.gold) gold += r.gold;
+    else if (r.gl) {
+      // a golden Legendary: a new one if possible, otherwise upgrade one, otherwise its dust
+      const legs = D.cards.filter(c => c.r === 3 && !c.token);
+      const pick = legs.filter(c => !owned[c.id]); const up = legs.filter(c => owned[c.id] && !isGold(c.id));
+      const c = (pick.length ? pick : up.length ? up : legs)[Math.floor(Math.random() * (pick.length || up.length || legs.length))];
+      if (!owned[c.id]) { owned[c.id] = 1; golden[c.id] = 1; r.got = c.n; }
+      else if (!isGold(c.id)) { golden[c.id] = 1; r.got = c.n + ' (upgraded)'; }
+      else { dust += DE_G[3]; r.got = DE_G[3] + ' dust'; }
+    }
+    saveOwned();
+  }
+  // returns one line per level gained
+  function gainXP(n) {
+    n += xpPending; xpPending = 0;
+    const lines = [];
+    prog.xp += n;
+    while (prog.xp >= xpNeed(prog.lvl)) {
+      prog.xp -= xpNeed(prog.lvl); prog.lvl++;
+      const r = trackReward(prog.lvl); grantReward(r);
+      lines.push(`Level ${prog.lvl}! ${rewardText(r)}${r.got ? ': ' + r.got : ''}`);
+    }
+    saveProg();
+    if (lines.length && current !== 'battle') toast(lines.join(' · '));
+    return lines;
+  }
+
+  // ---- per-game tallies, read off the engine's event stream
+  function tally(evs) {
+    if (!G || !G._t) return;
+    const T = G._t, me = G.p[0], op = G.p[1];
+    for (const e of evs) {
+      if (e.t === 'play' && e.pi === 0) {
+        const c = E.card(e.cid); if (!c || c.id === 'coin') continue;
+        if (c.t === 'm') { T.minion++; TRIBES.forEach(t => { if (hasTribe(c, t)) T.tribe[t] = (T.tribe[t] || 0) + 1; }); }
+        if (c.t === 's') T.spell++;
+        if (c.r === 3) T.leg++;
+        if (c.c === me.cls) T.clsplay++;
+      } else if (e.t === 'death' && e.pi === 1) T.kill++;
+      else if (e.t === 'dmg' && e.uid === op.hero.uid) T.face += e.n;
+      else if (e.t === 'attack' && e.from === me.hero.uid) T.heroatk++;
+    }
+  }
+  let stats = store.get('ll_stats', { wins: {}, games: 0 });
+  // end of a game: quest progress, XP, unlocks. mode: casual | camp | ranked | arena | brawl
+  function finishGame(won, mode) {
+    questsFresh();
+    const T = G._t || { tribe: {} }, cls = G.p[0].cls, lines = [];
+    const add = { win: +won, games: 1, minion: T.minion, spell: T.spell, kill: T.kill, face: T.face, leg: T.leg, heroatk: T.heroatk,
+      camp: +(won && mode === 'camp'), arena: +(won && mode === 'arena'), ranked: +(won && mode === 'ranked'), brawl: +(mode === 'brawl') };
+    Q.list.forEach(q => {
+      if (q.prog >= q.n) return;
+      const inc = q.k === 'clswin' ? +(won && cls === q.p) : q.k === 'clsplay' ? (cls === q.p ? T.clsplay : 0) : q.k === 'tribe' ? (T.tribe[q.p] || 0) : (add[q.k] || 0);
+      if (!inc) return;
+      q.prog = Math.min(q.n, q.prog + inc);
+      lines.push(q.prog >= q.n ? { done: 1, s: questDone(q) } : { s: `${qText(q)}: ${q.prog}/${q.n}` });
+    });
+    saveQ();
+    stats.games++; if (won) stats.wins[cls] = (stats.wins[cls] || 0) + 1; store.set('ll_stats', stats);
+    const xp = won ? 100 : 50;
+    const lv = gainXP(xp);
+    const un = checkUnlocks();
+    return { lines, xp, lv, un };
+  }
+  function progressHTML(r) {
+    if (!r) return '';
+    const pct = Math.round(prog.xp / xpNeed(prog.lvl) * 100);
+    return `<div class="goprog">${r.lines.map(l => `<p class="${l.done ? 'qdone' : 'qline'}">${esc(l.s)}</p>`).join('')}
+      <div class="xprow"><b>Level ${prog.lvl}</b><span class="xpbar"><i style="width:${pct}%"></i></span><small>+${r.xp} XP</small></div>
+      ${r.lv.concat(r.un).map(s => `<p class="reward gift">${esc(s)}</p>`).join('')}</div>`;
+  }
+
+  // ---- cosmetics
+  const BACKS = [
+    { id: 'classic', n: 'Legends Classic', need: 'Yours from the start' },
+    { id: 'cream', n: 'Wrapper Cream', need: 'Yours from the start' },
+    { id: 'ribbons', n: 'The Ribbons', need: 'Reach Level 5 on the reward track' },
+    { id: 'teal', n: 'The Night Star', need: 'Reach Level 15 on the reward track' },
+    { id: 'red', n: 'Crimson Press', need: 'Reach Level 30 on the reward track' },
+    { id: 'gold', n: 'Gold Foil', need: 'Reach Gold rank in Ranked' },
+    { id: 'knot', n: 'The Golden Knot', need: 'Win 12 games in one Arena run' },
+  ];
+  // three alternate portraits per class; any of them can also be bought
+  const PORTS = {
+    tamer: ['gdb_wyrm', 'gdb_thornqueen', 'gdb_eclipsechimera'], gambler: ['dmpb_death1', 'dmp_knight_eternal', 'dmpb_lich'],
+    healer: ['th_king', 'ihn_seraphel', 'ihn_thessaly'], collector: ['oe_jukebox', 'ihc_goldragon', 'dcl_roosterking'],
+    scientist: ['s1_200', 's2_200', 'ihn_kael'], champion: ['ihn_ashking', 'ihn_dragonknight', 'ihh_3'],
+  };
+  const PORT_PRICE = 2500;
+  const portNeed = (cls, i) => i === 0 ? `Finish the ${CLSN[cls]} campaign` : i === 1 ? `Win 25 games as the ${CLSN[cls]}` : 'Reach Level 40 on the reward track';
+  let cos = store.get('ll_cos', {});
+  Object.assign(cos, { back: cos.back || 'classic', backs: Object.assign({ classic: 1, cream: 1 }, cos.backs || {}), port: cos.port || {}, ports: cos.ports || {} });
+  const saveCos = () => store.set('ll_cos', cos);
+  function unlockBack(id) { if (cos.backs[id]) return false; cos.backs[id] = 1; saveCos(); return true; }
+  const backURL = id => id && id !== 'classic' ? `img/back_${id}.webp` : '';
+  const backStyle = id => backURL(id) ? `background-image:url(${backURL(id)});background-size:cover;background-position:center` : '';
+  // earned portraits and backs; returns a line for each new one
+  function checkUnlocks() {
+    const out = [];
+    Object.entries(BACK_AT).forEach(([L, id]) => { if (prog.lvl >= +L && unlockBack(id)) out.push(`New card back: ${BACKS.find(b => b.id === id).n}`); });
+    const rk = store.get('ll_rank', null); if (rk && rk.best >= 20 && unlockBack('gold')) out.push('New card back: Gold Foil');
+    const ar = store.get('ll_arena_best', 0); if (ar >= 12 && unlockBack('knot')) out.push('New card back: The Golden Knot');
+    CLS.forEach(k => PORTS[k].forEach((id, i) => {
+      if (cos.ports[id]) return;
+      const ok = i === 0 ? (camp[k] || 0) >= 4 : i === 1 ? (stats.wins[k] || 0) >= 25 : prog.lvl >= 40;
+      if (ok) { cos.ports[id] = 1; saveCos(); out.push(`New ${CLSN[k]} hero portrait: ${E.card(id).n}`); }
+    }));
+    return out;
+  }
+  // the hero a player brings: their chosen portrait for the class, if any
+  function myHero(cls) { const id = cos.port[cls], c = id && cos.ports[id] && E.card(id); return c ? { art: c.art } : null; }
+
+  function toast(s) {
+    const t = document.createElement('div'); t.className = 'toast'; t.textContent = s;
+    document.body.appendChild(t); setTimeout(() => t.classList.add('out'), 3800); setTimeout(() => t.remove(), 4300);
+  }
+
+  // ---- the Journal screen: quests, reward track, card backs, hero portraits
+  let jTab = 'quests';
+  function renderJournal() {
+    questsFresh(); checkUnlocks();
+    const pct = Math.round(prog.xp / xpNeed(prog.lvl) * 100);
+    const head = `<div class="jhead"><div class="jlvl"><b>${prog.lvl}</b><small>Level</small></div>
+      <div class="jxp"><span class="xpbar"><i style="width:${pct}%"></i></span><small>${prog.xp} / ${xpNeed(prog.lvl)} XP · next: ${esc(rewardText(trackReward(prog.lvl + 1)))}</small></div></div>
+      <div class="jtabs">${[['quests', 'Quests'], ['track', 'Reward Track'], ['backs', 'Card Backs'], ['ports', 'Hero Portraits']].map(([k, n]) => `<button class="chip${jTab === k ? ' on' : ''}" data-jt="${k}">${n}</button>`).join('')}</div>`;
+    let body = '';
+    if (jTab === 'quests') {
+      body = `<p class="jnote">Three quests a day. Progress counts in every mode. A quest you don't finish stays until you do. You can swap one quest a day.</p><div class="qgrid">${Q.list.map(q => `<div class="quest${q.prog >= q.n ? ' done' : ''}">
+          <b>${esc(qText(q))}</b><span class="qbar"><i style="width:${Math.round(q.prog / q.n * 100)}%"></i></span>
+          <span class="qmeta">${q.prog}/${q.n} · ${q.xp} XP${q.gold ? ` · ${q.gold} gold` : ''}</span>
+          ${q.prog >= q.n ? '<span class="qok">Done</span>' : Q.swap !== Q.day ? `<button class="small" data-qswap="${q.id}">Swap</button>` : ''}</div>`).join('')}</div>
+        <p class="jnote">Every game also gives XP: 100 for a win, 50 for a loss.</p>`;
+    } else if (jTab === 'track') {
+      const top = Math.max(TRACK_LEN, prog.lvl + 5);
+      body = `<p class="jnote">Rewards land the moment you reach a level. Free packs wait for you in the Card Shop.</p><div class="track" id="track">${Array.from({ length: top - 1 }, (_, k) => {
+        const L = k + 2, r = trackReward(L), got = prog.lvl >= L;
+        const ic = r.back ? `<i class="tback" style="${backStyle(r.back)}"></i>` : r.pack ? `<i class="tpack" style="background-image:url(img/pack_${r.pack}.webp)"></i>` : r.gl ? '<i class="tic gl">★</i>' : r.dust ? '<i class="tic du">✦</i>' : '<i class="tic go">●</i>';
+        return `<div class="trl${got ? ' got' : ''}${L === prog.lvl + 1 ? ' next' : ''}"><small>${L}</small>${ic}<span>${esc(rewardText(r))}</span></div>`;
+      }).join('')}</div>`;
+    } else if (jTab === 'backs') {
+      body = `<p class="jnote">Your card back shows on your cards in packs and on your deck in battle.</p><div class="bgrid">${BACKS.map(b => {
+        const have = cos.backs[b.id], on = cos.back === b.id;
+        return `<button class="bk${on ? ' on' : ''}${have ? '' : ' locked'}" data-back="${b.id}" ${have ? '' : 'aria-disabled="true"'}>
+          <i class="bkimg${b.id === 'classic' ? ' classic' : ''}" style="${backStyle(b.id)}">${b.id === 'classic' ? '<span>LL</span>' : ''}</i><b>${esc(b.n)}</b><small>${on ? 'Equipped' : have ? 'Tap to equip' : esc(b.need)}</small></button>`;
+      }).join('')}</div>`;
+    } else {
+      body = `<p class="jnote">Swap your hero's portrait for each class. Earn them, or buy any of them for ${PORT_PRICE.toLocaleString()} gold. <span class="goldchip"></span></p>${CLS.map(k => {
+        const h = D.heroes[k], cur = cos.port[k] && cos.ports[cos.port[k]] ? cos.port[k] : '';
+        const tile = (id, i) => {
+          const c = id ? E.card(id) : null, have = !id || cos.ports[id], on = cur === (id || '');
+          return `<button class="pt${on ? ' on' : ''}${have ? '' : ' locked'}" data-port="${k}:${id || ''}" style="--cc:${CCOL(k)}">
+            <i class="ptimg" style="${artCSS(c ? c.art : h.art)}"></i><b>${esc(c ? c.n : h.n)}</b>
+            <small>${on ? 'Equipped' : have ? 'Tap to equip' : `${esc(portNeed(k, i))}<br><span class="buy">or ${PORT_PRICE.toLocaleString()} gold</span>`}</small></button>`;
+        };
+        return `<h4 class="ptcls">${CLSN[k]}</h4><div class="ptrow">${tile('', -1)}${PORTS[k].map((id, i) => E.card(id) ? tile(id, i) : '').join('')}</div>`;
+      }).join('')}`;
+    }
+    $('#journalbody').innerHTML = head + body;
+    goldChips();
+    if (jTab === 'track') { const t = $('#track'), n = $('#track .trl.next'); if (t && n) t.scrollLeft = n.offsetLeft - (t.clientWidth - n.offsetWidth) / 2; }
+  }
+  $('#journalbody').addEventListener('click', e => {
+    const t = e.target.closest('[data-jt]'); if (t) { jTab = t.dataset.jt; sfx('click', .3); renderJournal(); return; }
+    const sw = e.target.closest('[data-qswap]');
+    if (sw && Q.swap !== Q.day) { const i = Q.list.findIndex(q => q.id === sw.dataset.qswap); if (i >= 0) { Q.list.splice(i, 1); Q.list.splice(i, 0, newQuest()); Q.swap = Q.day; saveQ(); sfx('relic', .4); renderJournal(); } return; }
+    const b = e.target.closest('[data-back]');
+    if (b && cos.backs[b.dataset.back]) { cos.back = b.dataset.back; saveCos(); sfx('click', .4); renderJournal(); return; }
+    const p = e.target.closest('[data-port]');
+    if (p) {
+      const [k, id] = p.dataset.port.split(':');
+      if (id && !cos.ports[id]) {
+        if (p.dataset.confirm !== '1') { p.dataset.confirm = '1'; p.querySelector('small').textContent = gold >= PORT_PRICE ? `Tap again to buy for ${PORT_PRICE.toLocaleString()} gold` : `Needs ${PORT_PRICE.toLocaleString()} gold`; return; }
+        if (gold < PORT_PRICE) return;
+        gold -= PORT_PRICE; saveOwned(); cos.ports[id] = 1; sfx('coin', .5);
+      }
+      cos.port[k] = id; saveCos(); renderJournal();
+    }
+  });
+
   // ---------------------------------------------------------------- menu
   function renderMenu() {
+    questsFresh(); checkUnlocks();
+    $('#questdot').hidden = store.get('ll_jseen', '') === dayKey();
     $('#menubg').style.backgroundImage = `url(${D.boards.bg_core})`;
     const ids = ['dmpb_death1', 'gdb_wyrm', 'mv_labfreak', 'th_kingc', 's2_200'];
     const fan = ids.map(id => E.card(id)).filter(Boolean);
@@ -282,6 +599,8 @@
       if (F.set !== 'all' && setOf(c) !== F.set) return false;
       if (F.own === 'owned' && !owned[c.id]) return false;
       if (F.own === 'missing' && owned[c.id]) return false;
+      if (F.own === 'golden' && !isGold(c.id)) return false;
+      if (F.own === 'extra' && !(canDE(c.id) && owned[c.id] > 0)) return false;
       if (q && !(c.n.toLowerCase().includes(q) || (c.tx || '').toLowerCase().includes(q) || (c.tr || '').toLowerCase().includes(q))) return false;
       return true;
     }).sort((a, b) => a.m - b.m || a.n.localeCompare(b.n));
@@ -303,7 +622,7 @@
       `<select class="sel" data-f="rar" aria-label="Rarity"><option value="all">All rarities</option>${RN.map((r, i) => `<option value="${i}">${r}</option>`).join('')}</select>` +
       `<select class="sel" data-f="set" aria-label="Card set"><option value="all">All sets</option>${SETS.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('')}</select>` +
       `<select class="sel" data-f="game" aria-label="Game"><option value="all">All games</option>${GAMES.map(g => `<option>${esc(g)}</option>`).join('')}</select>` +
-      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option></select>` +
+      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option><option value="golden">Only golden cards</option><option value="extra">Cards I can disenchant</option></select>` +
       (active ? `<button class="chip" data-freset>Clear filters</button>` : '') + `</div></div>`;
     $$('#filters select').forEach(s => { s.value = F[s.dataset.f]; });
   }
@@ -314,7 +633,7 @@
     F.page = Math.min(F.page, pages - 1);
     const counts = {};
     if (editing) editing.cards.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-    $('#grid').innerHTML = list.slice(F.page * PER, F.page * PER + PER).map(c => cardHTML(c, { copies: counts[c.id], owned: owned[c.id] || 0, locked: !owned[c.id], attrs: 'tabindex="0" role="button"' })).join('') ||
+    $('#grid').innerHTML = list.slice(F.page * PER, F.page * PER + PER).map(c => cardHTML(c, { copies: counts[c.id], owned: owned[c.id] || 0, locked: !owned[c.id], golden: isGold(c.id), attrs: 'tabindex="0" role="button"' })).join('') ||
       `<p style="grid-column:1/-1;color:var(--muted);font-weight:800">No cards match these filters.</p>`;
     $('#pager').innerHTML = `<button class="small" data-pg="-1" ${F.page ? '' : 'disabled'}>Previous</button><span>${list.length.toLocaleString()} cards · page ${F.page + 1} of ${pages}</span><button class="small" data-pg="1" ${F.page < pages - 1 ? '' : 'disabled'}>Next</button>`;
   }
@@ -410,17 +729,127 @@
   $('#zoom').addEventListener('click', e => {
     const n = e.target.closest('[data-newcls]');
     if (n) { const cls = n.dataset.newcls; editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0; $('#zoom').hidden = true; renderCollection(); return; }
-    if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal')) $('#zoom').hidden = true;
+    if (zoomAct(e)) return;
+    if (codeAct(e)) return;
+    if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal,.codebox')) $('#zoom').hidden = true;
   });
-  function zoom(c) {
+  // ---- deck codes: copy a deck as text, paste one back in (Hearthstone-style)
+  // LL1.<class>.<single copies>.<double copies>, each card a 5-character hash of its id
+  const hid = id => { let h = 2166136261; for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 60466176).toString(36).padStart(5, '0'); };
+  let HID = null;
+  const hidMap = () => HID || (HID = Object.fromEntries(D.cards.filter(c => !c.token).map(c => [hid(c.id), c.id])));
+  function deckCode(d) {
+    const n = {}; d.cards.forEach(id => { n[id] = (n[id] || 0) + 1; });
+    const ids = Object.keys(n).sort((a, b) => E.card(a).m - E.card(b).m || a.localeCompare(b));
+    const code = `LL1.${d.cls}.${ids.filter(i => n[i] === 1).map(hid).join('')}.${ids.filter(i => n[i] > 1).map(hid).join('')}`;
+    return `### ${d.name}\n# Class: ${CLSN[d.cls]}\n` + ids.map(i => `# ${n[i]}x (${E.card(i).m}) ${E.card(i).n}`).join('\n') + `\n#\n${code}\n# Paste this into Labfreak Legends: Collection, Paste code.`;
+  }
+  function readCode(txt) {
+    const m = String(txt || '').match(/LL1\.([a-z]+)\.([0-9a-z]*)\.([0-9a-z]*)/);
+    if (!m || !CLS.includes(m[1])) return null;
+    const map = hidMap(), cards = [], bad = [];
+    [[m[2], 1], [m[3], 2]].forEach(([s, k]) => { for (let i = 0; i + 5 <= s.length; i += 5) { const id = map[s.slice(i, i + 5)]; if (id) for (let j = 0; j < k; j++) cards.push(id); else bad.push(s.slice(i, i + 5)); } });
+    const nm = (String(txt).match(/^###\s*(.+)$/m) || [])[1];
+    return { cls: m[1], cards, bad, name: (nm || `Imported ${CLSN[m[1]]} Deck`).slice(0, 28).trim() };
+  }
+  async function copyText(s) {
+    try { await navigator.clipboard.writeText(s); return true; } catch (e) { }
+    try { const t = document.createElement('textarea'); t.value = s; document.body.appendChild(t); t.select(); const ok = document.execCommand('copy'); t.remove(); return ok; } catch (e) { return false; }
+  }
+  // what an imported deck is missing, and what it costs to craft
+  function missingOf(cards) {
+    const n = {}; cards.forEach(id => { n[id] = (n[id] || 0) + 1; });
+    const miss = []; let cost = 0;
+    Object.entries(n).forEach(([id, k]) => { const lack = Math.max(0, k - (owned[id] || 0)); if (lack) { miss.push([id, lack]); cost += lack * CRAFT[E.card(id).r]; } });
+    return { miss, cost };
+  }
+  let pasted = null;
+  function showPaste(msg) {
+    const m = $('#zoom');
+    const r = pasted, mi = r && missingOf(r.cards);
+    m.innerHTML = `<div class="codebox"><h3>Paste a deck code</h3>
+      <p>Copy a code from a friend (or from <b>Copy code</b> in the deck builder) and paste it here.</p>
+      <textarea id="codein" rows="5" placeholder="LL1.tamer.…" aria-label="Deck code">${r ? esc(r.raw) : ''}</textarea>
+      ${r ? `<p class="cinfo"><b>${esc(r.name)}</b> · ${CLSN[r.cls]} · ${r.cards.length} cards${r.bad.length ? ` · ${r.bad.length} unknown card${r.bad.length > 1 ? 's' : ''} skipped` : ''}</p>
+        ${mi.miss.length ? `<p class="cmiss">You're missing ${mi.miss.reduce((a, x) => a + x[1], 0)} card${mi.miss.length > 1 ? 's' : ''}: ${mi.miss.map(([id, k]) => esc(E.card(id).n) + (k > 1 ? ' ×' + k : '')).join(', ')}.</p>
+          <p class="crow"><button class="small gold" data-code="craft" ${dust < mi.cost ? 'disabled' : ''}>Craft them · ${mi.cost.toLocaleString()} dust</button><button class="small" data-code="import">Import without them</button></p><p class="dustline"><span class="dustchip"></span></p>`
+        : `<p class="crow"><button class="small gold" data-code="import">Import deck</button></p>`}` : ''}
+      ${msg ? `<p class="cmsg">${esc(msg)}</p>` : ''}
+      <p class="crow"><button class="small" data-code="read">Read code</button><button class="small" data-close>Close</button></p></div>`;
+    m.hidden = false; goldChips();
+  }
+  function codeAct(e) {
+    const b = e.target.closest('[data-code]'); if (!b) return false;
+    const k = b.dataset.code;
+    if (k === 'read') {
+      const raw = $('#codein').value, r = readCode(raw);
+      pasted = r ? Object.assign(r, { raw }) : null;
+      showPaste(r ? '' : "That doesn't look like a Labfreak Legends deck code.");
+      return true;
+    }
+    if (!pasted) return true;
+    if (k === 'craft') {
+      const mi = missingOf(pasted.cards);
+      if (dust < mi.cost) return true;
+      mi.miss.forEach(([id, lack]) => { for (let j = 0; j < lack; j++) craft(id, false); });
+      sfx('relic', .5);
+    }
+    if (k === 'craft' || k === 'import') {
+      const left = {}; const cards = pasted.cards.filter(id => { left[id] = (left[id] || 0) + 1; return left[id] <= (owned[id] || 0); });
+      editing = { id: 'd' + Date.now(), name: pasted.name, cls: pasted.cls, cards };
+      decks.push(editing); saveDecks();
+      pasted = null; $('#zoom').hidden = true; F.cls = 'all'; F.page = 0; renderCollection();
+      flashErr(cards.length === 30 ? 'Imported. Ready to play.' : `Imported ${cards.length} of 30 cards. Fill in the rest from your collection.`);
+    }
+    return true;
+  }
+  $('#b-paste').onclick = () => { pasted = null; showPaste(); };
+  $('#b-code').onclick = async () => {
+    if (!editing) return;
+    const ok = await copyText(deckCode(editing));
+    $('#deckerrs').textContent = ok ? 'Deck code copied. Paste it anywhere to share.' : "Couldn't reach the clipboard.";
+    $('#deckerrs').style.color = ok ? 'var(--heal)' : '#ffb3bb';
+  };
+
+  let zoomed = null, zoomGold = false;
+  function zoom(c, keepView) {
+    zoomed = c;
+    const n = owned[c.id] || 0, g = goldN(c.id), nm = n - g;
+    if (!keepView) zoomGold = g > 0 && nm === 0;
     const kws = explain(c);
-    $('#zoom').innerHTML = `<div class="wrap">${cardHTML(c)}<div class="info"><h3>${esc(c.n)}</h3>
+    const cap = CAP(c), keep = starterNeed[c.id] || 0;
+    const cr = c.token ? '' : `<div class="craft">
+        <div class="dustline"><span class="dustchip"></span>${keep ? `<small>${keep > 1 ? 'Two copies are' : 'One copy is'} in a starter deck, so ${keep > 1 ? 'they stay' : 'it stays'}.</small>` : ''}</div>
+        <div class="crow">
+          <button class="small gold" data-craft="0" ${n >= cap || dust < CRAFT[c.r] ? 'disabled' : ''}>Craft · ${CRAFT[c.r]} dust</button>
+          <button class="small" data-de="0" ${!nm || !canDE(c.id) ? 'disabled' : ''}>Disenchant · +${DE[c.r]}</button></div>
+        <div class="crow">
+          <button class="small gold glow" data-craft="1" ${(n < cap ? dust < CRAFT_G[c.r] : (!nm || dust < CRAFT_G[c.r] - DE[c.r])) ? 'disabled' : ''}>${n < cap ? `Craft golden · ${CRAFT_G[c.r]}` : `Make golden · ${CRAFT_G[c.r] - DE[c.r]}`}</button>
+          <button class="small" data-de="1" ${!g || !canDE(c.id) ? 'disabled' : ''}>Disenchant golden · +${DE_G[c.r]}</button></div></div>`;
+    $('#zoom').innerHTML = `<div class="wrap">${cardHTML(c, { golden: zoomGold })}<div class="info"><h3>${esc(c.n)}</h3>
       <p>${RN[c.r]} ${c.t === 's' ? 'spell' : c.t === 'w' ? 'weapon' : 'minion'} · ${CLSN[c.c]} · ${esc(c.g || '')}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
       ${c.fl ? `<p style="font-style:italic">“${esc(c.fl)}”</p>` : ''}
-      <p>${owned[c.id] ? `You own ${owned[c.id]} cop${owned[c.id] > 1 ? 'ies' : 'y'}.` : `Not owned yet. Found in the ${esc((PACKS.find(p => p.id !== 'mv' && p.f(c)) || PACKS[5]).name)} and the Multiverse Pack.`}</p>
+      <p>${n ? `You own ${n} cop${n > 1 ? 'ies' : 'y'}${g ? (g === n ? (n > 1 ? ', both golden' : ', golden') : ` (${g} golden)`) : ''}.` : `Not owned yet. Found in the ${esc((PACKS.find(p => p.id !== 'mv' && p.f(c)) || PACKS[5]).name)} and the Multiverse Pack, or craft it with dust.`}
+        ${g && nm ? `<button class="linkbtn" data-zg>${zoomGold ? 'Show normal' : 'Show golden'}</button>` : ''}</p>
       <div class="kwlist">${kws.map(([k, v]) => `<div><b>${esc(k)}</b> ${esc(v)}</div>`).join('')}</div>
-      <p><button class="small" data-close>Close</button></p></div></div>`;
+      ${cr}<p><button class="small" data-close>Close</button></p></div></div>`;
     $('#zoom').hidden = false;
+    goldChips();
+  }
+  function zoomAct(e) {
+    const c = zoomed; if (!c) return false;
+    if (e.target.closest('[data-zg]')) { zoomGold = !zoomGold; zoom(c, true); return true; }
+    const cb = e.target.closest('[data-craft]'), db = e.target.closest('[data-de]');
+    if (!cb && !db) return false;
+    const gld = (cb || db).dataset[cb ? 'craft' : 'de'] === '1';
+    if (cb ? craft(c.id, gld) : disenchant(c.id, gld)) {
+      sfx(cb ? 'relic' : 'coin', .5);
+      zoomGold = gld && !!cb;
+      zoom(c, true);
+      const el = $('#zoom .wrap > .card'); if (el) { el.classList.add(cb ? 'crafted' : 'dusted'); }
+      renderGrid(); if (editing) renderDeckPanel(); $('#collsub').textContent = `You own ${ownedTotal().toLocaleString()} cards`;
+    }
+    return true;
   }
 
   // ---------------------------------------------------------------- rules
@@ -469,7 +898,14 @@
       <p>Like Hearthstone, cards come in sets. Every set has its own pack in the Card Shop, and every expansion brings a new keyword. Expansion cards carry the set's symbol under the art, and the collection can be filtered by set.</p>
       <div class="gloss">${SETS.map(x => `<div><b>${x.id !== 'core' && SET_ICON[x.id] ? `<i class="seti">${SET_ICON[x.id]}</i>` : ''}${esc(x.n)}</b><span>${{ core: 'The original 2,318 cards from Glimmerdeep, Dead Man\'s Pull, Thankless, Odds & Ends and the Labfreak series.', ih: 'Ironhold Idle\'s monsters, nemeses, companions and gear. Brings the Champion class and the Frenzy keyword.', tt: 'Spells and weapons for every class, built for synergy: Beast, Mech, Fish and element decks, low-Attack and big-minion decks, weapon and spell-chain decks.', dc: 'The Odds & Ends fishing game: a hundred species, sea creatures, sunken treasure, tackle and the six Legend fish. Brings the Dredge keyword.' }[x.id] || ''}</span></div>`).join('')}</div>
       <h3>Decks, packs and gold</h3>
-      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop. Extra copies you can't use turn into gold automatically.</p>`;
+      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop.</p>
+      <h3>Dust, crafting and golden cards</h3>
+      <p>Extra copies you can't use turn into <b>dust</b> automatically. Open any card in your collection to <b>craft</b> it from dust or <b>disenchant</b> it for dust: Commons craft for ${CRAFT[0]}, Rares ${CRAFT[1]}, Epics ${CRAFT[2]}, Legendaries ${CRAFT[3]}. Cards in the starter decks can't be disenchanted.</p>
+      <p>Any card in a pack can come out <b>golden</b>: the same card with a gold frame and a shine. Golden cards play exactly like normal ones and disenchant for much more dust. You can also craft them, or turn a normal copy golden.</p>
+      <h3>Quests and the reward track</h3>
+      <p>You get three daily quests in <b>Quests &amp; Rewards</b>. Every game and every quest gives XP; each level on the reward track pays out gold, dust, free packs, golden Legendaries or a new card back. Hero portraits for each class are earned there too.</p>
+      <h3>Deck codes</h3>
+      <p>In the deck builder, <b>Copy code</b> puts your deck on the clipboard as text. Anyone can paste it with <b>Paste code</b> in the Collection and craft whatever they're missing.</p>`;
   }
 
   // ================================================================= BATTLE
@@ -478,8 +914,10 @@
     const oppDeck = cmp ? cmp.deck : E.randomDeck(null, oppCls, Math.random);
     lastDecks = { myDeck, oppCls, cmp };
     G = E.newGame({ decks: [myDeck.cards, oppDeck], classes: [myDeck.cls, oppCls], seed: (Math.random() * 1e9) | 0,
-      names: ['You', cmp ? cmp.name : D.heroes[oppCls].n], heroes: cmp ? [null, { n: cmp.name, art: cmp.art }] : null, hp: cmp ? [30, cmp.hp] : null });
+      names: ['You', cmp ? cmp.name : D.heroes[oppCls].n], heroes: [myHero(myDeck.cls), cmp ? { n: cmp.name, art: cmp.art } : null], hp: cmp ? [30, cmp.hp] : null });
     G.p[1].isBot = true;
+    G._t = { minion: 0, spell: 0, kill: 0, face: 0, leg: 0, heroatk: 0, clsplay: 0, tribe: {} };
+    G.backs = [cos.back, BACKS[Math.floor(Math.random() * BACKS.length)].id];
     if (cmp) G.camp = { k: cmp.k, i: cmp.i };
     sel = null; busy = false;
     const bgk = cmp && D.boards[cmp.bg] ? cmp.bg : D.heroes[myDeck.cls].bg;
@@ -502,7 +940,7 @@
   function minionHTML(m, o) {
     const c = E.card(m.cid);
     const a = E.atkOf(G, m);
-    const cls = ['minion', m.kw.has('taunt') ? 'taunt' : '', m.divine ? 'divine' : '', m.stealth ? 'stealth' : '', m.frozen ? 'frozen' : '', c.r === 3 ? 'leg' : '', o.extra || ''].join(' ');
+    const cls = ['minion', m.kw.has('taunt') ? 'taunt' : '', m.divine ? 'divine' : '', m.stealth ? 'stealth' : '', m.frozen ? 'frozen' : '', c.r === 3 ? 'leg' : '', m.owner === 0 && isGold(m.cid) ? 'golden' : '', o.extra || ''].join(' ');
     const icons = [];
     if (m.kw.has('windfury')) icons.push('<i title="Double Strike: attacks twice">2×</i>');
     if (m.kw.has('poisonous')) icons.push('<i title="Deadly: kills any minion it damages" style="color:#7dff6a">☠</i>');
@@ -530,7 +968,7 @@
       <div class="hname">${esc(P.name)}</div><div class="port" style="${artCSS(h.art)}"></div>
       ${P.hero.armor ? `<div class="harm">${P.hero.armor}</div>` : ''}${atk > 0 ? `<div class="hatk">${atk}</div>` : ''}<div class="hhp">${P.hero.hp}</div></div>`;
     const side = `<div class="side"><div class="manabar">${P.mana}/${P.maxMana} ${crys}</div>
-      <div class="deckct" title="Cards left in deck">Deck ${P.deck.length}</div>${!me ? `<div class="handct">Hand ${P.hand.length}</div>` : ''}
+      <div class="deckct" title="Cards left in deck"><i class="dback" style="${backStyle(G.backs && G.backs[pi])}"></i>Deck ${P.deck.length}</div>${!me ? `<div class="handct">Hand ${P.hand.length}</div>` : ''}
       ${P.secrets.length ? `<div class="secrets">${P.secrets.map(s => `<span class="secret" title="${me ? 'Your Trap: ' + esc(E.card(s.cid).n) : 'Enemy Trap'}">?</span>`).join('')}</div>` : ''}</div>`;
     return me ? `${weap}${heroEl}${hpBtn}${side}` : `${side}${weap}${heroEl}${hpBtn}`;
   }
@@ -541,7 +979,8 @@
     const atkSet = new Set(), tgtSet = new Set(), friendTgt = new Set();
     if (myTurn && !sel) [...me.board, me.hero].forEach(u => { if (E.canAttack(G, u)) atkSet.add(u.uid); });
     if (sel) sel.targets.forEach(u => { tgtSet.add(u.uid); if (u.owner === 0) friendTgt.add(u.uid); });
-    $('#ohand').innerHTML = op.hand.map(() => '<div class="cb"></div>').join('');
+    const ob = backStyle(G.backs && G.backs[1]);
+    $('#ohand').innerHTML = op.hand.map(() => `<div class="cb" style="${ob}"></div>`).join('');
     $('#ohero').innerHTML = heroRowHTML(1);
     $('#mhero').innerHTML = heroRowHTML(0);
     const extra = u => (atkSet.has(u.uid) ? ' can' : '') + (tgtSet.has(u.uid) ? ' tgt' : '') + (friendTgt.has(u.uid) ? ' friendly' : '') + (sel && sel.uid === u.uid ? ' picked' : '');
@@ -569,7 +1008,7 @@
       const off = (i - (n - 1) / 2);
       const playable = myTurn && E.canPlay(G, 0, i);
       const s = sel && sel.type === 'hand' && sel.idx === i;
-      return cardHTML(c, { cost: E.costOf(G, 0, ci), cls: (playable ? 'playable' : '') + (s ? ' sel' : ''),
+      return cardHTML(c, { cost: E.costOf(G, 0, ci), cls: (playable ? 'playable' : '') + (s ? ' sel' : ''), golden: isGold(c.id),
         style: `transform:translateX(calc(-50% + ${off * step}px)) rotate(${off * 3.2}deg) translateY(${Math.abs(off) * Math.abs(off) * 2.2}px);z-index:${i + 1}`,
         attrs: `data-hand="${i}" tabindex="0" role="button" aria-label="${esc(c.n)}"` });
     }).join('');
@@ -636,6 +1075,7 @@
     $('#battle').appendChild(w); await sleep(900); w.remove();
   }
   async function animate(evs) {
+    tally(evs);
     let deaths = [];
     for (const e of evs) {
       switch (e.t) {
@@ -947,18 +1387,20 @@
     const gift = store.get('ll_gift100k', false) ? 0 : 100000;
     if (gift) store.set('ll_gift100k', true);
     gold += reward + gift; saveOwned();
+    const cr = G.camp ? campEnd(w === 0) : null;
+    const pr = finishGame(w === 0, G.camp ? 'camp' : 'casual');
     const sub = w === 0 ? `You defeated ${G.p[1].name} on turn ${Math.ceil(G.turnNo / 2)}.` : w === 1 ? `${G.p[1].name} wins this one.` : 'Both heroes fell at once.';
     if (G.camp) {
-      const r = campEnd(w === 0);
+      const r = cr;
       saveOwned();
       m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}
-        ${r.lines.map(l => `<p class="reward">${esc(l)}</p>`).join('')}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>
+        ${r.lines.map(l => `<p class="reward">${esc(l)}</p>`).join('')}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>${progressHTML(pr)}
         <div class="row">${w === 0 ? '<button class="big" data-m="cnext">Continue the story</button>' : '<button class="big" data-m="cretry">Try again</button>'}
         <button class="big alt" data-m="cback">Back to the campaign</button></div></div>`;
       m.hidden = false;
       return;
     }
-    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p><div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
+    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>${progressHTML(pr)}<div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
     m.hidden = false;
   }
   function showDredge() {
@@ -996,7 +1438,14 @@
       <div class="pack" aria-hidden="true" style="background-image:url(img/pack_${p.id}.webp)"></div>
       <div class="pinfo"><b>${esc(p.name)}</b><span>${esc(p.blurb)}</span>
         <span class="odds">5 cards · at least one Rare<br>Common ${pct[0]} · Rare ${pct[1]} · Epic ${pct[2]} · Legendary ${pct[3]}<br>${p.size.toLocaleString()} different cards inside</span>
-        <button class="big buy" data-buy="${p.id}" ${gold < p.price ? 'disabled' : ''}>${gold < p.price ? `Need ${p.price} gold` : `Buy for ${p.price} gold`}</button></div></div>`;
+        ${freePacks[p.id] ? `<button class="big buy free" data-buy="${p.id}">Open free · ${freePacks[p.id]} waiting</button>` :
+          `<button class="big buy" data-buy="${p.id}" ${gold < p.price ? 'disabled' : ''}>${gold < p.price ? `Need ${p.price} gold` : `Buy for ${p.price} gold`}</button>`}</div></div>`;
+  }
+  // free packs from the reward track go first, then gold
+  function payPack(p) {
+    if (freePacks[p.id] > 0) { freePacks[p.id]--; if (!freePacks[p.id]) delete freePacks[p.id]; store.set('ll_free', freePacks); sfx('relic', .5); return true; }
+    if (gold < p.price) return false;
+    gold -= p.price; saveOwned(); sfx('coin', .5); return true;
   }
   function renderShop() {
     $('#packgrid').innerHTML = PACKS.map(packHTML).join('');
@@ -1006,8 +1455,7 @@
   $('#packgrid').addEventListener('click', e => {
     const b = e.target.closest('[data-buy]'); if (!b) return;
     const p = PACKS.find(x => x.id === b.dataset.buy);
-    if (gold < p.price) return;
-    gold -= p.price; saveOwned(); sfx('coin', .5);
+    if (!payPack(p)) return;
     showOpening(p, openPack(p));
   });
   // ---------------------------------------------------------------- pack opening (ported from Odds & Ends' Rip & Ship)
@@ -1124,6 +1572,7 @@
   function burstOn(el, g) {
     try {
       const [cx, cy] = ovXY(el, .5, .5), col = RCOL[g.r];
+      if (g.g) burst(cx, cy, ['#ffd35c', '#fff3b0', '#ffffff'], { n: 30, sp: 300, kind: 'star', s: 15, g: 0.4, life: 1.3 });
       if (g.r === 3) { poof(cx, cy, col); burst(cx, cy, [col, '#ffd35c', '#ffffff'], { n: 40, sp: 380, kind: 'star', s: 18, g: 0.35, life: 1.5 }); burst(cx, cy, [col, '#ffd35c'], { n: 24, sp: 280, s: 7, life: 1.2 }); }
       else if (g.r === 2) { poof(cx, cy, col); burst(cx, cy, [col, '#ffd35c'], { n: 24, sp: 280, kind: 'star', s: 14, g: 0.5, life: 1.1 }); }
       else if (g.r === 1) burst(cx, cy, [col, '#e8e2d6'], { n: 16, sp: 220, s: 6, life: 0.9 });
@@ -1148,7 +1597,7 @@
   }
 
   function showOpening(p, got) {
-    PO = { p, got, stage: 'rip', tear: 0, cut: null, down: got.map(g => g.isNew || g.r >= 1), dealt: false };
+    PO = { p, got, stage: 'rip', tear: 0, cut: null, down: got.map(g => g.isNew || g.r >= 1 || g.g), dealt: false };
     const o = $('#packopen');
     o.onclick = opClick;
     o.hidden = false;
@@ -1212,15 +1661,15 @@
       const deal = !P.dealt; P.dealt = true;
       const extra = P.got.reduce((a, g) => a + g.extra, 0);
       o.innerHTML = `<div class="pk-box wide"><h3>${esc(P.p.name)}</h3>
-        <p class="pk-hint">${downN ? `Tap a card to turn it over. ${downN} still face down.` : extra ? `All revealed. Extra copies paid ${extra} gold.` : 'All revealed!'}</p>
+        <p class="pk-hint">${downN ? `Tap a card to turn it over. ${downN} still face down.` : extra ? `All revealed. Extra copies became ${extra} dust.` : 'All revealed!'}</p>
         <div class="pk-spread${deal ? ' deal' : ''}">${P.got.map((g, i) => {
           const c = E.card(g.id);
-          if (P.down[i]) return `<div class="pk-sp down" data-i="${i}" style="--d:${i}"><button class="pk-back" data-flip="${i}" aria-label="Turn over card ${i + 1}"><i class="pk-glow"></i><span class="pk-ll">LL</span><span class="pk-q">?</span></button><div class="pk-tag hid">tap to turn</div></div>`;
-          return `<div class="pk-sp${g.r === 3 ? ' leg' : ''}" data-i="${i}" style="--d:${i};--rc:${RCOL[g.r]}">${cardHTML(c)}
-            <div class="pk-tag ${g.isNew ? 'new' : g.extra ? 'dup' : ''}"><span class="rn" style="color:${RCOL[g.r]}">${RNAME[g.r]}</span> ${g.isNew ? 'New!' : g.extra ? `Extra copy +${g.extra} gold` : 'Another copy'}</div></div>`;
+          if (P.down[i]) return `<div class="pk-sp down" data-i="${i}" style="--d:${i}"><button class="pk-back${backURL(cos.back) ? ' img' : ''}" data-flip="${i}" aria-label="Turn over card ${i + 1}" style="${backStyle(cos.back)}"><i class="pk-glow"></i><span class="pk-ll">LL</span><span class="pk-q">?</span></button><div class="pk-tag hid">tap to turn</div></div>`;
+          return `<div class="pk-sp${g.r === 3 ? ' leg' : ''}" data-i="${i}" style="--d:${i};--rc:${RCOL[g.r]}">${cardHTML(c, { golden: g.g })}
+            <div class="pk-tag ${g.isNew ? 'new' : g.extra ? 'dup' : ''}${g.g ? ' gld' : ''}"><span class="rn" style="color:${RCOL[g.r]}">${g.g ? 'Golden ' : ''}${RNAME[g.r]}</span> ${g.isNew ? 'New!' : g.up ? 'Upgraded to golden!' : g.extra ? `Extra copy +${g.extra} dust` : 'Another copy'}</div></div>`;
         }).join('')}</div>
-        <div class="row">${downN ? '<button class="big alt" data-op="all">Turn them all over</button>' : `<button class="big" data-op="again" ${gold < P.p.price ? 'disabled' : ''}>Open another (${P.p.price} gold)</button><button class="big alt" data-op="close">Done</button>`}</div>
-        <p class="reward">${gold.toLocaleString()} gold</p></div>`;
+        <div class="row">${downN ? '<button class="big alt" data-op="all">Turn them all over</button>' : `<button class="big" data-op="again" ${gold < P.p.price && !freePacks[P.p.id] ? 'disabled' : ''}>${freePacks[P.p.id] ? `Open another (free, ${freePacks[P.p.id]} left)` : `Open another (${P.p.price} gold)`}</button><button class="big alt" data-op="close">Done</button>`}</div>
+        <p class="reward">${gold.toLocaleString()} gold · ${dust.toLocaleString()} dust</p></div>`;
     }
     if (keepFx) o.appendChild(keepFx);
   }
@@ -1281,7 +1730,7 @@
     const op = b.dataset.op, p = PO.p;
     if (op === 'skip') { if (PO.stage === 'rip') { if (!PO.cut) PO.cut = pkPickCut({ x: PK_W / 2, y: 10 }); ripDone(); } }
     else if (op === 'all') pkRevealAll();
-    else if (op === 'again') { if (gold < p.price) return; gold -= p.price; saveOwned(); sfx('coin', .5); showOpening(p, openPack(p)); }
+    else if (op === 'again') { if (!payPack(p)) return; showOpening(p, openPack(p)); }
     else if (op === 'close') { PO = null; fxP.length = 0; $('#packopen').hidden = true; renderShop(); }
   }
 
@@ -1467,5 +1916,5 @@
   // ---------------------------------------------------------------- boot
   $('#b-sound').textContent = 'Sound: ' + (soundOn ? 'on' : 'off');
   const h = (location.hash || '').replace('#', '');
-  show(['collection', 'play', 'rules', 'shop', 'campaign'].includes(h) ? h : 'menu');
+  show(['collection', 'play', 'rules', 'shop', 'campaign', 'journal'].includes(h) ? h : 'menu');
 })();

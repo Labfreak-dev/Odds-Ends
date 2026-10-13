@@ -4066,6 +4066,48 @@ Neutral gods fill out the curve (Zeus, Poseidon, Hades, Odin, Ra…). Living rel
 ## Labfreak Legends — Distill instead of Disenchant
 Following the reagents rename, players now **distill** a card into reagents: the collection buttons (Distill, Distill golden), the "Cards I can distill" filter and How to Play all use the new word. The code keeps `disenchant()` and `DE`/`DE_G` as internal names.
 
+## Labfreak Legends — pre-made decks
+**What.** Twelve pre-made decks, two per class, that players copy and finish (Hearthstone's deck templates):
+| Class | Decks |
+|---|---|
+| Tamer | Beast Pack, Wild Growth (Choose One with Bloom and Tide) |
+| Gambler | Jackpot (Spin!), Cutthroat Blades (weapons and stealing) |
+| Healer | The Unthanked Party, Holy Wall (Shields, Guards and healing) |
+| Collector | Mech Workshop (Magnetic Mechs), Treasure Vault (rarity, Coins and Armor) |
+| Scientist | Spell Lab (Echo spells and the Tablets quest), Spores & Sparks |
+| Champion | Weapon Master, Iron Lieutenants (with the Twelve Labors quest) |
+
+Each recipe comes with a pitch and a "How it plays" note.
+
+**Where.**
+- New deck → pick a class → that class's two recipes, or an empty deck.
+- A "Pre-made decks" button in the Collection lists all twelve.
+- A recipe preview shows every card, with missing ones in red, key cards gold-edged, and the reagent cost to finish.
+- Tap a row to read the card.
+- Save options: "Craft missing and save", or "Save it with the missing cards".
+
+**Unfinished decks.** A deck can now hold cards you don't own. In the deck builder they show in red with a per-row Craft button, plus two buttons for all of them at once:
+- **Craft all.**
+- **Swap for cards I own:** every missing copy becomes the best owned card within a Mana of it, preferring the same cost, tribe and card type.
+
+A deck only counts as playable when every card is owned. Unfinished decks show on the Play screen as "Missing N cards · tap to finish it", which opens the deck builder; the campaign, Brawl and Ranked pickers skip them.
+
+**How the recipes are built** (`tools_gen_recipes.js`, output `data/recipes.js`):
+- Each recipe names its key cards and copies by hand (quest, hero card, lords, signature spells).
+- It defines what fits (tribe, keyword or mechanic) and what pays off (cards whose abilities reference it).
+- Every other card is scored by its win rate from `data/meta.js`, plus bonuses for fitting and paying off.
+- The 30 are filled on an aggro, mid or control mana curve.
+- Spells are capped so the deck keeps a board; weapon decks get up to six weapons.
+- Board-wipes and oddities are excluded where they fight the plan (Death, the Dealer in Blades, Dr. Labfreak's polymorph in Holy Wall).
+
+**Tuning.**
+- The first pass had Jackpot at 23% and Wild Growth at 43% against the starter decks. Jackpot was 25 Spin! cards and almost no board; Wild Growth had too many low-power support spells.
+- Fix: a stronger power weighting for Jackpot, a minimum board for every deck, and a leaner Wild Growth core.
+- Cernunnos and Isis were the two weakest hero cards. Cernunnos now summons two 3/3 White Harts with Quick, and its Hero Power makes a 2/1 Fawn; Isis draws 2.
+- Final, over 300 games each: every recipe beats the starter decks 66–97% and random decks 62–96%. These are meant to be the strong decks players work toward.
+
+**Lessons.** The new Collection button pushed the phone topbar to 430 px, and mobile Chrome widened the whole layout again. The title now hides under 480 px. A first attempt at that rule was spliced into the middle of an existing media block and changed its range, so it now lives in a separate rule.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

@@ -581,9 +581,11 @@
     $$('#ptabs [data-pmode]').forEach(b => b.classList.toggle('on', b.dataset.pmode === playMode));
     $('#rankpanel').hidden = !ranked; $('#opphead').hidden = ranked; $('#opps').hidden = ranked;
     if (ranked) $('#rankpanel').innerHTML = rankPanelHTML();
-    const valid = decks.filter(d => E.validateDeck(d.cards, d.cls).length === 0);
-    $('#mydecks').innerHTML = valid.length ? valid.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('') :
-      `<p class="empty" style="grid-column:1/-1">No decks of your own yet. Build one in Collection &amp; Decks, or play a starter below.</p>`;
+    const valid = decks.filter(playable);
+    const unfinished = decks.filter(d => !playable(d) && d.cards.length);
+    $('#mydecks').innerHTML = (valid.length ? valid.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('') :
+      `<p class="empty" style="grid-column:1/-1">No decks of your own yet. Build one in Collection &amp; Decks, or play a starter below.</p>`) +
+      unfinished.map(d => deckBox(Object.assign({}, d, { sub: unfinishedNote(d) }), false, `data-unfinished="${d.id}" aria-disabled="true"`)).join('');
     $('#starters').innerHTML = STARTERS.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('');
     const opps = [{ id: 'random', name: 'Random Bot', cls: 'neutral', mystery: true, sub: 'Any class' }].concat(CLS.map(c => ({ id: c, name: `${CLSN[c]} Bot`, cls: c, sub: CLSG[c] })));
     $('#opps').innerHTML = opps.map(o => deckBox(o, o.id === chosenOpp, `data-opp="${o.id}"`)).join('');
@@ -598,11 +600,12 @@
     const t = e.target.closest('[data-pmode]'); if (t) { playMode = t.dataset.pmode; store.set('ll_pmode', playMode); sfx('click', .4); renderPlay(); return; }
     const b = e.target.closest('[data-deck]'); if (b) { chosenDeck = b.dataset.deck; store.set('ll_chosen', chosenDeck); sfx('click', .4); renderPlay(); }
     const o = e.target.closest('[data-opp]'); if (o) { chosenOpp = o.dataset.opp; sfx('click', .4); renderPlay(); }
+    const u = e.target.closest('[data-unfinished]'); if (u) { const d = decks.find(x => x.id === u.dataset.unfinished); if (d) { editing = d; F.cls = 'all'; F.page = 0; show('collection'); } }
   });
   $('#matchbar').addEventListener('click', e => { if (e.target.closest('#b-start')) startChosen(); });
   const startChosen = () => {
     if (playMode === 'ranked') { startRanked(); return; }
-    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck) || STARTERS[0];
+    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck && playable(x)) || STARTERS[0];
     const oc = chosenOpp === 'random' ? CLS[Math.floor(Math.random() * CLS.length)] : chosenOpp;
     startBattle(d, oc, null, { mode: 'casual' });
   };
@@ -675,15 +678,21 @@
     editing.cards.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
     const ids = Object.keys(counts).sort((a, b) => E.card(a).m - E.card(b).m || E.card(a).n.localeCompare(E.card(b).n));
     const rc = ['#e8e8ef', '#4fa3ff', '#c27bff', '#ff9d2e'];
-    $('#decklist').innerHTML = ids.map(id => { const c = E.card(id); return `<div class="drow" data-rm="${id}" style="--rc:${rc[c.r]}" title="Remove one"><span class="m">${c.m}</span><span class="n">${esc(c.n)}</span><span class="x">${counts[id] > 1 ? '×' + counts[id] : ''}</span></div>`; }).join('') ||
+    $('#decklist').innerHTML = ids.map(id => {
+      const c = E.card(id), lack = Math.max(0, counts[id] - (owned[id] || 0));
+      return `<div class="drow${lack ? ' miss' : ''}" data-rm="${id}" style="--rc:${rc[c.r]}" title="${lack ? `You're missing ${lack}. Tap to remove one.` : 'Remove one'}"><span class="m">${c.m}</span><span class="n">${esc(c.n)}${lack ? `<small>missing ${lack}</small>` : ''}</span><span class="x">${counts[id] > 1 ? '×' + counts[id] : ''}</span>${lack ? `<button class="mini" data-craftrow="${id}" ${dust < CRAFT[c.r] ? 'disabled' : ''} title="Craft one for ${CRAFT[c.r]} reagents">Craft ${CRAFT[c.r]}</button>` : ''}</div>`;
+    }).join('') ||
       `<p style="color:var(--muted);font-weight:800;padding:8px">Click cards on the left to add them.</p>`;
     const curve = [0, 0, 0, 0, 0, 0, 0, 0];
     editing.cards.forEach(id => { curve[Math.min(7, E.card(id).m)]++; });
     const mx = Math.max(4, ...curve);
     $('#curve').innerHTML = curve.map((n, i) => `<div style="height:${n / mx * 100}%"><span>${i === 7 ? '7+' : i}</span></div>`).join('');
-    const errs = E.validateDeck(editing.cards, editing.cls);
-    $('#deckerrs').textContent = errs[0] || 'Ready to play.';
-    $('#deckerrs').style.color = errs.length ? '#ffb3bb' : 'var(--heal)';
+    const errs = E.validateDeck(editing.cards, editing.cls), mi = missingOf(editing.cards), lack = mi.miss.reduce((a, x) => a + x[1], 0);
+    $('#deckerrs').textContent = errs[0] || (lack ? `Missing ${lack} card${lack > 1 ? 's' : ''}. Craft them (${mi.cost.toLocaleString()} reagents) or swap them for cards you own.` : 'Ready to play.');
+    $('#deckerrs').style.color = errs.length || lack ? '#ffb3bb' : 'var(--heal)';
+    $('#missbar').hidden = !lack;
+    if (lack) $('#missbar').innerHTML = `<button class="small gold" data-misscraft ${dust < mi.cost ? 'disabled' : ''}>Craft all · ${mi.cost.toLocaleString()}</button><button class="small" data-missswap>Swap for cards I own</button><span class="dustchip"></span>`;
+    goldChips();
   }
   function renderCollection() { if (editing && F.own === 'all') F.own = 'owned'; renderFilters(); renderGrid(); renderDeckPanel(); $('#collsub').textContent = `You own ${ownedTotal().toLocaleString()} cards`; }
   let filtersOpen = innerWidth >= 720;
@@ -715,16 +724,27 @@
   $('#grid').addEventListener('keydown', e => { if (e.key === 'Enter') { const el = e.target.closest('.card'); if (el) el.click(); } });
   $('#grid').addEventListener('contextmenu', e => { const el = e.target.closest('.card'); if (el) { e.preventDefault(); zoom(E.card(el.dataset.cid)); } });
   $('#decklist').addEventListener('click', e => {
+    const cr = e.target.closest('[data-craftrow]');
+    if (cr) { if (craft(cr.dataset.craftrow, false)) { sfx('relic', .5); renderGrid(); renderDeckPanel(); } return; }
     const r = e.target.closest('[data-rm]'); if (!r) return;
     const i = editing.cards.indexOf(r.dataset.rm); if (i >= 0) editing.cards.splice(i, 1);
     renderGrid(); renderDeckPanel();
+  });
+  $('#missbar').addEventListener('click', e => {
+    if (!editing) return;
+    if (e.target.closest('[data-misscraft]')) {
+      const mi = missingOf(editing.cards); if (dust < mi.cost) return;
+      mi.miss.forEach(([id, k]) => { for (let j = 0; j < k; j++) craft(id, false); });
+      sfx('relic', .5); saveDecks(); renderGrid(); renderDeckPanel(); return;
+    }
+    if (e.target.closest('[data-missswap]')) { const n = swapMissing(editing); saveDecks(); renderGrid(); renderDeckPanel(); flashErr(n.left ? `Swapped ${n.done}. ${n.left} had no owned card that fits; craft those or pick replacements.` : `Swapped ${n.done} missing card${n.done === 1 ? '' : 's'} for cards you own.`); }
   });
   $('#deckname').addEventListener('input', e => { if (editing) editing.name = e.target.value || 'Untitled deck'; });
   $('#b-newdeck').onclick = () => {
     const m = $('#zoom');
     m.innerHTML = `<div class="modal" style="position:static;background:none"><div><h3>Pick a class</h3><p>Each class plays the cards of one Labfreak game, plus every Neutral card.</p>
-      <div class="deckgrid" style="max-width:720px">${CLS.map(c => deckBox({ name: CLSN[c], cls: c, cards: new Array(30) }, false, `data-newcls="${c}"`)).join('')}</div>
-      <p style="margin-top:14px"><button class="small" data-close>Cancel</button></p></div></div>`;
+      <div class="deckgrid" style="max-width:720px">${CLS.map(c => deckBox({ name: CLSN[c], cls: c, cards: new Array(30), sub: `${RECIPES.filter(r => r.cls === c).length} pre-made decks` }, false, `data-newcls="${c}"`)).join('')}</div>
+      <p style="margin-top:14px"><button class="small" data-recipes>Browse all pre-made decks</button> <button class="small" data-close>Cancel</button></p></div></div>`;
     m.hidden = false;
   };
   $('#deckpick').onchange = e => { const d = decks.find(x => x.id === e.target.value); if (d) { editing = d; F.cls = 'all'; F.page = 0; renderCollection(); } };
@@ -752,7 +772,10 @@
   $('#b-close').onclick = () => { if (editing && !decks.includes(editing) && editing.cards.length) decks.push(editing); saveDecks(); editing = null; renderCollection(); };
   $('#zoom').addEventListener('click', e => {
     const n = e.target.closest('[data-newcls]');
-    if (n) { const cls = n.dataset.newcls; editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0; $('#zoom').hidden = true; renderCollection(); return; }
+    if (n) { recipeChoice(n.dataset.newcls); return; }
+    const em = e.target.closest('[data-emptydeck]');
+    if (em) { const cls = em.dataset.emptydeck; editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0; $('#zoom').hidden = true; renderCollection(); return; }
+    if (recipeAct(e)) return;
     if (pickAct(e)) return;
     if (zoomAct(e)) return;
     if (codeAct(e)) return;
@@ -835,6 +858,75 @@
     $('#deckerrs').textContent = ok ? 'Deck code copied. Paste it anywhere to share.' : "Couldn't reach the clipboard.";
     $('#deckerrs').style.color = ok ? 'var(--heal)' : '#ffb3bb';
   };
+
+  // ---- pre-made decks (data/recipes.js, built by tools_gen_recipes.js): copy one, then craft or swap what you're missing
+  const RECIPES = window.LL_RECIPES || [];
+  const playable = d => E.validateDeck(d.cards, d.cls).length === 0 && (d.starter || !missingOf(d.cards).miss.length);
+  const unfinishedNote = d => { const k = missingOf(d.cards).miss.reduce((a, x) => a + x[1], 0); return k ? `Missing ${k} card${k > 1 ? 's' : ''} · tap to finish it` : `${d.cards.length}/30 cards · tap to finish it`; };
+  // a missing copy becomes the best owned card of the same cost (same tribe or type first) that the deck has room for
+  function swapMissing(d) {
+    const META_P = (window.LL_META && window.LL_META.power) || {};
+    const n = {}; d.cards.forEach(id => { n[id] = (n[id] || 0) + 1; });
+    let done = 0, left = 0;
+    Object.keys(n).forEach(id => {
+      let lack = Math.max(0, n[id] - (owned[id] || 0)); const c = E.card(id);
+      while (lack-- > 0) {
+        const have = x => d.cards.filter(y => y === x.id).length;
+        const opts = D.cards.filter(x => !x.token && owned[x.id] && (x.c === d.cls || x.c === 'neutral') && Math.abs(x.m - c.m) <= 1 && have(x) < Math.min(owned[x.id], CAP(x)));
+        if (!opts.length) { left++; continue; }
+        const sc = x => (x.m === c.m ? 3 : 0) + (x.tr && x.tr === c.tr ? 4 : 0) + (x.t === c.t ? 2 : 0) + ((META_P[x.id] || .5) - .5) * 20;
+        const best = opts.sort((a, b) => sc(b) - sc(a))[0];
+        d.cards.splice(d.cards.lastIndexOf(id), 1, best.id); done++;
+      }
+    });
+    return { done, left };
+  }
+  function recipeTile(r) {
+    const mi = missingOf(r.cards), lack = mi.miss.reduce((a, x) => a + x[1], 0), key = E.card(r.key[0]) || E.card(r.cards[0]);
+    return `<button class="rtile" data-recipe="${r.id}" style="--cc:${CCOL(r.cls)}"><i class="rart" style="${artCSS(key.art)}"></i>
+      <span class="rt"><small>${CLSN[r.cls]}</small><b>${esc(r.name)}</b><span>${esc(r.blurb)}</span>
+      <em class="${lack ? 'need' : 'have'}">${lack ? `You own ${30 - lack}/30 · ${mi.cost.toLocaleString()} reagents to finish` : 'You own every card'}</em></span></button>`;
+  }
+  function recipeChoice(cls) {
+    const list = RECIPES.filter(r => !cls || r.cls === cls);
+    $('#zoom').innerHTML = `<div class="codebox wide"><h3>${cls ? `New ${esc(CLSN[cls])} deck` : 'Pre-made decks'}</h3>
+      <p>Start from a pre-made deck built around one idea, then make it yours. Cards you don't own yet stay in the deck, marked as missing, until you craft them or swap them out.</p>
+      <div class="rgrid">${list.map(recipeTile).join('')}</div>
+      <p class="crow">${cls ? `<button class="small" data-emptydeck="${cls}">Start with an empty deck</button>` : ''}<button class="small" data-close>Cancel</button></p></div>`;
+    $('#zoom').hidden = false; $('#zoom').scrollTop = 0;
+  }
+  function showRecipe(id) {
+    const r = RECIPES.find(x => x.id === id); if (!r) return;
+    const n = {}; r.cards.forEach(x => { n[x] = (n[x] || 0) + 1; });
+    const mi = missingOf(r.cards), lack = mi.miss.reduce((a, x) => a + x[1], 0);
+    const rc = ['#e8e8ef', '#4fa3ff', '#c27bff', '#ff9d2e'];
+    const rows = Object.keys(n).map(x => { const c = E.card(x), miss = Math.max(0, n[x] - (owned[x] || 0)), key = r.key.includes(x);
+      return `<div class="drow${miss ? ' miss' : ''}${key ? ' key' : ''}" data-rpeek="${x}" style="--rc:${rc[c.r]}"><span class="m">${c.m}</span><span class="n">${esc(c.n)}${miss ? `<small>missing ${miss}</small>` : ''}</span><span class="x">${n[x] > 1 ? '×' + n[x] : ''}</span></div>`; }).join('');
+    $('#zoom').innerHTML = `<div class="codebox wide recipe"><h3>${esc(r.name)}</h3><p class="rsub">${CLSN[r.cls]} · pre-made deck</p>
+      <p>${esc(r.blurb)}</p><p class="rplan"><b>How it plays:</b> ${esc(r.plan)}</p>
+      <div class="rlist">${rows}</div>
+      <p class="rnote">${lack ? `You own ${30 - lack} of these 30 cards. The ${lack} you're missing are marked; they cost ${mi.cost.toLocaleString()} reagents to craft. Gold-edged rows are the cards the deck is built around.` : 'You own every card in this deck. Gold-edged rows are the cards the deck is built around.'}</p>
+      <p class="dustline"><span class="dustchip"></span></p>
+      <p class="crow">${lack ? `<button class="small gold" data-rsave="craft" ${dust < mi.cost ? 'disabled' : ''}>Craft ${lack} missing and save · ${mi.cost.toLocaleString()}</button>` : ''}
+        <button class="small ${lack ? '' : 'gold'}" data-rsave="save">${lack ? 'Save it with the missing cards' : 'Save as my deck'}</button>
+        <button class="small" data-rback="${r.cls}">Back</button></p></div>`;
+    $('#zoom').hidden = false; $('#zoom').scrollTop = 0; recipeOpen = r; goldChips();
+  }
+  let recipeOpen = null;
+  function recipeAct(e) {
+    if (e.target.closest('[data-recipes]')) { recipeChoice(null); return true; }
+    const t = e.target.closest('[data-recipe]'); if (t) { sfx('click', .4); showRecipe(t.dataset.recipe); return true; }
+    const b = e.target.closest('[data-rback]'); if (b) { recipeChoice(editing ? null : b.dataset.rback); return true; }
+    const pk = e.target.closest('[data-rpeek]'); if (pk) { const r = recipeOpen; zoom(E.card(pk.dataset.rpeek)); const back = document.createElement('button'); back.className = 'small'; back.textContent = 'Back to ' + r.name; back.dataset.recipe = r.id; $('#zoom .info').appendChild(back); return true; }
+    const s0 = e.target.closest('[data-rsave]'); if (!s0 || !recipeOpen) return !!e.target.closest('.recipe');
+    const r = recipeOpen;
+    if (s0.dataset.rsave === 'craft') { const mi = missingOf(r.cards); if (dust < mi.cost) return true; mi.miss.forEach(([id, k]) => { for (let j = 0; j < k; j++) craft(id, false); }); sfx('relic', .5); }
+    editing = { id: 'd' + Date.now(), name: r.name, cls: r.cls, cards: r.cards.slice(), recipe: r.id };
+    decks.push(editing); saveDecks(); recipeOpen = null;
+    $('#zoom').hidden = true; F.cls = 'all'; F.page = 0; show('collection');
+    return true;
+  }
+  $('#b-recipes').onclick = () => { sfx('click', .4); recipeChoice(null); };
 
   let zoomed = null, zoomGold = false;
   function zoom(c, keepView) {
@@ -937,6 +1029,8 @@
       <p>One special rule set a week (60 Health heroes, Mana Rush, mirror matches, all-Legendary decks…). Your first win each week earns a Multiverse Pack.</p>
       <h3>Turn timer and emotes</h3>
       <p>Each turn lasts 75 seconds. In the last 20 a burning rope crosses the board; when it runs out your turn ends. You can switch the timer off from the battle Menu, except in Ranked. Press <b>Emote</b> to greet, compliment or threaten your opponent; bots answer in character. With sound on, lines are spoken aloud.</p>
+      <h3>Pre-made decks</h3>
+      <p>Not sure where to start? Press <b>New deck</b> (or <b>Pre-made decks</b>) in the Collection. Every class has two pre-made decks built around one idea: Beasts, Choose One, Spin!, weapons, the party, Shields and Guards, Mechs, treasure, spells, Spores, weapons again and the Lieutenants. Save one as your own deck even if you're missing cards: they stay in the list, marked in red, until you craft them or press <b>Swap for cards I own</b>. A deck plays once every card is yours.</p>
       <h3>Deck codes</h3>
       <p>In the deck builder, <b>Copy code</b> puts your deck on the clipboard as text. Anyone can paste it with <b>Paste code</b> in the Collection and craft whatever they're missing.</p>`;
   }
@@ -2032,7 +2126,7 @@
   // choose which of your decks to bring (only asks when there is more than one)
   function pickCampDeck(k, i) {
     const ch = storyOf(k).chapters[i];
-    const ok = d => E.validateDeck(d.cards, d.cls).length === 0;
+    const ok = playable;
     const mine = decks.filter(ok), starters = STARTERS.filter(ok);
     const story = k === 'finale' ? null : k;
     const sortCls = l => l.slice().sort((a, b) => (b.cls === story) - (a.cls === story));
@@ -2155,7 +2249,7 @@
   }
   function startRanked() {
     const r = rankFresh();
-    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck && E.validateDeck(x.cards, x.cls).length === 0) || STARTERS[0];
+    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck && playable(x)) || STARTERS[0];
     const oc = CLS[Math.floor(Math.random() * CLS.length)], k = rankK(r.i);
     startBattle(d, oc, null, { mode: 'ranked', oppDeck: k == null ? E.randomDeck(null, oc, Math.random) : tunedDeck(oc, k), oppName: botName() });
   }
@@ -2187,7 +2281,7 @@
   // ---- generic deck picker (Brawl, quick choices)
   let pickCb = null;
   function chooseDeck(title, note, cb) {
-    const ok = d => E.validateDeck(d.cards, d.cls).length === 0;
+    const ok = playable;
     const mine = decks.filter(ok);
     pickCb = id => cb(mine.concat(STARTERS).find(d => d.id === id));
     $('#zoom').innerHTML = `<div class="codebox wide"><h3>${esc(title)}</h3><p>${esc(note)}</p>

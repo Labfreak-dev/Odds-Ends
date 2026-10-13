@@ -788,8 +788,8 @@ def pt_hero(slug, nm, cls, cost, armor, hpn, hpfx, bc, fl=None):
 pt_tok("pt_t_sprite", "Grain Sprite", 2, 2, "demeter", "tamer")
 pt_tok("pt_t_stag", "Silver Stag", 3, 3, "artemis", "tamer", tr="Beast")
 pt_tok("pt_t_blossom", "Blossom", 1, 2, "xochiquetzal", "tamer", kw=["taunt"])
-pt_tok("pt_t_fawn", "Antlered Fawn", 1, 1, "cernunnos", "tamer", tr="Beast")
-pt_tok("pt_t_hart", "White Hart", 2, 2, "cernunnos", "tamer", tr="Beast")
+pt_tok("pt_t_fawn", "Antlered Fawn", 2, 1, "cernunnos", "tamer", tr="Beast")
+pt_tok("pt_t_hart", "White Hart", 3, 3, "cernunnos", "tamer", kw=["rush"], tr="Beast")
 pt_tok("pt_t_bronze", "Bronze Automaton", 1, 2, "hephaestus", "collector", tr="Mech")
 pt_tok("pt_t_maiden", "Shieldmaiden", 1, 3, "valkyrie", "champion", kw=["taunt"])
 pt_tok("pt_t_shade", "Restless Shade", 2, 1, "hades", "neutral")
@@ -846,7 +846,7 @@ pt_spell("silk-scarf", "Silk Scarf Trick", "gambler", 0, [E("cast", "dmg", n=2, 
 add(weapon(ptid("Gilded Letter Opener"), "Gilded Letter Opener", "gambler", 1, 2, 2, 2, ["tradeable"], [], ptart("gold-plated-letter-opener"), g=GP, tr="Myth"), "pt")
 
 # --- Healer: Choose One, Isis, Ambrosia
-pt_hero("isis", "Isis, Mother of Magic", "healer", 6, 5, "Mother's Blessing", [E("hp", "heal", n=4, tg="any")], [E("bc", "aoe_heal", n=6, tg="friends"), E("bc", "draw", n=1)])
+pt_hero("isis", "Isis, Mother of Magic", "healer", 6, 5, "Mother's Blessing", [E("hp", "heal", n=4, tg="any")], [E("bc", "aoe_heal", n=6, tg="friends"), E("bc", "draw", n=2)])
 pt_quest("hathor", "Hathor's Feast", "healer", "play", 6, {"tr": ["Party", "Signature"]}, "pt_r_ambrosia", "Play 6 Party members")
 pt_minion("apollo", "Apollo, Sun Healer", "healer", 3, 6, .5, ch=[O("Sunlight", E("bc", "aoe_heal", n=6, tg="friends")), O("Sunburst", E("bc", "dmg", n=3, tg="em_all"))])
 pt_minion("frigg", "Frigg, Weaver of Fate", "healer", 2, 4, .45, ch=[O("Ward", E("bc", "kw", k="divine", tg="fm")), O("Foresight", E("bc", "draw", n=1))])

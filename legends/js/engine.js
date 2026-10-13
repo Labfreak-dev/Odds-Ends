@@ -61,7 +61,7 @@
   function newGame(opts) {
     // opts: { decks:[ids,ids], classes:[cls,cls], seed, names:[...] }
     const G = { seed: (opts.seed >>> 0) || 1, uid: 1, turn: 0, turnNo: 0, phase: 'mulligan', winner: null, log: [], ev: [],
-      played: 0, pending: null, p: [] };
+      played: 0, pending: null, p: [], mods: opts.mods || null };
     for (let i = 0; i < 2; i++) {
       // campaign bosses: opts.heroes[i] overrides the hero's name/art, opts.hp[i] its starting Health
       const hd = Object.assign({}, DB.heroes[opts.classes[i]], (opts.heroes && opts.heroes[i]) || {});
@@ -97,6 +97,8 @@
     if (!G.p[0].mull && !G.p[1].mull) {
       G.p[1 - G.first].hand.push(mkCardInst(G, 'coin'));
       G.phase = 'play';
+      // Tavern Brawl: both players can start with more Mana crystals
+      if (G.mods && G.mods.manaStart) G.p.forEach(P => { P.maxMana = Math.max(P.maxMana, G.mods.manaStart - 1); });
       startTurn(G, G.first);
     }
   }
@@ -231,6 +233,7 @@
     if (c.evo && G.p[pi].board.some(x => x.cid === c.evo.fromId && !x.dead)) m = Math.max(0, m - 2);
     if (ci.disc) m -= ci.disc;
     if (c.cred) m -= countMine(G, pi, c.cred.f) * (c.cred.n || 1);
+    if (G.mods && G.mods.cost && c.id !== 'coin') m += G.mods.cost;
     return Math.max(0, m);
   }
 

@@ -158,6 +158,8 @@
     if (id === 'shop') renderShop();
     if (id === 'campaign') renderCampaign();
     if (id === 'journal') { store.set('ll_jseen', dayKey()); renderJournal(); }
+    if (id === 'arena') renderArena();
+    if (id === 'brawl') renderBrawl();
     goldChips();
   }
   $$('[data-back]').forEach(b => b.addEventListener('click', () => { sfx('click', .4); show('menu'); }));
@@ -167,6 +169,8 @@
   $('#b-shop').onclick = () => { sfx('click', .4); show('shop'); };
   $('#b-sound').onclick = () => setSound(!soundOn);
   $('#b-journal').onclick = () => { sfx('click', .4); show('journal'); };
+  $('#b-arena').onclick = () => { sfx('click', .4); show('arena'); };
+  $('#b-brawl').onclick = () => { sfx('click', .4); show('brawl'); };
 
   // ---------------------------------------------------------------- decks
   function seeded(s) { return () => { let t = (s += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -558,7 +562,12 @@
       <div class="dp">${d.mystery ? '<span class="mystery">?</span>' : spr(h.art)}</div>
       <div class="dt"><b>${esc(d.name)}</b><span>${esc(sub)}</span></div>${on ? '<span class="tick" aria-hidden="true">✓</span>' : ''}</button>`;
   }
+  let playMode = store.get('ll_pmode', 'casual');
   function renderPlay() {
+    const ranked = playMode === 'ranked';
+    $$('#ptabs [data-pmode]').forEach(b => b.classList.toggle('on', b.dataset.pmode === playMode));
+    $('#rankpanel').hidden = !ranked; $('#opphead').hidden = ranked; $('#opps').hidden = ranked;
+    if (ranked) $('#rankpanel').innerHTML = rankPanelHTML();
     const valid = decks.filter(d => E.validateDeck(d.cards, d.cls).length === 0);
     $('#mydecks').innerHTML = valid.length ? valid.map(d => deckBox(d, d.id === chosenDeck, `data-deck="${d.id}"`)).join('') :
       `<p class="empty" style="grid-column:1/-1">No decks of your own yet. Build one in Collection &amp; Decks, or play a starter below.</p>`;
@@ -566,21 +575,23 @@
     const opps = [{ id: 'random', name: 'Random Bot', cls: 'neutral', mystery: true, sub: 'Any class' }].concat(CLS.map(c => ({ id: c, name: `${CLSN[c]} Bot`, cls: c, sub: CLSG[c] })));
     $('#opps').innerHTML = opps.map(o => deckBox(o, o.id === chosenOpp, `data-opp="${o.id}"`)).join('');
     const d = decks.concat(STARTERS).find(x => x.id === chosenDeck) || STARTERS[0];
-    const o = opps.find(x => x.id === chosenOpp) || opps[0];
+    const o = ranked ? { name: rankName(rankFresh().i) + ' opponent', mystery: true } : opps.find(x => x.id === chosenOpp) || opps[0];
     const av = x => x.mystery ? '<span class="mystery">?</span>' : spr(D.heroes[x.cls].art);
     $('#matchbar').innerHTML = `<div class="side"><span class="av">${av(d)}</span><span class="nm"><small>You</small><b>${esc(d.name)}</b></span></div>
       <span class="vs">VS</span><div class="side"><span class="av">${av(o)}</span><span class="nm"><small>Opponent</small><b>${esc(o.name)}</b></span></div>
-      <button class="big" id="b-start">Battle</button>`;
+      <button class="big${ranked ? ' camp' : ''}" id="b-start">${ranked ? 'Find opponent' : 'Battle'}</button>`;
   }
   $('#play').addEventListener('click', e => {
+    const t = e.target.closest('[data-pmode]'); if (t) { playMode = t.dataset.pmode; store.set('ll_pmode', playMode); sfx('click', .4); renderPlay(); return; }
     const b = e.target.closest('[data-deck]'); if (b) { chosenDeck = b.dataset.deck; store.set('ll_chosen', chosenDeck); sfx('click', .4); renderPlay(); }
     const o = e.target.closest('[data-opp]'); if (o) { chosenOpp = o.dataset.opp; sfx('click', .4); renderPlay(); }
   });
   $('#matchbar').addEventListener('click', e => { if (e.target.closest('#b-start')) startChosen(); });
   const startChosen = () => {
+    if (playMode === 'ranked') { startRanked(); return; }
     const d = decks.concat(STARTERS).find(x => x.id === chosenDeck) || STARTERS[0];
     const oc = chosenOpp === 'random' ? CLS[Math.floor(Math.random() * CLS.length)] : chosenOpp;
-    startBattle(d, oc);
+    startBattle(d, oc, null, { mode: 'casual' });
   };
 
   // ---------------------------------------------------------------- collection & deck builder
@@ -729,9 +740,10 @@
   $('#zoom').addEventListener('click', e => {
     const n = e.target.closest('[data-newcls]');
     if (n) { const cls = n.dataset.newcls; editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0; $('#zoom').hidden = true; renderCollection(); return; }
+    if (pickAct(e)) return;
     if (zoomAct(e)) return;
     if (codeAct(e)) return;
-    if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal,.codebox')) $('#zoom').hidden = true;
+    if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal,.codebox')) { $('#zoom').hidden = true; pickCb = null; }
   });
   // ---- deck codes: copy a deck as text, paste one back in (Hearthstone-style)
   // LL1.<class>.<single copies>.<double copies>, each card a 5-character hash of its id
@@ -904,20 +916,34 @@
       <p>Any card in a pack can come out <b>golden</b>: the same card with a gold frame and a shine. Golden cards play exactly like normal ones and disenchant for much more dust. You can also craft them, or turn a normal copy golden.</p>
       <h3>Quests and the reward track</h3>
       <p>You get three daily quests in <b>Quests &amp; Rewards</b>. Every game and every quest gives XP; each level on the reward track pays out gold, dust, free packs, golden Legendaries or a new card back. Hero portraits for each class are earned there too.</p>
+      <h3>Ranked</h3>
+      <p>Pick <b>Ranked</b> on the Play screen. Climb from Bronze 10 to Diamond 1, three stars a rank, then Legend. Wins give a star (two on a streak of three, below Diamond); losses take one from Silver up, but never drop you out of a league's rank 10. Opponents build stronger decks the higher you go. Seasons last a calendar month and pay gold and dust for your best rank. The turn timer is always on in Ranked.</p>
+      <h3>Arena</h3>
+      <p>Pay ${ARENA_PRICE} gold, pick one of three classes, then draft 30 cards, choosing one of three each time. You don't need to own them. Play until 12 wins or 3 losses; rewards grow with every win.</p>
+      <h3>Tavern Brawl</h3>
+      <p>One special rule set a week (60 Health heroes, Mana Rush, mirror matches, all-Legendary decks…). Your first win each week earns a Multiverse Pack.</p>
+      <h3>Turn timer and emotes</h3>
+      <p>Each turn lasts 75 seconds. In the last 20 a burning rope crosses the board; when it runs out your turn ends. You can switch the timer off from the battle Menu, except in Ranked. Press <b>Emote</b> to greet, compliment or threaten your opponent; bots answer in character. With sound on, lines are spoken aloud.</p>
       <h3>Deck codes</h3>
       <p>In the deck builder, <b>Copy code</b> puts your deck on the clipboard as text. Anyone can paste it with <b>Paste code</b> in the Collection and craft whatever they're missing.</p>`;
   }
 
   // ================================================================= BATTLE
   let G = null, sel = null, busy = false, lastDecks = null, popUids = new Set();
-  function startBattle(myDeck, oppCls, cmp) {
-    const oppDeck = cmp ? cmp.deck : E.randomDeck(null, oppCls, Math.random);
-    lastDecks = { myDeck, oppCls, cmp };
+  // o: { mode: casual | ranked | arena | brawl, oppDeck, oppName, hp: [me, foe], mods (Brawl rules), hpFree }
+  function startBattle(myDeck, oppCls, cmp, o) {
+    o = o || {};
+    const oppDeck = cmp ? cmp.deck : o.oppDeck || E.randomDeck(null, oppCls, Math.random);
+    lastDecks = { myDeck, oppCls, cmp, o };
     G = E.newGame({ decks: [myDeck.cards, oppDeck], classes: [myDeck.cls, oppCls], seed: (Math.random() * 1e9) | 0,
-      names: ['You', cmp ? cmp.name : D.heroes[oppCls].n], heroes: [myHero(myDeck.cls), cmp ? { n: cmp.name, art: cmp.art } : null], hp: cmp ? [30, cmp.hp] : null });
+      names: ['You', cmp ? cmp.name : o.oppName || D.heroes[oppCls].n], heroes: [myHero(myDeck.cls), cmp ? { n: cmp.name, art: cmp.art } : null],
+      hp: cmp ? [30, cmp.hp] : o.hp || null, mods: o.mods || null });
     G.p[1].isBot = true;
+    G.mode = cmp ? 'camp' : o.mode || 'casual';
+    if (o.hpFree) G.p.forEach(P => { P.heroData = Object.assign({}, P.heroData, { hp: Object.assign({}, P.heroData.hp, { m: 0 }) }); });
     G._t = { minion: 0, spell: 0, kill: 0, face: 0, leg: 0, heroatk: 0, clsplay: 0, tribe: {} };
     G.backs = [cos.back, BACKS[Math.floor(Math.random() * BACKS.length)].id];
+    G.voice = { said: {}, last: 0 };
     if (cmp) G.camp = { k: cmp.k, i: cmp.i };
     sel = null; busy = false;
     const bgk = cmp && D.boards[cmp.bg] ? cmp.bg : D.heroes[myDeck.cls].bg;
@@ -927,6 +953,7 @@
     sizeTable(); render();
     E.botMulligan(G, 1);
     showMulligan();
+    setTimeout(() => botSay('greet'), 900);
   }
   function sizeTable() {
     const W = innerWidth, H = innerHeight;
@@ -960,7 +987,7 @@
   function heroRowHTML(pi) {
     const P = G.p[pi], h = P.heroData, me = pi === 0;
     const atk = E.atkOf(G, P.hero);
-    const hpBtn = `<button class="hpower${P.hpUsed ? ' used' : ''}${me && E.canHeroPower(G, 0) && !busy ? ' ready' : ''}" ${me ? 'data-hp="1"' : ''} title="${esc(h.hp.n)}: ${esc(h.hp.tx)}" style="${artCSS(h.art)}" aria-label="Hero Power: ${esc(h.hp.n)}"><span class="c">2</span></button>`;
+    const hpBtn = `<button class="hpower${P.hpUsed ? ' used' : ''}${me && E.canHeroPower(G, 0) && !busy ? ' ready' : ''}" ${me ? 'data-hp="1"' : ''} title="${esc(h.hp.n)}: ${esc(h.hp.tx)}" style="${artCSS(h.art)}" aria-label="Hero Power: ${esc(h.hp.n)}"><span class="c">${h.hp.m}</span></button>`;
     const weap = P.weapon ? `<div class="weapon" data-cid="${P.weapon.cid}" style="${artCSS(E.card(P.weapon.cid) ? E.card(P.weapon.cid).art : null)}"><span class="wa">${P.weapon.a}</span><span class="wd">${P.weapon.h}</span></div>` : '';
     const crys = Array.from({ length: P.maxMana }, (_, i) => `<span class="crys${i < P.mana ? ' f' : (i >= P.maxMana - P.ovLocked ? ' lock' : '')}"></span>`).join('');
     const can = me && E.canAttack(G, P.hero) && !busy;
@@ -1083,6 +1110,7 @@
           const c = E.card(e.cid);
           sfx(c.t === 's' ? 'ult' : 'summon', .45);
           if (e.pi === 1) await showPlayed(e.cid);
+          if (c.r === 3 && Math.random() < (e.pi === 1 ? .4 : .2)) setTimeout(() => botSay(e.pi === 1 ? 'legend' : 'wow'), 300);
           break;
         }
         case 'attack': sfx(['hit1', 'hit2', 'hit3'][Math.floor(Math.random() * 3)], .55); await lunge(e.from, e.to); break;
@@ -1108,6 +1136,7 @@
         default: break;
       }
     }
+    if (G && G.phase === 'play' && G.p[1].hero.hp <= 8 && G.p[1].hero.hp > 0) botSay('low');
     if (deaths.length) {
       sfx('ko', .4);
       deaths.forEach(u => { const el = elOf(u); if (el) el.classList.add('dying'); });
@@ -1213,6 +1242,7 @@
   $('#endturn').onclick = async () => {
     if (busy || !G || G.turn !== 0 || G.phase !== 'play') return;
     sfx('click', .4);
+    ropeStop();
     await act(() => E.endTurn(G));
     if (G.phase === 'play' && G.turn === 1) runBot();
   };
@@ -1236,7 +1266,7 @@
     }
     if (G !== g0 || G.phase !== 'play') return;
     if (G.turn === 1) { await act(() => E.endTurn(G)); }
-    if (G.phase === 'play' && G.turn === 0) { sfx('click', .4); await banner('Your Turn', 800); render(); }
+    if (G.phase === 'play' && G.turn === 0) { sfx('click', .4); await banner('Your Turn', 800); render(); ropeStart(); }
   }
   $('#b-log').onclick = () => $('#logpane').classList.add('open');
   $('#b-help').onclick = () => {
@@ -1257,9 +1287,97 @@
     m.innerHTML = `<div><h3>Menu</h3>
       <p>Tapping a card in your hand ${readFirst ? '<b>opens it big first</b>, with a Play button, so you can read it.' : '<b>plays it right away</b>. Press and hold any card to read it.'}</p>
       <div class="row"><button class="big alt" data-m="read">${readFirst ? 'Switch to: tap plays right away' : 'Switch to: tap opens the card first'}</button></div>
+      <div class="row"><button class="big alt" data-m="timer" ${G && G.mode === 'ranked' ? 'disabled' : ''}>Turn timer: ${timerActive() ? 'on' : 'off'}${G && G.mode === 'ranked' ? ' (always on in Ranked)' : ''}</button></div>
       <p>Leaving the battle counts as a loss.</p><div class="row"><button class="big alt" data-m="stay">Keep playing</button><button class="big" data-m="quit">Concede</button></div></div>`;
     m.hidden = false;
   };
+
+  // ---------- the rope: a turn timer, Hearthstone-style ----------
+  // 75 seconds a turn. The fuse appears for the last 20 and burns toward the End Turn button; at zero the turn ends.
+  // On by default everywhere, can be switched off from the battle Menu except in Ranked.
+  const TURN_MS = window.LL_TURN_MS || 75000, ROPE_MS = Math.min(20000, TURN_MS * .8);
+  let timerOn = store.get('ll_timer', true), ropeT = null;
+  const timerActive = () => G && (timerOn || G.mode === 'ranked');
+  function ropeStop() { clearInterval(ropeT); ropeT = null; const r = $('#rope'); if (r) r.hidden = true; }
+  function ropeStart() {
+    ropeStop();
+    if (!timerActive() || G.turn !== 0 || G.phase !== 'play') return;
+    const g0 = G, tn = G.turnNo, end = Date.now() + TURN_MS;
+    ropeT = setInterval(() => {
+      if (G !== g0 || G.turnNo !== tn || G.turn !== 0 || G.phase !== 'play' || !timerActive()) { ropeStop(); return; }
+      const left = end - Date.now(), r = $('#rope');
+      if (left <= ROPE_MS) {
+        r.hidden = false;
+        r.style.setProperty('--left', Math.max(0, left / ROPE_MS).toFixed(4));
+        r.querySelector('b').textContent = Math.ceil(Math.max(0, left) / 1000);
+        if (!r.dataset.warned) { r.dataset.warned = '1'; sfx('crit', .25); }
+      } else { r.hidden = true; r.dataset.warned = ''; }
+      if (left <= 0) { ropeStop(); timeUp(g0); }
+    }, 200);
+  }
+  async function timeUp(g0) {
+    // finish whatever is on screen, then end the turn for the player
+    for (let k = 0; k < 40 && busy; k++) await sleep(100);
+    if (G !== g0 || G.turn !== 0 || G.phase !== 'play') return;
+    if (G.pending) { if (G.pending.type === 'discover') E.chooseDiscover(G, 0); else if (G.pending.type === 'dredge') E.chooseDredge(G, 0); $('#modal').hidden = true; }
+    closeInspect(); sel = null; hint(null);
+    await banner('Time\'s up!', 700);
+    await act(() => E.endTurn(G));
+    if (G && G.phase === 'play' && G.turn === 1) runBot();
+  }
+
+  // ---------- emotes and voice lines ----------
+  const VOICE = window.LL_VOICE || { emotes: [], lines: {}, tone: {}, reply: {} };
+  let botMuted = false;
+  const lineOf = (cls, k) => { const L = (VOICE.lines[cls] || VOICE.lines.tamer || {})[k]; return Array.isArray(L) ? L[Math.floor(Math.random() * L.length)] : L; };
+  function speak(text, cls) {
+    if (!soundOn || !text) return;
+    try {
+      const u = new SpeechSynthesisUtterance(text), t = VOICE.tone[cls] || [1, 1];
+      u.pitch = t[0]; u.rate = t[1]; u.volume = .9;
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    } catch (e) { }
+  }
+  function bubble(pi, text) {
+    if (!G || !text) return;
+    const hero = document.querySelector(`.hero[data-uid="${G.p[pi].hero.uid}"]`); if (!hero) return;
+    $$(`.bubble.p${pi}`).forEach(b => b.remove());
+    const p = centerOf(hero), b = document.createElement('div');
+    b.className = `bubble p${pi}`; b.textContent = text;
+    b.style.left = p.x + 'px'; b.style.top = p.y + 'px';
+    $('#battle').appendChild(b); setTimeout(() => b.classList.add('out'), 2600); setTimeout(() => b.remove(), 3000);
+  }
+  function emote(pi, k) {
+    const cls = G.p[pi].cls, t = lineOf(cls, k);
+    bubble(pi, t); speak(t, cls);
+  }
+  // the bot speaks: k is an emote or one of its own moments (legend, low, win, lose). once: only once a game.
+  function botSay(k, once) {
+    if (!G || botMuted || !G.voice) return;
+    if (once !== false && ['legend', 'low', 'win', 'lose', 'greet'].includes(k)) { if (G.voice.said[k] && k !== 'legend') return; G.voice.said[k] = 1; }
+    if (Date.now() - G.voice.last < 3500 && !['win', 'lose'].includes(k)) return;
+    G.voice.last = Date.now();
+    emote(1, k);
+  }
+  function showEmotes() {
+    const w = $('#emotes');
+    if (!w.hidden) { w.hidden = true; return; }
+    w.innerHTML = VOICE.emotes.map(([k, n]) => `<button class="emo" data-emo="${k}">${esc(n)}</button>`).join('') + `<button class="emo mute" data-emo="mute">${botMuted ? 'Unmute opponent' : 'Mute opponent'}</button>`;
+    w.hidden = false;
+  }
+  let emoCount = 0, emoReset = 0;
+  $('#emotes').addEventListener('click', e => {
+    const b = e.target.closest('[data-emo]'); if (!b || !G) return;
+    $('#emotes').hidden = true;
+    const k = b.dataset.emo;
+    if (k === 'mute') { botMuted = !botMuted; $$('.bubble.p1').forEach(x => x.remove()); return; }
+    emote(0, k);
+    // the bot answers in character, but not to spam
+    if (Date.now() > emoReset) { emoCount = 0; emoReset = Date.now() + 15000; }
+    if (++emoCount <= 2 && Math.random() < .75) setTimeout(() => botSay(VOICE.reply[k] || 'greet', false), 1100 + Math.random() * 700);
+  });
+  $('#b-emote').onclick = e => { e.stopPropagation(); showEmotes(); };
+  document.addEventListener('click', e => { if (!e.target.closest('#emotes,#b-emote')) $('#emotes').hidden = true; });
 
   // ---------- peek (hover / long-press) ----------
   let pressT = null;
@@ -1366,7 +1484,7 @@
         m.hidden = true; m.onclick = modalClick;
         E.mulligan(G, 0, [...swap]);
         G.ev.length = 0; render();
-        if (G.turn === 1) runBot(); else { await banner('Your Turn', 800); render(); }
+        if (G.turn === 1) runBot(); else { await banner('Your Turn', 800); render(); ropeStart(); }
       }
     };
   }
@@ -1377,30 +1495,32 @@
   }
   async function gameOver() {
     const w = G.winner;
+    ropeStop();
     sfx(w === 0 ? 'stinger_win' : 'stinger_lose', .6);
-    await sleep(500);
+    botSay(w === 1 ? 'win' : 'lose', true);
+    await sleep(w === 1 ? 1400 : 900);
     const m = $('#modal');
     const title = w === 0 ? 'Victory!' : w === 1 ? 'Defeat' : 'Draw';
-    const reward = w === 0 ? 60 : 20;
+    const reward = G.mode === 'arena' ? 0 : w === 0 ? 60 : 20;
     // launch gift: 100,000 gold the first time a player finishes a match (any result).
     // Players who had already played before this shipped get it on their next match.
     const gift = store.get('ll_gift100k', false) ? 0 : 100000;
     if (gift) store.set('ll_gift100k', true);
     gold += reward + gift; saveOwned();
-    const cr = G.camp ? campEnd(w === 0) : null;
-    const pr = finishGame(w === 0, G.camp ? 'camp' : 'casual');
+    // the mode's own result first (campaign chapter, rank, Arena record, Brawl prize), then quests and XP
+    const mr = G.camp ? campEnd(w === 0) : G.mode === 'ranked' ? rankEnd(w === 0) : G.mode === 'arena' ? arenaEnd(w === 0) : G.mode === 'brawl' ? brawlEnd(w === 0) : null;
+    saveOwned();
+    const pr = finishGame(w === 0, G.mode);
     const sub = w === 0 ? `You defeated ${G.p[1].name} on turn ${Math.ceil(G.turnNo / 2)}.` : w === 1 ? `${G.p[1].name} wins this one.` : 'Both heroes fell at once.';
-    if (G.camp) {
-      const r = cr;
-      saveOwned();
-      m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}
-        ${r.lines.map(l => `<p class="reward">${esc(l)}</p>`).join('')}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>${progressHTML(pr)}
-        <div class="row">${w === 0 ? '<button class="big" data-m="cnext">Continue the story</button>' : '<button class="big" data-m="cretry">Try again</button>'}
-        <button class="big alt" data-m="cback">Back to the campaign</button></div></div>`;
-      m.hidden = false;
-      return;
-    }
-    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>${progressHTML(pr)}<div class="row"><button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
+    const btns = G.camp ? (w === 0 ? '<button class="big" data-m="cnext">Continue the story</button>' : '<button class="big" data-m="cretry">Try again</button>') + '<button class="big alt" data-m="cback">Back to the campaign</button>'
+      : G.mode === 'ranked' ? '<button class="big" data-m="ragain">Play Ranked again</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button>'
+      : G.mode === 'arena' ? (mr.over ? '<button class="big" data-m="aback">Collect your rewards</button>' : '<button class="big" data-m="anext">Next Arena game</button><button class="big alt" data-m="aback">Arena</button>')
+      : G.mode === 'brawl' ? '<button class="big" data-m="bagain">Brawl again</button><button class="big alt" data-m="menu">Main menu</button>'
+      : '<button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button>';
+    m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}
+      ${mr && mr.html ? mr.html : ''}${mr ? mr.lines.map(l => `<p class="reward">${esc(l)}</p>`).join('') : ''}
+      ${reward ? `<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>` : ''}${progressHTML(pr)}
+      <div class="row">${btns}</div></div>`;
     m.hidden = false;
   }
   function showDredge() {
@@ -1419,11 +1539,17 @@
     if (k === 'stay') return;
     if (k === 'tipson') { tips = true; store.set('ll_tips', true); render(); return; }
     if (k === 'read') { readFirst = !readFirst; store.set('ll_read', readFirst); return; }
-    if (k === 'quit') { G = null; show('menu'); return; }
-    if (k === 'again') { startBattle(lastDecks.myDeck, chosenOpp === 'random' ? CLS[Math.floor(Math.random() * CLS.length)] : lastDecks.oppCls); return; }
+    if (k === 'quit') { const md = G.mode; ropeStop(); if (md === 'ranked') rankEnd(false); if (md === 'arena') { arenaEnd(false); G = null; show('arena'); return; } G = null; show('menu'); return; }
+    if (k === 'again') { startBattle(lastDecks.myDeck, chosenOpp === 'random' ? CLS[Math.floor(Math.random() * CLS.length)] : lastDecks.oppCls, null, { mode: 'casual' }); return; }
     if (k === 'decks') { G = null; show('play'); return; }
     if (k === 'menu') { G = null; show('menu'); return; }
     if (k === 'shop') { G = null; show('shop'); return; }
+    if (k === 'ragain') { G = null; startRanked(); return; }
+    if (k === 'anext') { G = null; arenaPlay(); return; }
+    if (k === 'aback') { G = null; show('arena'); return; }
+    if (k === 'bagain') { G = null; startBrawl(); return; }
+    if (k === 'timer') { timerOn = !timerOn; store.set('ll_timer', timerOn); if (timerOn) ropeStart(); else ropeStop(); return; }
+    if (k === 'mute') { botMuted = !botMuted; return; }
     if (k === 'cretry') { const c = G.camp; G = null; startCampBattle(c.k, c.i, lastDecks.myDeck); return; }
     if (k === 'cback') { campView = G.camp.k; G = null; show('campaign'); return; }
     if (k === 'cnext') { const c = G.camp; G = null; const ch = storyOf(c.k).chapters[c.i]; campView = c.k; playScene(ch, c.i, 'outro').then(() => show('campaign')); return; }
@@ -1862,6 +1988,267 @@
     return { first, lines, ch };
   }
 
+  // ================================================================= MODES: Ranked, Arena, Tavern Brawl
+  const META = (window.LL_META && window.LL_META.power) || {};
+  const collectible = () => E.db().collectible.filter(c => c.id !== 'coin');
+  // a bot deck built from card power (data/meta.js). k = 0 is a well-curved random deck; higher k leans on stronger cards.
+  function tunedDeck(cls, k, r) {
+    r = r || Math.random;
+    const pool = collectible().filter(c => c.c === cls || c.c === 'neutral');
+    const w = c => Math.exp(k * (((META[c.id] || .5) - .5) * 10));
+    const curve = [[0, 1, 4], [2, 2, 6], [3, 3, 6], [4, 4, 5], [5, 5, 4], [6, 6, 2], [7, 10, 3]];
+    const deck = [], cnt = {};
+    const pick = list => { let t = list.reduce((a, c) => a + w(c), 0) * r(); for (const c of list) { t -= w(c); if (t <= 0) return c; } return list[list.length - 1]; };
+    for (const [lo, hi, n] of curve) {
+      const list = pool.filter(c => c.m >= lo && c.m <= hi); let got = 0, tries = 0;
+      while (list.length && got < n && tries++ < 300) {
+        const c = pick(list), lim = c.r === 3 ? 1 : 2;
+        if ((cnt[c.id] || 0) >= lim) continue;
+        if (c.t === 'w' && deck.filter(id => E.card(id).t === 'w').length >= 3) continue;
+        const copies = Math.min(lim - (cnt[c.id] || 0), n - got, c.r < 3 && r() < .7 ? 2 : 1);
+        for (let j = 0; j < copies; j++) { deck.push(c.id); cnt[c.id] = (cnt[c.id] || 0) + 1; got++; }
+      }
+    }
+    for (let t = 0; deck.length < 30 && t < 500; t++) { const c = pick(pool); if ((cnt[c.id] || 0) < (c.r === 3 ? 1 : 2)) { deck.push(c.id); cnt[c.id] = (cnt[c.id] || 0) + 1; } }
+    return deck.slice(0, 30);
+  }
+  const BOTNAMES = [['Lucky', 'Grim', 'Sly', 'Brave', 'Odd', 'Wild', 'Sneaky', 'Salty', 'Cosmic', 'Rusty', 'Sleepy', 'Mighty'], ['Fox', 'Card', 'Fin', 'Bolt', 'Hex', 'Moth', 'Toad', 'Wyrm', 'Crab', 'Goblin', 'Dice', 'Kettle']];
+  const botName = () => BOTNAMES[0][Math.floor(Math.random() * 12)] + BOTNAMES[1][Math.floor(Math.random() * 12)] + (Math.random() < .6 ? Math.floor(Math.random() * 99) + 1 : '');
+
+  // ---- Ranked: Bronze 10 to Diamond 1 (3 stars a rank), then Legend. Monthly seasons.
+  const LEAGUES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
+  const LCOL = ['214,140,80', '200,210,225', '255,209,90', '110,235,215', '150,190,255', '255,120,220'];
+  const monthKey = () => dayKey().slice(0, 7);
+  let rank = store.get('ll_rank', null);
+  const saveRank = () => store.set('ll_rank', rank);
+  const rankName = i => i >= 50 ? 'Legend' : `${LEAGUES[Math.floor(i / 10)]} ${10 - i % 10}`;
+  const rankK = i => i < 10 ? null : i < 20 ? 0 : i < 30 ? .5 : i < 40 ? 1 : i < 50 ? 1.5 : 2.2;
+  function rankFresh() {
+    if (!rank) rank = { i: 0, stars: 0, streak: 0, best: 0, season: monthKey(), legend: 0, w: 0, l: 0 };
+    if (rank.season !== monthKey()) {
+      const best = rank.best, g = 100 + best * 15, d = best * 6;
+      gold += g; dust += d; saveOwned();
+      Object.assign(rank, { i: Math.max(0, Math.min(rank.i, 40) - 10), stars: 0, streak: 0, legend: 0, w: 0, l: 0, season: monthKey() });
+      rank.best = rank.i; saveRank();
+      setTimeout(() => toast(`A new Ranked season! Last season's best: ${rankName(best)}. Reward: +${g} gold, +${d} dust.`), 300);
+    }
+    return rank;
+  }
+  function emblem(i, stars, big) {
+    const L = Math.min(5, Math.floor(i / 10));
+    return `<div class="emb${big ? ' big' : ''}" style="--lc:${LCOL[L]}"><b>${i >= 50 ? '★' : 10 - i % 10}</b><small>${i >= 50 ? 'Legend' : LEAGUES[L]}</small></div>` +
+      (i >= 50 ? '' : `<div class="stars">${[0, 1, 2].map(k => `<i class="${k < stars ? 'on' : ''}"></i>`).join('')}</div>`);
+  }
+  function rankPanelHTML() {
+    const r = rankFresh();
+    return `<div class="rankbox"><div class="embwrap">${emblem(r.i, r.stars, true)}</div>
+      <div class="rinfo"><b>${rankName(r.i)}${r.i >= 50 ? ` #${r.legend}` : ''}</b>
+      <span>Season ${esc(r.season)} · ${r.w} wins, ${r.l} losses${r.streak >= 2 ? ` · ${r.streak}-win streak` : ''}</span>
+      <span>Best this season: ${rankName(r.best)}. Win for a star, lose one from Silver up. Three wins in a row give a bonus star below Diamond.
+      Opponents build stronger decks as you climb. The turn timer is always on.</span>
+      <span class="rr">Season reward so far: ${100 + r.best * 15} gold and ${r.best * 6} dust, paid when the month ends. Reaching Gold earns the Gold Foil card back.</span></div></div>`;
+  }
+  function startRanked() {
+    const r = rankFresh();
+    const d = decks.concat(STARTERS).find(x => x.id === chosenDeck && E.validateDeck(x.cards, x.cls).length === 0) || STARTERS[0];
+    const oc = CLS[Math.floor(Math.random() * CLS.length)], k = rankK(r.i);
+    startBattle(d, oc, null, { mode: 'ranked', oppDeck: k == null ? E.randomDeck(null, oc, Math.random) : tunedDeck(oc, k), oppName: botName() });
+  }
+  function rankEnd(won) {
+    const r = rankFresh(), before = r.i, bs = r.stars, lines = [];
+    if (won) {
+      r.w++; r.streak++;
+      if (r.i >= 50) { const d = 40 + Math.floor(Math.random() * 80); r.legend = Math.max(1, r.legend - d); lines.push(`Legend rank #${r.legend} (up ${d})`); }
+      else {
+        r.stars += r.streak >= 3 && r.i < 40 ? 2 : 1;
+        if (r.streak >= 3 && r.i < 40) lines.push('Win streak: bonus star!');
+        while (r.stars >= 3 && r.i < 50) { r.stars -= 3; r.i++; }
+        if (r.i >= 50) { r.stars = 0; r.legend = 2500 + Math.floor(Math.random() * 2500); lines.push(`You reached LEGEND! You start at #${r.legend}.`); }
+      }
+    } else {
+      r.l++; r.streak = 0;
+      if (r.i >= 50) { const d = 20 + Math.floor(Math.random() * 60); r.legend += d; lines.push(`Legend rank #${r.legend} (down ${d})`); }
+      else if (r.i >= 10) { // Bronze never loses stars; a league's rank 10 is a floor
+        r.stars--;
+        if (r.stars < 0) { if (r.i % 10) { r.i--; r.stars = 2; } else r.stars = 0; }
+      }
+    }
+    if (r.i > before) lines.unshift(`Ranked up: ${rankName(r.i)}!`); else if (r.i < before) lines.unshift(`Ranked down to ${rankName(r.i)}.`);
+    r.best = Math.max(r.best, r.i); saveRank();
+    const html = `<div class="rankres">${emblem(r.i, r.stars, true)}${r.i !== before || r.stars !== bs ? '' : ''}</div>`;
+    return { lines, html };
+  }
+
+  // ---- generic deck picker (Brawl, quick choices)
+  let pickCb = null;
+  function chooseDeck(title, note, cb) {
+    const ok = d => E.validateDeck(d.cards, d.cls).length === 0;
+    const mine = decks.filter(ok);
+    pickCb = id => cb(mine.concat(STARTERS).find(d => d.id === id));
+    $('#zoom').innerHTML = `<div class="codebox wide"><h3>${esc(title)}</h3><p>${esc(note)}</p>
+      ${mine.length ? `<h4>Your decks</h4><div class="deckgrid">${mine.map(d => deckBox(d, d.id === chosenDeck, `data-pickdeck="${d.id}"`)).join('')}</div>` : ''}
+      <h4>Starter decks</h4><div class="deckgrid">${STARTERS.map(d => deckBox(d, d.id === chosenDeck, `data-pickdeck="${d.id}"`)).join('')}</div>
+      <p class="crow"><button class="small" data-close>Cancel</button></p></div>`;
+    $('#zoom').hidden = false;
+  }
+  function pickAct(e) {
+    const b = e.target.closest('[data-pickdeck]'); if (!b || !pickCb) return false;
+    const f = pickCb; pickCb = null; $('#zoom').hidden = true;
+    chosenDeck = b.dataset.pickdeck; store.set('ll_chosen', chosenDeck);
+    f(b.dataset.pickdeck); return true;
+  }
+
+  // ---- Arena: pick a class, draft 30 cards from sets of 3, play until 12 wins or 3 losses
+  const ARENA_PRICE = 150;
+  const ARENA_GOLD = [25, 35, 50, 60, 75, 90, 110, 130, 150, 170, 190, 210, 260];
+  let AR = store.get('ll_arena', null);
+  const saveAR = () => store.set('ll_arena', AR);
+  function arenaOffer(cls, r, k) {
+    // three different cards of one rarity; each slot is a class card half the time
+    r = r || Math.random;
+    let rar = (x => x < .012 ? 3 : x < .062 ? 2 : x < .222 ? 1 : 0)(r());
+    const pool = collectible().filter(c => c.c === cls || c.c === 'neutral');
+    let byR = pool.filter(c => c.r === rar); if (byR.length < 6) byR = pool;
+    const out = [];
+    for (let t = 0; out.length < 3 && t < 200; t++) {
+      const sub = r() < .5 ? byR.filter(c => c.c === cls) : byR.filter(c => c.c === 'neutral');
+      const src = sub.length ? sub : byR, c = src[Math.floor(r() * src.length)];
+      if (!out.includes(c.id)) out.push(c.id);
+    }
+    return out;
+  }
+  // a bot's Arena deck: drafted the same way, choosing better cards as your record improves
+  function arenaBotDeck(cls, k) {
+    const d = [];
+    for (let i = 0; i < 30; i++) { const o = arenaOffer(cls); d.push(o.sort((a, b) => (META[b] || .5) * k - (META[a] || .5) * k + (Math.random() - .5) * (k ? .02 : 1))[0]); }
+    return d;
+  }
+  function renderArena() {
+    const box = $('#arenabody'), best = store.get('ll_arena_best', 0);
+    if (!AR) {
+      box.innerHTML = `<div class="arintro"><h3>The Arena</h3>
+        <p>Pick one of three classes, then draft a 30-card deck one pick at a time: three cards are offered, you keep one. You don't need to own anything.</p>
+        <p>Play until you reach <b>12 wins</b> or <b>3 losses</b>. Rewards grow with every win: gold, dust and a free pack every run, a Multiverse Pack from 7 wins, a golden Legendary and The Golden Knot card back at 12.</p>
+        <p class="arbest">${best ? `Your best run: ${best} wins.` : 'No runs yet.'}</p>
+        <button class="big" data-ar="enter" ${gold < ARENA_PRICE ? 'disabled' : ''}>${gold < ARENA_PRICE ? `Need ${ARENA_PRICE} gold` : `Enter for ${ARENA_PRICE} gold`}</button></div>`;
+      return;
+    }
+    if (AR.stage === 'pick') {
+      box.innerHTML = `<h3 class="arh">Choose your class</h3><div class="arcls">${AR.clsOpts.map(c => `<button class="ctile" data-arcls="${c}" style="--cc:${CCOL(c)}">
+        ${portrait({ art: D.heroes[c].art, cls: c }, true)}<div class="ct"><b>${CLSN[c]}</b><span>${esc(CLSG[c])} cards · Hero Power: ${esc(D.heroes[c].hp.n)}</span><span>${esc(D.heroes[c].hp.tx)}</span></div></button>`).join('')}</div>`;
+      return;
+    }
+    const counts = {}; AR.deck.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+    const list = Object.keys(counts).sort((a, b) => E.card(a).m - E.card(b).m || E.card(a).n.localeCompare(E.card(b).n));
+    const rc = ['#e8e8ef', '#4fa3ff', '#c27bff', '#ff9d2e'];
+    const deckList = `<div class="ardeck"><h4>${CLSN[AR.cls]} · ${AR.deck.length}/30</h4>${list.map(id => { const c = E.card(id); return `<div class="drow" style="--rc:${rc[c.r]}"><span class="m">${c.m}</span><span class="n">${esc(c.n)}</span><span class="x">${counts[id] > 1 ? '×' + counts[id] : ''}</span></div>`; }).join('') || '<p class="jnote">Your picks show up here.</p>'}</div>`;
+    if (AR.stage === 'draft') {
+      box.innerHTML = `<h3 class="arh">Pick ${AR.deck.length + 1} of 30</h3><p class="jnote">Tap a card to add it to your Arena deck. Press and hold (or right-click) to read it big.</p>
+        <div class="arwrap"><div class="aroffer">${AR.offer.map(id => cardHTML(E.card(id), { attrs: `data-arpick="${id}" tabindex="0" role="button"` })).join('')}</div>${deckList}</div>`;
+      return;
+    }
+    const rec = `<div class="arrec"><div class="wins">${Array.from({ length: 12 }, (_, i) => `<i class="${i < AR.wins ? 'on' : ''}">${i + 1}</i>`).join('')}</div>
+      <div class="losses">${[0, 1, 2].map(i => `<i class="${i < AR.losses ? 'on' : ''}">✕</i>`).join('')}</div></div>`;
+    if (AR.stage === 'run') {
+      box.innerHTML = `<h3 class="arh">${AR.wins} win${AR.wins === 1 ? '' : 's'}, ${AR.losses} loss${AR.losses === 1 ? '' : 'es'}</h3>${rec}
+        <div class="arwrap"><div class="arplay"><button class="big" data-ar="play">Play next game</button><button class="small" data-ar="retire">Retire and collect rewards</button>
+        <p class="jnote">Opponents draft too, and pick better cards the more you win.</p></div>${deckList}</div>`;
+      return;
+    }
+    box.innerHTML = `<h3 class="arh">Run over: ${AR.wins} win${AR.wins === 1 ? '' : 's'}</h3>${rec}<div class="arrew">${(AR.rewards || []).map(l => `<p class="reward">${esc(l)}</p>`).join('')}</div>
+      <p><button class="big" data-ar="done">Done</button></p>`;
+  }
+  function arenaPlay() {
+    if (!AR || AR.stage !== 'run') { show('arena'); return; }
+    const oc = CLS[Math.floor(Math.random() * CLS.length)];
+    startBattle({ id: 'arena', name: 'Arena deck', cls: AR.cls, cards: AR.deck.slice() }, oc, null, { mode: 'arena', oppDeck: arenaBotDeck(oc, AR.wins / 4), oppName: botName() });
+  }
+  function arenaRewards() {
+    const w = AR.wins, out = [];
+    const g = ARENA_GOLD[w], d = w * 15 + 10;
+    gold += g; dust += d; out.push(`+${g} gold`, `+${d} dust`);
+    const exp = ['ih', 'dc', 'tt'][Math.floor(Math.random() * 3)];
+    grantReward({ pack: exp, n: 1 }); out.push(`A free ${PACKS.find(p => p.id === exp).name}`);
+    if (w >= 7) { grantReward({ pack: 'mv', n: 1 }); out.push('A free Multiverse Pack'); }
+    if (w >= 12) { const r = { gl: 1 }; grantReward(r); out.push(`A golden Legendary: ${r.got}`); }
+    store.set('ll_arena_best', Math.max(store.get('ll_arena_best', 0), w));
+    checkUnlocks().forEach(l => out.push(l));
+    saveOwned();
+    return out;
+  }
+  function arenaEnd(won) {
+    if (!AR || AR.stage !== 'run') return { lines: [], over: true };
+    if (won) AR.wins++; else AR.losses++;
+    const over = AR.wins >= 12 || AR.losses >= 3;
+    const lines = [`Arena record: ${AR.wins}–${AR.losses}`];
+    if (over) { AR.stage = 'done'; AR.rewards = arenaRewards(); lines.push('Your run is over. Collect your rewards in the Arena.'); }
+    saveAR();
+    return { lines, over };
+  }
+  $('#arenabody').addEventListener('click', e => {
+    const a = e.target.closest('[data-ar]');
+    if (a) {
+      const k = a.dataset.ar;
+      if (k === 'enter' && gold >= ARENA_PRICE) { gold -= ARENA_PRICE; saveOwned(); sfx('coin', .5); const c = CLS.slice().sort(() => Math.random() - .5).slice(0, 3); AR = { stage: 'pick', clsOpts: c, deck: [], wins: 0, losses: 0 }; saveAR(); }
+      else if (k === 'play') { arenaPlay(); return; }
+      else if (k === 'retire') { if (a.dataset.confirm !== '1') { a.dataset.confirm = '1'; a.textContent = 'Tap again to retire'; return; } AR.stage = 'done'; AR.rewards = arenaRewards(); saveAR(); sfx('relic', .5); }
+      else if (k === 'done') { AR = null; saveAR(); }
+      renderArena(); goldChips(); return;
+    }
+    const c = e.target.closest('[data-arcls]');
+    if (c && AR && AR.stage === 'pick') { AR.cls = c.dataset.arcls; AR.stage = 'draft'; AR.offer = arenaOffer(AR.cls); saveAR(); sfx('click', .4); renderArena(); return; }
+    const p = e.target.closest('[data-arpick]');
+    if (p && AR && AR.stage === 'draft') {
+      AR.deck.push(p.dataset.arpick); sfx('relic', .35);
+      if (AR.deck.length >= 30) { AR.stage = 'run'; AR.offer = []; } else AR.offer = arenaOffer(AR.cls);
+      saveAR(); renderArena();
+    }
+  });
+  $('#arenabody').addEventListener('contextmenu', e => { const el = e.target.closest('[data-arpick]'); if (el) { e.preventDefault(); zoom(E.card(el.dataset.arpick)); } });
+  let arPress = null;
+  $('#arenabody').addEventListener('touchstart', e => { const el = e.target.closest('[data-arpick]'); if (!el) return; arPress = setTimeout(() => { arPress = 'fired'; zoom(E.card(el.dataset.arpick)); }, 450); }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(t => $('#arenabody').addEventListener(t, e => { if (arPress === 'fired' && t === 'touchend') e.preventDefault(); clearTimeout(arPress); arPress = null; }));
+
+  // ---- Tavern Brawl: one special rule set a week, the same for everyone
+  const BRAWLS = [
+    { id: 'heroic', n: 'Heroic Proportions', tx: 'Both heroes start with 60 Health. Bring any deck.', deck: true, set: () => ({ hp: [60, 60] }) },
+    { id: 'rush', n: 'Mana Rush', tx: 'Both players start the game with 5 Mana crystals. Bring any deck and skip straight to the good stuff.', deck: true, set: () => ({ mods: { manaStart: 5 } }) },
+    { id: 'bargain', n: 'Bargain Bin', tx: 'Every card costs 1 less, for both players. Bring any deck.', deck: true, set: () => ({ mods: { cost: -1 } }) },
+    { id: 'mirror', n: 'Mirror Match', tx: 'Bring any deck. Your opponent plays an exact copy of it.', deck: true, set: d => ({ oppCls: d.cls, oppDeck: d.cards.slice(), oppName: 'Your Reflection' }) },
+    { id: 'legends', n: 'Legendary Gathering', tx: 'You get a random class, and both decks are made of nothing but Legendaries.', deck: false,
+      set: () => { const legs = cls => { const p = collectible().filter(c => c.r === 3 && (c.c === cls || c.c === 'neutral')); return Array.from({ length: 30 }, () => p[Math.floor(Math.random() * p.length)].id); }; const a = CLS[Math.floor(Math.random() * 6)], b = CLS[Math.floor(Math.random() * 6)]; return { my: { id: 'brawl', name: 'Legendary deck', cls: a, cards: legs(a) }, oppCls: b, oppDeck: legs(b) }; } },
+    { id: 'power', n: 'Power Overwhelming', tx: 'Hero Powers cost 0. Bring any deck.', deck: true, set: () => ({ hpFree: true }) },
+    { id: 'rumble', n: 'Random Rumble', tx: 'You and your opponent each get a random class and a ready-made deck. No preparation, all chaos.', deck: false,
+      set: () => { const a = CLS[Math.floor(Math.random() * 6)], b = CLS[Math.floor(Math.random() * 6)]; return { my: { id: 'brawl', name: `${CLSN[a]} rumble deck`, cls: a, cards: tunedDeck(a, .5) }, oppCls: b, oppDeck: tunedDeck(b, .5) }; } },
+  ];
+  const WEEK0 = Date.UTC(2026, 0, 5); // a Monday
+  const weekNo = () => Math.floor((Date.now() - WEEK0) / 604800000);
+  const brawlNow = () => BRAWLS[((weekNo() % BRAWLS.length) + BRAWLS.length) % BRAWLS.length];
+  let brawlRec = store.get('ll_brawl', {});
+  function renderBrawl() {
+    const b = brawlNow(), wk = weekNo(), won = brawlRec.week === wk && brawlRec.won;
+    const left = Math.ceil((WEEK0 + (wk + 1) * 604800000 - Date.now()) / 86400000);
+    const next = BRAWLS[(((wk + 1) % BRAWLS.length) + BRAWLS.length) % BRAWLS.length];
+    $('#brawlbody').innerHTML = `<div class="brawl"><small>This week's Tavern Brawl</small><h3>${esc(b.n)}</h3><p class="btx">${esc(b.tx)}</p>
+      <p class="brew">${won ? 'You claimed this week\'s prize. Brawl on for fun, quests and XP.' : 'Win once this week for a free Multiverse Pack.'}</p>
+      <button class="big camp" data-brawl="go">${b.deck ? 'Choose a deck and brawl' : 'Brawl!'}</button>
+      <p class="jnote">A new Brawl in ${left} day${left === 1 ? '' : 's'}: ${esc(next.n)}.</p></div>`;
+  }
+  function startBrawl() {
+    const b = brawlNow();
+    const go = d => { const st = b.set(d) || {}; const my = st.my || d; const oc = st.oppCls || CLS[Math.floor(Math.random() * 6)];
+      startBattle(my, oc, null, { mode: 'brawl', oppDeck: st.oppDeck || tunedDeck(oc, .5), oppName: st.oppName || botName(), hp: st.hp, mods: st.mods, hpFree: st.hpFree }); };
+    if (b.deck) chooseDeck(b.n, b.tx, go); else go(null);
+  }
+  function brawlEnd(won) {
+    const wk = weekNo(), lines = [];
+    if (brawlRec.week !== wk) brawlRec = { week: wk, won: 0 };
+    if (won && !brawlRec.won) { brawlRec.won = 1; grantReward({ pack: 'mv', n: 1 }); lines.push("This week's Brawl prize: a free Multiverse Pack!"); }
+    store.set('ll_brawl', brawlRec);
+    return { lines };
+  }
+  $('#brawlbody').addEventListener('click', e => { if (e.target.closest('[data-brawl]')) { sfx('click', .4); startBrawl(); } });
+
   // ---------- cutscenes ----------
   function playScene(ch, idx, part, skipTitle) {
     return new Promise(resolve => {
@@ -1916,5 +2303,5 @@
   // ---------------------------------------------------------------- boot
   $('#b-sound').textContent = 'Sound: ' + (soundOn ? 'on' : 'off');
   const h = (location.hash || '').replace('#', '');
-  show(['collection', 'play', 'rules', 'shop', 'campaign', 'journal'].includes(h) ? h : 'menu');
+  show(['collection', 'play', 'rules', 'shop', 'campaign', 'journal', 'arena', 'brawl'].includes(h) ? h : 'menu');
 })();

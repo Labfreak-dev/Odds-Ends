@@ -653,6 +653,68 @@ html { overflow-x: hidden; }
 .dback { display: inline-block; width: 12px; height: 17px; border-radius: 2px; background: radial-gradient(circle at 50% 45%, #5b3a96, #241444 70%); box-shadow: 0 0 0 1px var(--gold-d); }
 .pk-back.img { border-color: #000; } .pk-back.img .pk-ll { display: none; }
 .big.free { background: linear-gradient(180deg, #8affc1, #2fb173); border-color: #17643f; box-shadow: 0 4px 0 #12502f; }
+
+/* ---------- rope, emotes ---------- */
+#rope { position: absolute; left: 8%; right: 150px; top: 50%; height: 10px; transform: translateY(-50%); z-index: 14; pointer-events: none; }
+#rope i { position: absolute; right: 0; top: 0; bottom: 0; width: calc(var(--left, 1) * 100%); border-radius: 99px;
+  background: repeating-linear-gradient(60deg, #e2bf7f 0 5px, #9c7340 5px 10px); box-shadow: 0 0 0 1.5px #3a2508, 0 0 12px rgba(255,140,40,.5); transition: width .2s linear; }
+#rope i::before { content: ''; position: absolute; left: -9px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); border-radius: 50%;
+  background: radial-gradient(circle, #fff6c0, #ffb02e 45%, rgba(255,80,20,.0) 72%); animation: flame .18s infinite alternate; }
+@keyframes flame { from { transform: translateY(-50%) scale(.85); } to { transform: translateY(-50%) scale(1.2); } }
+#rope b { position: absolute; left: -34px; top: 50%; transform: translateY(-50%); font: 700 18px var(--display); color: #ffb02e; text-shadow: 0 2px 0 #000; }
+@media (max-width: 720px) { #rope { left: 40px; right: 118px; } }
+#emotes { position: absolute; left: 12px; top: calc(50% + 70px); z-index: 60; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border-radius: 16px;
+  background: rgba(20,12,34,.95); border: 2px solid #4c3a74; box-shadow: 0 10px 30px rgba(0,0,0,.6); width: 250px; }
+.emo { font: 700 14px var(--display); color: var(--text); background: #2c1f48; border: 1.5px solid #5d4890; border-radius: 99px; padding: 9px 10px; }
+.emo:hover { background: #3b2b5c; } .emo.mute { grid-column: 1 / -1; background: none; color: var(--muted); font-size: 12px; }
+@media (max-width: 720px) { #emotes { left: 6px; top: calc(env(safe-area-inset-top, 0px) + 200px); } }
+.bubble { position: absolute; z-index: 55; max-width: 220px; padding: 10px 14px; border-radius: 18px; background: #fffaf0; color: #1e1530; font: 700 15px/1.25 var(--body);
+  box-shadow: 0 8px 22px rgba(0,0,0,.55); pointer-events: none; animation: bubIn .25s ease-out; transition: opacity .35s; }
+.bubble.p0 { transform: translate(18%, -150%); } .bubble.p1 { transform: translate(18%, 20%); }
+.bubble.out { opacity: 0; }
+@keyframes bubIn { from { opacity: 0; scale: .7; } }
+@media (max-width: 720px) { .bubble { max-width: 170px; font-size: 13px; } .bubble.p0, .bubble.p1 { translate: -40% 0; } }
+
+/* ---------- ranked ---------- */
+.ptabs { display: flex; gap: 8px; } .ptabs .chip { font-size: 16px; padding: 8px 22px; }
+.rankbox { display: flex; gap: 18px; align-items: center; padding: 14px; border-radius: 16px; background: #1c1430; border: 2px solid #3b2b5c; }
+.embwrap, .rankres { display: grid; justify-items: center; gap: 6px; flex: none; }
+.emb { width: 74px; height: 84px; display: grid; place-content: center; text-align: center; clip-path: polygon(50% 0, 100% 22%, 100% 74%, 50% 100%, 0 74%, 0 22%);
+  background: radial-gradient(circle at 50% 35%, rgb(var(--lc)), rgba(var(--lc),.45) 60%, #1a1129); }
+.emb.big { width: 92px; height: 104px; }
+.emb b { font: 700 30px/1 var(--display); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.6); } .emb small { font-weight: 900; font-size: 11px; color: #fff; text-shadow: 0 1px 0 #000; text-transform: uppercase; letter-spacing: .06em; }
+.stars { display: flex; gap: 4px; } .stars i { width: 18px; height: 18px; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background: #3b2b5c; }
+.stars i.on { background: var(--gold); }
+.rinfo { display: grid; gap: 4px; } .rinfo b { font: 700 22px var(--display); color: var(--gold); } .rinfo span { color: var(--muted); font-weight: 700; font-size: 14px; } .rinfo .rr { color: #bfe9ff; }
+.rankres { margin: 8px auto; animation: crafted .7s ease-out; }
+@media (max-width: 720px) { .rankbox { flex-direction: column; text-align: center; } }
+
+/* ---------- arena ---------- */
+#arena .inner, #brawl .inner { max-width: 1000px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+.arintro, .brawl { text-align: center; display: grid; gap: 12px; justify-items: center; padding: 24px 16px; border-radius: 18px; background: radial-gradient(ellipse at 50% 0%, rgba(255,154,107,.18), transparent 70%), #1c1430; border: 2px solid #3b2b5c; }
+.arintro h3, .brawl h3, .arh { font-family: var(--display); color: var(--gold); margin: 0; font-size: 30px; }
+.arh { font-size: 24px; text-align: center; }
+.arintro p, .brawl p { color: var(--muted); font-weight: 700; margin: 0; max-width: 60ch; } .arbest { color: var(--teal) !important; }
+.arcls { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.arwrap { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 16px; align-items: start; }
+.aroffer { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; } .aroffer .card { --cw: min(200px, 28vw); cursor: pointer; transition: transform .15s; }
+.aroffer .card:hover { transform: translateY(-8px) scale(1.03); }
+.ardeck { background: #1a1229; border: 2px solid #3b2b5c; border-radius: 14px; padding: 10px; max-height: 60vh; overflow-y: auto; }
+.ardeck h4 { margin: 0 0 6px; font-family: var(--display); color: var(--teal); }
+.arplay { display: grid; gap: 12px; justify-items: center; align-content: start; padding-top: 10px; }
+.arrec { display: grid; gap: 8px; justify-items: center; }
+.arrec .wins, .arrec .losses { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.arrec .wins i { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--display); font-style: normal; background: #22183a; color: #6b5a90; box-shadow: inset 0 0 0 2px #3b2b5c; }
+.arrec .wins i.on { background: radial-gradient(circle at 40% 35%, #ffe7a0, #e0a024); color: #3a2200; box-shadow: 0 0 10px rgba(255,209,90,.5); }
+.arrec .losses i { font-style: normal; font: 900 24px var(--display); color: #4b3a6a; } .arrec .losses i.on { color: #ff4d5e; text-shadow: 0 0 10px #ff4d5e; }
+.arrew { text-align: center; }
+@media (max-width: 720px) { .arwrap { grid-template-columns: minmax(0,1fr); } .aroffer { gap: 6px; flex-wrap: nowrap; } .aroffer .card { --cw: min(150px, calc((100vw - 52px) / 3)); } .ardeck { max-height: none; } }
+
+/* ---------- brawl ---------- */
+.brawl { background: radial-gradient(ellipse at 50% 0%, rgba(255,120,60,.3), transparent 70%), repeating-linear-gradient(90deg, #2a1a10 0 40px, #301e12 40px 80px); border-color: #7a4a20; }
+.brawl small { font-weight: 900; color: #ffcf8a; text-transform: uppercase; letter-spacing: .1em; }
+.brawl h3 { font-size: 40px; } .brawl .btx { color: #f3e6d0 !important; font-size: 18px; } .brawl .brew { color: var(--gold) !important; }
+.codebox.wide { max-width: 760px; text-align: center; } .codebox.wide h4 { font-family: var(--display); color: var(--teal); margin: 6px 0 0; text-align: left; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 
@@ -665,6 +727,8 @@ html { overflow-x: hidden; }
     <button class="big" id="b-play">Play</button>
     <button class="big camp" id="b-camp">Campaign</button>
     <div class="mgrid">
+      <button class="big alt" id="b-arena">Arena</button>
+      <button class="big alt" id="b-brawl">Tavern Brawl</button>
       <button class="big alt" id="b-shop">Card Shop</button>
       <button class="big alt" id="b-coll">Collection</button>
       <button class="big alt" id="b-journal">Quests &amp; Rewards<i class="dot" id="questdot" hidden></i></button>
@@ -683,11 +747,13 @@ html { overflow-x: hidden; }
 <section id="play" class="screen" hidden>
   <div class="topbar"><button class="small" data-back>Back</button><h2>Choose your deck</h2></div>
   <div class="body scroll"><div class="inner">
+    <div class="ptabs" id="ptabs"><button class="chip" data-pmode="casual">Casual</button><button class="chip" data-pmode="ranked">Ranked</button></div>
+    <div id="rankpanel" hidden></div>
     <h3 class="sect">Your decks</h3>
     <div class="deckgrid" id="mydecks"></div>
     <h3 class="sect">Starter decks</h3>
     <div class="deckgrid" id="starters"></div>
-    <h3 class="sect">Opponent</h3>
+    <h3 class="sect" id="opphead">Opponent</h3>
     <div class="deckgrid" id="opps"></div>
   </div></div>
   <div class="matchbar" id="matchbar"></div>
@@ -707,6 +773,16 @@ html { overflow-x: hidden; }
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small gold" id="b-save">Save deck</button><button class="small" id="b-fill">Fill randomly</button><button class="small" id="b-code">Copy code</button><button class="small" id="b-del">Delete</button><button class="small" id="b-close">Done</button></div></div>
     </aside>
   </div>
+</section>
+
+<section id="arena" class="screen" hidden>
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Arena</h2><span class="grow"></span><span class="goldchip"></span></div>
+  <div class="body scroll"><div class="inner" id="arenabody"></div></div>
+</section>
+
+<section id="brawl" class="screen" hidden>
+  <div class="topbar"><button class="small" data-back>Back</button><h2>Tavern Brawl</h2><span class="grow"></span></div>
+  <div class="body scroll"><div class="inner" id="brawlbody"></div></div>
 </section>
 
 <section id="journal" class="screen" hidden>
@@ -734,7 +810,9 @@ html { overflow-x: hidden; }
     <div class="hrow" id="mhero"></div>
     <div class="hand" id="hand"></div>
   </div>
-  <div class="tl"><button class="small" id="b-menu" aria-label="Menu"><span class="ic" aria-hidden="true">☰</span><span class="lb">Menu</span></button><button class="small" id="b-help" aria-label="Help"><span class="ic" aria-hidden="true">?</span><span class="lb">Help</span></button><button class="small" id="b-log" aria-label="Battle log"><span class="ic" aria-hidden="true">≡</span><span class="lb">Log</span></button></div>
+  <div class="tl"><button class="small" id="b-menu" aria-label="Menu"><span class="ic" aria-hidden="true">☰</span><span class="lb">Menu</span></button><button class="small" id="b-help" aria-label="Help"><span class="ic" aria-hidden="true">?</span><span class="lb">Help</span></button><button class="small" id="b-log" aria-label="Battle log"><span class="ic" aria-hidden="true">≡</span><span class="lb">Log</span></button><button class="small" id="b-emote" aria-label="Emotes"><span class="ic" aria-hidden="true">💬</span><span class="lb">Emote</span></button></div>
+  <div id="emotes" hidden></div>
+  <div id="rope" hidden><i></i><b></b></div>
   <div id="coach" hidden></div>
   <div class="ctl"><button id="endturn">End Turn</button></div>
   <div id="hint" hidden></div>
@@ -751,5 +829,7 @@ html { overflow-x: hidden; }
 
 <script src="data/cards.js" charset="utf-8"></script>
 <script src="js/engine.js" charset="utf-8"></script>
+<script src="data/meta.js" charset="utf-8"></script>
 <script src="js/campaign.js" charset="utf-8"></script>
+<script src="js/voice.js" charset="utf-8"></script>
 <script src="js/ui.js" charset="utf-8"></script>

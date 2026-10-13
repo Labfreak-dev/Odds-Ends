@@ -4059,6 +4059,10 @@ Neutral gods fill out the curve (Zeus, Poseidon, Hades, Odin, Ra…). Living rel
 - A constant random function (`() => .3`) makes `randomDeck` loop forever: it keeps re-picking a card it already holds two of. Use a seeded generator in tests.
 - `ll_chosen` is stored as JSON, so a test has to write `'"dP"'`, not `'dP'`.
 
+## Labfreak Legends — reagents instead of dust, buying packs in bulk
+**Reagents.** The crafting currency is now called reagents everywhere players see it: chips, the crafting panel, deck-code crafting, the pack reveal, reward track, Ranked and Arena rewards, and How to Play. The user didn't want to copy Hearthstone's word. The code variable and the save key (`dust`, `ll_dust`) keep their names, so existing saves carry over.
+**Buying packs in bulk.** Every pack has Buy 1, Buy 5, Buy 10 and Buy X (a number box; Enter works too). If you can't afford the amount, a note says what it costs and what you have. Bought packs join the waiting pile that reward-track packs already used (`ll_free`). From there you can open them one at a time with the full tear and reveal, or press "Open all N" for a single summary: every card once, sorted by rarity, with counts and New and Golden tags, plus totals for each rarity, new cards, golden cards and reagents from extra copies. "Open all" is also offered from the reveal screen while more packs are waiting.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

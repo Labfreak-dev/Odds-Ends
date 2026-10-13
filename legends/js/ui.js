@@ -205,10 +205,10 @@
   const ownedTotal = () => Object.values(owned).reduce((a, b) => a + b, 0);
   function goldChips() {
     $$('.goldchip').forEach(g => { g.textContent = gold.toLocaleString() + ' gold'; });
-    $$('.dustchip').forEach(g => { g.textContent = dust.toLocaleString() + ' dust'; });
+    $$('.dustchip').forEach(g => { g.textContent = dust.toLocaleString() + ' reagents'; });
     $$('.lvlchip').forEach(g => { g.textContent = 'Level ' + prog.lvl; });
   }
-  // Hearthstone's crafting table: extra copies and disenchanted cards become dust, dust becomes any card
+  // crafting: extra copies and disenchanted cards become reagents (variable: dust, save key ll_dust), reagents become any card
   const CRAFT = [40, 100, 400, 1600], DE = [5, 20, 100, 400], CRAFT_G = [400, 800, 1600, 3200], DE_G = [50, 100, 400, 1600];
   const GOLD_ODDS = [0.02, 0.03, 0.05, 0.08];
   const starterNeed = {}; // copies every player keeps (the starter decks are always playable)
@@ -369,7 +369,7 @@
     if (r.back) return `Card back: ${BACKS.find(b => b.id === r.back).n}`;
     if (r.gl) return 'A golden Legendary';
     if (r.pack) { const p = PACKS.find(x => x.id === r.pack); return `${r.n > 1 ? r.n + ' × ' : ''}${p.name}`; }
-    if (r.dust) return `${r.dust} dust`;
+    if (r.dust) return `${r.dust} reagents`;
     return `${r.gold} gold`;
   }
   let freePacks = store.get('ll_free', {});
@@ -385,7 +385,7 @@
       const c = (pick.length ? pick : up.length ? up : legs)[Math.floor(Math.random() * (pick.length || up.length || legs.length))];
       if (!owned[c.id]) { owned[c.id] = 1; golden[c.id] = 1; r.got = c.n; }
       else if (!isGold(c.id)) { golden[c.id] = 1; r.got = c.n + ' (upgraded)'; }
-      else { dust += DE_G[3]; r.got = DE_G[3] + ' dust'; }
+      else { dust += DE_G[3]; r.got = DE_G[3] + ' reagents'; }
     }
     saveOwned();
   }
@@ -797,7 +797,7 @@
       <textarea id="codein" rows="5" placeholder="LL1.tamer.…" aria-label="Deck code">${r ? esc(r.raw) : ''}</textarea>
       ${r ? `<p class="cinfo"><b>${esc(r.name)}</b> · ${CLSN[r.cls]} · ${r.cards.length} cards${r.bad.length ? ` · ${r.bad.length} unknown card${r.bad.length > 1 ? 's' : ''} skipped` : ''}</p>
         ${mi.miss.length ? `<p class="cmiss">You're missing ${mi.miss.reduce((a, x) => a + x[1], 0)} card${mi.miss.length > 1 ? 's' : ''}: ${mi.miss.map(([id, k]) => esc(E.card(id).n) + (k > 1 ? ' ×' + k : '')).join(', ')}.</p>
-          <p class="crow"><button class="small gold" data-code="craft" ${dust < mi.cost ? 'disabled' : ''}>Craft them · ${mi.cost.toLocaleString()} dust</button><button class="small" data-code="import">Import without them</button></p><p class="dustline"><span class="dustchip"></span></p>`
+          <p class="crow"><button class="small gold" data-code="craft" ${dust < mi.cost ? 'disabled' : ''}>Craft them · ${mi.cost.toLocaleString()} reagents</button><button class="small" data-code="import">Import without them</button></p><p class="dustline"><span class="dustchip"></span></p>`
         : `<p class="crow"><button class="small gold" data-code="import">Import deck</button></p>`}` : ''}
       ${msg ? `<p class="cmsg">${esc(msg)}</p>` : ''}
       <p class="crow"><button class="small" data-code="read">Read code</button><button class="small" data-close>Close</button></p></div>`;
@@ -846,7 +846,7 @@
     const cr = c.token ? '' : `<div class="craft">
         <div class="dustline"><span class="dustchip"></span>${keep ? `<small>${keep > 1 ? 'Two copies are' : 'One copy is'} in a starter deck, so ${keep > 1 ? 'they stay' : 'it stays'}.</small>` : ''}</div>
         <div class="crow">
-          <button class="small gold" data-craft="0" ${n >= cap || dust < CRAFT[c.r] ? 'disabled' : ''}>Craft · ${CRAFT[c.r]} dust</button>
+          <button class="small gold" data-craft="0" ${n >= cap || dust < CRAFT[c.r] ? 'disabled' : ''}>Craft · ${CRAFT[c.r]} reagents</button>
           <button class="small" data-de="0" ${!nm || !canDE(c.id) ? 'disabled' : ''}>Disenchant · +${DE[c.r]}</button></div>
         <div class="crow">
           <button class="small gold glow" data-craft="1" ${(n < cap ? dust < CRAFT_G[c.r] : (!nm || dust < CRAFT_G[c.r] - DE[c.r])) ? 'disabled' : ''}>${n < cap ? `Craft golden · ${CRAFT_G[c.r]}` : `Make golden · ${CRAFT_G[c.r] - DE[c.r]}`}</button>
@@ -854,7 +854,7 @@
     $('#zoom').innerHTML = `<div class="wrap">${cardHTML(c, { golden: zoomGold })}<div class="info"><h3>${esc(c.n)}</h3>
       <p>${RN[c.r]} ${TYPEN(c)} · ${CLSN[c.c]} · ${esc(c.g || '')}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
       ${c.fl ? `<p style="font-style:italic">“${esc(c.fl)}”</p>` : ''}
-      <p>${n ? `You own ${n} cop${n > 1 ? 'ies' : 'y'}${g ? (g === n ? (n > 1 ? ', both golden' : ', golden') : ` (${g} golden)`) : ''}.` : `Not owned yet. Found in the ${esc((PACKS.find(p => p.id !== 'mv' && p.f(c)) || PACKS[5]).name)} and the Multiverse Pack, or craft it with dust.`}
+      <p>${n ? `You own ${n} cop${n > 1 ? 'ies' : 'y'}${g ? (g === n ? (n > 1 ? ', both golden' : ', golden') : ` (${g} golden)`) : ''}.` : `Not owned yet. Found in the ${esc((PACKS.find(p => p.id !== 'mv' && p.f(c)) || PACKS[5]).name)} and the Multiverse Pack, or craft it with reagents.`}
         ${g && nm ? `<button class="linkbtn" data-zg>${zoomGold ? 'Show normal' : 'Show golden'}</button>` : ''}</p>
       <div class="kwlist">${kws.map(([k, v]) => `<div><b>${esc(k)}</b> ${esc(v)}</div>`).join('')}</div>
       ${cr}<p><button class="small" data-close>Close</button></p></div></div>`;
@@ -923,14 +923,14 @@
       <p>Like Hearthstone, cards come in sets. Every set has its own pack in the Card Shop, and every expansion brings a new keyword. Expansion cards carry the set's symbol under the art, and the collection can be filtered by set.</p>
       <div class="gloss">${SETS.map(x => `<div><b>${x.id !== 'core' && SET_ICON[x.id] ? `<i class="seti">${SET_ICON[x.id]}</i>` : ''}${esc(x.n)}</b><span>${{ core: 'The original 2,318 cards from Glimmerdeep, Dead Man\'s Pull, Thankless, Odds & Ends and the Labfreak series.', ih: 'Ironhold Idle\'s monsters, nemeses, companions and gear. Brings the Champion class and the Frenzy keyword.', pt: 'Gods and heroes of myth. Brings Hearthstone\'s missing mechanics: Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards and Start of Game.', tt: 'Spells and weapons for every class, built for synergy: Beast, Mech, Fish and element decks, low-Attack and big-minion decks, weapon and spell-chain decks.', dc: 'The Odds & Ends fishing game: a hundred species, sea creatures, sunken treasure, tackle and the six Legend fish. Brings the Dredge keyword.' }[x.id] || ''}</span></div>`).join('')}</div>
       <h3>Decks, packs and gold</h3>
-      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop.</p>
-      <h3>Dust, crafting and golden cards</h3>
-      <p>Extra copies you can't use turn into <b>dust</b> automatically. Open any card in your collection to <b>craft</b> it from dust or <b>disenchant</b> it for dust: Commons craft for ${CRAFT[0]}, Rares ${CRAFT[1]}, Epics ${CRAFT[2]}, Legendaries ${CRAFT[3]}. Cards in the starter decks can't be disenchanted.</p>
-      <p>Any card in a pack can come out <b>golden</b>: the same card with a gold frame and a shine. Golden cards play exactly like normal ones and disenchant for much more dust. You can also craft them, or turn a normal copy golden.</p>
+      <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop: buy 1, 5, 10 or any number at once. Bought packs wait in the shop until you open them, one at a time or all together.</p>
+      <h3>Reagents, crafting and golden cards</h3>
+      <p>Extra copies you can't use turn into <b>reagents</b> automatically. Open any card in your collection to <b>craft</b> it from reagents or <b>disenchant</b> it for reagents: Commons craft for ${CRAFT[0]}, Rares ${CRAFT[1]}, Epics ${CRAFT[2]}, Legendaries ${CRAFT[3]}. Cards in the starter decks can't be disenchanted.</p>
+      <p>Any card in a pack can come out <b>golden</b>: the same card with a gold frame and a shine. Golden cards play exactly like normal ones and disenchant for many more reagents. You can also craft them, or turn a normal copy golden.</p>
       <h3>Quests and the reward track</h3>
-      <p>You get three daily quests in <b>Quests &amp; Rewards</b>. Every game and every quest gives XP; each level on the reward track pays out gold, dust, free packs, golden Legendaries or a new card back. Hero portraits for each class are earned there too.</p>
+      <p>You get three daily quests in <b>Quests &amp; Rewards</b>. Every game and every quest gives XP; each level on the reward track pays out gold, reagents, free packs, golden Legendaries or a new card back. Hero portraits for each class are earned there too.</p>
       <h3>Ranked</h3>
-      <p>Pick <b>Ranked</b> on the Play screen. Climb from Bronze 10 to Diamond 1, three stars a rank, then Legend. Wins give a star (two on a streak of three, below Diamond); losses take one from Silver up, but never drop you out of a league's rank 10. Opponents build stronger decks the higher you go. Seasons last a calendar month and pay gold and dust for your best rank. The turn timer is always on in Ranked.</p>
+      <p>Pick <b>Ranked</b> on the Play screen. Climb from Bronze 10 to Diamond 1, three stars a rank, then Legend. Wins give a star (two on a streak of three, below Diamond); losses take one from Silver up, but never drop you out of a league's rank 10. Opponents build stronger decks the higher you go. Seasons last a calendar month and pay gold and reagents for your best rank. The turn timer is always on in Ranked.</p>
       <h3>Arena</h3>
       <p>Pay ${ARENA_PRICE} gold, pick one of three classes, then draft 30 cards, choosing one of three each time. You don't need to own them. Play until 12 wins or 3 losses; rewards grow with every win.</p>
       <h3>Tavern Brawl</h3>
@@ -1625,12 +1625,24 @@
       <div class="pack" aria-hidden="true" style="background-image:url(img/pack_${p.id}.webp)"></div>
       <div class="pinfo"><b>${esc(p.name)}</b><span>${esc(p.blurb)}</span>
         <span class="odds">5 cards · at least one Rare<br>Common ${pct[0]} · Rare ${pct[1]} · Epic ${pct[2]} · Legendary ${pct[3]}<br>${p.size.toLocaleString()} different cards inside</span>
-        ${freePacks[p.id] ? `<button class="big buy free" data-buy="${p.id}">Open free · ${freePacks[p.id]} waiting</button>` :
-          `<button class="big buy" data-buy="${p.id}" ${gold < p.price ? 'disabled' : ''}>${gold < p.price ? `Need ${p.price} gold` : `Buy for ${p.price} gold`}</button>`}</div></div>`;
+        ${freePacks[p.id] ? `<div class="openrow"><button class="big buy free" data-open="${p.id}">Open · ${freePacks[p.id]} waiting</button>${freePacks[p.id] > 1 ? `<button class="big alt buy" data-openall="${p.id}">Open all ${freePacks[p.id]}</button>` : ''}</div>` : ''}
+        <div class="buyrow" role="group" aria-label="Buy ${esc(p.name)}s">${[1, 5, 10].map(n => `<button class="small gold" data-buy="${p.id}" data-n="${n}" ${gold < p.price * n ? 'disabled' : ''}>Buy ${n} · ${(p.price * n).toLocaleString()}</button>`).join('')}
+          <span class="buyx"><input type="number" min="1" max="999" inputmode="numeric" placeholder="X" aria-label="How many packs" data-x="${p.id}"><button class="small gold" data-buy="${p.id}" data-n="x">Buy X</button></span></div>
+        <span class="buynote" data-note="${p.id}">${p.price} gold each. Bought packs wait here until you open them.</span></div></div>`;
+  }
+  // buying puts packs in the waiting pile; opening takes them from it
+  function buyPacks(p, n) {
+    n = Math.floor(n);
+    if (!(n >= 1)) return 'Enter how many packs to buy.';
+    const cost = p.price * n;
+    if (gold < cost) return `${n} packs cost ${cost.toLocaleString()} gold; you have ${gold.toLocaleString()}.`;
+    gold -= cost; saveOwned(); sfx('coin', .5);
+    freePacks[p.id] = (freePacks[p.id] || 0) + n; store.set('ll_free', freePacks);
+    return '';
   }
   // free packs from the reward track go first, then gold
   function payPack(p) {
-    if (freePacks[p.id] > 0) { freePacks[p.id]--; if (!freePacks[p.id]) delete freePacks[p.id]; store.set('ll_free', freePacks); sfx('relic', .5); return true; }
+    if (freePacks[p.id] > 0) { freePacks[p.id]--; if (!freePacks[p.id]) delete freePacks[p.id]; store.set('ll_free', freePacks); sfx('pk_flip', .5); return true; }
     if (gold < p.price) return false;
     gold -= p.price; saveOwned(); sfx('coin', .5); return true;
   }
@@ -1640,11 +1652,22 @@
     goldChips();
   }
   $('#packgrid').addEventListener('click', e => {
-    const b = e.target.closest('[data-buy]'); if (!b) return;
-    const p = PACKS.find(x => x.id === b.dataset.buy);
-    if (!payPack(p)) return;
-    showOpening(p, openPack(p));
+    const b = e.target.closest('[data-buy]');
+    if (b) {
+      const p = PACKS.find(x => x.id === b.dataset.buy);
+      const inp = $(`#packgrid [data-x="${p.id}"]`);
+      const n = b.dataset.n === 'x' ? +(inp && inp.value) : +b.dataset.n;
+      const err = buyPacks(p, n);
+      if (err) { const note = $(`#packgrid [data-note="${p.id}"]`); if (note) { note.textContent = err; note.classList.add('err'); } return; }
+      renderShop(); toast(`Bought ${n} ${p.name}${n > 1 ? 's' : ''}. Open ${n > 1 ? 'them' : 'it'} whenever you like.`);
+      return;
+    }
+    const o = e.target.closest('[data-open]');
+    if (o) { const p = PACKS.find(x => x.id === o.dataset.open); if (!payPack(p)) return; showOpening(p, openPack(p)); return; }
+    const a = e.target.closest('[data-openall]');
+    if (a) { const p = PACKS.find(x => x.id === a.dataset.openall); openAll(p); }
   });
+  $('#packgrid').addEventListener('keydown', e => { const i = e.target.closest('[data-x]'); if (i && e.key === 'Enter') { const b = i.parentElement.querySelector('[data-n="x"]'); if (b) b.click(); } });
   // ---------------------------------------------------------------- pack opening (ported from Odds & Ends' Rip & Ship)
   // Tear the foil with a finger: where the first drag starts picks the cut
   // (top band = slice the cap, bottom = peel the footer, either edge = zip
@@ -1848,15 +1871,15 @@
       const deal = !P.dealt; P.dealt = true;
       const extra = P.got.reduce((a, g) => a + g.extra, 0);
       o.innerHTML = `<div class="pk-box wide"><h3>${esc(P.p.name)}</h3>
-        <p class="pk-hint">${downN ? `Tap a card to turn it over. ${downN} still face down.` : extra ? `All revealed. Extra copies became ${extra} dust.` : 'All revealed!'}</p>
+        <p class="pk-hint">${downN ? `Tap a card to turn it over. ${downN} still face down.` : extra ? `All revealed. Extra copies became ${extra} reagents.` : 'All revealed!'}</p>
         <div class="pk-spread${deal ? ' deal' : ''}">${P.got.map((g, i) => {
           const c = E.card(g.id);
           if (P.down[i]) return `<div class="pk-sp down" data-i="${i}" style="--d:${i}"><button class="pk-back${backURL(cos.back) ? ' img' : ''}" data-flip="${i}" aria-label="Turn over card ${i + 1}" style="${backStyle(cos.back)}"><i class="pk-glow"></i><span class="pk-ll">LL</span><span class="pk-q">?</span></button><div class="pk-tag hid">tap to turn</div></div>`;
           return `<div class="pk-sp${g.r === 3 ? ' leg' : ''}" data-i="${i}" style="--d:${i};--rc:${RCOL[g.r]}">${cardHTML(c, { golden: g.g })}
-            <div class="pk-tag ${g.isNew ? 'new' : g.extra ? 'dup' : ''}${g.g ? ' gld' : ''}"><span class="rn" style="color:${RCOL[g.r]}">${g.g ? 'Golden ' : ''}${RNAME[g.r]}</span> ${g.isNew ? 'New!' : g.up ? 'Upgraded to golden!' : g.extra ? `Extra copy +${g.extra} dust` : 'Another copy'}</div></div>`;
+            <div class="pk-tag ${g.isNew ? 'new' : g.extra ? 'dup' : ''}${g.g ? ' gld' : ''}"><span class="rn" style="color:${RCOL[g.r]}">${g.g ? 'Golden ' : ''}${RNAME[g.r]}</span> ${g.isNew ? 'New!' : g.up ? 'Upgraded to golden!' : g.extra ? `Extra copy +${g.extra} reagents` : 'Another copy'}</div></div>`;
         }).join('')}</div>
-        <div class="row">${downN ? '<button class="big alt" data-op="all">Turn them all over</button>' : `<button class="big" data-op="again" ${gold < P.p.price && !freePacks[P.p.id] ? 'disabled' : ''}>${freePacks[P.p.id] ? `Open another (free, ${freePacks[P.p.id]} left)` : `Open another (${P.p.price} gold)`}</button><button class="big alt" data-op="close">Done</button>`}</div>
-        <p class="reward">${gold.toLocaleString()} gold · ${dust.toLocaleString()} dust</p></div>`;
+        <div class="row">${downN ? '<button class="big alt" data-op="all">Turn them all over</button>' : `<button class="big" data-op="again" ${gold < P.p.price && !freePacks[P.p.id] ? 'disabled' : ''}>${freePacks[P.p.id] ? `Open another (${freePacks[P.p.id]} left)` : `Buy and open another (${P.p.price} gold)`}</button>${freePacks[P.p.id] > 1 ? `<button class="big alt" data-op="openall">Open all ${freePacks[P.p.id]}</button>` : ''}<button class="big alt" data-op="close">Done</button>`}</div>
+        <p class="reward">${gold.toLocaleString()} gold · ${dust.toLocaleString()} reagents</p></div>`;
     }
     if (keepFx) o.appendChild(keepFx);
   }
@@ -1910,6 +1933,26 @@
     });
     if (top) revealSfx(top);
   }
+  // Open all: every waiting pack at once, then one summary of what came out
+  function openAll(p) {
+    const n = freePacks[p.id] || 0; if (!n) return;
+    const all = [];
+    delete freePacks[p.id]; store.set('ll_free', freePacks);
+    for (let k = 0; k < n; k++) all.push(...openPack(p));
+    sfx('pk_all', .5);
+    const byId = {};
+    all.forEach(g => { const x = byId[g.id] || (byId[g.id] = { id: g.id, r: g.r, n: 0, isNew: false, g: 0, extra: 0 }); x.n++; x.isNew = x.isNew || g.isNew; if (g.g) x.g++; x.extra += g.extra; });
+    const list = Object.values(byId).sort((a, b) => b.r - a.r || b.isNew - a.isNew || E.card(a.id).n.localeCompare(E.card(b.id).n));
+    const cnt = [0, 0, 0, 0]; all.forEach(g => cnt[g.r]++);
+    const newN = list.filter(x => x.isNew).length, gN = all.filter(g => g.g).length, rg = all.reduce((a, g) => a + g.extra, 0);
+    const o = $('#packopen'); o.onclick = e => { if (e.target.closest('[data-op="close"]')) { o.hidden = true; renderShop(); } };
+    o.innerHTML = `<div class="pk-box wide"><h3>${n} × ${esc(p.name)}</h3>
+      <p class="pk-hint">${all.length} cards: ${cnt[3]} Legendary, ${cnt[2]} Epic, ${cnt[1]} Rare, ${cnt[0]} Common. ${newN} new to your collection${gN ? `, ${gN} golden` : ''}.${rg ? ` Extra copies became ${rg.toLocaleString()} reagents.` : ''}</p>
+      <div class="bulkgrid">${list.map(x => `<div class="bk1${x.isNew ? ' new' : ''}">${cardHTML(E.card(x.id), { golden: x.g > 0 })}<span class="bkt">${x.n > 1 ? '×' + x.n : ''}${x.isNew ? ' <b>New!</b>' : ''}${x.g ? ' <i>Golden</i>' : ''}</span></div>`).join('')}</div>
+      <div class="row"><button class="big" data-op="close">Done</button></div>
+      <p class="reward">${gold.toLocaleString()} gold · ${dust.toLocaleString()} reagents</p></div>`;
+    o.hidden = false; o.scrollTop = 0; goldChips();
+  }
   function opClick(e) {
     const f = e.target.closest('[data-flip]');
     if (f) { pkReveal(+f.dataset.flip); return; }
@@ -1918,6 +1961,7 @@
     if (op === 'skip') { if (PO.stage === 'rip') { if (!PO.cut) PO.cut = pkPickCut({ x: PK_W / 2, y: 10 }); ripDone(); } }
     else if (op === 'all') pkRevealAll();
     else if (op === 'again') { if (!payPack(p)) return; showOpening(p, openPack(p)); }
+    else if (op === 'openall') { const pp = p; PO = null; fxP.length = 0; openAll(pp); }
     else if (op === 'close') { PO = null; fxP.length = 0; $('#packopen').hidden = true; renderShop(); }
   }
 
@@ -2091,7 +2135,7 @@
       gold += g; dust += d; saveOwned();
       Object.assign(rank, { i: Math.max(0, Math.min(rank.i, 40) - 10), stars: 0, streak: 0, legend: 0, w: 0, l: 0, season: monthKey() });
       rank.best = rank.i; saveRank();
-      setTimeout(() => toast(`A new Ranked season! Last season's best: ${rankName(best)}. Reward: +${g} gold, +${d} dust.`), 300);
+      setTimeout(() => toast(`A new Ranked season! Last season's best: ${rankName(best)}. Reward: +${g} gold, +${d} reagents.`), 300);
     }
     return rank;
   }
@@ -2107,7 +2151,7 @@
       <span>Season ${esc(r.season)} · ${r.w} wins, ${r.l} losses${r.streak >= 2 ? ` · ${r.streak}-win streak` : ''}</span>
       <span>Best this season: ${rankName(r.best)}. Win for a star, lose one from Silver up. Three wins in a row give a bonus star below Diamond.
       Opponents build stronger decks as you climb. The turn timer is always on.</span>
-      <span class="rr">Season reward so far: ${100 + r.best * 15} gold and ${r.best * 6} dust, paid when the month ends. Reaching Gold earns the Gold Foil card back.</span></div></div>`;
+      <span class="rr">Season reward so far: ${100 + r.best * 15} gold and ${r.best * 6} reagents, paid when the month ends. Reaching Gold earns the Gold Foil card back.</span></div></div>`;
   }
   function startRanked() {
     const r = rankFresh();
@@ -2189,7 +2233,7 @@
     if (!AR) {
       box.innerHTML = `<div class="arintro"><h3>The Arena</h3>
         <p>Pick one of three classes, then draft a 30-card deck one pick at a time: three cards are offered, you keep one. You don't need to own anything.</p>
-        <p>Play until you reach <b>12 wins</b> or <b>3 losses</b>. Rewards grow with every win: gold, dust and a free pack every run, a Multiverse Pack from 7 wins, a golden Legendary and The Golden Knot card back at 12.</p>
+        <p>Play until you reach <b>12 wins</b> or <b>3 losses</b>. Rewards grow with every win: gold, reagents and a free pack every run, a Multiverse Pack from 7 wins, a golden Legendary and The Golden Knot card back at 12.</p>
         <p class="arbest">${best ? `Your best run: ${best} wins.` : 'No runs yet.'}</p>
         <button class="big" data-ar="enter" ${gold < ARENA_PRICE ? 'disabled' : ''}>${gold < ARENA_PRICE ? `Need ${ARENA_PRICE} gold` : `Enter for ${ARENA_PRICE} gold`}</button></div>`;
       return;
@@ -2227,7 +2271,7 @@
   function arenaRewards() {
     const w = AR.wins, out = [];
     const g = ARENA_GOLD[w], d = w * 15 + 10;
-    gold += g; dust += d; out.push(`+${g} gold`, `+${d} dust`);
+    gold += g; dust += d; out.push(`+${g} gold`, `+${d} reagents`);
     const exp = ['ih', 'dc', 'tt', 'pt'][Math.floor(Math.random() * 4)];
     grantReward({ pack: exp, n: 1 }); out.push(`A free ${PACKS.find(p => p.id === exp).name}`);
     if (w >= 7) { grantReward({ pack: 'mv', n: 1 }); out.push('A free Multiverse Pack'); }

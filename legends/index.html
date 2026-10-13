@@ -736,6 +736,27 @@ html { overflow-x: hidden; }
 .bk1 { display: grid; justify-items: center; gap: 4px; } .bk1.new .card { box-shadow: 0 0 0 3px #7dffb5, 0 0 14px rgba(125,255,181,.5); }
 .bkt { font: 700 13px var(--display); color: var(--muted); min-height: 1.2em; } .bkt b { color: #7dffb5; } .bkt i { color: #ffd35c; font-style: normal; }
 @media (max-width: 720px) { .bulkgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .bulkgrid .card { --cw: min(104px, 28vw); } }
+
+/* ---------- pre-made decks ---------- */
+.rgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; text-align: left; }
+.rtile { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, rgba(var(--cc),.22), #1c1430 60%); border: 2px solid rgba(var(--cc),.55); color: var(--text); text-align: left; }
+.rtile:hover { border-color: var(--gold); }
+.rart { display: block; width: 72px; height: 72px; border-radius: 50%; background-size: 800% 800%; box-shadow: 0 0 0 3px rgba(var(--cc),.9), 0 0 0 5px #000; }
+.rt { display: grid; gap: 4px; } .rt small { font-weight: 900; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.rt b { font: 700 18px var(--display); color: var(--gold); } .rt span { font-weight: 700; font-size: 13px; color: #ddd3f2; line-height: 1.35; }
+.rt em { font-style: normal; font-weight: 900; font-size: 12px; } .rt em.need { color: #ffcf8a; } .rt em.have { color: #7dffb5; }
+.codebox.recipe { text-align: left; } .recipe .rsub { color: var(--teal) !important; font-weight: 900; margin-top: -6px !important; } .rplan { color: #ddd3f2 !important; }
+.rlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px; max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+.drow.miss { background: linear-gradient(90deg, #4a1d2a, #2a1622); } .drow.miss .n { color: #ffc2c8; }
+.drow .n small { display: block; font-size: 10.5px; color: #ff8f9c; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+.drow.key { box-shadow: inset 3px 0 0 var(--gold); }
+.drow .mini { grid-column: 1 / -1; justify-self: end; font: 800 11px var(--body); padding: 3px 8px; border-radius: 99px; border: 1px solid var(--gold-d); background: linear-gradient(180deg, #ffe08a, #e0a024); color: #2a1600; }
+.drow .mini:disabled { opacity: .45; }
+#missbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 6px 8px; border-radius: 10px; background: #2a1622; border: 1px solid #6a2a3a; margin: 4px 0; }
+#missbar .small { font-size: 13px; padding: 6px 10px; } #missbar .dustchip { font-size: 13px; padding: 4px 10px; }
+.deckbox[aria-disabled] { opacity: .65; } .deckbox[aria-disabled] span { color: #ffcf8a; }
+@media (max-width: 720px) { .rgrid { grid-template-columns: minmax(0,1fr); } .rlist { grid-template-columns: minmax(0,1fr); max-height: 40vh; } }
+@media (max-width: 480px) { #collection .topbar h2 { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 
@@ -782,13 +803,14 @@ html { overflow-x: hidden; }
 
 <section id="collection" class="screen" hidden>
   <div class="topbar"><button class="small" data-back>Back</button><h2>Collection</h2><span id="collsub" class="sub"></span><span class="grow"></span><span class="dustchip"></span>
-    <button class="small gold" id="b-newdeck">New<span class="lg"> deck</span></button><button class="small" id="b-paste">Paste<span class="lg"> code</span></button><select class="sel" id="deckpick" aria-label="Edit a deck"></select></div>
+    <button class="small gold" id="b-newdeck">New<span class="lg"> deck</span></button><button class="small" id="b-recipes">Pre-made<span class="lg"> decks</span></button><button class="small" id="b-paste">Paste<span class="lg"> code</span></button><select class="sel" id="deckpick" aria-label="Edit a deck"></select></div>
   <div class="filters" id="filters"></div>
   <div class="body nodeck" id="collbody">
     <div class="scroll" id="gridwrap"><div id="grid"></div><div class="pager" id="pager"></div></div>
     <aside id="deckpanel" hidden>
       <div class="head"><input id="deckname" aria-label="Deck name" maxlength="28"><div id="deckcls" style="font-weight:800;color:var(--muted);font-size:13px"></div></div>
       <div class="curve" id="curve"></div>
+      <div id="missbar" hidden></div>
       <div id="decklist" class="scroll"></div>
       <div class="deckfoot"><div class="errs" id="deckerrs"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="small gold" id="b-save">Save deck</button><button class="small" id="b-fill">Fill randomly</button><button class="small" id="b-code">Copy code</button><button class="small" id="b-del">Delete</button><button class="small" id="b-close">Done</button></div></div>
@@ -851,6 +873,7 @@ html { overflow-x: hidden; }
 <script src="data/cards.js" charset="utf-8"></script>
 <script src="js/engine.js" charset="utf-8"></script>
 <script src="data/meta.js" charset="utf-8"></script>
+<script src="data/recipes.js" charset="utf-8"></script>
 <script src="js/campaign.js" charset="utf-8"></script>
 <script src="js/voice.js" charset="utf-8"></script>
 <script src="js/ui.js" charset="utf-8"></script>

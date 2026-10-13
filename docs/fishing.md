@@ -4015,6 +4015,50 @@ Part 2 of the Hearthstone pass.
 **Emotes and voice lines.** An Emote button with six emotes. Every class has its own line for each (`js/voice.js`). Bots answer in character (at most twice per 15 seconds), greet you at the start, react to Legendaries and to being nearly dead, and say a line at the end. With sound on, lines are spoken through the browser's text-to-speech, pitched per class. The opponent can be muted.
 **Lessons.** A first engine test of the brawl modifiers looked stuck in 96 of 200 games. The cause was the test, not the engine: neither side was marked `isBot`, so Pick 1 of 3 and Dredge waited for a human. Simulations must set `isBot` on both players.
 
+## Labfreak Legends — Rise of the Pantheon: Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards, Start of Game
+Part 3 of the Hearthstone pass: the mechanics Legends was missing, plus a fifth expansion that uses them.
+**Engine.**
+- **Choose One:** a card's `ch` options fold into a virtual card through `cardOf(ci)`, so targeting, costing and the bot all reuse the normal play path.
+- **Echo:** after you play it, a temporary copy comes back to your hand and is gone at end of turn.
+- **Magnetic:** a Mech played with `ci.mag` fuses its stats, keywords and triggers into the chosen friendly Mech instead of taking a space.
+- **Tradeable:** `trade()` pays 1 Mana, shuffles the card back into your deck and draws.
+- **Quests:** a 1-Mana spell that always starts in the opening hand. It counts minions or tribes played, spells cast, enemy minions killed or damage to the enemy hero, then puts its Reward card in your hand.
+- **Hero cards:** `t: "h"` swaps in a new portrait and Hero Power and adds Armor.
+- **Start of Game:** effects on cards anywhere in the deck fire after the mulligan, with an "if your deck has no duplicates" condition.
+- **Bots:** pick the Choose One option worth most on the board, fuse Magnetic Mechs into their best Mech, play quests first, and trade cards they can't afford soon.
+
+**UI.**
+- Choose One shows the two options as cards.
+- Magnetic asks which Mech to fuse into, or to play it alone.
+- Tradeable cards get a "Trade (1 Mana)" button in the card view.
+- Echo copies glow blue.
+- Quest progress sits by the hero ("⚑ 3/7").
+- Hero cards have an Armor shield on the frame.
+- Start of Game and quest completion get banners.
+- The glossary explains every new keyword, and the Collection can filter for hero cards.
+
+**Rise of the Pantheon** (`pt`, 73 cards plus tokens) uses the unused Odds & Ends portraits of Greek, Norse, Egyptian, Mesopotamian, Celtic and Aztec myth, and a few curios as Magnetic Mechs (the Walkman Automaton, Typewriter Golem, Brick Phone Drone, Click-Wheel Mite). Each class gets:
+- a hero card: Cernunnos, Loki, Isis, Hephaestus, Prometheus, Thor
+- a quest: Return of the Feathered Serpent, Pandora's Wager, Hathor's Feast, The Golden Paperclip, The Tablets of Destiny, The Twelve Labors
+- cards built around its mechanic: Tamer Choose One, Gambler Echo, Collector Magnetic, Scientist Echo spells, Champion Start of Game and heroes
+
+Neutral gods fill out the curve (Zeus, Poseidon, Hades, Odin, Ra…). Living religions' figures and real historical people in the same art folder were left out on purpose. The set has its own pack, foil, symbol and Rules entry.
+
+**Balance and checks.**
+- `tools_gen_meta.js` was rerun (60,000 games) so Ranked and Arena bots value the new cards.
+- The first pass ran rich at 4–6 Mana (median card win rate 0.555 against 0.49 for the Core), because Pantheon minions skip `synergize()`. Every Pantheon minion now pays half a point of budget.
+- Specific nerfs: Hades brings back 1 minion instead of 2; Osiris and Achilles pay extra; Valkyrie costs 4 with a 1/3 Shieldmaiden.
+- Start of Game effects are now valued like a normal play.
+- The two weakest hero cards dropped to 6 Mana.
+- Class balance over 7,200 games: random decks 47–53%, first player 52%, no stuck games.
+- 16 mechanic unit checks pass, including 600 Pantheon-heavy bot games with no errors and an even first-player rate.
+- The headless UI run on phone and desktop played a quest, a Choose One, a Magnetic fusion, a trade and a hero card.
+- All 2,839 card texts fit at all three sizes.
+
+**Lessons.**
+- A constant random function (`() => .3`) makes `randomDeck` loop forever: it keeps re-picking a card it already holds two of. Use a seeded generator in tests.
+- `ll_chosen` is stored as JSON, so a test has to write `'"dP"'`, not `'dP'`.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

@@ -7,7 +7,7 @@
   // only these effects act on a chosen character; draw, summon, armor and the rest never ask for a target
   const TARGETED = new Set(['dmg', 'heal', 'buff', 'curse', 'kw', 'freeze', 'silence', 'destroy', 'transform', 'bounce']);
   const picks = e => TARGETED.has(e.op) && CHOSEN.has(e.tg || 'any');
-  const KWS = ['taunt', 'charge', 'rush', 'divine', 'windfury', 'stealth', 'poisonous', 'lifesteal', 'reborn', 'frostbite', 'enrage', 'cantattack', 'misfire', 'elusive'];
+  const KWS = ['taunt', 'charge', 'rush', 'divine', 'windfury', 'stealth', 'poisonous', 'lifesteal', 'reborn', 'frostbite', 'enrage', 'cantattack', 'misfire', 'elusive', 'echo', 'magnetic', 'tradeable'];
 
   let DB = null; // { byId, tokens, collectible, heroes }
   function setData(data) {
@@ -21,6 +21,15 @@
     return DB;
   }
   const card = id => DB.byId[id];
+  const hasKw = (c, k) => !!(c && c.kw && c.kw.includes(k));
+  // Choose One: a hand card's chosen option (ci.choice) folds into a virtual card with that option's effects
+  const VC = {};
+  function cardOf(ci) {
+    const c = card(ci.cid);
+    if (!c || !c.ch || ci.choice == null) return c;
+    const k = Math.max(0, Math.min(c.ch.length - 1, ci.choice)), key = c.id + '|' + k;
+    return VC[key] || (VC[key] = Object.assign({}, c, { fx: (c.fx || []).concat(c.ch[k].fx), chosen: k }));
+  }
 
   // ---------- synergy filters ----------
   // f = { tr: tribe or [tribes], r: min rarity, amin/amax: Attack, mmin/mmax: cost, kw: keyword, t: card type }
@@ -49,6 +58,7 @@
     if (cond.weapon) return !!P.weapon;
     if (cond.hurt) return P.hero.hp < P.hero.max;
     if (cond.spells) return (G.spellsThisTurn || 0) >= cond.spells;
+    if (cond.nodup) return new Set(P.deck0 || []).size === (P.deck0 || []).length; // "if your deck has no duplicates"
     return true;
   }
 
@@ -69,7 +79,10 @@
       const P = { i, cls: opts.classes[i], name: (opts.names && opts.names[i]) || hd.n, heroData: hd,
         hero: { uid: G.uid++, kind: 'hero', owner: i, hp: hp0, max: hp0, armor: 0, attacks: 0, frozen: false, frozenAt: -1 },
         mana: 0, maxMana: 0, ovNext: 0, ovLocked: 0, hpUsed: false, deck: shuffle(G, opts.decks[i].slice()), hand: [], board: [],
-        secrets: [], weapon: null, fatigue: 0, dead: [], mull: true };
+        secrets: [], weapon: null, fatigue: 0, dead: [], mull: true, quests: [], deck0: opts.decks[i].slice() };
+      // Quests always start in your opening hand
+      const qs = P.deck.filter(id => card(id) && card(id).q);
+      if (qs.length) P.deck = qs.concat(P.deck.filter(id => !(card(id) && card(id).q)));
       G.p.push(P);
     }
     G.turn = rnd(G) < 0.5 ? 0 : 1; // who goes first
@@ -99,6 +112,15 @@
       G.phase = 'play';
       // Tavern Brawl: both players can start with more Mana crystals
       if (G.mods && G.mods.manaStart) G.p.forEach(P => { P.maxMana = Math.max(P.maxMana, G.mods.manaStart - 1); });
+      // Start of Game: effects on cards anywhere in your deck or hand, first player first
+      [G.first, 1 - G.first].forEach(pi => {
+        const P = G.p[pi];
+        P.deck.concat(P.hand.map(ci => ci.cid)).forEach(cid => {
+          const c = card(cid); if (!c || !c.fx) return;
+          c.fx.forEach(e => { if (e.on === 'sog') { ev(G, { t: 'sog', pi, cid }); log(G, `Start of Game: ${c.n}.`); resolve(G, e, { pi, cid }); } });
+        });
+      });
+      deaths(G);
       startTurn(G, G.first);
     }
   }
@@ -113,6 +135,49 @@
     if (m.kw.has('stealth')) m.stealth = true;
     if (m.kw.has('reborn')) m.reborn = true;
     return m;
+  }
+  // Magnetic: the Mech's stats, keywords and abilities fuse into one of your Mechs
+  function magnetize(G, host, c) {
+    host.a += c.a; host.baseA = (host.baseA || 0) + c.a; host.h += c.h; host.max += c.h;
+    (c.kw || []).forEach(k => {
+      if (k === 'magnetic') return;
+      host.kw.add(k);
+      if (k === 'divine') host.divine = true; if (k === 'stealth') host.stealth = true; if (k === 'reborn') host.reborn = true;
+    });
+    (c.fx || []).forEach(e => { if (e.on !== 'bc' && e.on !== 'combo') host.fx.push(e); });
+    host.mags = (host.mags || []).concat(c.id);
+    ev(G, { t: 'magnet', uid: host.uid, cid: c.id }); log(G, `${c.n} attaches to ${card(host.cid).n}.`);
+    recalcAuras(G);
+  }
+  // Quests: progress, and the reward card when one is done
+  function questTick(G, pi, k, n, cid) {
+    const P = G.p[pi];
+    if (!P || !P.quests || !P.quests.length || n <= 0) return;
+    P.quests.forEach(q => {
+      const d = card(q.cid).q;
+      if (q.done || d.k !== k || (d.f && !(cid && match(G, cid, d.f)))) return;
+      q.prog = Math.min(d.n, q.prog + n);
+      if (q.prog >= d.n) {
+        q.done = true;
+        if (P.hand.length < MAX_HAND) P.hand.push(mkCardInst(G, d.rw));
+        log(G, `${P.name} completes ${card(q.cid).n}!`); ev(G, { t: 'quest', pi, cid: q.cid, rw: d.rw });
+      }
+    });
+    P.quests = P.quests.filter(q => !q.done);
+  }
+  // Tradeable: pay 1 Mana to shuffle the card into your deck and draw another
+  function canTrade(G, pi, i) {
+    const P = G.p[pi], ci = P.hand[i];
+    return !!(ci && G.phase === 'play' && G.turn === pi && !G.pending && !ci.echo && hasKw(card(ci.cid), 'tradeable') && P.mana >= 1 && P.deck.length);
+  }
+  function trade(G, pi, i) {
+    if (!canTrade(G, pi, i)) return false;
+    const P = G.p[pi], ci = P.hand.splice(i, 1)[0];
+    P.mana -= 1;
+    P.deck.splice(Math.floor(rnd(G) * (P.deck.length + 1)), 0, ci.cid);
+    log(G, `${P.name} trades ${card(ci.cid).n} back into their deck.`); ev(G, { t: 'trade', pi, cid: ci.cid });
+    draw(G, pi);
+    return true;
   }
   const atkOf = (G, u) => {
     if (u.kind === 'hero') { const P = G.p[u.owner]; return (u.tempAtk || 0) + (P.weapon && G.turn === u.owner ? P.weapon.a : 0); }
@@ -193,6 +258,7 @@
     // thaw: frozen characters of the player whose turn ends, unless frozen during this very turn
     [...P.board, P.hero].forEach(u => { if (u.frozen && u.frozenAt !== G.turnNo) { u.frozen = false; } });
     P.hero.tempAtk = 0;
+    P.hand = P.hand.filter(ci => !ci.echo); // Echo copies only last the turn
     startTurn(G, 1 - pi);
     return true;
   }
@@ -244,6 +310,7 @@
     let dealt = n;
     if (u.kind === 'hero') {
       const ab = Math.min(u.armor, n); u.armor -= ab; u.hp -= (n - ab);
+      questTick(G, 1 - u.owner, 'face', n);
       // owner's "when your hero takes damage" secrets fire on the opponent's turn
       const P = G.p[u.owner];
       if (G.turn !== u.owner) fireSecret(G, u.owner, 'ehp', {});
@@ -286,6 +353,7 @@
       for (const P of G.p) P.board.forEach((m, i) => { if (m.h <= 0 || m.poisoned || m.destroy) dying.push({ m, P, i }); });
       if (!dying.length) break;
       dying.sort((a, b) => a.m.uid - b.m.uid);
+      dying.forEach(d => questTick(G, 1 - d.P.i, 'kill', 1));
       for (const d of dying) {
         const idx = d.P.board.indexOf(d.m);
         if (idx < 0) continue;
@@ -485,9 +553,13 @@
   function canPlay(G, pi, handIdx) {
     if (G.phase !== 'play' || G.turn !== pi || G.pending) return false;
     const P = G.p[pi], ci = P.hand[handIdx]; if (!ci) return false;
-    const c = card(ci.cid);
+    const c0 = card(ci.cid);
+    // an undecided Choose One spell is playable if any of its options is
+    if (c0.ch && ci.choice == null) return c0.ch.some((_, k) => { ci.choice = k; const ok = canPlay(G, pi, handIdx); ci.choice = null; return ok; });
+    const c = cardOf(ci);
     if (costOf(G, pi, ci) > P.mana) return false;
-    if (c.t === 'm' && P.board.length >= MAX_BOARD && !(c.evo && P.board.some(x => x.cid === c.evo.fromId))) return false;
+    const magHost = hasKw(c, 'magnetic') && ci.mag != null && P.board.some(u => u.uid === ci.mag && !u.dead && card(u.cid).tr === 'Mech');
+    if (c.t === 'm' && P.board.length >= MAX_BOARD && !magHost && !(c.evo && P.board.some(x => x.cid === c.evo.fromId))) return false;
     if (c.secret && (P.secrets.some(s => s.cid === c.id) || P.secrets.length >= MAX_SECRETS)) return false;
     if (c.t === 's' && !c.secret && needsTarget(c, ['cast'])) {
       const e = chosenEffect(c, ['cast']);
@@ -497,7 +569,9 @@
   }
   function playCard(G, pi, handIdx, targetUid, pos) {
     if (!canPlay(G, pi, handIdx)) return false;
-    const P = G.p[pi], ci = P.hand[handIdx], c = card(ci.cid);
+    const P = G.p[pi], ci = P.hand[handIdx];
+    if (card(ci.cid).ch && ci.choice == null) ci.choice = 0;
+    const c = cardOf(ci);
     const cost = costOf(G, pi, ci);
     const onKeys = c.t === 's' ? ['cast'] : ['bc', 'combo'];
     let target = null;
@@ -512,9 +586,27 @@
     const combo = G.played > 0;
     G.played++;
     if (c.ov) P.ovNext += c.ov;
-    ev(G, { t: 'play', pi, cid: c.id, target: target && target.uid });
-    log(G, `${P.name} plays ${c.n}.`);
-    if (c.t === 'm') {
+    ev(G, { t: 'play', pi, cid: c.id, target: target && target.uid, choice: c.chosen });
+    log(G, `${P.name} plays ${c.n}${c.chosen != null ? ' (' + c.ch[c.chosen].n + ')' : ''}.`);
+    // Echo: a copy comes back to your hand until the end of the turn
+    if (hasKw(c, 'echo') && P.hand.length < MAX_HAND) P.hand.push(Object.assign(mkCardInst(G, c.id), { echo: true }));
+    if (!c.q && c.id !== 'coin') questTick(G, pi, c.t === 's' ? 'cast' : 'play', 1, c.id);
+    const host = c.t === 'm' && hasKw(c, 'magnetic') && ci.mag != null ? P.board.find(u => u.uid === ci.mag && !u.dead && card(u.cid).tr === 'Mech') : null;
+    if (host) {
+      magnetize(G, host, c);
+      (c.fx || []).forEach(e => { if (e.on === 'bc' || (e.on === 'combo' && combo)) resolve(G, e, { pi, src: host, target: picks(e) ? target : null, cid: c.id }); });
+    } else if (c.t === 'h') {
+      // Hero card: becomes your hero, with a new portrait and Hero Power, and adds its Armor
+      P.heroData = Object.assign({}, P.heroData, { art: c.art, hp: c.hp, heroCard: c.id });
+      P.hpUsed = false;
+      if (c.h) { P.hero.armor += c.h; ev(G, { t: 'armor', uid: P.hero.uid, n: c.h }); }
+      ev(G, { t: 'heroCard', pi, cid: c.id });
+      (c.fx || []).forEach(e => { if (e.on === 'bc') resolve(G, e, { pi, target: picks(e) ? target : null, cid: c.id }); });
+    } else if (c.q) {
+      P.quests.push({ cid: c.id, prog: 0 });
+      ev(G, { t: 'questSet', pi, cid: c.id });
+      G.spellsThisTurn = (G.spellsThisTurn || 0) + 1;
+    } else if (c.t === 'm') {
       let evoFrom = c.evo ? P.board.find(x => x.cid === c.evo.fromId && !x.dead) : null;
       let m;
       if (evoFrom) {
@@ -632,6 +724,30 @@
   }
 
   // ---------- values for AI ----------
+  // the bot's Choose One: the option worth most on this board (only options it can actually play)
+  function botChoice(G, pi, ci, i) {
+    const c = card(ci.cid), P = G.p[pi], op = G.p[1 - pi];
+    let best = 0, bv = -1e9;
+    c.ch.forEach((o, k) => {
+      ci.choice = k;
+      if (!canPlay(G, pi, i)) return;
+      let v = 0;
+      o.fx.forEach(e => {
+        const n = e.n || 0, cnt = e.tg && e.tg.endsWith('_all') ? Math.max(1, (e.tg.startsWith('f') ? P : op).board.length) : 1;
+        if (e.op === 'dmg') v += n * cnt * (op.board.length || e.tg === 'any' || e.tg === 'enemy' ? 1 : .3);
+        else if (e.op === 'draw') v += n * 1.5;
+        else if (e.op === 'summon') { const t = card(e.id); v += t ? (t.a + t.h) * .8 * (e.cnt || 1) * (P.board.length < MAX_BOARD ? 1 : 0) : 0; }
+        else if (e.op === 'buff') v += ((e.a || 0) + (e.h || 0)) * .8 * (e.tg === 'fm_all' ? P.board.length : P.board.length ? 1 : 0);
+        else if (e.op === 'armor') v += n * .5;
+        else if (e.op === 'heal') v += Math.min(n, P.hero.max - P.hero.hp) * .4;
+        else if (e.op === 'destroy') v += op.board.length ? 4 : 0;
+        else v += 1;
+      });
+      if (v > bv) { bv = v; best = k; }
+    });
+    ci.choice = null;
+    return best;
+  }
   function cardValue(c) {
     if (!c) return 0;
     let v = c.m * 2 + (c.r || 0);
@@ -699,8 +815,11 @@
     // 2. play the most valuable affordable card
     const options = [];
     P.hand.forEach((ci, i) => {
+      const c0 = card(ci.cid);
+      if (c0.ch) ci.choice = botChoice(G, pi, ci, i);
+      if (hasKw(c0, 'magnetic')) { const mechs = P.board.filter(u => !u.dead && card(u.cid).tr === 'Mech'); ci.mag = mechs.length ? mechs.sort((a, b) => unitValue(G, b) - unitValue(G, a))[0].uid : null; }
       if (!canPlay(G, pi, i)) return;
-      const c = card(ci.cid);
+      const c = cardOf(ci);
       if (ci.cid === 'coin') { const after = P.hand.some((x, j) => j !== i && costOf(G, pi, x) === P.mana + 1); if (!after) return; }
       let score = costOf(G, pi, ci) * 3 + cardValue(c) * 0.2;
       if (c.evo && P.board.some(x => x.cid === c.evo.fromId)) score += 3;
@@ -718,6 +837,8 @@
       if (c.t === 's' && (c.fx || []).every(e => e.op === 'heal' || e.op === 'aoe_heal') && P.hero.hp >= P.hero.max - 2 && !P.board.some(m => m.h < m.max)) return;
       if (c.t === 's' && (c.fx || []).some(e => e.op === 'dmg' && (e.tg === 'em_all')) && op.board.length < 2) score -= 6;
       if (c.t === 'w' && P.weapon) score -= 4;
+      if (c.q) score += 40; // quests go down on turn one
+      if (c.t === 'h') score += 4;
       options.push({ i, score, tgt });
     });
     if (options.length) {
@@ -725,6 +846,8 @@
       const o = options[0];
       return playCard(G, pi, o.i, o.tgt ? o.tgt.uid : null, P.board.length);
     }
+    // 2b. trade away a card it can't afford this turn or next
+    if (P.traded !== G.turnNo) { const ti = P.hand.findIndex((ci, i) => canTrade(G, pi, i) && costOf(G, pi, ci) > P.maxMana + 1); if (ti >= 0) { P.traded = G.turnNo; return trade(G, pi, ti); } }
     // 3. hero power
     if (canHeroPower(G, pi)) {
       const e = P.heroData.hp.fx.find(picks) || P.heroData.hp.fx[0];
@@ -794,7 +917,7 @@
   }
 
   const API = { setData, newGame, mulligan, botMulligan, playCard, canPlay, heroPower, canHeroPower, attack, canAttack, attackTargets,
-    endTurn, botStep, botTurn, validTargets, needsTarget, chosenEffect, targetTg, costOf, atkOf, spellDamage, findUnit, chooseDiscover,
+    endTurn, botStep, botTurn, cardOf, canTrade, trade, validTargets, needsTarget, chosenEffect, targetTg, costOf, atkOf, spellDamage, findUnit, chooseDiscover,
     randomDeck, validateDeck, chooseDredge, picks, match, card: id => DB.byId[id], db: () => DB, KWS, MAX_BOARD, MAX_HAND };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.LLE = API;
 })(typeof window !== 'undefined' ? window : globalThis);

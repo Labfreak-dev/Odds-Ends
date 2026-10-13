@@ -208,7 +208,7 @@
     $$('.dustchip').forEach(g => { g.textContent = dust.toLocaleString() + ' reagents'; });
     $$('.lvlchip').forEach(g => { g.textContent = 'Level ' + prog.lvl; });
   }
-  // crafting: extra copies and disenchanted cards become reagents (variable: dust, save key ll_dust), reagents become any card
+  // crafting: extra copies and distilled cards become reagents (variable: dust, save key ll_dust), reagents become any card
   const CRAFT = [40, 100, 400, 1600], DE = [5, 20, 100, 400], CRAFT_G = [400, 800, 1600, 3200], DE_G = [50, 100, 400, 1600];
   const GOLD_ODDS = [0.02, 0.03, 0.05, 0.08];
   const starterNeed = {}; // copies every player keeps (the starter decks are always playable)
@@ -646,7 +646,7 @@
       `<select class="sel" data-f="rar" aria-label="Rarity"><option value="all">All rarities</option>${RN.map((r, i) => `<option value="${i}">${r}</option>`).join('')}</select>` +
       `<select class="sel" data-f="set" aria-label="Card set"><option value="all">All sets</option>${SETS.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('')}</select>` +
       `<select class="sel" data-f="game" aria-label="Game"><option value="all">All games</option>${GAMES.map(g => `<option>${esc(g)}</option>`).join('')}</select>` +
-      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option><option value="golden">Only golden cards</option><option value="extra">Cards I can disenchant</option></select>` +
+      `<select class="sel" data-f="own" aria-label="Owned"><option value="all">Owned and not owned</option><option value="owned">Only cards I own</option><option value="missing">Only cards I'm missing</option><option value="golden">Only golden cards</option><option value="extra">Cards I can distill</option></select>` +
       (active ? `<button class="chip" data-freset>Clear filters</button>` : '') + `</div></div>`;
     $$('#filters select').forEach(s => { s.value = F[s.dataset.f]; });
   }
@@ -847,10 +847,10 @@
         <div class="dustline"><span class="dustchip"></span>${keep ? `<small>${keep > 1 ? 'Two copies are' : 'One copy is'} in a starter deck, so ${keep > 1 ? 'they stay' : 'it stays'}.</small>` : ''}</div>
         <div class="crow">
           <button class="small gold" data-craft="0" ${n >= cap || dust < CRAFT[c.r] ? 'disabled' : ''}>Craft · ${CRAFT[c.r]} reagents</button>
-          <button class="small" data-de="0" ${!nm || !canDE(c.id) ? 'disabled' : ''}>Disenchant · +${DE[c.r]}</button></div>
+          <button class="small" data-de="0" ${!nm || !canDE(c.id) ? 'disabled' : ''}>Distill · +${DE[c.r]}</button></div>
         <div class="crow">
           <button class="small gold glow" data-craft="1" ${(n < cap ? dust < CRAFT_G[c.r] : (!nm || dust < CRAFT_G[c.r] - DE[c.r])) ? 'disabled' : ''}>${n < cap ? `Craft golden · ${CRAFT_G[c.r]}` : `Make golden · ${CRAFT_G[c.r] - DE[c.r]}`}</button>
-          <button class="small" data-de="1" ${!g || !canDE(c.id) ? 'disabled' : ''}>Disenchant golden · +${DE_G[c.r]}</button></div></div>`;
+          <button class="small" data-de="1" ${!g || !canDE(c.id) ? 'disabled' : ''}>Distill golden · +${DE_G[c.r]}</button></div></div>`;
     $('#zoom').innerHTML = `<div class="wrap">${cardHTML(c, { golden: zoomGold })}<div class="info"><h3>${esc(c.n)}</h3>
       <p>${RN[c.r]} ${TYPEN(c)} · ${CLSN[c.c]} · ${esc(c.g || '')}${c.tr ? ' · ' + esc(c.tr) : ''}</p>
       ${c.fl ? `<p style="font-style:italic">“${esc(c.fl)}”</p>` : ''}
@@ -925,8 +925,8 @@
       <h3>Decks, packs and gold</h3>
       <p>A deck is exactly 30 cards: cards of its class plus Neutral cards, up to 2 copies of a card and 1 of a Legendary. You start with every card in the six starter decks and 300 gold. Win a battle for 60 gold, lose one for 20 (your first battle also pays a 100,000 gold bonus), and spend gold on packs in the Card Shop: buy 1, 5, 10 or any number at once. Bought packs wait in the shop until you open them, one at a time or all together.</p>
       <h3>Reagents, crafting and golden cards</h3>
-      <p>Extra copies you can't use turn into <b>reagents</b> automatically. Open any card in your collection to <b>craft</b> it from reagents or <b>disenchant</b> it for reagents: Commons craft for ${CRAFT[0]}, Rares ${CRAFT[1]}, Epics ${CRAFT[2]}, Legendaries ${CRAFT[3]}. Cards in the starter decks can't be disenchanted.</p>
-      <p>Any card in a pack can come out <b>golden</b>: the same card with a gold frame and a shine. Golden cards play exactly like normal ones and disenchant for many more reagents. You can also craft them, or turn a normal copy golden.</p>
+      <p>Extra copies you can't use turn into <b>reagents</b> automatically. Open any card in your collection to <b>craft</b> it from reagents or <b>distill</b> it into reagents: Commons craft for ${CRAFT[0]}, Rares ${CRAFT[1]}, Epics ${CRAFT[2]}, Legendaries ${CRAFT[3]}. Cards in the starter decks can't be distilled.</p>
+      <p>Any card in a pack can come out <b>golden</b>: the same card with a gold frame and a shine. Golden cards play exactly like normal ones and distill into many more reagents. You can also craft them, or turn a normal copy golden.</p>
       <h3>Quests and the reward track</h3>
       <p>You get three daily quests in <b>Quests &amp; Rewards</b>. Every game and every quest gives XP; each level on the reward track pays out gold, reagents, free packs, golden Legendaries or a new card back. Hero portraits for each class are earned there too.</p>
       <h3>Ranked</h3>

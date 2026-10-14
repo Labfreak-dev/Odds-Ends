@@ -792,7 +792,7 @@ pt_tok("pt_t_fawn", "Antlered Fawn", 2, 1, "cernunnos", "tamer", tr="Beast")
 pt_tok("pt_t_hart", "White Hart", 3, 3, "cernunnos", "tamer", kw=["rush"], tr="Beast")
 pt_tok("pt_t_bronze", "Bronze Automaton", 1, 2, "hephaestus", "collector", tr="Mech")
 pt_tok("pt_t_maiden", "Shieldmaiden", 1, 3, "valkyrie", "champion", kw=["taunt"])
-pt_tok("pt_t_shade", "Restless Shade", 2, 1, "hades", "neutral")
+pt_tok("pt_t_shade", "Restless Shade", 2, 1, "hades", "neutral", tr="Shade")
 pt_reward_minion("pt_r_quetzal", "Quetzalcoatl, Feathered Serpent", "tamer", 5, 7, 7, ["rush"], [E("bc", "buff", a=2, h=2, tg="fm_all")], "quetzalcoatl", tr="Beast")
 pt_reward_minion("pt_r_hercules", "Hercules, Twelve-Labored", "champion", 5, 8, 8, ["taunt", "lifesteal"], [], "hercules", tr="Hero")
 pt_reward_minion("pt_r_antikythera", "The Antikythera Engine", "collector", 4, 6, 6, ["magnetic", "divine"], [E("bc", "kw", k="divine", tg="fm_all", f={"tr": "Mech"})], "vacuum-tube-radio", tr="Mech")
@@ -908,6 +908,10 @@ def clean(c):
     return {k: v for k, v in c.items() if v not in (None, [], "") or k in ("kw", "fx")}
 DATA["cards"] += [clean(c) for c in CARDS]
 DATA["tokens"].update({k: clean(v) for k, v in TOKENS.items()})
+# tokens carry the tribe their name says, so "If you control a Spore" and "for each Beast" count them
+for tid, trb in {"t_spore": "Spore", "t_goblin": "Goblin", "t_rat": "Beast", "t_spider": "Beast", "t_bonehound": "Beast", "t_fry": "Fish",
+                 "t_brood": "Swarm", "t_tentacle": "Sea", "t_skel": "Enemy", "t_slime": "Enemy"}.items():
+    if tid in DATA["tokens"]: DATA["tokens"][tid]["tr"] = trb
 DATA["sets"] = [{"id": "core", "n": "Core Set"}, {"id": "ih", "n": "Siege of Ironhold", "kw": "Frenzy"},
                 {"id": "dc", "n": "The Deep Catch", "kw": "Dredge"}, {"id": "tt", "n": "Tricks of the Trade", "kw": "Synergy spells"},
                 {"id": "pt", "n": "Rise of the Pantheon", "kw": "Choose One, Echo, Magnetic, Tradeable, Quests, Hero cards, Start of Game"}]

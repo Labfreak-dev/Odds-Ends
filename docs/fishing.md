@@ -4108,6 +4108,12 @@ A deck only counts as playable when every card is owned. Unfinished decks show o
 
 **Lessons.** The new Collection button pushed the phone topbar to 430 px, and mobile Chrome widened the whole layout again. The title now hides under 480 px. A first attempt at that rule was spliced into the middle of an existing media block and changed its range, so it now lives in a separate rule.
 
+## Labfreak Legends — fix: Spore Flask (and every "If you control…" card) ignored your Spores
+**Report.** The playtester cast Spore Flask ("Summon two 1/1 Spores. If you control a Spore minion, summon two more") with Spores on the board and got only two.
+**Cause 1.** Tokens had no tribe. The Spore token was just named "Spore", so "If you control a Spore", "for each Spore" and every tribe filter skipped it. Tokens now carry the tribe their name says. `tools_gen_sets.py` sets it after all tokens exist: Spore → Spore, Goblin Raider → Goblin, Sewer Rat / Spiderling / Bone Hound → Beast, Fry → Fish, Brood Hatchling → Swarm, Tentacle → Sea, Skeleton / Gel Blob → Enemy, Restless Shade → Shade. No collectible card changed.
+**Cause 2, found while fixing it.** Conditions were checked as each effect resolved, so once tokens count, Spore Flask's own first two Spores would satisfy its "if" every time. A card's conditions are now checked once, as it is played (`settleIfs()` for spells and When played / Combo effects). That matches how the text reads.
+**Checks.** New unit tests cover Spore Flask with no Spore (2), with Spore tokens out (+4) and with a Spore minion (4). All mechanic tests pass. Class balance is unchanged (48–53%, first player 51%, no stuck games), and the pre-made decks rebuild identically.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

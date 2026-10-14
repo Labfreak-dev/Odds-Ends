@@ -406,6 +406,12 @@
       default: return [];
     }
   }
+  // "If you control a Spore minion, summon two more": a card's conditions are checked once, as it is played,
+  // so its own earlier effects (the first two Spores) can't satisfy them
+  function settleIfs(G, pi, fx, src) {
+    const ok = fx.map(e => !e.if || checkIf(G, pi, e.if, src));
+    return fx.filter((e, i) => ok[i]).map(e => e.if ? Object.assign({}, e, { if: null }) : e);
+  }
   function resolve(G, e, ctx) {
     if (G.phase === 'over') return;
     if (e.if && !checkIf(G, ctx.pi, e.if, ctx.src)) return;
@@ -626,8 +632,9 @@
       fireSecret(G, 1 - pi, 'eminion', { trig: m });
       deaths(G);
       if (m.dead || G.phase === 'over') return true;
-      (c.fx || []).forEach(e => {
-        if (e.on === 'bc' || (e.on === 'combo' && combo)) resolve(G, e, { pi, src: m, target: picks(e) ? target : null, cid: c.id });
+      const bcFx = settleIfs(G, pi, (c.fx || []).filter(e => e.on === 'bc' || (e.on === 'combo' && combo)), m);
+      bcFx.forEach(e => {
+        resolve(G, e, { pi, src: m, target: picks(e) ? target : null, cid: c.id });
       });
     } else if (c.t === 'w') {
       equip(G, pi, { a: c.a, h: c.h, kw: c.kw || [], cid: c.id });
@@ -644,7 +651,7 @@
       })() : false;
       G.spellsThisTurn = (G.spellsThisTurn || 0) + 1;
       if (!countered) {
-        (c.fx || []).forEach(e => { if (e.on === 'cast') resolve(G, e, { pi, target: picks(e) ? target : null, spell: true, vfx: c.vfx, cid: c.id }); });
+        settleIfs(G, pi, (c.fx || []).filter(e => e.on === 'cast'), null).forEach(e => resolve(G, e, { pi, target: picks(e) ? target : null, spell: true, vfx: c.vfx, cid: c.id }));
         P.board.slice().forEach(m => { if (!m.silenced && !m.dead) m.fx.forEach(e => { if (e.on === 'fspell') resolve(G, e, { pi, src: m }); }); });
       } else log(G, `${c.n} was countered.`);
     }

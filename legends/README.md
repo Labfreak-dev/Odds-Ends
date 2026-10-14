@@ -33,6 +33,7 @@ the scripts, so use a local server: `python3 -m http.server`, then visit http://
 | `img/a00–a36.webp` | GENERATED: Core Set art atlases, 8×8 cells of 192 px |
 | `img/a37–a42.webp` | GENERATED: expansion art atlases |
 | `img/fx.webp`, `img/bg_*.webp` | Spell effects and battle boards |
+| `img/ui/` | The painted UI kit: nine-slice frames, buttons, tabs and ribbon copied from `thankless/ui` (`ui_*.webp`), twelve menu icons (`ic_*.webp`), and the six element rings from `glimmerdeep/img/frames` worn by minions on the board (`ring_1..6.webp`) |
 | `sfx/` | Copied from `glimmerdeep/sfx` and `glimmerdeep/music` |
 | `tools_gen_cards.py` | The Core Set generator (writes `data/cards.js` and `img/a00–a36`) |
 | `tools_gen_sets.py` | The expansion generator: run it after `tools_gen_cards.py`; it appends both expansions to `data/cards.js` and writes `img/a37+`, reading every asset straight from the repo |
@@ -49,3 +50,5 @@ Packs and prices live in the `PACKS` list in `js/ui.js`; battle rewards are in `
 Modes, in `js/ui.js` under MODES: Ranked (`rankEnd`, `rankK` sets how strong the bot's deck is per league), Arena (`arenaOffer`, `ARENA_GOLD`), Tavern Brawl (`BRAWLS`, one per week counted from Monday 5 January 2026; rule hooks are `opts.mods` in the engine: `manaStart`, `cost`). The turn timer is `TURN_MS` (tests can shorten it with `window.LL_TURN_MS`).
 
 Card fields for the Pantheon mechanics (all read by `js/engine.js`): `ch` = Choose One options `[{n, fx}]` (the hand card's `ci.choice` picks one, `cardOf()` folds it in); `kw` `echo`, `magnetic` (the hand card's `ci.mag` names the Mech to fuse into), `tradeable` (`trade()`); `q` = quest `{k: play|cast|kill|face, n, f, rw}` with the reward card in `rw`; `t: "h"` = hero card (`h` is its Armor, `hp` its Hero Power); trigger `sog` = Start of Game, with the condition `if: {nodup: true}` for "if your deck has no duplicates".
+
+The look: every button is a painted nine-slice plate (`.big` brass, `.big.alt` iron, `.big.camp` the red banner, `.small` the iron tab, `.small.gold` the brass tab); screen titles sit on the parchment ribbon; dialogs wear the oak frame; tiles (decks, packs, quests, chapters, recipes) wear the iron tab. The main menu is a hub with a HUD (level, XP, gold, reagents, sound) and icon buttons, and every other screen has a bottom tab bar (Home, Play, Shop, Cards, Quests). On the board each minion wears a ring by element or tribe (`RING` in `js/ui.js`: vine, ice, lava, amethyst, cloud) and Legendaries, hero cards and heroes wear the gold ring.

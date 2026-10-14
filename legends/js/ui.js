@@ -152,9 +152,10 @@
     if (!soundOn) return;
     try { music = new Audio(`sfx/${name}.mp3`); music.dataset.n = name; music.loop = true; music.volume = 0.28; music.play().catch(() => { }); } catch (e) { }
   }
+  function soundLabel() { const b = $('#b-sound'); b.classList.toggle('off', !soundOn); b.title = 'Sound: ' + (soundOn ? 'on' : 'off'); const l = b.querySelector('.lbl'); if (l) l.textContent = 'Sound: ' + (soundOn ? 'on' : 'off'); }
   function setSound(on) {
     soundOn = on; store.set('ll_sound', on);
-    $('#b-sound').textContent = 'Sound: ' + (on ? 'on' : 'off');
+    soundLabel();
     if (!on && music) music.pause(); else playMusic(current === 'battle' ? 'fight' : 'title');
   }
 
@@ -163,6 +164,10 @@
   function show(id) {
     $$('.screen').forEach(s => { s.hidden = s.id !== id; });
     current = id;
+    const nav = !['battle', 'menu'].includes(id);
+    document.body.classList.toggle('tabnav', nav);
+    $('#tabbar').hidden = !nav;
+    $$('#tabbar [data-nav]').forEach(b => b.classList.toggle('on', b.dataset.nav === id));
     if (id === 'menu') { renderMenu(); playMusic('title'); }
     if (id === 'collection') renderCollection();
     if (id === 'play') renderPlay();
@@ -180,6 +185,7 @@
   $('#b-rules').onclick = () => { sfx('click', .4); show('rules'); };
   $('#b-shop').onclick = () => { sfx('click', .4); show('shop'); };
   $('#b-sound').onclick = () => setSound(!soundOn);
+  $('#tabbar').addEventListener('click', e => { const b = e.target.closest('[data-nav]'); if (!b || b.classList.contains('on')) return; sfx('click', .4); if (b.dataset.nav === 'collection') editing = editing && decks.includes(editing) ? editing : null; show(b.dataset.nav); });
   $('#b-journal').onclick = () => { sfx('click', .4); show('journal'); };
   $('#b-arena').onclick = () => { sfx('click', .4); show('arena'); };
   $('#b-brawl').onclick = () => { sfx('click', .4); show('brawl'); };
@@ -206,7 +212,8 @@
   function goldChips() {
     $$('.goldchip').forEach(g => { g.textContent = gold.toLocaleString() + ' gold'; });
     $$('.dustchip').forEach(g => { g.textContent = dust.toLocaleString() + ' reagents'; });
-    $$('.lvlchip').forEach(g => { g.textContent = 'Level ' + prog.lvl; });
+    $$('.lvlchip').forEach(g => { g.textContent = 'Level ' + prog.lvl + ' · ' + prog.xp + ' / ' + xpNeed(prog.lvl) + ' XP'; });
+    const hl = $('#hudlvl'), hx = $('#hudxp'); if (hl) hl.textContent = prog.lvl; if (hx) hx.style.width = Math.round(prog.xp / xpNeed(prog.lvl) * 100) + '%';
   }
   // crafting: extra copies and distilled cards become reagents (variable: dust, save key ll_dust), reagents become any card
   const CRAFT = [40, 100, 400, 1600], DE = [5, 20, 100, 400], CRAFT_G = [400, 800, 1600, 3200], DE_G = [50, 100, 400, 1600];
@@ -1071,6 +1078,12 @@
   }
   addEventListener('resize', () => { if (current === 'battle') { sizeTable(); render(); } });
 
+  // painted rings around board units: by element or tribe, gold for Legendaries and heroes
+  const RING = { 1: ['Bloom', 'Moss', 'Spore', 'Beast', 'Party', 'Companion'], 2: ['Frost', 'Tide', 'Fish', 'Sea', 'Signature'], 3: ['Ember', 'Stone', 'Rust', 'Metal', 'Mech', 'Monster', 'Lieutenant', 'Enemy', 'Goblin', 'Gear', 'Knight', 'Brute', 'Duelist', 'Ranger'],
+    4: ['Shade', 'Gloom', 'Mystic', 'Myth', 'Cosmos', 'God', 'Swarm', 'Nemesis', 'Hexpriest', 'Gambler', 'Lair Boss', 'Omen'], 6: ['Gale', 'Volt', 'Static', 'Circuit', 'Fortune', 'Trick'] };
+  const RING_OF = {}; Object.entries(RING).forEach(([k, l]) => l.forEach(t => { RING_OF[t] = +k; }));
+  const ringOf = c => c.r === 3 || c.t === 'h' ? 5 : (RING_OF[(c.tr || '').split(/[\s,/]+/)[0]] || RING_OF[c.tr] || 0);
+  const ringHTML = c => { const k = ringOf(c); return k ? `<i class="ring" style="background-image:url(img/ui/ring_${k}.webp)"></i>` : ''; };
   function minionHTML(m, o) {
     const c = E.card(m.cid);
     const a = E.atkOf(G, m);
@@ -1087,7 +1100,7 @@
     if (m.silenced) icons.push('<i title="Abilities removed">∅</i>');
     const sleepy = m.owner === 0 && G.turn === 0 && m.sleeping && !m.kw.has('charge') && !m.kw.has('rush') && !m.kw.has('cantattack');
     return `<div class="${cls}" data-uid="${m.uid}" data-cid="${m.cid}" style="--cc:${CCOL(c.c)}">
-      <div class="port">${spr(c.art, 't')}</div>
+      <div class="port">${spr(c.art, 't')}</div>${ringHTML(c)}
       <div class="ma${a > c.a ? ' buffed' : ''}">${a}</div><div class="mh${m.h < m.max ? ' hurt' : m.max > c.h ? ' buffed' : ''}">${m.h}</div>
       <div class="icons">${icons.join('')}</div>${sleepy ? '<div class="zz">z<small>z</small></div>' : ''}</div>`;
   }
@@ -1099,7 +1112,7 @@
     const crys = Array.from({ length: P.maxMana }, (_, i) => `<span class="crys${i < P.mana ? ' f' : (i >= P.maxMana - P.ovLocked ? ' lock' : '')}"></span>`).join('');
     const can = me && E.canAttack(G, P.hero) && !busy;
     const heroEl = `<div class="hero${P.hero.frozen ? ' frozen' : ''}${can ? ' can' : ''}" data-uid="${P.hero.uid}" style="--cc:${CCOL(P.cls)}">
-      <div class="hname">${esc(P.name)}</div><div class="port" style="${artCSS(h.art)}"></div>
+      <div class="hname">${esc(P.name)}</div><div class="port" style="${artCSS(h.art)}"></div><i class="ring" style="background-image:url(img/ui/ring_5.webp)"></i>
       ${P.hero.armor ? `<div class="harm">${P.hero.armor}</div>` : ''}${atk > 0 ? `<div class="hatk">${atk}</div>` : ''}<div class="hhp">${P.hero.hp}</div></div>`;
     const side = `<div class="side"><div class="manabar">${P.mana}/${P.maxMana} ${crys}</div>
       <div class="deckct" title="Cards left in deck"><i class="dback" style="${backStyle(G.backs && G.backs[pi])}"></i>Deck ${P.deck.length}</div>${!me ? `<div class="handct">Hand ${P.hand.length}</div>` : ''}
@@ -2500,7 +2513,7 @@
   }
 
   // ---------------------------------------------------------------- boot
-  $('#b-sound').textContent = 'Sound: ' + (soundOn ? 'on' : 'off');
+  soundLabel();
   const h = (location.hash || '').replace('#', '');
   show(['collection', 'play', 'rules', 'shop', 'campaign', 'journal', 'arena', 'brawl'].includes(h) ? h : 'menu');
 })();

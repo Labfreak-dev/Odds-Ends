@@ -188,6 +188,7 @@
     if (id === 'shop') renderShop();
     if (id === 'campaign') renderCampaign();
     if (id === 'journal') { store.set('ll_jseen', dayKey()); renderJournal(); }
+    if (id !== 'battle') checkAchievements();
     if (id === 'arena') renderArena();
     if (id === 'brawl') renderBrawl();
     goldChips();
@@ -313,6 +314,7 @@
       got.push({ id, r: c.r, isNew: had === 0, extra, g, up });
     }
     saveOwned();
+    stats.packs = (stats.packs || 0) + 1; store.set('ll_stats', stats);
     questBump('packs', 1);
     return got;
   }
@@ -469,12 +471,65 @@
       q.prog = Math.min(q.n, q.prog + inc);
       lines.push(q.prog >= q.n ? { done: 1, s: questDone(q) } : { s: `${qText(q)}: ${q.prog}/${q.n}` });
     });
+    // the weekly quest counts the same things, over a week
+    const wq = weeklyFresh();
+    if (wq.prog < wq.n) { const inc = wq.k === 'qdone' ? lines.filter(l => l.done).length : (add[wq.k] || 0); if (inc) { wq.prog = Math.min(wq.n, wq.prog + inc); lines.push(wq.prog >= wq.n ? { done: 1, s: weeklyDone(wq) } : { s: `Weekly, ${qText(wq)}: ${wq.prog}/${wq.n}` }); store.set('ll_wq', wq); } }
     saveQ();
-    stats.games++; if (won) stats.wins[cls] = (stats.wins[cls] || 0) + 1; store.set('ll_stats', stats);
+    stats.games++; if (won) { stats.wins[cls] = (stats.wins[cls] || 0) + 1; stats.winsAll = (stats.winsAll || 0) + 1; if (mode === 'brawl') stats.brawlWins = (stats.brawlWins || 0) + 1; }
+    stats.big = Math.max(stats.big || 0, T.big || 0); stats.leg = (stats.leg || 0) + (T.leg || 0); stats.minions = (stats.minions || 0) + (T.minion || 0); stats.questsDone = (stats.questsDone || 0) + lines.filter(l => l.done).length;
+    store.set('ll_stats', stats);
     const xp = won ? 100 : 50;
     const lv = gainXP(xp);
-    const un = checkUnlocks();
+    const un = checkUnlocks().concat(checkAchievements());
     return { lines, xp, lv, un };
+  }
+  // ---- the weekly quest: one bigger goal, new every Monday
+  const WQDEF = [
+    { k: 'win', n: 10, xp: 1500, gold: 150, tx: 'Win 10 games this week' }, { k: 'minion', n: 60, xp: 1500, gold: 150, tx: 'Play 60 minions this week' },
+    { k: 'qdone', n: 6, xp: 1500, gold: 150, tx: 'Complete 6 daily quests this week' }, { k: 'ranked', n: 4, xp: 1800, gold: 200, tx: 'Win 4 Ranked games this week' },
+    { k: 'kill', n: 60, xp: 1500, gold: 150, tx: 'Destroy 60 enemy minions this week' }, { k: 'spell', n: 40, xp: 1500, gold: 150, tx: 'Cast 40 spells this week' },
+  ];
+  function weeklyFresh() {
+    let wq = store.get('ll_wq', null);
+    if (!wq || wq.week !== weekNo()) { const d = WQDEF[((weekNo() % WQDEF.length) + WQDEF.length) % WQDEF.length]; wq = Object.assign({ week: weekNo(), prog: 0, p: '', id: 'w' + weekNo() }, d); store.set('ll_wq', wq); }
+    return wq;
+  }
+  function weeklyDone(wq) { gold += wq.gold; xpPending += wq.xp; grantReward({ pack: 'mv', n: 1 }); saveOwned(); if (current !== 'battle') gainXP(0); return `Weekly quest complete: ${wq.tx}! +${wq.xp} XP, +${wq.gold} gold and a Multiverse Pack`; }
+  // ---- achievements: one-time goals with gold and XP
+  const ACH = [
+    { id: 'win1', n: 'First Blood', d: 'Win a game.', g: 1, get: () => stats.winsAll || 0, gold: 50, xp: 100 },
+    { id: 'win25', n: 'Veteran', d: 'Win 25 games.', g: 25, get: () => stats.winsAll || 0, gold: 150, xp: 400 },
+    { id: 'win100', n: 'Master of the Table', d: 'Win 100 games.', g: 100, get: () => stats.winsAll || 0, gold: 500, xp: 1500 },
+    ...CLS.map(k => ({ id: 'cls_' + k, n: `${CLSN[k]} Adept`, d: `Win 10 games as the ${CLSN[k]}.`, g: 10, get: () => stats.wins[k] || 0, gold: 100, xp: 300 })),
+    { id: 'own500', n: 'Collector', d: 'Own 500 cards.', g: 500, get: () => ownedTotal(), gold: 100, xp: 300 },
+    { id: 'own1500', n: 'Curator', d: 'Own 1,500 cards.', g: 1500, get: () => ownedTotal(), gold: 300, xp: 800 },
+    { id: 'leg25', n: 'Legend Hunter', d: 'Own 25 different Legendaries.', g: 25, get: () => D.cards.filter(c => c.r === 3 && owned[c.id]).length, gold: 200, xp: 500 },
+    { id: 'gold10', n: 'Golden Touch', d: 'Own 10 golden cards.', g: 10, get: () => Object.values(golden).reduce((a, b) => a + b, 0), gold: 150, xp: 400 },
+    { id: 'packs25', n: 'Pack Rat', d: 'Open 25 packs.', g: 25, get: () => stats.packs || 0, gold: 100, xp: 300 },
+    { id: 'packs100', n: 'Shopaholic', d: 'Open 100 packs.', g: 100, get: () => stats.packs || 0, gold: 300, xp: 800 },
+    { id: 'q10', n: 'Errand Runner', d: 'Complete 10 daily quests.', g: 10, get: () => stats.questsDone || 0, gold: 100, xp: 300 },
+    { id: 'q50', n: 'Questmaster', d: 'Complete 50 daily quests.', g: 50, get: () => stats.questsDone || 0, gold: 300, xp: 800 },
+    { id: 'camp1', n: 'Storyteller', d: 'Finish any campaign.', g: 1, get: () => CLS.filter(k => (camp[k] || 0) >= 4).length, gold: 150, xp: 400 },
+    { id: 'camp6', n: 'Lorekeeper', d: 'Finish all six campaigns.', g: 6, get: () => CLS.filter(k => (camp[k] || 0) >= 4).length, gold: 500, xp: 1500 },
+    { id: 'finale', n: 'The End', d: 'Beat the finale.', g: 1, get: () => camp.finale || 0, gold: 500, xp: 1500 },
+    { id: 'arena7', n: 'Gladiator', d: 'Reach 7 wins in one Arena run.', g: 7, get: () => store.get('ll_arena_best', 0), gold: 200, xp: 500 },
+    { id: 'arena12', n: 'Arena Legend', d: 'Reach 12 wins in one Arena run.', g: 12, get: () => store.get('ll_arena_best', 0), gold: 500, xp: 1500 },
+    { id: 'silver', n: 'Silver Lining', d: 'Reach Silver in Ranked.', g: 10, get: () => (store.get('ll_rank', null) || {}).best || 0, gold: 100, xp: 300 },
+    { id: 'goldr', n: 'Gold Standard', d: 'Reach Gold in Ranked.', g: 20, get: () => (store.get('ll_rank', null) || {}).best || 0, gold: 250, xp: 700 },
+    { id: 'legendr', n: 'Living Legend', d: 'Reach Legend in Ranked.', g: 50, get: () => (store.get('ll_rank', null) || {}).best || 0, gold: 1000, xp: 3000 },
+    { id: 'brawl5', n: 'Barroom Brawler', d: 'Win 5 Tavern Brawls.', g: 5, get: () => stats.brawlWins || 0, gold: 150, xp: 400 },
+    { id: 'hit10', n: 'Big Hitter', d: 'Deal 10 damage in one hit.', g: 10, get: () => stats.big || 0, gold: 100, xp: 300 },
+    { id: 'hit20', n: 'Overkill', d: 'Deal 20 damage in one hit.', g: 20, get: () => stats.big || 0, gold: 300, xp: 800 },
+    { id: 'leg50', n: 'Legendary Habit', d: 'Play 50 Legendary cards.', g: 50, get: () => stats.leg || 0, gold: 200, xp: 500 },
+    { id: 'tut', n: 'Lesson Learned', d: "Finish Dr. Labfreak's lesson.", g: 1, get: () => +store.get('ll_tut', false), gold: 50, xp: 100 },
+    { id: 'recipe', n: 'Blueprint', d: 'Save a pre-made deck as your own.', g: 1, get: () => +decks.some(d => d.recipe), gold: 50, xp: 100 },
+  ];
+  let achDone = store.get('ll_ach', {});
+  function checkAchievements() {
+    const out = [];
+    ACH.forEach(a => { if (achDone[a.id]) return; let v = 0; try { v = a.get(); } catch (e) { } if (v >= a.g) { achDone[a.id] = 1; gold += a.gold; xpPending += a.xp; out.push(`Achievement: ${a.n}! +${a.gold} gold, +${a.xp} XP`); } });
+    if (out.length) { store.set('ll_ach', achDone); saveOwned(); if (current !== 'battle') { gainXP(0); toast(out.join(' · ')); } }
+    return out;
   }
   function progressHTML(r) {
     if (!r) return '';
@@ -532,18 +587,23 @@
   // ---- the Journal screen: quests, reward track, card backs, hero portraits
   let jTab = 'quests';
   function renderJournal() {
-    questsFresh(); checkUnlocks();
+    questsFresh(); checkUnlocks(); checkAchievements();
     const pct = Math.round(prog.xp / xpNeed(prog.lvl) * 100);
     const head = `<div class="jhead"><div class="jlvl"><b>${prog.lvl}</b><small>Level</small></div>
       <div class="jxp"><span class="xpbar"><i style="width:${pct}%"></i></span><small>${prog.xp} / ${xpNeed(prog.lvl)} XP · next: ${esc(rewardText(trackReward(prog.lvl + 1)))}</small></div></div>
-      <div class="jtabs">${[['quests', 'Quests'], ['track', 'Reward Track'], ['backs', 'Card Backs'], ['ports', 'Hero Portraits']].map(([k, n]) => `<button class="chip${jTab === k ? ' on' : ''}" data-jt="${k}">${n}</button>`).join('')}</div>`;
+      <div class="jtabs">${[['quests', 'Quests'], ['ach', 'Achievements'], ['track', 'Reward Track'], ['backs', 'Card Backs'], ['ports', 'Hero Portraits']].map(([k, n]) => `<button class="chip${jTab === k ? ' on' : ''}" data-jt="${k}">${n}</button>`).join('')}</div>`;
     let body = '';
     if (jTab === 'quests') {
       body = `<p class="jnote">Three quests a day. Progress counts in every mode. A quest you don't finish stays until you do. You can swap one quest a day.</p><div class="qgrid">${Q.list.map(q => `<div class="quest${q.prog >= q.n ? ' done' : ''}">
           <b>${esc(qText(q))}</b><span class="qbar"><i style="width:${Math.round(q.prog / q.n * 100)}%"></i></span>
           <span class="qmeta">${q.prog}/${q.n} · ${q.xp} XP${q.gold ? ` · ${q.gold} gold` : ''}</span>
           ${q.prog >= q.n ? '<span class="qok">Done</span>' : Q.swap !== Q.day ? `<button class="small" data-qswap="${q.id}">Swap</button>` : ''}</div>`).join('')}</div>
-        <p class="jnote">Every game also gives XP: 100 for a win, 50 for a loss.</p>`;
+        <p class="jnote">Every game also gives XP: 100 for a win, 50 for a loss.</p>
+        ${(() => { const wq = weeklyFresh(); const left = Math.ceil((WEEK0 + (weekNo() + 1) * 604800000 - Date.now()) / 86400000); return `<h4 class="ptcls">This week</h4><div class="qgrid"><div class="quest weekly${wq.prog >= wq.n ? ' done' : ''}"><b>${esc(wq.tx)}</b><span class="qbar"><i style="width:${Math.round(wq.prog / wq.n * 100)}%"></i></span><span class="qmeta">${wq.prog}/${wq.n} · ${wq.xp} XP · ${wq.gold} gold · a Multiverse Pack · ${left} day${left === 1 ? '' : 's'} left</span>${wq.prog >= wq.n ? '<span class="qok">Done</span>' : ''}</div></div>`; })()}`;
+    } else if (jTab === 'ach') {
+      checkAchievements();
+      const done = ACH.filter(a => achDone[a.id]).length;
+      body = `<p class="jnote">${done} of ${ACH.length} achievements. Each pays gold and XP once.</p><div class="qgrid">${ACH.map(a => { let v = 0; try { v = a.get(); } catch (e) { } const ok = !!achDone[a.id]; return `<div class="quest ach${ok ? ' done' : ''}"><b>${esc(a.n)}</b><span>${esc(a.d)}</span><span class="qbar"><i style="width:${Math.round(Math.min(1, v / a.g) * 100)}%"></i></span><span class="qmeta">${Math.min(v, a.g).toLocaleString()}/${a.g.toLocaleString()} · ${a.gold} gold · ${a.xp} XP</span>${ok ? '<span class="qok">Done</span>' : ''}</div>`; }).join('')}</div>`;
     } else if (jTab === 'track') {
       const top = Math.max(TRACK_LEN, prog.lvl + 5);
       body = `<p class="jnote">Rewards land the moment you reach a level. Free packs wait for you in the Card Shop.</p><div class="track" id="track">${Array.from({ length: top - 1 }, (_, k) => {
@@ -813,6 +873,7 @@
     if (recipeAct(e)) return;
     if (pickAct(e)) return;
     if (saveAct(e)) return;
+    if (massAct(e)) return;
     if (zoomAct(e)) return;
     if (codeAct(e)) return;
     if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal,.codebox')) { $('#zoom').hidden = true; pickCb = null; }
@@ -963,6 +1024,45 @@
     return true;
   }
   $('#b-recipes').onclick = () => { sfx('click', .4); recipeChoice(null); };
+  // ---- batch distill: every copy that no deck uses and no starter needs, by rarity, golden kept unless asked
+  function unusedCopies(rars, incGold) {
+    const used = {}; decks.forEach(d => d.cards.forEach(id => { used[id] = Math.max(used[id] || 0, d.cards.filter(x => x === id).length); }));
+    const out = []; let yield_ = 0;
+    D.cards.forEach(c => {
+      if (c.token || !owned[c.id] || !rars.includes(c.r)) return;
+      const keep = Math.max(starterNeed[c.id] || 0, used[c.id] || 0), g = goldN(c.id), normal = owned[c.id] - g;
+      let spare = Math.max(0, owned[c.id] - keep);
+      // normal copies go first; golden only when asked
+      const nN = Math.min(spare, normal); spare -= nN;
+      const nG = incGold ? Math.min(spare, g) : 0;
+      if (nN) { out.push([c.id, nN, false]); yield_ += nN * DE[c.r]; }
+      if (nG) { out.push([c.id, nG, true]); yield_ += nG * DE_G[c.r]; }
+    });
+    return { out, yield_ };
+  }
+  let massOpt = { rars: [0], gold: false };
+  function showMass(msg) {
+    const r = unusedCopies(massOpt.rars, massOpt.gold), n = r.out.reduce((a, x) => a + x[1], 0);
+    $('#zoom').innerHTML = `<div class="codebox"><h3>Distill unused cards</h3>
+      <p>Turns copies you never use into reagents. A card counts as used if any of your decks holds it (unfinished ones too) or a starter deck needs it. Those copies are never touched.</p>
+      <p class="crow">${RN.map((nm, i) => `<button class="chip${massOpt.rars.includes(i) ? ' on' : ''}" data-massr="${i}">${nm}</button>`).join('')}<button class="chip${massOpt.gold ? ' on' : ''}" data-massg>Golden too</button></p>
+      <p class="cinfo"><b>${n.toLocaleString()}</b> cop${n === 1 ? 'y' : 'ies'} of ${r.out.length.toLocaleString()} card${r.out.length === 1 ? '' : 's'} · <b>+${r.yield_.toLocaleString()} reagents</b></p>
+      <p class="dustline"><span class="dustchip"></span></p>
+      ${msg ? `<p class="cmsg">${esc(msg)}</p>` : ''}
+      <p class="crow"><button class="small gold" data-massgo ${n ? '' : 'disabled'}>Distill ${n.toLocaleString()} cards</button><button class="small" data-close>Close</button></p></div>`;
+    $('#zoom').hidden = false; goldChips();
+  }
+  function massAct(e) {
+    const r = e.target.closest('[data-massr]'); if (r) { const k = +r.dataset.massr; massOpt.rars = massOpt.rars.includes(k) ? massOpt.rars.filter(x => x !== k) : massOpt.rars.concat(k); showMass(); return true; }
+    if (e.target.closest('[data-massg]')) { massOpt.gold = !massOpt.gold; showMass(); return true; }
+    const go = e.target.closest('[data-massgo]'); if (!go) return false;
+    if (go.dataset.confirm !== '1') { go.dataset.confirm = '1'; go.textContent = 'Tap again to confirm'; return true; }
+    const res = unusedCopies(massOpt.rars, massOpt.gold); let n = 0;
+    res.out.forEach(([id, k, g]) => { for (let j = 0; j < k; j++) if (disenchant(id, g)) n++; });
+    sfx('coin', .5); renderGrid(); if (editing) renderDeckPanel(); $('#collsub').textContent = `You own ${ownedTotal().toLocaleString()} cards`;
+    showMass(`Distilled ${n.toLocaleString()} cards.`); return true;
+  }
+  $('#b-mass').onclick = () => { sfx('click', .4); showMass(); };
 
   let zoomed = null, zoomGold = false;
   function zoom(c, keepView) {

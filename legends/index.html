@@ -929,6 +929,17 @@ body.tabnav .matchbar { padding-bottom: 12px; }
 .modal:has(.curtain) { background: #0b0812; } .curtain h3 { font-size: clamp(28px, 7vw, 48px) !important; }
 .ptabs { display: flex; gap: 8px; align-items: center; } .ptabs .grow { flex: 1; }
 @media (max-width: 720px) { #tut { bottom: calc(var(--mw) * 1.45 + 80px); width: min(440px, 94vw); } .tutport { width: 48px; height: 48px; } .tuttx p { font-size: 14px; } }
+
+/* ---------- golden cards move; weekly and achievements ---------- */
+.card.golden .art .spr { animation: goldArt 7s ease-in-out infinite alternate; transform-origin: 50% 50%; }
+@keyframes goldArt { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-52%, -49%) scale(1.09); } }
+.card.golden .art::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; opacity: .9;
+  background: radial-gradient(circle at 20% 30%, rgba(255,255,255,.9) 0 1.5px, transparent 2.5px), radial-gradient(circle at 70% 60%, rgba(255,240,180,.9) 0 1.2px, transparent 2.2px), radial-gradient(circle at 45% 80%, rgba(255,255,255,.8) 0 1px, transparent 2px), radial-gradient(circle at 80% 20%, rgba(255,230,150,.9) 0 1.4px, transparent 2.4px), radial-gradient(circle at 30% 65%, rgba(255,255,255,.7) 0 1px, transparent 2px);
+  background-size: 100% 100%; animation: sparkle 2.6s ease-in-out infinite; }
+@keyframes sparkle { 0%, 100% { opacity: .15; transform: translateY(0); } 50% { opacity: .95; transform: translateY(-3%); } }
+.quest.weekly { background: linear-gradient(180deg, #3a2a10, #231a0c); border-image: url(img/ui/ui_nav_on.webp) 40 51 39 50 / 11px 12px 11px 12px stretch; }
+.quest.weekly.done { background: linear-gradient(180deg, #1e3d2c, #142a1f); }
+.quest.ach > span:first-of-type { color: var(--muted); font-weight: 700; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 
@@ -983,7 +994,7 @@ body.tabnav .matchbar { padding-bottom: 12px; }
 
 <section id="collection" class="screen" hidden>
   <div class="topbar"><button class="small back" data-back><span aria-hidden="true">‹</span> Back</button><h2>Collection</h2><span id="collsub" class="sub"></span><span class="grow"></span><span class="dustchip"></span>
-    <button class="small gold" id="b-newdeck">New<span class="lg"> deck</span></button><button class="small" id="b-recipes">Pre-made<span class="lg"> decks</span></button><button class="small" id="b-paste">Paste<span class="lg"> code</span></button><select class="sel" id="deckpick" aria-label="Edit a deck"></select></div>
+    <button class="small gold" id="b-newdeck">New<span class="lg"> deck</span></button><button class="small" id="b-recipes">Pre-made<span class="lg"> decks</span></button><button class="small" id="b-paste">Paste<span class="lg"> code</span></button><button class="small" id="b-mass" title="Distill unused cards">Distill<span class="lg"> unused</span></button><select class="sel" id="deckpick" aria-label="Edit a deck"></select></div>
   <div class="filters" id="filters"></div>
   <div class="body nodeck" id="collbody">
     <div class="scroll" id="gridwrap"><div id="grid"></div><div class="pager" id="pager"></div></div>

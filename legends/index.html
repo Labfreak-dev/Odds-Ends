@@ -287,7 +287,60 @@ html { overflow-x: hidden; }
 .tgt .port { box-shadow: 0 0 0 4px var(--crimson), 0 0 0 6px #000, 0 0 22px var(--crimson) !important; cursor: crosshair; }
 .tgt.friendly .port { box-shadow: 0 0 0 4px var(--heal), 0 0 0 6px #000, 0 0 22px var(--heal) !important; }
 .hand { position: relative; height: calc(var(--mw) * 1.45); z-index: 20; }
-.hand .card { position: absolute; bottom: calc(var(--mw) * -0.25); left: 50%; --cw: calc(var(--mw) * 1.18); transition: transform .18s, box-shadow .18s; cursor: pointer; transform-origin: 50% 140%; }
+.hand .card { position: absolute; bottom: calc(var(--mw) * -0.25); left: 50%; --cw: calc(var(--mw) * 1.18); transition: transform .18s, box-shadow .18s; cursor: grab; transform-origin: 50% 140%;
+  transform: translateX(calc(-50% + var(--off, 0px))) rotate(var(--rot, 0deg)) translateY(var(--ty, 0px)); }
+@media (hover: hover) { .hand .card:hover { transform: translateX(calc(-50% + var(--off, 0px))) translateY(calc(var(--ty, 0px) - var(--mw) * .45)) scale(1.16); } }
+.hand .card.lifted { opacity: .25; }
+.dragcard { transition: none !important; filter: drop-shadow(0 18px 24px rgba(0,0,0,.7)); }
+.minion.can, .hero.can { cursor: grab; }
+.hover .port { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #000, 0 0 26px #fff !important; }
+.hover .ring { filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 4px #fff) !important; }
+#arrow { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 46; pointer-events: none; display: none; overflow: visible; }
+#arrow.on { display: block; }
+#arrow .ash { fill: none; stroke: rgba(0,0,0,.6); stroke-width: 12; stroke-linecap: round; }
+#arrow .aline { fill: none; stroke: #ff4d5e; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 14 10; animation: dash .5s linear infinite; filter: drop-shadow(0 0 6px #ff4d5e); }
+#arrow .ahead { fill: #ff4d5e; stroke: #000; stroke-width: 2; filter: drop-shadow(0 0 6px #ff4d5e); }
+@keyframes dash { to { stroke-dashoffset: -24; } }
+/* dealt from the deck, flown onto the board */
+#hand .card.dealt { animation: dealIn .42s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes dealIn { from { transform: translateX(calc(-50% + 60vw)) translateY(-30vh) rotate(25deg) scale(.5); opacity: 0; } }
+.ohand .cb.dealt { animation: dealOpp .4s ease-out both; }
+@keyframes dealOpp { from { transform: translate(-40vw, 10vh) rotate(-30deg) scale(.4); opacity: 0; } to { transform: translateY(-40%); } }
+.flycard { position: absolute; z-index: 44; pointer-events: none; animation: fly .4s cubic-bezier(.3,.7,.3,1) forwards; }
+.flycard .card { --cw: 100%; width: 100%; height: 100%; }
+@keyframes fly { to { transform: translate(var(--tx), var(--ty)) scale(var(--sc)); opacity: 0; } }
+/* impacts */
+.float.d.big { font-size: 42px; color: #ff3b4f; }
+.splat { position: absolute; z-index: 44; width: 70px; height: 70px; margin: -35px 0 0 -35px; pointer-events: none; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(circle, rgba(255,120,120,.9), rgba(255,60,70,.5) 35%, transparent 62%), conic-gradient(from 0deg, transparent 0 20deg, rgba(255,90,90,.8) 24deg, transparent 28deg 80deg, rgba(255,90,90,.8) 84deg, transparent 88deg 150deg, rgba(255,90,90,.8) 154deg, transparent 158deg 230deg, rgba(255,90,90,.8) 234deg, transparent 238deg 300deg, rgba(255,90,90,.8) 304deg, transparent 308deg);
+  animation: splat .5s ease-out forwards; }
+.splat.big { width: 120px; height: 120px; margin: -60px 0 0 -60px; }
+@keyframes splat { from { transform: scale(.3) rotate(0deg); opacity: 1; } to { transform: scale(1.3) rotate(40deg); opacity: 0; } }
+.shard { position: absolute; z-index: 47; width: 10px; height: 12px; margin: -6px; pointer-events: none; clip-path: polygon(50% 0, 100% 40%, 70% 100%, 0 70%); animation: shard .65s ease-out forwards; }
+@keyframes shard { to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+.quake { animation: quake .35s; } .quake-hard { animation: quakeHard .5s; }
+@keyframes quake { 20% { transform: translate(-4px, 3px); } 40% { transform: translate(4px, -2px); } 60% { transform: translate(-3px, -3px); } 80% { transform: translate(3px, 2px); } }
+@keyframes quakeHard { 15% { transform: translate(-9px, 6px) rotate(-.4deg); } 30% { transform: translate(8px, -5px) rotate(.4deg); } 45% { transform: translate(-6px, -6px); } 60% { transform: translate(6px, 4px); } 80% { transform: translate(-3px, 2px); } }
+.dying { animation: die .48s ease-in forwards; }
+.hero.cracked .port { filter: grayscale(.8) brightness(.6) contrast(1.4); animation: crack .6s ease-out forwards; }
+.hero.cracked::after { content: ""; position: absolute; inset: -6%; border-radius: 50%; pointer-events: none; z-index: 3; background:
+  linear-gradient(35deg, transparent 48%, rgba(255,255,255,.85) 49%, transparent 51%), linear-gradient(-60deg, transparent 58%, rgba(255,255,255,.8) 59%, transparent 61%), linear-gradient(110deg, transparent 38%, rgba(255,255,255,.75) 39%, transparent 41%); }
+@keyframes crack { 0% { transform: scale(1); } 30% { transform: scale(1.06); } 100% { transform: scale(.96); } }
+/* the Legendary flourish */
+.flourish { position: absolute; inset: 0; z-index: 58; display: grid; place-items: center; pointer-events: none; animation: flourishIn 1.35s ease-out forwards; }
+.flourish .card { --cw: min(230px, 44vw); position: relative; z-index: 2; animation: flourishCard 1.35s cubic-bezier(.2,.9,.3,1) forwards; box-shadow: 0 0 0 3px #ffd35c, 0 0 60px rgba(255,205,90,.9), 0 20px 50px rgba(0,0,0,.7); }
+.fburst { position: absolute; width: 120vmax; height: 120vmax; border-radius: 50%; background: conic-gradient(from 0deg, rgba(255,215,90,.35) 0 10deg, transparent 10deg 30deg, rgba(255,215,90,.35) 30deg 40deg, transparent 40deg 60deg, rgba(255,215,90,.35) 60deg 70deg, transparent 70deg 90deg, rgba(255,215,90,.35) 90deg 100deg, transparent 100deg 120deg, rgba(255,215,90,.35) 120deg 130deg, transparent 130deg 150deg, rgba(255,215,90,.35) 150deg 160deg, transparent 160deg 180deg, rgba(255,215,90,.35) 180deg 190deg, transparent 190deg 210deg, rgba(255,215,90,.35) 210deg 220deg, transparent 220deg 240deg, rgba(255,215,90,.35) 240deg 250deg, transparent 250deg 270deg, rgba(255,215,90,.35) 270deg 280deg, transparent 280deg 300deg, rgba(255,215,90,.35) 300deg 310deg, transparent 310deg 330deg, rgba(255,215,90,.35) 330deg 340deg, transparent 340deg);
+  mask: radial-gradient(circle, #000 0, rgba(0,0,0,.6) 25%, transparent 55%); animation: spin 6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fname { position: absolute; bottom: 14%; font: 700 clamp(22px, 5vw, 40px) var(--display); color: var(--gold); text-shadow: 0 3px 0 #5a2d0c, 0 0 24px rgba(255,190,80,.8); z-index: 2; letter-spacing: .03em; }
+@keyframes flourishIn { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes flourishCard { 0% { transform: scale(.4) translateY(40px) rotateY(90deg); } 25% { transform: scale(1.08) translateY(0) rotateY(0); } 40% { transform: scale(1); } 100% { transform: scale(1); } }
+/* end-of-game stats */
+.gstats { display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 6px 0 10px; }
+.mvp { display: grid; justify-items: center; gap: 4px; } .mvp small { color: var(--gold); font: 700 13px var(--display); }
+.statgrid { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 6px 14px; text-align: left; }
+.stat { display: grid; line-height: 1.1; } .stat b { font: 700 20px var(--display); color: var(--text); } .stat small { color: var(--muted); font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+@media (max-width: 720px) { .statgrid { grid-template-columns: repeat(2, minmax(90px, 1fr)); gap: 4px 10px; } .stat b { font-size: 17px; } .mvp .card { --cw: 72px !important; } }
 .hand .card:hover { z-index: 25 !important; }
 .ctl { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); z-index: 15; display: grid; gap: 8px; justify-items: end; }
 #endturn { font-size: 18px; padding: 6px 10px; border-radius: 0; border: 13px solid transparent; border-width: 13px 12px 14px 12px; border-image: url(img/ui/ui_btn.webp) 91 64 83 64 / 13px 12px 14px 12px stretch; color: #082a10; background: linear-gradient(180deg, #a6ff9a, #3fcf58); background-clip: padding-box; box-shadow: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); font-weight: 700; min-width: 108px; }
@@ -525,6 +578,7 @@ html { overflow-x: hidden; }
 }
 /* inspect: one card, big, with its words explained and the Play / Attack button */
 #battle { touch-action: manipulation; }
+#hand .card, .minion, .hero { touch-action: none; }
 #inspect { position: absolute; inset: 0; z-index: 70; background: rgba(8,5,14,.86); display: grid; place-items: center; padding: 12px; overflow-y: auto; }
 .isheet { display: grid; grid-template-columns: auto minmax(0, 340px); grid-template-areas: "card info" "btns btns"; gap: 14px 20px; align-items: start; max-width: 720px;
   background: #1a1229; border: 2px solid #4c3a74; border-radius: 18px; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }

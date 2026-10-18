@@ -315,7 +315,7 @@
       const P = G.p[u.owner];
       if (G.turn !== u.owner) fireSecret(G, u.owner, 'ehp', {});
     } else { u.h -= n; }
-    ev(G, { t: 'dmg', uid: u.uid, n });
+    ev(G, { t: 'dmg', uid: u.uid, n, by: src ? (src.cid || null) : (ctx && ctx.cid) || null, byPi: src ? src.owner : (ctx ? ctx.pi : null), spell: !!(ctx && ctx.spell) });
     if (src && src.kind === 'minion' && !src.silenced) {
       if (src.kw.has('poisonous') && u.kind === 'minion') u.poisoned = true;
       if (src.kw.has('frostbite')) freeze(G, u);
@@ -883,6 +883,115 @@
     }
     return false;
   }
+  // ---------- the smarter bot: one-turn lookahead ----------
+  // Every candidate action (each playable card with each sensible target, the Hero Power, every attack, ending the turn)
+  // is tried on a copy of the game, the rest of the turn is played out greedily, and the end position is scored.
+  // The best first action is then made for real, one per call, so the UI can animate it. Random effects are
+  // re-seeded in the copy so the bot never "knows" how a Spin! will land.
+  function cloneGame(G) {
+    const c = structuredClone(G);
+    c.seed = (G.seed * 1103515245 + 12345 + Date.now()) >>> 0;
+    c.log = []; c.ev = []; c.sim = true;
+    return c;
+  }
+  function evalState(G, pi) {
+    const me = G.p[pi], op = G.p[1 - pi];
+    if (G.phase === 'over') return G.winner === pi ? 1e6 : G.winner === -1 ? 0 : -1e6;
+    const hp = u => u.hp + u.armor;
+    let v = 0;
+    const myHp = hp(me.hero), opHp = hp(op.hero);
+    v += Math.min(myHp, 30) * 3 + Math.max(0, myHp - 30) * 1 - opHp * 3.2;
+    if (opHp <= 10) v += (10 - opHp) * 4; // closing in
+    if (myHp <= 10) v -= (10 - myHp) * 5; // in danger
+    const mine = me.board.filter(u => !u.dead), theirs = op.board.filter(u => !u.dead);
+    v += mine.reduce((a, u) => a + unitValue(G, u), 0) * 2.4 - theirs.reduce((a, u) => a + unitValue(G, u), 0) * 2.4;
+    v += mine.length * 1.5 - theirs.length * 1.5;
+    v += me.hand.length * 1.6 - op.hand.length * 0.6;
+    if (me.weapon) v += me.weapon.a * me.weapon.h * 0.9;
+    if (me.hero.frozen) v -= 2;
+    // next-turn threat: can their board kill me, and is there a Guard in the way?
+    const threat = theirs.reduce((a, u) => a + atkOf(G, u) * (u.kw.has('windfury') ? 2 : 1), 0) + (op.weapon ? op.weapon.a : 0);
+    const guard = mine.some(u => u.kw.has('taunt') && !u.stealth);
+    if (threat >= myHp && !guard) v -= 400; else if (threat >= myHp * .6 && !guard) v -= 40;
+    // and whether I threaten lethal next turn
+    const myThreat = mine.reduce((a, u) => a + atkOf(G, u), 0) + (me.weapon ? me.weapon.a : 0);
+    if (myThreat >= opHp && !theirs.some(u => u.kw.has('taunt'))) v += 60;
+    v += (me.quests || []).reduce((a, q) => a + q.prog * 2, 0);
+    return v;
+  }
+  function botCandidates(G, pi) {
+    const P = G.p[pi], op = G.p[1 - pi], out = [];
+    P.hand.forEach((ci, i) => {
+      const c0 = card(ci.cid);
+      const choices = c0.ch ? c0.ch.map((_, k) => k) : [null];
+      choices.forEach(choice => {
+        if (choice != null) ci.choice = choice;
+        if (hasKw(c0, 'magnetic')) {
+          const mechs = P.board.filter(u => !u.dead && card(u.cid).tr === 'Mech');
+          [null, ...mechs.map(u => u.uid)].forEach(mag => { ci.mag = mag; if (canPlay(G, pi, i)) out.push({ k: 'play', i, choice, mag }); });
+          ci.mag = null;
+        } else if (canPlay(G, pi, i)) {
+          const c = cardOf(ci), onKeys = c.t === 's' ? ['cast'] : ['bc', 'combo'];
+          if (needsTarget(c, onKeys)) {
+            const e = chosenEffect(c, onKeys);
+            if (e.on === 'combo' && G.played === 0) out.push({ k: 'play', i, choice, tgt: null });
+            else {
+              const list = validTargets(G, pi, e.tg || 'any', { spell: c.t === 's', eff: e });
+              const harm = ['dmg', 'freeze', 'silence', 'destroy', 'transform', 'bounce', 'curse'].includes(e.op);
+              const good = list.filter(u => harm ? u.owner !== pi : u.owner === pi);
+              const pool = (good.length ? good : list).slice().sort((a, b) => unitValue(G, b) - unitValue(G, a)).slice(0, 4);
+              if (!pool.length && c.t !== 's') out.push({ k: 'play', i, choice, tgt: null });
+              pool.forEach(u => out.push({ k: 'play', i, choice, tgt: u.uid }));
+            }
+          } else out.push({ k: 'play', i, choice, tgt: null });
+        }
+        if (choice != null) ci.choice = null;
+      });
+    });
+    if (canHeroPower(G, pi)) {
+      const e = P.heroData.hp.fx.find(picks);
+      if (e) validTargets(G, pi, e.tg || 'any', { spell: true, eff: e }).slice(0, 5).forEach(u => out.push({ k: 'hp', tgt: u.uid }));
+      else out.push({ k: 'hp' });
+    }
+    [...P.board, P.hero].forEach(u => { if (canAttack(G, u)) attackTargets(G, u).forEach(d => out.push({ k: 'atk', a: u.uid, d: d.uid })); });
+    P.hand.forEach((ci, i) => { if (canTrade(G, pi, i) && costOf(G, pi, ci) > P.maxMana) out.push({ k: 'trade', i }); });
+    out.push({ k: 'end' });
+    return out;
+  }
+  function botApply(G, pi, a) {
+    const P = G.p[pi];
+    if (a.k === 'play') { const ci = P.hand[a.i]; if (!ci) return false; ci.choice = a.choice; ci.mag = a.mag == null ? null : a.mag; return playCard(G, pi, a.i, a.tgt == null ? null : a.tgt, P.board.length); }
+    if (a.k === 'hp') return heroPower(G, pi, a.tgt == null ? null : a.tgt);
+    if (a.k === 'atk') return attack(G, pi === G.turn ? a.a : a.a, a.d);
+    if (a.k === 'trade') return trade(G, pi, a.i);
+    return false;
+  }
+  function botStepSmart(G, pi) {
+    if (G.phase !== 'play' || G.turn !== pi) return false;
+    const cands = botCandidates(G, pi);
+    if (cands.length <= 1) return false;
+    let best = null, bestV = -Infinity;
+    for (const a of cands) {
+      const sim = cloneGame(G);
+      sim.p[pi].isBot = true;
+      if (a.k !== 'end') { if (!botApply(sim, pi, a)) continue; }
+      let n = 0; while (sim.phase === 'play' && sim.turn === pi && n++ < 40 && botStep(sim, pi));
+      // unspent Mana is a small waste, except when passing is the plan
+      let v = evalState(sim, pi) - (sim.phase === 'play' ? sim.p[pi].mana * 0.6 : 0);
+      // then the opponent's likely reply, with a hand guessed from their deck (the bot never looks at the real one)
+      if (G.depth !== 1 && sim.phase === 'play') {
+        const op = sim.p[1 - pi], guess = shuffle(sim, op.deck.slice());
+        op.hand = guess.slice(0, op.hand.length).map(cid => mkCardInst(sim, cid)); op.isBot = true;
+        endTurn(sim);
+        let m = 0; while (sim.phase === 'play' && sim.turn === 1 - pi && m++ < 40 && botStep(sim, 1 - pi));
+        v = v * 0.4 + evalState(sim, pi) * 0.6;
+      }
+      if (v > bestV) { bestV = v; best = a; }
+    }
+    if (!best || best.k === 'end') return false;
+    return botApply(G, pi, best);
+  }
+  function botTurnSmart(G, pi) { let n = 0; while (G.phase === 'play' && G.turn === pi && n++ < 60 && botStepSmart(G, pi)); if (G.phase === 'play' && G.turn === pi) endTurn(G); }
   function botTurn(G, pi) { let n = 0; while (G.phase === 'play' && G.turn === pi && n++ < 60 && botStep(G, pi)); if (G.phase === 'play' && G.turn === pi) endTurn(G); }
 
   // ---------- decks ----------
@@ -924,7 +1033,7 @@
   }
 
   const API = { setData, newGame, mulligan, botMulligan, playCard, canPlay, heroPower, canHeroPower, attack, canAttack, attackTargets,
-    endTurn, botStep, botTurn, cardOf, canTrade, trade, validTargets, needsTarget, chosenEffect, targetTg, costOf, atkOf, spellDamage, findUnit, chooseDiscover,
+    endTurn, botStep, botTurn, botStepSmart, botTurnSmart, evalState, cardOf, canTrade, trade, validTargets, needsTarget, chosenEffect, targetTg, costOf, atkOf, spellDamage, findUnit, chooseDiscover,
     randomDeck, validateDeck, chooseDredge, picks, match, card: id => DB.byId[id], db: () => DB, KWS, MAX_BOARD, MAX_HAND };
   if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.LLE = API;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -146,6 +146,19 @@
     if (!soundOn) return;
     try { const a = SND[name] ? SND[name].cloneNode() : new Audio(`sfx/${name}.mp3`); SND[name] = SND[name] || a; a.volume = vol || 0.5; a.play().catch(() => { }); } catch (e) { }
   }
+  // which sound a card makes: elements and tribes have their own casts and hits (Glimmerdeep), spells go by class
+  const SND_EL = { Bloom: 'bloom', Moss: 'bloom', Spore: 'bloom', Ember: 'ember', Frost: 'frost', Gale: 'gale', Metal: 'metal', Mech: 'metal', Rust: 'metal', Circuit: 'volt', Mystic: 'mystic', Myth: 'mystic', Cosmos: 'mystic', God: 'mystic',
+    Shade: 'shade', Gloom: 'shade', Stone: 'stone', Tide: 'tide', Fish: 'tide', Sea: 'tide', Volt: 'volt', Static: 'volt' };
+  const SND_CLS = { tamer: 'nature', healer: 'holy', scientist: 'lightning', gambler: 'shadow', collector: 'arcane', champion: 'fire', neutral: 'arcane' };
+  const sndEl = c => SND_EL[(c.tr || '').split(/[\s,/]+/)[0]] || null;
+  function sfxSummon(c) { const el = sndEl(c); sfx(el ? el + '_cast' : 'summon', .45); }
+  function sfxCast(c) { sfx('spell_' + (SND_CLS[c.c] || 'arcane') + '_cast', .5); }
+  function sfxHit(attacker) {
+    if (!attacker) return sfx(['hit1', 'hit2', 'hit3'][Math.floor(Math.random() * 3)], .55);
+    if (attacker.kind === 'hero') return sfx(Math.random() < .5 ? 'hit_sword' : 'hit_blunt', .55);
+    const c = E.card(attacker.cid), el = sndEl(c);
+    sfx(el ? el + '_hit' + (1 + Math.floor(Math.random() * 2)) : ['hit1', 'hit2', 'hit3'][Math.floor(Math.random() * 3)], .55);
+  }
   function playMusic(name) {
     if (music && music.dataset.n === name) { if (soundOn) music.play().catch(() => { }); return; }
     if (music) { music.pause(); music = null; }
@@ -425,6 +438,9 @@
       } else if (e.t === 'death' && e.pi === 1) T.kill++;
       else if (e.t === 'dmg' && e.uid === op.hero.uid) T.face += e.n;
       else if (e.t === 'attack' && e.from === me.hero.uid) T.heroatk++;
+      if (e.t === 'dmg' && e.byPi === 0) { T.dealt = (T.dealt || 0) + e.n; const k = e.by || 'hp'; T.by = T.by || {}; T.by[k] = (T.by[k] || 0) + e.n; if (e.n > (T.big || 0)) { T.big = e.n; T.bigBy = k; } }
+      if (e.t === 'dmg' && e.byPi === 1) T.taken = (T.taken || 0) + e.n;
+      if (e.t === 'heal' && e.pi === 0) T.healed = (T.healed || 0) + e.n;
     }
   }
   let stats = store.get('ll_stats', { wins: {}, games: 0 });
@@ -1157,8 +1173,8 @@
       const playable = myTurn && E.canPlay(G, 0, i);
       const s = sel && sel.type === 'hand' && sel.idx === i;
       return cardHTML(c, { cost: E.costOf(G, 0, ci), cls: (playable ? 'playable' : '') + (s ? ' sel' : '') + (ci.echo ? ' echo' : ''), golden: isGold(c.id),
-        style: `transform:translateX(calc(-50% + ${off * step}px)) rotate(${off * 3.2}deg) translateY(${Math.abs(off) * Math.abs(off) * 2.2}px);z-index:${i + 1}`,
-        attrs: `data-hand="${i}" tabindex="0" role="button" aria-label="${esc(c.n)}"` });
+        style: `--off:${(off * step).toFixed(1)}px;--rot:${(off * 3.2).toFixed(2)}deg;--ty:${(Math.abs(off) * Math.abs(off) * 2.2).toFixed(1)}px;z-index:${i + 1}`,
+        attrs: `data-hand="${i}" data-huid="${ci.uid}" tabindex="0" role="button" aria-label="${esc(c.n)}"` });
     }).join('');
     $('#mboard').classList.toggle('target-zone', !!(sel && sel.type === 'hand' && sel.place));
     const et = $('#endturn');
@@ -1206,16 +1222,59 @@
     v.style.cssText = `left:${p.x}px;top:${p.y}px;background-image:url(img/fx.webp);background-size:800% ${sheetRows * 100}%;background-position:${(idx % 8) * 100 / 7}% ${sheetRows > 1 ? Math.floor(idx / 8) * 100 / (sheetRows - 1) : 0}%`;
     $('#battle').appendChild(v); setTimeout(() => v.remove(), 650);
   }
-  async function lunge(fromUid, toUid) {
+  async function lunge(fromUid, toUid, attacker) {
     const a = elOf(fromUid), d = elOf(toUid); if (!a || !d) return;
     const pa = centerOf(a), pd = centerOf(d);
     a.style.transition = 'transform .16s ease-in'; a.style.zIndex = 40;
     a.style.transform = `translate(${(pd.x - pa.x) * 0.72}px, ${(pd.y - pa.y) * 0.72}px) scale(1.08)`;
     await sleep(170);
+    sfxHit(attacker);
     vfxAt(toUid, D.fx.fxa_slash_long != null ? D.fx.fxa_slash_long : D.fx.fx_slash);
     a.style.transition = 'transform .2s ease-out'; a.style.transform = '';
     await sleep(120);
     a.style.zIndex = '';
+  }
+  // a Legendary or hero card gets Hearthstone's flourish: the card rises in a golden burst with a sting
+  async function flourish(cid, pi) {
+    const c = E.card(cid); if (!c) return;
+    sfx('bossbanner', .55);
+    const w = document.createElement('div'); w.className = 'flourish' + (pi === 0 ? ' mine' : '');
+    w.innerHTML = `<div class="fburst"></div>${cardHTML(c)}<div class="fname">${esc(c.n)}</div>`;
+    $('#battle').appendChild(w); await sleep(1350); w.remove();
+  }
+  // a crack under damage numbers, bigger for bigger hits
+  function splat(el, n) {
+    const p = centerOf(el), d = document.createElement('div'); d.className = 'splat' + (n >= 5 ? ' big' : '');
+    d.style.left = p.x + 'px'; d.style.top = p.y + 'px'; $('#battle').appendChild(d); setTimeout(() => d.remove(), 520);
+  }
+  // a dying minion breaks into shards
+  function shatter(el) {
+    const p = centerOf(el), col = getComputedStyle(el).getPropertyValue('--cc') || '190,180,160';
+    for (let i = 0; i < 9; i++) {
+      const sh = document.createElement('i'); sh.className = 'shard';
+      const a = (i / 9) * 6.283 + Math.random(), v = 40 + Math.random() * 70;
+      sh.style.cssText = `left:${p.x}px;top:${p.y}px;--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v - 30}px;--rot:${(Math.random() - .5) * 240}deg;background:rgba(${col},.9)`;
+      $('#battle').appendChild(sh); setTimeout(() => sh.remove(), 700);
+    }
+  }
+  function quake(k) { const b = $('#battle'); b.classList.remove('quake', 'quake-hard'); void b.offsetWidth; b.classList.add(k === 'hard' ? 'quake-hard' : 'quake'); }
+  // after a render: the card that just left your hand flies onto the board, and drawn cards deal in from the deck
+  function afterRender(evs, playedRect) {
+    if (!G) return;
+    if (playedRect) {
+      const sm = evs.find(e => e.t === 'summon' && e.pi === 0 || e.t === 'magnet' || e.t === 'equip' && e.pi === 0);
+      const target = sm && sm.uid ? elOf(sm.uid) : document.querySelector(`.hero[data-uid="${G.p[0].hero.uid}"]`);
+      if (target) {
+        const r = target.getBoundingClientRect(), b = $('#battle').getBoundingClientRect();
+        const g = document.createElement('div'); g.className = 'flycard'; g.innerHTML = playedRect.html;
+        g.style.cssText = `left:${playedRect.x - b.left}px;top:${playedRect.y - b.top}px;width:${playedRect.w}px;height:${playedRect.h}px;--tx:${r.left - playedRect.x + (r.width - playedRect.w) / 2}px;--ty:${r.top - playedRect.y + (r.height - playedRect.h) / 2}px;--sc:${(r.width / playedRect.w).toFixed(2)}`;
+        $('#battle').appendChild(g); setTimeout(() => g.remove(), 420);
+      }
+    }
+    evs.filter(e => e.t === 'draw' && e.pi === 0).forEach((e, i) => { const el = document.querySelector(`#hand [data-huid="${e.uid}"]`); if (el) { el.style.animationDelay = (i * 90) + 'ms'; el.classList.add('dealt'); } });
+    if (evs.some(e => e.t === 'draw' && e.pi === 0)) sfx('vox_pickcard', .3);
+    const od = evs.filter(e => e.t === 'draw' && e.pi === 1).length;
+    if (od) Array.from($('#ohand').children).slice(-od).forEach(cb => cb.classList.add('dealt'));
   }
   async function showPlayed(cid) {
     const c = E.card(cid); if (!c) return;
@@ -1229,16 +1288,23 @@
       switch (e.t) {
         case 'play': {
           const c = E.card(e.cid);
-          sfx(c.t === 's' ? 'ult' : 'summon', .45);
-          if (e.pi === 1) await showPlayed(e.cid);
+          if (c.t === 's') sfxCast(c); else if (c.t === 'w') sfx('swing_blade', .5); else sfxSummon(c);
+          if (c.r === 3 || c.t === 'h') { await flourish(e.cid, e.pi); }
+          else if (e.pi === 1) await showPlayed(e.cid);
           if (c.r === 3 && Math.random() < (e.pi === 1 ? .4 : .2)) setTimeout(() => botSay(e.pi === 1 ? 'legend' : 'wow'), 300);
           break;
         }
-        case 'attack': sfx(['hit1', 'hit2', 'hit3'][Math.floor(Math.random() * 3)], .55); await lunge(e.from, e.to); break;
-        case 'dmg': floatText(e.uid, '−' + e.n, 'd'); { const el = elOf(e.uid); if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } } break;
-        case 'heal': floatText(e.uid, '+' + e.n, 'h'); sfx('heal', .35); break;
-        case 'shield': floatText(e.uid, 'Blocked', 's'); sfx('shield', .45); break;
-        case 'freeze': floatText(e.uid, 'Frozen', 's'); break;
+        case 'attack': { const a = E.findUnit(G, e.from); if (a && a.kind === 'hero') sfx('swing_heavy', .5); await lunge(e.from, e.to, a); break; }
+        case 'dmg': {
+          floatText(e.uid, '−' + e.n, 'd' + (e.n >= 5 ? ' big' : ''));
+          if (e.spell) sfx('spell_' + (SND_CLS[(E.card(e.by) || {}).c] || 'arcane') + '_impact', .45);
+          const el = elOf(e.uid); if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); splat(el, e.n); }
+          const u = E.findUnit(G, e.uid); if (u && u.kind === 'hero' && e.n >= 4) { quake(e.n >= 8 ? 'hard' : ''); if (e.n >= 8) sfx('boom', .5); }
+          break;
+        }
+        case 'heal': floatText(e.uid, '+' + e.n, 'h'); sfx('heal_chime', .35); break;
+        case 'shield': floatText(e.uid, 'Blocked', 's'); sfx('shield_up', .45); break;
+        case 'freeze': floatText(e.uid, 'Frozen', 's'); sfx('r_freeze', .4); break;
         case 'buff': floatText(e.uid, 'Buffed', 's'); break;
         case 'silence': floatText(e.uid, 'Abilities removed', 's'); break;
         case 'armor': floatText(e.uid, '+' + e.n + ' Armor', 's'); sfx('shield', .3); break;
@@ -1266,20 +1332,25 @@
     if (G && G.phase === 'play' && G.p[1].hero.hp <= 8 && G.p[1].hero.hp > 0) botSay('low');
     if (deaths.length) {
       sfx('ko', .4);
-      deaths.forEach(u => { const el = elOf(u); if (el) el.classList.add('dying'); });
-      await sleep(420);
+      if (deaths.some(u => { const x = E.findUnit(G, u); const c = x && E.card(x.cid); return c && c.r === 3; })) sfx('r_shatter', .5);
+      deaths.forEach(u => { const el = elOf(u); if (el) { el.classList.add('dying'); shatter(el); } });
+      await sleep(480);
     }
   }
-  async function act(fn) {
+  async function act(fn, handIdx) {
     if (busy || !G) return false;
     busy = true;
+    let playedRect = null;
+    if (handIdx != null) { const el = document.querySelector(`#hand [data-hand="${handIdx}"]`); if (el) { const r = el.getBoundingClientRect(); playedRect = { x: r.left, y: r.top, w: r.width, h: r.height, html: el.outerHTML }; } }
     G.ev.length = 0;
     const ok = fn();
     const evs = G.ev.splice(0);
     sel = null; hint(null);
+    if (playedRect && ok) { const el = document.querySelector(`#hand [data-hand="${handIdx}"]`); if (el) el.style.visibility = 'hidden'; }
     await animate(evs);
     busy = false;
     render();
+    afterRender(evs, ok ? playedRect : null);
     await afterAction();
     return ok;
   }
@@ -1310,15 +1381,15 @@
     const onKeys = c.t === 's' ? ['cast'] : ['bc', 'combo'];
     if (E.needsTarget(c, onKeys)) {
       const e = E.chosenEffect(c, onKeys);
-      if (e.on === 'combo' && G.played === 0) { act(() => E.playCard(G, 0, i, null)); return; }
+      if (e.on === 'combo' && G.played === 0) { act(() => E.playCard(G, 0, i, null), i); return; }
       const targets = E.validTargets(G, 0, e.tg || 'any', { spell: c.t === 's', eff: e });
-      if (!targets.length && c.t !== 's') { act(() => E.playCard(G, 0, i, null)); return; }
+      if (!targets.length && c.t !== 's') { act(() => E.playCard(G, 0, i, null), i); return; }
       sel = { type: 'hand', idx: i, targets };
       hint(c.t === 's' ? 'Choose a target for this spell' : 'Choose a target for its "When played" ability');
       render();
       return;
     }
-    act(() => E.playCard(G, 0, i, null));
+    act(() => E.playCard(G, 0, i, null), i);
   }
   // Choose One: the two options as cards, like Hearthstone
   function askChoice(i) {
@@ -1378,7 +1449,7 @@
       if (sel) {
         if (sel.targets.some(t => t.uid === uid)) {
           const s = sel;
-          if (s.type === 'hand') act(() => E.playCard(G, 0, s.idx, uid));
+          if (s.type === 'hand') act(() => E.playCard(G, 0, s.idx, uid), s.idx);
           else if (s.type === 'hp') act(() => E.heroPower(G, 0, uid));
           else if (s.type === 'atk') act(() => E.attack(G, s.uid, uid));
           return;
@@ -1412,11 +1483,12 @@
       await sleep(420);
       busy = true;
       G.ev.length = 0;
-      const did = E.botStep(G, 1);
+      const did = E.botStepSmart(G, 1);
       const evs = G.ev.splice(0);
       await animate(evs);
       busy = false;
       render();
+      afterRender(evs, null);
       if (G.phase === 'over') { await gameOver(); return; }
       if (!did) break;
     }
@@ -1447,6 +1519,84 @@
       <p>Leaving the battle counts as a loss.</p><div class="row"><button class="big alt" data-m="stay">Keep playing</button><button class="big" data-m="quit">Concede</button></div></div>`;
     m.hidden = false;
   };
+
+  // ---------- drag to play, drag to attack ----------
+  // A hand card dragged onto the board is played (onto a unit: with that target). A minion or hero dragged
+  // onto an enemy attacks it, with a targeting arrow. A short press without movement still taps as before.
+  let drag = null;
+  const arrowSvg = () => { let a = $('#arrow'); if (!a) { a = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); a.id = 'arrow'; a.innerHTML = '<path class="ash"/><path class="aline"/><polygon class="ahead" points="0,-11 22,0 0,11"/>'; $('#battle').appendChild(a); } return a; };
+  function drawArrow(x1, y1, x2, y2) {
+    const a = arrowSvg(), b = $('#battle').getBoundingClientRect();
+    x1 -= b.left; y1 -= b.top; x2 -= b.left; y2 -= b.top;
+    const cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - Math.min(90, Math.hypot(x2 - x1, y2 - y1) * .35);
+    const d = `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`;
+    a.querySelector('.aline').setAttribute('d', d); a.querySelector('.ash').setAttribute('d', d);
+    const ang = Math.atan2(y2 - cy, x2 - cx) * 180 / Math.PI;
+    a.querySelector('.ahead').setAttribute('transform', `translate(${x2},${y2}) rotate(${ang})`);
+    a.classList.add('on');
+  }
+  function hideArrow() { const a = $('#arrow'); if (a) a.classList.remove('on'); }
+  function unitAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest('.minion[data-uid], .hero[data-uid]'); }
+  function dragClear() {
+    if (!drag) return;
+    if (drag.ghost) drag.ghost.remove();
+    $$('#hand .card.lifted').forEach(c => c.classList.remove('lifted'));
+    $$('.hover').forEach(c => c.classList.remove('hover'));
+    $('#mboard').classList.remove('target-zone');
+    hideArrow(); drag = null;
+  }
+  $('#table').addEventListener('pointerdown', e => {
+    if (!G || busy || G.phase !== 'play' || G.turn !== 0 || G.pending || e.button) return;
+    const h = e.target.closest('#hand [data-hand]'), u = e.target.closest('.minion[data-uid], .hero[data-uid]');
+    if (h) { const i = +h.dataset.hand; if (!E.canPlay(G, 0, i)) return; drag = { kind: 'hand', i, x0: e.clientX, y0: e.clientY, moved: false }; }
+    else if (u) { const uid = +u.dataset.uid, unit = E.findUnit(G, uid); if (!unit || unit.owner !== 0 || !E.canAttack(G, unit)) return; drag = { kind: 'unit', uid, x0: e.clientX, y0: e.clientY, moved: false }; }
+  });
+  document.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved) {
+      if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 14) return;
+      drag.moved = true; clearTimeout(pressT);
+      if (drag.kind === 'hand') {
+        const el = document.querySelector(`#hand [data-hand="${drag.i}"]`); if (!el) { drag = null; return; }
+        const r = el.getBoundingClientRect(), g = el.cloneNode(true);
+        g.className = g.className.replace(/\b(playable|sel)\b/g, '') + ' dragcard'; g.removeAttribute('data-hand');
+        g.style.cssText = `position:fixed;left:0;top:0;width:${r.width}px;height:${r.height}px;z-index:300;pointer-events:none;--cw:${r.width}px;margin:0`;
+        document.body.appendChild(g); drag.ghost = g; drag.gw = r.width; drag.gh = r.height; el.classList.add('lifted');
+        const c = E.card(G.p[0].hand[drag.i].cid);
+        if (c.t === 'm' || c.t === 'w' || c.t === 'h') $('#mboard').classList.add('target-zone');
+        if (E.needsTarget(c, c.t === 's' ? ['cast'] : ['bc', 'combo'])) { const ef = E.chosenEffect(c, c.t === 's' ? ['cast'] : ['bc', 'combo']); drag.targets = E.validTargets(G, 0, ef.tg || 'any', { spell: c.t === 's', eff: ef }).map(t => t.uid); }
+      } else {
+        const unit = E.findUnit(G, drag.uid); drag.targets = E.attackTargets(G, unit).map(t => t.uid);
+        sel = { type: 'atk', uid: drag.uid, targets: E.attackTargets(G, unit) }; render();
+      }
+    }
+    if (drag.kind === 'hand') { drag.ghost.style.transform = `translate(${e.clientX - drag.gw / 2}px, ${e.clientY - drag.gh * .6}px) rotate(0deg)`; }
+    else { const el = elOf(drag.uid); if (el) { const r = el.getBoundingClientRect(); drawArrow(r.left + r.width / 2, r.top + r.height / 2, e.clientX, e.clientY); } }
+    $$('.hover').forEach(c => c.classList.remove('hover'));
+    const u = unitAt(e.clientX, e.clientY);
+    if (u && drag.targets && drag.targets.includes(+u.dataset.uid)) u.classList.add('hover');
+  });
+  document.addEventListener('pointerup', e => {
+    if (!drag) return;
+    const d = drag;
+    if (!d.moved) { drag = null; return; }
+    noClick = true; setTimeout(() => { noClick = false; }, 300);
+    const u = unitAt(e.clientX, e.clientY), uid = u ? +u.dataset.uid : null;
+    const tr = $('#table').getBoundingClientRect(), hr = $('#hand').getBoundingClientRect();
+    const onBoard = e.clientY > tr.top && e.clientY < hr.top && e.clientX > tr.left && e.clientX < tr.right;
+    dragClear();
+    if (!G || busy || G.turn !== 0 || G.phase !== 'play') return;
+    if (d.kind === 'unit') {
+      if (uid != null && d.targets.includes(uid)) { act(() => E.attack(G, d.uid, uid)); }
+      else { sel = null; hint(null); render(); }
+      return;
+    }
+    const ci = G.p[0].hand[d.i]; if (!ci || !E.canPlay(G, 0, d.i)) return;
+    const c = E.card(ci.cid);
+    if (d.targets && uid != null && d.targets.includes(uid) && !c.ch && !(c.kw || []).includes('magnetic')) { act(() => E.playCard(G, 0, d.i, uid), d.i); return; }
+    if (onBoard || uid != null) { sel = null; selectHand(d.i); }
+  });
+  document.addEventListener('pointercancel', () => { if (drag && drag.moved) { dragClear(); sel = null; hint(null); render(); } else drag = null; });
 
   // ---------- the rope: a turn timer, Hearthstone-style ----------
   // 75 seconds a turn. The fuse appears for the last 20 and burns toward the End Turn button; at zero the turn ends.
@@ -1653,9 +1803,20 @@
     m.innerHTML = `<div><h3>Pick a card</h3><p>Choose one of these to add to your hand.</p><div class="row">${pd.opts.map((id, i) => cardHTML(E.card(id), { attrs: `data-disc="${i}"` })).join('')}</div></div>`;
     m.hidden = false;
   }
+  function statsHTML() {
+    const T = G._t || {}; if (!T.by && !T.dealt) return '';
+    const by = Object.entries(T.by || {}).sort((a, b) => b[1] - a[1]), mvp = by[0] && by[0][0] !== 'hp' ? E.card(by[0][0]) : null;
+    const line = (k, v) => `<div class="stat"><b>${v}</b><small>${k}</small></div>`;
+    return `<div class="gstats">${mvp ? `<div class="mvp">${cardHTML(mvp, { cw: '96px' })}<small>MVP · ${by[0][1]} damage</small></div>` : ''}
+      <div class="statgrid">${line('damage dealt', T.dealt || 0)}${line('damage taken', T.taken || 0)}${line('healed', T.healed || 0)}${line('minions played', T.minion || 0)}${line('spells cast', T.spell || 0)}${line('enemies destroyed', T.kill || 0)}
+      ${T.big ? line('biggest hit', `${T.big}${T.bigBy && T.bigBy !== 'hp' && E.card(T.bigBy) ? ' · ' + esc(E.card(T.bigBy).n) : ''}`) : ''}${line('turns', Math.ceil(G.turnNo / 2))}</div></div>`;
+  }
   async function gameOver() {
     const w = G.winner;
     ropeStop();
+    const loser = w === 0 ? G.p[1].hero.uid : w === 1 ? G.p[0].hero.uid : null;
+    if (loser != null) { const el = elOf(loser); if (el) { el.classList.add('cracked'); shatter(el); } quake('hard'); sfx('r_shatter', .6); }
+    await sleep(700);
     sfx(w === 0 ? 'stinger_win' : 'stinger_lose', .6);
     botSay(w === 1 ? 'win' : 'lose', true);
     await sleep(w === 1 ? 1400 : 900);
@@ -1679,7 +1840,7 @@
       : '<button class="big" data-m="again">Play again</button><button class="big alt" data-m="shop">Card Shop</button><button class="big alt" data-m="decks">Change deck</button><button class="big alt" data-m="menu">Main menu</button>';
     m.innerHTML = `<div><h3>${title}</h3><p>${esc(sub)}</p>${gift ? '<p class="reward gift">First match bonus: +100,000 gold!</p>' : ''}
       ${mr && mr.html ? mr.html : ''}${mr ? mr.lines.map(l => `<p class="reward">${esc(l)}</p>`).join('') : ''}
-      ${reward ? `<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>` : ''}${progressHTML(pr)}
+      ${reward ? `<p class="reward">+${reward} gold · you have ${gold.toLocaleString()}</p>` : ''}${statsHTML()}${progressHTML(pr)}
       <div class="row">${btns}</div></div>`;
     m.hidden = false;
   }

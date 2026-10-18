@@ -193,7 +193,19 @@
     goldChips();
   }
   $$('[data-back]').forEach(b => b.addEventListener('click', () => { sfx('click', .4); show('menu'); }));
-  $('#b-play').onclick = () => { sfx('click', .4); show('play'); };
+  $('#b-play').onclick = () => {
+    sfx('click', .4);
+    if (!store.get('ll_tut', false) && !store.get('ll_tutskip', false) && !store.get('ll_gift100k', false)) {
+      $('#zoom').innerHTML = `<div class="codebox" style="text-align:center"><h3>First time?</h3><p>Dr. Labfreak can walk you through a game in ten minutes: Mana, minions, attacking, Guard, spells and your Hero Power. You get 100 gold for finishing.</p>
+        <p class="crow" style="justify-content:center"><button class="small gold" data-tutgo>Play the lesson</button><button class="small" data-tutskip>I know card games, skip it</button></p></div>`;
+      $('#zoom').hidden = false; return;
+    }
+    show('play');
+  };
+  $('#zoom').addEventListener('click', e => {
+    if (e.target.closest('[data-tutgo]')) { $('#zoom').hidden = true; startTutorial(); }
+    else if (e.target.closest('[data-tutskip]')) { store.set('ll_tutskip', true); $('#zoom').hidden = true; show('play'); }
+  });
   $('#b-coll').onclick = () => { sfx('click', .4); show('collection'); };
   $('#b-rules').onclick = () => { sfx('click', .4); show('rules'); };
   $('#b-shop').onclick = () => { sfx('click', .4); show('shop'); };
@@ -800,6 +812,7 @@
     if (em) { const cls = em.dataset.emptydeck; editing = { id: 'd' + Date.now(), name: `My ${CLSN[cls]} Deck`, cls, cards: [] }; F.cls = 'all'; F.page = 0; $('#zoom').hidden = true; renderCollection(); return; }
     if (recipeAct(e)) return;
     if (pickAct(e)) return;
+    if (saveAct(e)) return;
     if (zoomAct(e)) return;
     if (codeAct(e)) return;
     if (e.target.closest('[data-close]') || e.target === $('#zoom') || !e.target.closest('.wrap,.modal,.codebox')) { $('#zoom').hidden = true; pickCb = null; }
@@ -1066,7 +1079,7 @@
     const oppDeck = cmp ? cmp.deck : o.oppDeck || E.randomDeck(null, oppCls, Math.random);
     lastDecks = { myDeck, oppCls, cmp, o };
     G = E.newGame({ decks: [myDeck.cards, oppDeck], classes: [myDeck.cls, oppCls], seed: (Math.random() * 1e9) | 0,
-      names: ['You', cmp ? cmp.name : o.oppName || D.heroes[oppCls].n], heroes: [myHero(myDeck.cls), cmp ? { n: cmp.name, art: cmp.art } : null],
+      names: [o.myName || 'You', cmp ? cmp.name : o.oppName || D.heroes[oppCls].n], heroes: [myHero(myDeck.cls), cmp ? { n: cmp.name, art: cmp.art } : null],
       hp: cmp ? [30, cmp.hp] : o.hp || null, mods: o.mods || null });
     G.p[1].isBot = true;
     G.mode = cmp ? 'camp' : o.mode || 'casual';
@@ -1081,6 +1094,8 @@
     $('#battlebg').style.backgroundImage = `url(${D.boards[bgk] || D.boards[bgs[Math.floor(Math.random() * bgs.length)]]})`;
     show('battle'); playMusic('fight'); sfx('fightstart', .5);
     sizeTable(); render();
+    if (G.mode === 'tutorial') { tutSetup(); render(); tutShow(); return; }
+    if (G.mode === 'pass') return;
     E.botMulligan(G, 1);
     showMulligan();
     setTimeout(() => botSay('greet'), 900);
@@ -1351,6 +1366,7 @@
     busy = false;
     render();
     afterRender(evs, ok ? playedRect : null);
+    tutCheck(evs); tutShow();
     await afterAction();
     return ok;
   }
@@ -1471,8 +1487,15 @@
     sfx('click', .4);
     ropeStop();
     await act(() => E.endTurn(G));
+    if (G && G.mode === 'pass') { passTurn(); return; }
     if (G.phase === 'play' && G.turn === 1) runBot();
   };
+  function tutBotStep() {
+    const P = G.p[1];
+    for (let i = 0; i < P.hand.length; i++) if (E.canPlay(G, 1, i) && E.card(P.hand[i].cid).t === 'm') return E.playCard(G, 1, i, null);
+    for (const u of P.board) if (E.canAttack(G, u)) { const t = E.attackTargets(G, u).filter(x => x.kind === 'minion' && x.h <= E.atkOf(G, u)); if (t.length) return E.attack(G, u.uid, t[0].uid); }
+    return false;
+  }
   async function runBot() {
     if (!G) return;
     const g0 = G;
@@ -1483,7 +1506,7 @@
       await sleep(420);
       busy = true;
       G.ev.length = 0;
-      const did = E.botStepSmart(G, 1);
+      const did = G.mode === 'tutorial' ? tutBotStep() : E.botStepSmart(G, 1);
       const evs = G.ev.splice(0);
       await animate(evs);
       busy = false;
@@ -1494,7 +1517,7 @@
     }
     if (G !== g0 || G.phase !== 'play') return;
     if (G.turn === 1) { await act(() => E.endTurn(G)); }
-    if (G.phase === 'play' && G.turn === 0) { sfx('click', .4); await banner('Your Turn', 800); render(); ropeStart(); }
+    if (G.phase === 'play' && G.turn === 0) { sfx('click', .4); await banner('Your Turn', 800); render(); ropeStart(); tutShow(); }
   }
   $('#b-log').onclick = () => $('#logpane').classList.add('open');
   $('#b-help').onclick = () => {
@@ -1629,6 +1652,7 @@
     closeInspect(); sel = null; hint(null);
     await banner('Time\'s up!', 700);
     await act(() => E.endTurn(G));
+    if (G && G.mode === 'pass') { passTurn(); return; }
     if (G && G.phase === 'play' && G.turn === 1) runBot();
   }
 
@@ -1774,7 +1798,7 @@
   });
 
   // ---------- modals: mulligan, discover, game over ----------
-  function showMulligan() {
+  function showMulligan(after) {
     const P = G.p[0];
     const swap = new Set();
     const m = $('#modal');
@@ -1792,6 +1816,7 @@
       if (b.dataset.m === 'keep') {
         m.hidden = true; m.onclick = modalClick;
         E.mulligan(G, 0, [...swap]);
+        if (after) { render(); after(); return; }
         const sogEv = G.ev.splice(0); render();
         if (sogEv.some(x => x.t === 'sog')) { busy = true; await animate(sogEv.filter(x => ['sog', 'summon', 'armor'].includes(x.t))); busy = false; render(); }
         if (G.turn === 1) runBot(); else { await banner('Your Turn', 800); render(); ropeStart(); }
@@ -1822,6 +1847,20 @@
     await sleep(w === 1 ? 1400 : 900);
     const m = $('#modal');
     const title = w === 0 ? 'Victory!' : w === 1 ? 'Defeat' : 'Draw';
+    if (G.mode === 'pass') {
+      const m = $('#modal'), wn = w < 0 ? 'Draw' : `${G.p[w].name} wins!`;
+      m.innerHTML = `<div><h3>${esc(wn)}</h3><p>${w < 0 ? 'Both heroes fell at once.' : `On turn ${Math.ceil(G.turnNo / 2)}.`}</p><div class="row"><button class="big" data-m="passagain">Rematch</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
+      m.hidden = false; return;
+    }
+    if (G.mode === 'tutorial') {
+      tut = null; $('#tut').hidden = true;
+      const first = !store.get('ll_tut', false); store.set('ll_tut', true);
+      if (first && w === 0) { gold += 100; saveOwned(); }
+      const m = $('#modal');
+      m.innerHTML = `<div><h3>${w === 0 ? 'Lesson complete!' : 'Lesson over'}</h3><p>${w === 0 ? "You know how to play. The real decks have spells, Guards, Shields and tricks of their own; the glossary on any card explains them." : "Dr. Labfreak got lucky. Try again whenever you like."}</p>
+        ${first && w === 0 ? '<p class="reward gift">+100 gold for finishing the tutorial</p>' : ''}<div class="row"><button class="big" data-m="decks">Play a real game</button><button class="big alt" data-m="camp0">Campaign</button><button class="big alt" data-m="menu">Main menu</button></div></div>`;
+      m.hidden = false; return;
+    }
     const reward = G.mode === 'arena' ? 0 : w === 0 ? 60 : 20;
     // launch gift: 100,000 gold the first time a player finishes a match (any result).
     // Players who had already played before this shipped get it on their next match.
@@ -1868,12 +1907,14 @@
     if (k === 'stay') return;
     if (k === 'tipson') { tips = true; store.set('ll_tips', true); render(); return; }
     if (k === 'read') { readFirst = !readFirst; store.set('ll_read', readFirst); return; }
-    if (k === 'quit') { const md = G.mode; ropeStop(); if (md === 'ranked') rankEnd(false); if (md === 'arena') { arenaEnd(false); G = null; show('arena'); return; } G = null; show('menu'); return; }
+    if (k === 'quit') { const md = G.mode; ropeStop(); if (md === 'tutorial') { tut = null; $('#tut').hidden = true; } if (md === 'ranked') rankEnd(false); if (md === 'arena') { arenaEnd(false); G = null; show('arena'); return; } G = null; show('menu'); return; }
     if (k === 'again') { startBattle(lastDecks.myDeck, chosenOpp === 'random' ? CLS[Math.floor(Math.random() * CLS.length)] : lastDecks.oppCls, null, { mode: 'casual' }); return; }
     if (k === 'decks') { G = null; show('play'); return; }
     if (k === 'menu') { G = null; show('menu'); return; }
     if (k === 'shop') { G = null; show('shop'); return; }
     if (k === 'ragain') { G = null; startRanked(); return; }
+    if (k === 'camp0') { G = null; campView = null; show('campaign'); return; }
+    if (k === 'passagain') { const o = lastDecks.o; G = null; const d0 = lastDecks.myDeck, d1 = { cls: lastDecks.oppCls, cards: o.oppDeck, owner: o.oppName }; startPass(d0, d1); return; }
     if (k === 'anext') { G = null; arenaPlay(); return; }
     if (k === 'aback') { G = null; show('arena'); return; }
     if (k === 'bagain') { G = null; startBrawl(); return; }
@@ -2270,7 +2311,9 @@
         ${portrait(who(f.chapters[0].foe.who), true)}<div class="ct"><small>Finale</small><b>${esc(f.title)}</b>
         <span>${open ? esc(f.blurb) : 'Beat all six campaigns to open the finale.'}</span>
         <span class="rw">${fdone ? 'Complete' : `Reward: ${esc(E.card(f.reward.card).n)} + ${f.reward.gold} gold`}</span></div></button>` : '';
-      box.innerHTML = `<p class="campintro">Every class has its own story: four battles, cutscenes before and after each, and a boss with more Health at the end. You play your own decks of that class.</p><div class="cgrid">${tiles}${ftile}</div>`;
+      const done0 = store.get('ll_tut', false);
+      const tile0 = `<button class="ctile tut0${done0 ? ' done' : ''}" id="b-tut" style="--cc:${CCOL('scientist')}">${portrait({ art: D.heroes.scientist.art, cls: 'scientist' }, true)}<div class="ct"><small>Chapter 0 · Learn the ropes</small><b>Dr. Labfreak's First Lesson</b><span>A guided first game: Mana, playing minions, attacking, Guard, spells and your Hero Power. Ten minutes, and the doctor goes easy on you.</span><span class="rw">${done0 ? 'Complete · replay any time' : 'Reward: 100 gold'}</span></div></button>`;
+      box.innerHTML = `<p class="campintro">Every class has its own story: four battles, cutscenes before and after each, and a boss with more Health at the end. You play your own decks of that class.</p><div class="cgrid">${tile0}${tiles}${ftile}</div>`;
       return;
     }
     const s = storyOf(campView), k = campView, done = camp[k] || 0;
@@ -2621,6 +2664,163 @@
     return { lines };
   }
   $('#brawlbody').addEventListener('click', e => { if (e.target.closest('[data-brawl]')) { sfx('click', .4); startBrawl(); } });
+
+  // ================================================================= TUTORIAL
+  // Chapter 0: a scripted first game. Fixed decks, you go first, a coach box that waits for the thing it asked for.
+  const TUT_ME = { hand: ['oe_raccoon', 'oe_capybara'], deck: ['oe_orangutan', 'scs_14', 'oe_red-fox', 'oe_emu', 'oe_lynx', 'oe_american-beaver', 'oe_orca', 'oe_clownfish', 'oe_blue-whale', 'oe_common-loon'] };
+  const TUT_OP = { hand: ['gd_blbe1', 'gd_bldr1', 'gd_blcm1'], deck: ['gd_blmg1', 'gd_blen1', 'gd_blpi1', 'gd_emto1', 'gd_frse1', 'gd_memd1', 'gd_mest1'] };
+  const TUT_STEPS = [
+    { at: 'start', sel: '.hero[data-mine]', tx: 'This is you. The red number is your <b>Health</b>. Bring the enemy hero to 0 Health and you win.', next: true },
+    { at: 'start', sel: '#ohero .hero', tx: "That's Dr. Labfreak. He has only 15 Health today, so this should go quickly.", next: true },
+    { at: 'start', sel: '#hand', tx: 'Your <b>hand</b>. The blue number on a card is its <b>Mana cost</b>. You have 1 Mana this turn. <b>Drag the glowing card onto the board</b> to play it (or tap it).', wait: 'play' },
+    { sel: '#endturn', tx: "Minions sleep the turn they arrive, so it can't attack yet. Press <b>End Turn</b>.", wait: 'end' },
+    { sel: '#hand', tx: 'You get one more Mana every turn, and you drew a card. Play your <b>2-cost</b> minion.', wait: 'play', need: 'oe_orangutan' },
+    { sel: '#mboard', tx: 'Your first minion is awake now. <b>Drag it onto the enemy minion</b> to attack. Both minions hit each other at once.', wait: 'attack' },
+    { sel: '#endturn', tx: 'Good trade. End your turn.', wait: 'end' },
+    { sel: '#oboard', tx: 'The enemy played a minion with <b>Guard</b>: you must attack it before anything else. Your spell <b>Lightning</b> deals 3 damage anywhere. <b>Drag it onto the Guard.</b>', wait: 'play', need: 'scs_14' },
+    { sel: '[data-hp]', tx: "The round button by your hero is your <b>Hero Power</b>. It costs 2 Mana and works once a turn. Zap deals 1 damage. <b>Tap it</b>, then pick the enemy hero.", wait: 'hp' },
+    { sel: '#ohero .hero', tx: "Now you know everything. Attack the enemy hero with your minions whenever nothing with Guard is in the way, play what you can afford, and finish him off.", next: true, last: true },
+  ];
+  let tut = null; // { step, done:Set }
+  const tutOn = () => !!(G && G.mode === 'tutorial' && tut);
+  function startTutorial() {
+    const me = { id: 'tut', name: 'Tutorial deck', cls: 'scientist', cards: TUT_ME.hand.concat(TUT_ME.deck, TUT_ME.deck, TUT_ME.deck).slice(0, 30) };
+    const opDeck = TUT_OP.hand.concat(TUT_OP.deck, TUT_OP.deck, TUT_OP.deck).slice(0, 30);
+    tut = { step: 0 };
+    startBattle(me, 'tamer', null, { mode: 'tutorial', oppDeck: opDeck, oppName: 'Dr. Labfreak', hp: [30, 15], noMull: true });
+  }
+  // called from startBattle once the game exists: fix the hands and the deck order, you go first
+  function tutSetup() {
+    const me = G.p[0], op = G.p[1];
+    const inst = id => ({ uid: G.uid++, cid: id });
+    op.heroData = Object.assign({}, D.heroes.scientist, { n: 'Dr. Labfreak' }); op.name = 'Dr. Labfreak';
+    G.first = 0; G.turn = 0;
+    E.mulligan(G, 0, []); E.mulligan(G, 1, []); // shuffles and starts turn 1, so the script is laid down after
+    me.hand = TUT_ME.hand.concat(TUT_ME.deck[0]).map(inst); me.deck = TUT_ME.deck.slice(1).concat(TUT_ME.deck, TUT_ME.deck).slice(0, 27);
+    op.hand = TUT_OP.hand.map(inst); op.deck = TUT_OP.deck.concat(TUT_OP.deck, TUT_OP.deck).slice(0, 27);
+    G.ev.length = 0;
+  }
+  function tutShow() {
+    const box = $('#tut'); if (!tutOn()) { box.hidden = true; $$('.tut-glow').forEach(e => e.classList.remove('tut-glow')); return; }
+    const st = TUT_STEPS[tut.step]; if (!st) { box.hidden = true; return; }
+    $$('.tut-glow').forEach(e => e.classList.remove('tut-glow'));
+    const sel = st.sel === '.hero[data-mine]' ? `.hero[data-uid="${G.p[0].hero.uid}"]` : st.sel;
+    const el = document.querySelector(sel); if (el) el.classList.add('tut-glow');
+    box.innerHTML = `<div class="tutport" style="${artCSS(D.heroes.scientist.art)}"></div><div class="tuttx"><p>${st.tx}</p>${st.next ? `<button class="small gold" data-tutnext>${st.last ? 'Got it, let me play' : 'Next'}</button>` : '<small>Waiting for you…</small>'}</div>`;
+    box.classList.toggle('top', !!(el && el.getBoundingClientRect().top > innerHeight * .42));
+    box.hidden = false;
+  }
+  function tutCheck(evs) {
+    if (!tutOn()) return;
+    const st = TUT_STEPS[tut.step]; if (!st || !st.wait) return;
+    const hit = evs.some(e => (st.wait === 'play' && e.t === 'play' && e.pi === 0 && (!st.need || e.cid === st.need)) || (st.wait === 'attack' && e.t === 'attack' && G.turn === 0)
+      || (st.wait === 'hp' && e.t === 'hp' && e.pi === 0) || (st.wait === 'end' && e.t === 'turn' && e.pi === 1));
+    if (hit) { tut.step++; sfx('relic', .35); }
+  }
+  $('#tut').addEventListener('click', e => { if (e.target.closest('[data-tutnext]') && tut) { tut.step++; sfx('click', .4); if (TUT_STEPS[tut.step - 1].last) { tut = null; $('#tut').hidden = true; $$('.tut-glow').forEach(x => x.classList.remove('tut-glow')); } tutShow(); } });
+  // the tutorial's bot only plays and attacks minions, never your face, so the lesson always ends well
+  $('#campbody').addEventListener('click', e => { if (e.target.closest('#b-tut')) { sfx('click', .4); startTutorial(); } });
+
+  // ================================================================= PASS AND PLAY
+  // Two people, one screen. The engine always treats p[0] as "me", so when the turn passes the two players'
+  // seats are swapped in the game state behind a curtain, and the other person plays as p[0].
+  function flipSeats(G) {
+    G.p.reverse();
+    G.p.forEach((P, i) => { P.i = i; P.hero.owner = i; P.board.forEach(m => { m.owner = i; }); if (P.weapon) P.weapon.owner = i; });
+    G.turn = 1 - G.turn; G.first = 1 - G.first;
+    if (G.winner === 0 || G.winner === 1) G.winner = 1 - G.winner;
+    if (G.pending && G.pending.pi != null) G.pending.pi = 1 - G.pending.pi;
+    (G.pendingQ || []).forEach(pd => { if (pd.pi != null) pd.pi = 1 - pd.pi; });
+    if (G.backs) G.backs.reverse();
+  }
+  function curtain(name, cb) {
+    const m = $('#modal');
+    m.innerHTML = `<div class="curtain"><h3>Pass to ${esc(name)}</h3><p>No peeking. ${esc(name)}, tap when you have the screen.</p><button class="big" data-m="stay" data-curtain>I have it</button></div>`;
+    m.hidden = false;
+    const h = e => { if (e.target.closest('[data-curtain]')) { m.removeEventListener('click', h, true); m.hidden = true; cb(); } };
+    m.addEventListener('click', h, true);
+  }
+  function startPass(d0, d1) {
+    startBattle(d0, d1.cls, null, { mode: 'pass', oppDeck: d1.cards.slice(), oppName: d1.owner || 'Player 2', myName: d0.owner || 'Player 1', noMull: true });
+    G.p[1].isBot = false;
+    passMulligan();
+  }
+  function passMulligan() {
+    showMulligan(() => {
+      // first player chose; curtain, flip, the second chooses, then the game starts for whoever goes first
+      curtain(G.p[1].name, () => {
+        flipSeats(G); render();
+        showMulligan(() => { G.ev.length = 0; passTurn(); });
+      });
+    });
+  }
+  // at the start of a human turn that isn't p[0]'s: curtain and flip
+  async function passTurn() {
+    if (!G || G.mode !== 'pass') return;
+    if (G.phase !== 'play') return;
+    if (G.turn === 1) { curtain(G.p[1].name, () => { flipSeats(G); render(); banner('Your Turn', 800); ropeStart(); }); }
+    else { await banner('Your Turn', 800); render(); ropeStart(); }
+  }
+  $('#b-pass').onclick = () => {
+    chooseDeck('Pass & Play: Player 1', 'Pick the first player\'s deck.', d0 => {
+      setTimeout(() => chooseDeck('Pass & Play: Player 2', 'Now the second player\'s deck.', d1 => startPass(Object.assign({}, d0, { owner: 'Player 1' }), Object.assign({}, d1, { owner: 'Player 2' }))), 50);
+    });
+  };
+
+  // ================================================================= SAVE CODES
+  // Everything the game stores, gzipped and base64'd, so a player can move to another phone or recover a wipe.
+  const SAVE_KEYS = () => Object.keys(localStorage).filter(k => k.startsWith('ll_'));
+  async function makeSaveCode() {
+    const data = {}; SAVE_KEYS().forEach(k => { data[k] = localStorage.getItem(k); });
+    const bytes = new TextEncoder().encode(JSON.stringify(data));
+    let out = bytes, gz = false;
+    try { if (typeof CompressionStream !== 'undefined') { out = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()); gz = true; } } catch (e) { }
+    let bin = ''; out.forEach(b => { bin += String.fromCharCode(b); });
+    return (gz ? 'LLSAVE1.' : 'LLSAVE0.') + btoa(bin);
+  }
+  async function readSaveCode(code) {
+    const m = String(code || '').trim().match(/LLSAVE([01])\.([A-Za-z0-9+/=]+)/); if (!m) return null;
+    try {
+      const bin = atob(m[2]), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      let raw = bytes;
+      if (m[1] === '1') raw = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+      const data = JSON.parse(new TextDecoder().decode(raw));
+      return data && typeof data === 'object' && data.ll_owned ? data : null;
+    } catch (e) { return null; }
+  }
+  async function showSave(msg) {
+    const code = await makeSaveCode();
+    $('#zoom').innerHTML = `<div class="codebox"><h3>Backup &amp; Restore</h3>
+      <p>Your progress lives in this browser only. Copy a backup code now and then, and paste it on a new phone or after a wipe to get everything back: cards, decks, gold, reagents, quests, ranks.</p>
+      <p class="crow"><button class="small gold" data-save="copy">Copy backup code</button><button class="small" data-save="dl">Download as a file</button></p>
+      <p class="cinfo">${(code.length / 1024).toFixed(1)} KB · ${ownedTotal().toLocaleString()} cards · ${decks.length} deck${decks.length === 1 ? '' : 's'} · Level ${prog.lvl}</p>
+      <h4 style="margin:8px 0 0">Restore</h4>
+      <textarea id="savein" rows="4" placeholder="Paste a backup code here" aria-label="Backup code"></textarea>
+      <p class="crow"><button class="small" data-save="restore">Restore from code</button><label class="small" style="display:inline-grid;place-items:center">Restore from file<input type="file" id="savefile" accept=".txt,text/plain" hidden></label></p>
+      <p class="cmsg">${msg ? esc(msg) : ''}</p>
+      <p class="crow"><button class="small" data-close>Close</button></p></div>`;
+    $('#zoom').hidden = false;
+    $('#zoom').dataset.code = code;
+    const sf = $('#savefile'); if (sf) sf.onchange = async () => { const f = sf.files[0]; if (!f) return; restoreFrom(await f.text()); };
+  }
+  async function restoreFrom(txt) {
+    const data = await readSaveCode(txt);
+    if (!data) { showSave("That doesn't look like a Labfreak Legends backup code."); return; }
+    const b = $('#zoom [data-save="restore"]');
+    if (b && b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Tap again to replace your current progress'; $('#zoom').dataset.pending = txt; return; }
+    SAVE_KEYS().forEach(k => localStorage.removeItem(k));
+    Object.entries(data).forEach(([k, v]) => { if (k.startsWith('ll_') && typeof v === 'string') localStorage.setItem(k, v); });
+    location.hash = ''; location.reload();
+  }
+  function saveAct(e) {
+    const b = e.target.closest('[data-save]'); if (!b) return false;
+    const k = b.dataset.save;
+    if (k === 'copy') copyText($('#zoom').dataset.code).then(ok => { const m = $('#zoom .cmsg'); if (m) m.textContent = ok ? 'Copied. Keep it somewhere safe.' : "Couldn't reach the clipboard; use the file instead."; });
+    else if (k === 'dl') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([$('#zoom').dataset.code], { type: 'text/plain' })); a.download = `labfreak-legends-save-${dayKey()}.txt`; a.click(); }
+    else if (k === 'restore') restoreFrom($('#zoom').dataset.pending || $('#savein').value);
+    return true;
+  }
+  $('#b-save').onclick = () => { sfx('click', .4); showSave(); };
 
   // ---------- cutscenes ----------
   function playScene(ch, idx, part, skipTitle) {

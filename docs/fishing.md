@@ -4133,6 +4133,12 @@ First of the "elevate it to Hearthstone standards" passes.
 **End of game.** The result shows an MVP card (most damage dealt), damage dealt and taken, healing, minions and spells, enemies destroyed, the biggest hit and its card, and turns. Damage events now carry their source for this.
 **Checks.** Headless: drag a minion onto the board, drag a spell onto the enemy hero, the flourish, drag an attack, four smart-bot turns, the result screen; the phone mechanics and modes suites pass; no page errors.
 
+## Labfreak Legends — tutorial, backup codes, pass and play
+**Tutorial.** Chapter 0 at the top of the Campaign, and offered the first time Play is pressed ("I know card games, skip it" remembers). A scripted game against Dr. Labfreak on 15 Health: fixed hands and deck order (Raccoon, Capybara, Orangutan in hand; Lightning on top of the deck), you go first, and the enemy's bot only plays minions and takes safe trades, never your face. A coach box with the doctor's portrait glows the thing it's talking about and waits for it: play a card, end the turn, play the 2-cost, attack, Lightning the Guard, use the Hero Power, then "finish him off". The mulligan shuffles the deck, so the script is laid down after `mulligan()` has run and turn 1 has drawn. Finishing pays 100 gold once.
+**Backup & Restore.** A bottle button in the menu HUD. Every `ll_*` key is packed into a gzipped base64 code (about 1.5 KB for a fresh save; `CompressionStream`, with a plain fallback) with copy and download buttons, and a paste box or file picker restores it, replacing everything after a second tap and reloading.
+**Pass & Play.** On the Play screen: pick two decks and share one screen. The whole UI assumes p[0] is the person holding the device, so `flipSeats()` swaps the two players in the game state (indices, owners, turn, first, winner, pending choices, card backs) behind an opaque "Pass to Player 2" curtain whenever the turn passes, and at the mulligan. No gold, XP or quests from these games; a Rematch button restarts with the same decks.
+**Checks.** Headless on phone and desktop: the first-time prompt, every tutorial step in order, the reward, a backup code round trip (gold set to 1, restored to 400), and a pass-and-play game through both mulligans and two seat changes. No page errors.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

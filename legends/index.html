@@ -912,6 +912,23 @@ body.tabnav .matchbar { padding-bottom: 12px; }
 .hero .hhp, .hero .harm, .hero .hatk, .hero .hname { z-index: 2; }
 .hpower { border: 0; box-shadow: 0 0 0 3px var(--gold-d), 0 0 0 5px #000, 0 4px 10px rgba(0,0,0,.5); }
 @media (max-width: 720px) { .buyrow { grid-template-columns: minmax(0,1fr); } .buyrow .small { font-size: 14px; } }
+
+/* ---------- tutorial, pass and play ---------- */
+#tut { position: absolute; left: 50%; bottom: calc(var(--mw) * 1.5 + 70px); transform: translateX(-50%); z-index: 62; width: min(520px, 92vw); display: flex; gap: 12px; align-items: center;
+  border: 14px solid transparent; border-width: 14px 13px 16px 13px; border-image: url(img/ui/ui_frame.webp) 88 70 88 68 / 14px 13px 16px 13px stretch; background: linear-gradient(180deg, #221838, #150e24); background-clip: padding-box; padding: 6px 10px; filter: drop-shadow(0 10px 24px rgba(0,0,0,.6)); animation: tutIn .3s ease-out; }
+#tut.top { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 70px); }
+@keyframes tutIn { from { opacity: 0; transform: translate(-50%, 12px); } }
+.tutport { width: 64px; height: 64px; border-radius: 50%; background-size: 800% 800%; box-shadow: 0 0 0 3px var(--gold-d), 0 0 0 5px #000; flex: none; }
+.tuttx { display: grid; gap: 6px; min-width: 0; } .tuttx p { margin: 0; font-weight: 700; font-size: 15px; line-height: 1.35; color: var(--text); } .tuttx small { color: var(--muted); font-weight: 800; }
+.tuttx b { color: var(--gold); }
+.tut-glow { animation: tutGlow 1.2s ease-in-out infinite; }
+@keyframes tutGlow { 0%, 100% { filter: drop-shadow(0 0 4px #8cffe9); } 50% { filter: drop-shadow(0 0 14px #8cffe9) drop-shadow(0 0 4px #fff); } }
+.hand.tut-glow { animation: none; } .hand.tut-glow .card.playable { animation: tutGlow 1.2s ease-in-out infinite; }
+.ctile.tut0 { background: linear-gradient(135deg, rgba(140,255,233,.22), #1f1633 60%); }
+.curtain { text-align: center; }
+.modal:has(.curtain) { background: #0b0812; } .curtain h3 { font-size: clamp(28px, 7vw, 48px) !important; }
+.ptabs { display: flex; gap: 8px; align-items: center; } .ptabs .grow { flex: 1; }
+@media (max-width: 720px) { #tut { bottom: calc(var(--mw) * 1.45 + 80px); width: min(440px, 94vw); } .tutport { width: 48px; height: 48px; } .tuttx p { font-size: 14px; } }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 
@@ -922,6 +939,7 @@ body.tabnav .matchbar { padding-bottom: 12px; }
     <div class="hud-xp" title="XP to the next level"><i id="hudxp"></i></div>
     <span class="grow"></span>
     <span class="pill goldchip"></span><span class="pill dustchip"></span>
+    <button class="ibtn" id="b-save" aria-label="Backup and restore" title="Backup &amp; Restore"><img src="img/ui/ic_save.webp" alt=""></button>
     <button class="ibtn" id="b-sound" aria-label="Sound"><img src="img/ui/ic_settings.webp" alt=""><span class="lbl">Sound: off</span></button>
   </div>
   <div class="fan" id="menufan"></div>
@@ -951,7 +969,7 @@ body.tabnav .matchbar { padding-bottom: 12px; }
 <section id="play" class="screen" hidden>
   <div class="topbar"><button class="small back" data-back><span aria-hidden="true">‹</span> Back</button><h2>Choose your deck</h2></div>
   <div class="body scroll"><div class="inner">
-    <div class="ptabs" id="ptabs"><button class="chip" data-pmode="casual">Casual</button><button class="chip" data-pmode="ranked">Ranked</button></div>
+    <div class="ptabs" id="ptabs"><button class="chip" data-pmode="casual">Casual</button><button class="chip" data-pmode="ranked">Ranked</button><span class="grow"></span><button class="small" id="b-pass">Pass &amp; Play</button></div>
     <div id="rankpanel" hidden></div>
     <h3 class="sect">Your decks</h3>
     <div class="deckgrid" id="mydecks"></div>
@@ -1017,6 +1035,7 @@ body.tabnav .matchbar { padding-bottom: 12px; }
   </div>
   <div class="tl"><button class="small" id="b-menu" aria-label="Menu"><span class="ic" aria-hidden="true">☰</span><span class="lb">Menu</span></button><button class="small" id="b-help" aria-label="Help"><span class="ic" aria-hidden="true">?</span><span class="lb">Help</span></button><button class="small" id="b-log" aria-label="Battle log"><span class="ic" aria-hidden="true">≡</span><span class="lb">Log</span></button><button class="small" id="b-emote" aria-label="Emotes"><span class="ic" aria-hidden="true">💬</span><span class="lb">Emote</span></button></div>
   <div id="emotes" hidden></div>
+  <div id="tut" hidden></div>
   <div id="rope" hidden><i></i><b></b></div>
   <div id="coach" hidden></div>
   <div class="ctl"><button id="endturn">End Turn</button></div>

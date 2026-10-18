@@ -4139,6 +4139,13 @@ First of the "elevate it to Hearthstone standards" passes.
 **Pass & Play.** On the Play screen: pick two decks and share one screen. The whole UI assumes p[0] is the person holding the device, so `flipSeats()` swaps the two players in the game state (indices, owners, turn, first, winner, pending choices, card backs) behind an opaque "Pass to Player 2" curtain whenever the turn passes, and at the mulligan. No gold, XP or quests from these games; a Rematch button restarts with the same decks.
 **Checks.** Headless on phone and desktop: the first-time prompt, every tutorial step in order, the reward, a backup code round trip (gold set to 1, restored to 400), and a pass-and-play game through both mulligans and two seat changes. No page errors.
 
+## Labfreak Legends — achievements, a weekly quest, batch distilling, golden cards that move
+**Achievements** (a new tab in Quests & Rewards): 31 one-time goals with gold and XP: wins (1/25/100), ten wins with each class, collection size, Legendaries and golden cards owned, packs opened, daily quests done, campaigns and the finale, Arena 7 and 12 wins, Silver/Gold/Legend, Brawl wins, a 10 and a 20 damage hit, 50 Legendaries played, the tutorial, saving a pre-made deck. Each is a getter over the stored counters, so they're checked after every game and whenever a screen opens; new ones show on the result screen or as a toast.
+**Weekly quest.** One bigger goal every Monday (10 wins, 60 minions, 6 daily quests, 4 Ranked wins, 60 kills or 40 spells) for 1,500 XP, 150 gold and a Multiverse Pack, shown under the dailies with the days left.
+**Distill unused.** A Collection button that lists, by rarity, every copy no deck holds and no starter needs (golden only when asked), shows the reagent yield, and distills them all on a second tap.
+**Golden cards** now move: the art slowly drifts and zooms, with sparkles twinkling over it, on top of the existing sheen.
+**Checks.** Headless on phone and desktop: the weekly quest renders, First Blood lands on the result screen, batch distill turns 80 spare Commons into 400 reagents. No page errors.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

@@ -64,20 +64,19 @@ HEROES = ['knight', 'brute', 'duelist', 'ranger', 'hexpriest', 'gambler']
 ENEMIES = ['rat', 'skel', 'slime', 'archer', 'orc', 'wraith', 'mimic', 'ironclad', 'reaper',
            'abom', 'homunculus', 'brainjar', 'mirror', 'taxman', 'croupier']
 BOSSES = ['bandit', 'boneking', 'lich', 'labfreak', 'labfreak2']
-GEAR = {
-    'weapon': ['shiv', 'dirk', 'cleaver', 'kris', 'stiletto', 'luckyblade', 'ossuarymace', 'headsmanaxe', 'reapersickle', 'crossbow'],
-    'armor':  ['jerkin', 'gambeson', 'chainmail', 'brigandine', 'bonecuirass', 'cryptscale', 'plate', 'casketplate', 'ribcageplate', 'coffinlid'],
-    'boots':  ['sandals', 'treads', 'striders', 'greaves', 'ironshodboots', 'cryptcrawlers', 'sabatons', 'skullstompers', 'nightwalkers', 'gravewalkers'],
-    'charm':  ['token', 'ring', 'amulet', 'horseshoe', 'fourleafclover', 'crowskull', 'idol', 'soullantern', 'deadmanslocket', 'deathscoin'],
-}
-RELICS = ['fang', 'whetstone', 'emberheart', 'thornmail', 'vampirecape', 'eagleeye', 'quiver', 'powderkeg',
-          'secondwind', 'ironlung', 'gauntlet', 'glasscannon', 'scythe', 'hexbag', 'tower', 'momentum',
-          'luckycoin', 'goldtooth', 'skullring', 'wither', 'bloodpact', 'spite', 'souljar', 'marrow']
-MISC = ['chest', 'chest_open', 'ui_coin', 'ui_souls', 'ui_souls_big', 'ui_hp', 'ui_block', 'ui_best',
-        'map_boss', 'map_elite', 'map_fight', 'map_rest', 'map_treasure', 'shop_chest', 'ui_panel', 'ui_logo',
-        'slot_weapon', 'slot_armor', 'slot_boots', 'slot_charm', 'ui_bag', 'ui_daily', 'ui_settings',
-        'ui_sound_on', 'ui_sound_off', 'ui_vault', 'ui_wardrobe', 'ui_contracts', 'ui_fast', 'ui_auto_on',
-        'portrait_locked', 'intent_atk', 'intent_guard', 'coinpile', 'shrine']
+# every icon an item, enemy move or menu uses (see ITEMS / ENEMIES in index.html)
+ICONS = """gear_weapon_shiv gear_weapon_dirk gear_weapon_stiletto gear_weapon_kris gear_weapon_cleaver gear_weapon_luckyblade
+gear_weapon_ossuarymace gear_weapon_headsmanaxe gear_weapon_reapersickle gear_weapon_crossbow gear_weapon_shortbow gear_weapon_longbow
+gear_weapon_noosewhip gear_weapon_grenadierpouch gear_weapon_bonesaw gear_weapon_gravediggerspade
+gear_armor_jerkin gear_armor_chainmail gear_armor_plate gear_armor_coffinlid gear_armor_bonecuirass gear_armor_gambeson
+gear_boots_sandals gear_boots_greaves gear_boots_nightwalkers
+gear_charm_fourleafclover gear_charm_ring gear_charm_amulet gear_charm_die gear_charm_horseshoe gear_charm_soullantern
+relic_whetstone relic_emberheart relic_hexbag relic_fang relic_eagleeye relic_momentum relic_tower relic_snakeoil relic_beaker
+relic_piggybank relic_pouch relic_candle relic_glasscannon relic_thornmail relic_skullring relic_goldtooth relic_ironlung
+relic_secondwind relic_scythe relic_spite relic_wither relic_souljar relic_powderkeg relic_bloodpact relic_gauntlet relic_quiver relic_vampirecape
+sym_potion sym_shield sym_bomb sym_bow scratch_potion shop_tonic shop_meal ui_hp ui_block ui_coin ui_souls ui_souls_big ui_best""".split()
+MISC = ['chest', 'chest_open', 'map_boss', 'map_elite', 'map_fight', 'map_rest', 'map_treasure', 'shop_chest', 'coinpile',
+        'ui_bag', 'ui_daily', 'ui_settings', 'ui_vault', 'ui_wardrobe', 'ui_contracts', 'ui_fast', 'ui_logo', 'portrait_locked']
 WALLS = ['bg_wall', 'bg_wall_2', 'bg_wall_3', 'bg_wall_4', 'bg_wall_lab', 'bg_wall_boss',
          'bg_floor', 'bg_floor_2', 'bg_floor_3', 'bg_floor_4', 'bg_floor_lab']
 FX = ['fxa_hit', 'fxa_slash', 'fxa_heal', 'fxa_coins', 'fxa_bomb', 'fxa_curse', 'fxa_block', 'fxa_souls', 'fxa_arrow']
@@ -114,17 +113,11 @@ for e in ENEMIES:
     sprite('enemy_' + e); sprite('enemy_attack_' + e); anim('enemy_' + e, 'idle'); anim('enemy_' + e, 'walk')
 for b in BOSSES:
     sprite('boss_' + b); sprite('boss_attack_' + b); anim('boss_' + b, 'idle'); anim('boss_' + b, 'walk')
-for slot, names in GEAR.items():
-    for n in names:
-        k = 'gear_%s_%s' % (slot, n)
-        if k in LD: out[k] = fit(LD[k], 112); meta[k] = {}
-        else: print('missing', k)
-for r in RELICS:
-    k = 'relic_' + r
-    if k in LD: out[k] = fit(LD[k], 112); meta[k] = {}
+for k in ICONS:
+    if k in LD: out[k] = fit(LD[k], 192); meta[k] = {}
     else: print('missing', k)
 for k in MISC:
-    if k in LD: out[k] = fit(LD[k], 360); meta[k] = {}
+    if k in LD: out[k] = fit(LD[k], 300); meta[k] = {}
     else: print('missing', k)
 for k in WALLS:
     out[k] = reencode(LD[k], 1024, 74); meta[k] = {}

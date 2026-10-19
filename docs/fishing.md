@@ -4146,6 +4146,14 @@ First of the "elevate it to Hearthstone standards" passes.
 **Golden cards** now move: the art slowly drifts and zooms, with sparkles twinkling over it, on top of the existing sheen.
 **Checks.** Headless on phone and desktop: the weekly quest renders, First Blood lands on the result screen, batch distill turns 80 spare Commons into 400 reagents. No page errors.
 
+## Gearbound — a new standalone game built from the repo's art
+The playtester asked for a copy of a mobile game (a chapter screen with energy, Best Round n/12, START, Chapter Breakthrough, Expedition and a five-tab bar), using the art already in this repo.
+**What it is.** `gearbound/`, standalone like Thankless and Dead Man's Pull. Twelve-round chapter runs that play themselves, a choice of three skills after each round, an elite on round 6 and a boss on round 12. Between runs: four gear slots with six rarities, gold upgrades, three-into-one merges, talents, six unlockable heroes, a shop, energy, an expedition timer, breakthrough chests and a Gold Vault dungeon. Only the structure follows the original; the name, characters and art are our own.
+**Art.** Nothing new was painted. `gearbound/pack-art.py` takes the heroes, enemies, bosses (with their idle and walk sheets), gear, relic icons, dungeon walls and FX from Dead Man's Pull, and the three battlefields from Thankless. It shrinks them into an 8 MB `art.js` (the sources are 23 MB and 7.7 MB). Sounds and music play from the other games' folders.
+**Balance.** `gbSimRun(ch, n, {k})` plays runs headless. Bisection over `k` per chapter (`for ch … gbSimRun(ch,24,{k})`, nine steps) gave 1.17, 1.85, 2.71, 3.35, 4.38, 6.6, 10.15 and 14.32 times a fresh hero's stats; those are `REC_K`, and the recommended power comes from them. A fresh hero (power 184) reaches about round 6 of Chapter 1 and wins once their gear and talents add up to about 215.
+**Lesson.** In the first build an archer could stop out of the hero's melee reach and shoot forever, so runs never ended. Melee heroes now step up to foes that hang back.
+**Checks.** Headless at 400×860: home, shop free chest, gear and item detail, heroes, a full run through the elite and the boss to victory, Chapter 2 and the Ranger unlocking, the Ranger at range, the Gold Vault. No page errors.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

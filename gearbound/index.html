@@ -270,6 +270,20 @@ b,.pill,.pow,.sc .pr{font-weight:800}
 .tip .nm{font-size:22px}
 .eff{font-size:16px}
 .bctl{font-weight:800}
+
+/* short phones (iPhone SE and friends): tighten the home screen and the run screen */
+@media (max-height:760px){
+  #top{padding:6px 8px 2px}#ava{width:52px;height:52px}
+  .sbtn img{width:48px;height:48px;padding:6px}.side{gap:6px}
+  .duo .sbtn img{width:48px;height:48px}.duo{padding:4px 14px 6px}
+  .bigStart{height:80px;margin:8px auto 6px}.bigStart .t{font-size:28px}
+  #runTop{height:clamp(118px,21vh,170px)}.sc{height:80px}#runBar{padding:4px 10px 6px}.fight{height:66px}
+}
+@media (max-height:620px){
+  #ticker{display:none}.chap .t{font-size:19px}.best{font-size:14px}
+  .sc{height:70px}.sc .nm{display:none}#shopHead{margin-bottom:0}
+  .fight{height:58px;width:200px}.fight .t{font-size:24px}#runBar{padding:2px 10px 4px}#runTop{height:110px}#packWrap{padding-top:18px}
+}
 </style>
 </head>
 <body>
@@ -653,7 +667,9 @@ function mergeCandidates(id,t){return t<TIER.length-1?run.items.filter(o=>o.id==
 let cellPx=46,stashPx=38;
 function layoutCells(){const b=bagDef(run.bag),vw=Math.min(480,window.innerWidth),vh=window.innerHeight;
   // fit the bag across, and leave room in height for the route strip, stash, merchant and buttons
-  const top=$('runTop').getBoundingClientRect().height||200,byW=(vw-56)/b.w,byH=(vh-top-76-140-84-40)/b.h;cellPx=Math.floor(clamp(Math.min(byW,byH),28,58));
+  // measure what the strip, merchant and buttons really take, then give the bag (and its stash row) the rest
+  const hOf=id=>$(id).getBoundingClientRect().height,fixed=(hOf('runTop')||200)+(hOf('shopBox')||130)+(hOf('runBar')||84)+20+8+10+16;
+  const byW=(vw-56)/b.w,byH=(vh-fixed-8)/(b.h+.82);cellPx=renderRun.fix||Math.floor(clamp(Math.min(byW,byH),24,58));
   stashPx=Math.floor(Math.min(cellPx*.82,(vw-40)/STASH.w));
   document.documentElement.style.setProperty('--cell',cellPx+'px');}
 function gridHtml(g,cs){let h='';const b=bagDef(run.bag),W=g==='stash'?STASH.w:b.w,H=g==='stash'?STASH.h:b.h;
@@ -677,6 +693,11 @@ function renderRun(){if(!run)return;layoutCells();const R=run,cs=cellPx,b=bagDef
     return '<div class="sc t'+s.t+(s.sold?' sold':'')+'" data-s="'+i+'"><img src="'+src(d.a)+'" alt="">'+(s.lock?'<span class="lk">🔒</span>':'')+(mg?'<span class="mgh">⬆</span>':'')+'<span class="nm">'+d.n+'</span><span class="pr'+(R.gold<s.price?' no':'')+'">🪙'+s.price+'</span></div>';}).join('');
   const free=heroDef(R.hero).freeRoll&&!R.rolled;$('rerollC').textContent=free?'free':'1';$('reroll').disabled=!free&&R.gold<1;
   $('pPowR').textContent=fmt(packPower());$('ePowR').textContent=fmt(foePower(foeFor(R.ch,R.round,R.seed)));$('shopT').textContent='Merchant · round '+R.round;
+  if(!renderRun.again){const want=cellPx;layoutCells();
+    // whatever still spills past the bottom comes out of the cell size
+    const over=$('runBar').getBoundingClientRect().bottom-$('run').getBoundingClientRect().bottom;
+    if(over>0)cellPx=Math.max(22,cellPx-Math.ceil(over/(b.h+.82)));
+    if(cellPx!==want){renderRun.again=1;renderRun.fix=cellPx;renderRun();renderRun.again=0;renderRun.fix=0;return;}}
   saveRun();}
 function saveRun(){if(SIM)return;S.run=run&&!run.vault?JSON.parse(JSON.stringify(run)):S.run;save();}
 $('reroll').onclick=()=>{const R=run,free=heroDef(R.hero).freeRoll&&!R.rolled;if(!free){if(R.gold<1)return;R.gold--;}R.rolled=true;rollShop(false);sfx('spin',.4);renderRun();};

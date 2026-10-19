@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Build gearbound/chars.js: every hero, foe and boss, composited from the
+Heroes99 layers in shared-assets/heroes99 (no other game draws these).
+
+Each look stacks: weapon (back), hair (back), skin, face, cloth, hair (front),
+cloth (front), weapon (front). The source sheet is 8 columns x 17 rows of
+100x40 frames (see frameguide_v2.png); we keep the rows the game plays.
+
+    python3 gearbound/pack-chars.py
+"""
+import base64, io, json, os
+from PIL import Image
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+H99 = os.path.join(os.path.dirname(HERE), 'shared-assets', 'heroes99')
+CW, CH = 100, 40
+# anim -> (sheet row, frame count)
+ROWS = {'idle': (0, 6), 'run': (2, 8), 'atk1': (5, 6), 'atk2': (6, 6), 'cast': (10, 5), 'hurt': (12, 4), 'die': (13, 5)}
+ANCHOR = (41, 35)   # feet, measured on the skin layer's idle frame
+
+# look: cloth, cloth colour, hair, hair colour, skin, face, weapon (0 = none), weapon colour, scale
+LOOKS = {
+    # heroes
+    'knight':    dict(c=13, cc=4, h='m2',  hc=3, sk=1, fa=1, w=1),
+    'ranger':    dict(c=11, cc=3, h='f4',  hc=2, sk=2, fa=3, w=3),
+    'brute':     dict(c=16, cc=1, h='m10', hc=1, sk=2, fa=2, w=4),
+    'duelist':   dict(c=6,  cc=1, h='f6',  hc=5, sk=1, fa=4, w=3),
+    'hexpriest': dict(c=7,  cc=4, h='f2',  hc=7, sk=6, fa=5, w=0),
+    'gambler':   dict(c=12, cc=6, h='m6',  hc=4, sk=1, fa=6, w=5, wc=4),
+    # foes
+    'rat':        dict(c=16, cc=1, h='m4',  hc=6, sk=3, fa=2, w=3, s=.9),
+    'slime':      dict(c=7,  cc=3, h='f3',  hc=3, sk=6, fa=7, w=0),
+    'archer':     dict(c=11, cc=5, h='m6',  hc=2, sk=1, fa=3, w=0),
+    'skel':       dict(c=13, cc=5, h='m7',  hc=8, sk=4, fa=1, w=1),
+    'wraith':     dict(c=8,  cc=4, h='f5',  hc=8, sk=4, fa=5, w=0),
+    'orc':        dict(c=14, cc=5, h='m10', hc=1, sk=3, fa=2, w=4, s=1.1),
+    'ironclad':   dict(c=13, cc=1, h='m11', hc=2, sk=2, fa=1, w=2, s=1.05),
+    'mimic':      dict(c=9,  cc=5, h='m3',  hc=4, sk=1, fa=6, w=3),
+    'reaper':     dict(c=12, cc=7, h='m13', hc=1, sk=5, fa=7, w=4),
+    'abom':       dict(c=16, cc=3, h='m14', hc=3, sk=3, fa=2, w=5, wc=2, s=1.2),
+    'homunculus': dict(c=17, cc=2, h='m8',  hc=5, sk=5, fa=3, w=3, s=.85),
+    'brainjar':   dict(c=10, cc=5, h='f7',  hc=6, sk=6, fa=4, w=0),
+    'mirror':     dict(c=5,  cc=8, h='f8',  hc=7, sk=4, fa=6, w=3),
+    'taxman':     dict(c=6,  cc=6, h='m9',  hc=2, sk=2, fa=1, w=5, wc=3),
+    'croupier':   dict(c=3,  cc=5, h='f9',  hc=1, sk=1, fa=5, w=0),
+    # bosses
+    'bandit':    dict(c=14, cc=1, h='m12', hc=1, sk=1, fa=2, w=2, s=1.3),
+    'boneking':  dict(c=15, cc=5, h='m1',  hc=8, sk=4, fa=7, w=4, s=1.3),
+    'lich':      dict(c=8,  cc=8, h='f1',  hc=8, sk=6, fa=4, w=0, s=1.3),
+    'labfreak':  dict(c=10, cc=1, h='m5',  hc=3, sk=1, fa=3, w=3, s=1.25),
+    'labfreak2': dict(c=15, cc=1, h='m5',  hc=1, sk=5, fa=7, w=2, s=1.4),
+}
+
+def layer(path):
+    p = os.path.join(H99, path)
+    return Image.open(p).convert('RGBA') if os.path.exists(p) else None
+
+def pick(base, *alts):
+    for a in (base,) + alts:
+        if os.path.exists(os.path.join(H99, a)): return a
+    return None
+
+def compose(L):
+    c, cc, h, hc, sk, fa, w, wc = L['c'], L['cc'], L['h'], L['hc'], L['sk'], L['fa'], L.get('w', 0), L.get('wc', 1)
+    def wp(side):
+        if not w: return None
+        return f'weapon/weapon{w}/weapon{w}_{side}/' + (f'weapon{w}_c{wc}_{side}.png' if w == 5 else f'weapon{w}_{side}.png')
+    def hp(side):
+        return pick(f'hair/{h}/{h}_{side}/{h}_c{hc}_{side}.png', f'hair/{h}/{h}_{side}/{h}_c1_{side}.png')
+    order = [wp('bot'), hp('bot'), f'skin/skin_c{sk}.png', f'face/face_c{fa}.png',
+             f'cloth/cloth{c}/cloth{c}_bot/cloth{c}_c{cc}_bot.png', hp('top'),
+             f'cloth/cloth{c}/cloth{c}_top/cloth{c}_c{cc}_top.png', wp('top')]
+    out = Image.new('RGBA', (800, 680), (0, 0, 0, 0))
+    for p in order:
+        if p:
+            im = layer(p)
+            if im: out.alpha_composite(im)
+    return out
+
+def uri(im):
+    b = io.BytesIO(); im.save(b, 'PNG', optimize=True)
+    return 'data:image/png;base64,' + base64.b64encode(b.getvalue()).decode()
+
+art, meta = {}, {'cw': CW, 'ch': CH, 'ax': ANCHOR[0], 'ay': ANCHOR[1], 'rows': {}, 'scale': {}}
+names = list(ROWS)
+for i, n in enumerate(names): meta['rows'][n] = [i, ROWS[n][1]]
+for key, L in LOOKS.items():
+    full = compose(L)
+    sheet = Image.new('RGBA', (8 * CW, len(names) * CH), (0, 0, 0, 0))
+    for i, n in enumerate(names):
+        r = ROWS[n][0]
+        sheet.paste(full.crop((0, r * CH, 8 * CW, (r + 1) * CH)), (0, i * CH))
+    art['ch_' + key] = uri(sheet)
+    meta['scale'][key] = L.get('s', 1)
+    # portrait: the head and shoulders of the first idle frame, scaled up crisp
+    head = full.crop((ANCHOR[0] - 11, 3, ANCHOR[0] + 11, 25))
+    bg = Image.new('RGBA', head.size, (34, 26, 60, 255)); bg.alpha_composite(head)
+    art['portrait_' + key] = uri(bg.resize((head.width * 8, head.height * 8), Image.NEAREST))
+
+with open(os.path.join(HERE, 'chars.js'), 'w') as f:
+    f.write('// GENERATED by pack-chars.py from shared-assets/heroes99. Do not edit.\n')
+    f.write('window.GB_CHARS=' + json.dumps(art, separators=(',', ':')) + ';\n')
+    f.write('window.GB_CHMETA=' + json.dumps(meta, separators=(',', ':')) + ';\n')
+print(len(LOOKS), 'characters,', os.path.getsize(os.path.join(HERE, 'chars.js')) // 1024, 'KB')

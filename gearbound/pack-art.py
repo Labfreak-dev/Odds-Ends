@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Build gearbound/art.js from art other Labfreak games already ship.
 
-Nothing here is painted for Gearbound. Sprites, icons and dungeon walls come
-from Dead Man's Pull (lootdaggers/art.js + art-anim.js); the outdoor
-battlefields come from Thankless (thankless/art.js). Each entry carries its
-display height in game units so the game needs none of the source metadata.
+Nothing here is painted for Gearbound. Item icons, FX and dungeon walls come
+from Dead Man's Pull (lootdaggers/art.js); the outdoor battlefields come from
+Thankless (thankless/art.js). Characters are NOT taken from either game: they
+are composited from Heroes99 by pack-chars.py into chars.js.
 
     python3 gearbound/pack-art.py
 """
@@ -105,14 +105,7 @@ def anim(base, kind):
                'ax': round(m['ax'] * s, 2), 'ay': round(m['ay'] * s, 2),
                'uw': round(m.get('uw', m['cw']) * s, 2), 'uh': round(m.get('uh', m['ch']) * s, 2)}
 
-for h in HEROES:
-    for a in ('idle', 'attack', 'hurt'): sprite('hero_%s_%s' % (h, a))
-    anim('hero_%s_idle' % h, 'idle'); anim('hero_%s_idle' % h, 'walk')
-    out['portrait_' + h] = fit(LD['portrait_' + h], 160); meta['portrait_' + h] = {}
-for e in ENEMIES:
-    sprite('enemy_' + e); sprite('enemy_attack_' + e); anim('enemy_' + e, 'idle'); anim('enemy_' + e, 'walk')
-for b in BOSSES:
-    sprite('boss_' + b); sprite('boss_attack_' + b); anim('boss_' + b, 'idle'); anim('boss_' + b, 'walk')
+# heroes, foes and bosses come from Heroes99 now (pack-chars.py); no other game's characters ship here
 for k in ICONS:
     if k in LD: out[k] = fit(LD[k], 192); meta[k] = {}
     else: print('missing', k)

@@ -4163,6 +4163,14 @@ The playtester asked for a copy of a mobile game (a chapter screen with energy, 
 **Bugs found while testing.** The merchant row and the Shop tab both used `id="shop"`, so the merchant's flex style turned the Shop tab on over the home screen. A drop from the merchant read its target after the drag state was cleared, so nothing was bought. The fight still drew `run.hero` for a frame after a run ended; the battle now keeps its own hero and chapter.
 **Checks.** Headless at 400×860, 360×700 and 1280×800: home, the guide, buying by drag, merging onto a twin, selling onto the merchant, neighbour stars, the item card, a fight, three losses to Defeat, a boss win to Chapter Clear (Chapter 2, the Ranger and three items unlocked), Armory, Heroes, Shop, Dungeon and the Vault. No page errors, no sideways scroll.
 
+## Gearbound — clear type, detailed boxes, a hit that doesn't turn the hero round
+**Report.** The hero turned around when hit, and the menu "looks 8-bit": the playtester wanted clear text and detailed boxes.
+**Cause of the flip.** Dead Man's Pull's `hero_*_hurt` paintings don't share a facing: the Warrior's and Hexpriest's face left while their idle poses face right. The fight no longer swaps in the hurt painting. A hit knocks the hero's own idle frames back and tips them, with a red flash; foes recoil the same way.
+**Type.** Jersey 10 (a pixel face) is gone. Titles, buttons and tabs use Cinzel; everything else, including numbers and the canvas text for damage and HP bars, uses Alegreya Sans. CSS sizes were scaled to 0.8, since the pixel face ran small. Cinzel's "1" reads as a Roman "I", so chapter numbers use Alegreya.
+**Boxes.** Currency pills are dark enamel with a brass rim and a coin disc. The power badges are beveled. The portrait has a brass frame. The Best Round band has gold hairlines, the chapter number sits in a gold medallion and the title is gold. Side buttons sit in brass-ringed medallions on a framed plate. START and FIGHT are the painted red banner from the Thankless kit (`ui_btn_big`), list rows, cards and Armory tiles wear its iron tab (`ui_nav`), and the selected hero gets the brass tab. The tab bar has a brass edge and the active tab glows.
+**Lesson.** A gold `background-clip:text` title with a `drop-shadow` filter rendered doubled and blurry in Chromium; a solid gold with text-shadows looks cleaner.
+**Checks.** Headless at 400×860: home, run, item card, fight, Armory, Heroes, Shop, results. No page errors.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

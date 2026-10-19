@@ -4176,6 +4176,13 @@ The playtester asked for a copy of a mobile game (a chapter screen with energy, 
 **Fix.** The run screen measures the route strip, merchant and button bar, gives the backpack and stash what is left, then measures again and takes any remaining overflow out of the cell size. Media queries under 760 px and 620 px of height shrink the home screen's medallions, the START banner, the merchant cards and the route strip; under 620 px the ticker and merchant item names hide.
 **Checks.** Headless with touch at 320×568, 360×740 and 390×844, plus 1280×800: FIGHT ends at 564, 734 and 834 px, no sideways scroll, no page errors; the run, merge, sell, loss and chapter-clear flows still pass.
 
+## Gearbound — its own characters, from Heroes99
+**Ask.** No playable characters or enemies borrowed from the other games. The session has no itch.io connection, so the playtester picked Heroes99, a layered pack already in `shared-assets/` that no game draws any more.
+**How the pack works.** Each layer is an 800×680 sheet of 8×17 frames of 100×40 (the rows are in `frameguide_v2.png`). The working stack, found by trial: weapon back, hair back, skin, face, cloth `_bot` (the clothes themselves), hair front, cloth `_top` (hoods, collars; often empty), weapon front. With cloth `_bot` under the skin, everyone came out unclothed. The characters face right, so foes are mirrored. There are six skins (pale, dark, goblin green, undead teal, demon red, mint), seven faces, 17 outfits in eight colours, 23 hairstyles and five weapons. There are no bows, so ranged and magic attacks play the cast row with a projectile.
+**What changed.** `gearbound/pack-chars.py` composites 26 looks (6 heroes, 15 foes, 5 bosses) into `chars.js`, 830 KB of PNG sheets, plus a crisp portrait for each. The game plays idle, the two attacks (alternating), cast, hurt (which faces the right way, so the recoil hack is gone) and die, at whole-number pixel scales. Foes were renamed to suit people: Goblin Cutthroat, Bog Witch, Grave Knight, Orc Warlord, The Bone Lord, The Pale Sorcerer… `pack-art.py` no longer takes any character from Dead Man's Pull, and `art.js` fell from 8.3 MB to 2.4 MB.
+**Lesson.** The first scale (a third of the scene's height) made the pixel art fill half the screen; about a fifth, rounded to whole pixels, reads well.
+**Checks.** Headless: home, run, fights (normal, elite, boss), defeat, chapter clear, Heroes, Vault; touch at 320×568, 360×740 and 390×844. No page errors, no sideways scroll.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

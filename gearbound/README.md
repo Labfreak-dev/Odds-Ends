@@ -5,37 +5,46 @@ Like `thankless/` and `lootdaggers/`, it shares nothing with the card game at
 the repo root and is exempt from the root's generated-file rule: edit
 `index.html` directly. No build step.
 
-**The pitch:** a chapter-run roguelite in the mold of mobile "gear up and push
-the next chapter" games. You set up the hero between runs; inside a run they
-fight on their own and you only choose skills.
+**The pitch:** a backpack auto-battler. Between fights you buy shaped gear
+from a merchant and pack it into a shaped backpack; in the fight every
+packed item works on its own timer. Twelve rounds a chapter, three lives a
+run.
 
-## The loop
-- **Adventure.** Pick an unlocked chapter and press START (5 energy; energy
-  refills 1 every 6 minutes up to 35). A run is twelve rounds: waves of foes,
-  an elite on round 6, the chapter boss on round 12. Beat the boss to unlock
-  the next chapter. The hero keeps their HP between rounds and heals 15%.
-- **Skills.** After every round, choose one of three skills (one free reroll
-  a run). 21 skills: stat boosts, Fireball / Arrow Volley / Powder Keg /
-  Skull Lightning that cast themselves, Cleave, Wither, Thornmail, Second
-  Wind and more. Most go to level 5.
-- **Gear.** Four slots (weapon, armor, boots, charm), ten items each, six
-  rarities (Common → Mythic). Upgrade levels with gold. Three items of the
-  same slot and rarity merge into one of the next rarity, keeping the best
-  tier of the three; "Merge all" does every merge it can.
-- **Chapter Breakthrough.** Reaching rounds 4, 8 and 12 in a chapter pays a
-  chest once.
-- **Expedition.** Gold builds while you're away (up to 12 hours), plus one
-  gear item every 2 hours.
-- **Heroes.** Six heroes, one unlocked per chapter cleared, each with a
-  passive (the Ranger fights at range). Talents spend gold on ATK, HP, DEF
-  and gold find.
-- **Shop.** A free chest daily, Iron Chests for gold, Hero Chests for gems
-  with an Epic every 10 opens.
-- **Dungeon** (opens after Chapter 2). The Gold Vault: 30 seconds against an
-  unkillable Mimic, gold for every hit. Two keys a day.
+## A run
+- **Merchant.** Five items a round, priced in run gold. Reroll for 1 gold;
+  "Hold" keeps an item through a reroll. Rarer items unlock as rounds go on,
+  and from round 5 some arrive pre-merged.
+- **Backpack.** A shaped grid (the Warrior Backpack has 26 cells). Drag items
+  in; tap one to rotate, stash or sell it; while dragging press R,
+  right-click, or touch with a second finger to turn it. Drop an item on the
+  merchant to sell it. The 8-cell stash holds items that don't fight.
+- **Merging.** Drop an item on an identical one of the same tier: Common →
+  Rare → Epic → Legendary (2×, 3.6×, 6.2× the numbers).
+- **Neighbours.** Gems, boots and some charms buff the items touching them
+  (Whetstone +damage, Ember Heart burn, Hex Bag poison, Vampire Fang
+  lifesteal, Clockwork Heart speed, Tower Charm block…). Gold stars show who
+  benefits while you drag.
+- **Fights.** Your hero and the round's foe trade blows. Weapons hit on
+  their cooldowns, armor gives block, shields add block on a timer, potions
+  fire once on a condition, burn ticks every second and poison every two.
+  After 25 seconds fatigue sets in. The foe's moves and their timers show
+  top right; your packed bag sweeps its cooldowns underneath.
+- **Lives.** Lose a fight and you lose a life and replay the round with a
+  fresh shop. Beat the round-12 boss to clear the chapter.
 
-The save is `localStorage["gb_save_v1"]`. Menu → Backup / Restore exports it
-as a code.
+## Between runs
+- **Armory.** Backpacks (bigger grids for gems), item unlocks, and Mastery:
+  each level adds 10% to an item in every run.
+- **Heroes.** Six heroes, one per chapter cleared, each with starting items
+  and a passive. Talents spend gold on HP, weapon damage, starting gold and
+  starting block.
+- **Adventure.** Energy (5 a run), Chapter Breakthrough chests at rounds 4,
+  8 and 12, an Expedition timer that collects gold, a daily gift.
+- **Dungeon.** The Gold Vault (after Chapter 2): your last chapter-clearing
+  backpack hits an unkillable Mimic for 20 seconds for gold.
+
+The save is `localStorage["gb_save_v2"]` (the first build's `gb_save_v1`
+progress carries over). Menu → Backup exports it as a code.
 
 ## Files
 - `index.html`: the whole game (page, css, code).
@@ -53,8 +62,11 @@ Sound and music are not copied: the game plays `../lootdaggers/sfx`,
 `../lootdaggers/music`, `../thankless/sfx` and `../thankless/music` in place.
 
 ## Balance
-`gbSimRun(chapter, runs, {k})` (in the browser console) plays whole runs
-headless with random skill picks, with the hero's ATK/HP/DEF scaled by `k`.
-`REC_K` in `index.html` is the measured `k` that wins each chapter half the
-time, and the recommended power shown on each chapter comes from it. Retune
-enemies, then re-measure with the bisection one-liner in `docs/fishing.md`.
+`gbSim(chapter, runs, {save})` (browser console) plays whole runs with a bot
+shopper that buys by value per gold, merges, and packs first-fit; `save`
+overrides parts of the save (mastery, talents, bag). With a fresh save the
+bot clears Chapter 1 about 70–85% of the time and Chapter 2 about 20–25%;
+with Mastery 7, talents at 14 and the Dragon Hoard it clears Chapter 6; with
+everything maxed, Chapter 7. A person who packs for neighbour bonuses does
+better than the bot. Knobs: `chScale` (1.3× a chapter), `roundScale`
+(+26% a round), `goldMul` (+45% run gold a chapter).

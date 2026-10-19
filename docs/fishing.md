@@ -4171,6 +4171,11 @@ The playtester asked for a copy of a mobile game (a chapter screen with energy, 
 **Lesson.** A gold `background-clip:text` title with a `drop-shadow` filter rendered doubled and blurry in Chromium; a solid gold with text-shadows looks cleaner.
 **Checks.** Headless at 400×860: home, run, item card, fight, Armory, Heroes, Shop, results. No page errors.
 
+## Gearbound — fits small phones
+**Report.** "Did you configure the changes for mobile?" Not fully: the restyle had been checked at 400×860 only. On a 320×568 phone START and FIGHT fell off the bottom, and on a 360×740 FIGHT lost a few pixels.
+**Fix.** The run screen measures the route strip, merchant and button bar, gives the backpack and stash what is left, then measures again and takes any remaining overflow out of the cell size. Media queries under 760 px and 620 px of height shrink the home screen's medallions, the START banner, the merchant cards and the route strip; under 620 px the ticker and merchant item names hide.
+**Checks.** Headless with touch at 320×568, 360×740 and 390×844, plus 1280×800: FIGHT ends at 564, 734 and 834 px, no sideways scroll, no page errors; the run, merge, sell, loss and chapter-clear flows still pass.
+
 ## Backlog
 Gamepad · pole/hook/lure art as shop icons · a reef spot to give the
 seahorses a home.

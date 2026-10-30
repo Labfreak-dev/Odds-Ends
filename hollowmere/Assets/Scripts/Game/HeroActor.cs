@@ -27,7 +27,7 @@ namespace Hollowmere
         ModelAnim modelAnim;
         float nextAttack, potionUntil, potionHeal, potionCd, swing, combatTimer, spinUntil, spinTick;
         SkillCast spinCast;
-        float regenAcc;
+        float regenAcc, castPose;
 
         public static HeroActor Spawn(Vector3 at)
         {
@@ -122,23 +122,40 @@ namespace Hollowmere
                     SkillRunner.OnHits(this, spinCast, hits.Count);
                 }
             }
-            else if (figure != null) figure.localRotation = Quaternion.Slerp(figure.localRotation, Quaternion.identity, dt * 12);
+            else if (castPose > 0 && figure != null)
+            {
+                castPose -= dt * 2.6f;
+                float k = Mathf.Sin(Mathf.Clamp01(castPose) * Mathf.PI);
+                figure.localRotation = Quaternion.Euler(-24f * k, 32f * k, 0);
+                figure.localPosition = new Vector3(0, 0.04f * k, -0.12f * k);
+            }
+            else if (figure != null)
+            {
+                figure.localRotation = Quaternion.Slerp(figure.localRotation, Quaternion.identity, dt * 12);
+                if (swing <= 0) figure.localPosition = Vector3.Lerp(figure.localPosition, Vector3.zero, dt * 10);
+            }
 
             // ---- movement
+            var before = transform.position;
+            var inputHeld = false;
             if (!busy && !Stunned)
             {
                 var input = new Vector3(moveInput.x, 0, moveInput.y);
                 // Camera looks along +Z rotated; map joystick to camera-relative directions.
                 var cam = CameraRig.Yaw;
                 input = Quaternion.Euler(0, cam, 0) * input;
-                modelAnim?.SetMoving(input.sqrMagnitude > 0.01f || spinUntil > Time.time);
-                if (input.sqrMagnitude > 0.01f)
+                inputHeld = input.sqrMagnitude > 0.02f;
+                if (inputHeld)
                 {
                     Move(input * MoveSpeed * dt);
                     if (spinUntil <= Time.time) Face(input);
                     aim = input.normalized;
                 }
             }
+            float spd = dt > 0.0001f ? (transform.position - before).magnitude / dt : 0f;
+            // Idle the moment the stick is released, or when a held stick produces almost no speed (wall).
+            bool walking = spinUntil > Time.time || (inputHeld && spd > 0.35f);
+            modelAnim?.SetMoving(walking);
 
             // ---- auto-target and primary attack
             target = PickTarget();
@@ -195,7 +212,8 @@ namespace Hollowmere
             Vector3 dir = aim;
             if (target != null && s.shape != SkillShape.Dash) dir = (target.Pos - Pos).normalized;
             if (s.shape != SkillShape.Dash || dir.sqrMagnitude > 0) Face(dir);
-            swing = 1;
+            if (s.id == "hx_bolt") { castPose = 1f; swing = 0f; }
+            else { swing = 1; castPose = 0f; }
             combatTimer = 4;
             SkillRunner.Execute(this, cast, dir, target);
             return true;

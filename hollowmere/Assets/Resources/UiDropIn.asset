@@ -32,3 +32,11 @@ MonoBehaviour:
   uiPanelOpen: {fileID: 8300000, guid: a77b0c0d1e2f4031a4b5c6d7e8f90777, type: 3}
   uiPanelClose: {fileID: 8300000, guid: a88b0c0d1e2f4031a4b5c6d7e8f90888, type: 3}
   uiStartGame: {fileID: 8300000, guid: a99b0c0d1e2f4031a4b5c6d7e8f90999, type: 3}
+  panel: {fileID: 21300000, guid: a7c3e91b4d2f4a6e8b1c0d5f7a9e2b31, type: 3}
+  frame: {fileID: 21300000, guid: b8d4f02c5e3a4b7f9c2d1e6a8b0f3c42, type: 3}
+  iconBag: {fileID: 21300000, guid: c9e5013d6f4b4c809d3e2f7b9c104d53, type: 3}
+  iconSkills: {fileID: 21300000, guid: d0f6124e705c4d91ae4f308c0d215e64, type: 3}
+  iconPet: {fileID: 21300000, guid: e107235f816d4ea2bf50419d1e326f75, type: 3}
+  iconMenu: {fileID: 21300000, guid: f2183460927e4fb3c06152ae2f437086, type: 3}
+  hexboltCast: {fileID: 0}
+  hexboltImpact: {fileID: 0}

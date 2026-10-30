@@ -1,0 +1,8 @@
+Drop skill sound effects here. ogg, wav, or mp3. Missing files stay silent.
+
+  hexbolt_cast.ogg
+  hexbolt_impact.ogg
+
+Use CC0 or MIT recordings only. A build runs Hollowmere/Bind UI drop-in art,
+which attaches these to Resources/UiDropIn so AudioHub.Play can find them.
+The same names also load from Resources/Audio/SFX/ if you put them there instead.

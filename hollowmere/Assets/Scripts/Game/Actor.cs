@@ -99,6 +99,24 @@ namespace Hollowmere
             if (total > 0 && seconds > 0) dots.Add((total / seconds, Time.time + seconds, el, src));
         }
 
+        /// <summary>A short bright pop on this body, used by Hex Bolt's impact.</summary>
+        public void PunchFlash(Color c)
+        {
+            hitFlash = 0.2f;
+            var l = new GameObject("hitflash").AddComponent<Light>();
+            l.transform.position = Pos + Vector3.up * 0.9f;
+            l.type = LightType.Point;
+            l.color = c;
+            l.range = 3.2f;
+            l.intensity = 5f;
+            Destroy(l.gameObject, 0.12f);
+            if (body != null)
+            {
+                var flash = Art.Sphere(body, Vector3.up * 0.85f, Vector3.one * 0.85f, Art.Mat(Color.Lerp(c, Color.white, 0.65f), 4f));
+                flash.AddComponent<FxLife>().Init(0.12f, Vector3.one * 0.7f, Vector3.one * 1.35f);
+            }
+        }
+
         public void Knockback(Vector3 dir, float dist)
         {
             if (dist <= 0 || this is HeroActor) return;

@@ -7,6 +7,10 @@ also OFL. Both licenses are in Fonts/.
   keyart_bg_near.png   parallax 0.7
   logo.png
   button_normal.png, button_pressed.png, button_disabled.png
+  panel.png            centre is tiled
+  panel_header.png
+  hud_frame.png and hud_fill_*.png   fill sits 12 px inside the frame
+  icons/icon_<name>.png
   ui_slices.json       left, right, top, bottom — Unity border is L, B, R, T
   title_mockup.png     the title layout
   Fonts/Cinzel-Bold.ttf
@@ -14,4 +18,4 @@ also OFL. Both licenses are in Fonts/.
   Fonts/OFL-Cinzel.txt
   Fonts/OFL-CinzelDecorative.txt
 
-See README.md for the full sheet, including panels, HUD fills and icons/.
+See README.md for the full sheet.

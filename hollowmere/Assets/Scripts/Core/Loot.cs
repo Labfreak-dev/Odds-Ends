@@ -38,30 +38,20 @@ namespace Hollowmere.Core
 
         public static string NewUid(Rng rng) => $"{rng.NextU64():x12}{(++uidCounter):x}";
 
-        public static Rarity RollRarity(Rng rng, float magicFind, Difficulty d, LootSource src)
+        public static Rarity RollRarity(Rng rng, float magicFind, Difficulty d, LootSource src, int floor = 1)
         {
-            float mf = 1 + Math.Max(0, magicFind) / 100f;
-            float leg = 0.006f * (1 + Balance.LegendaryBonus(d));
-            float common = 62, magic = 28 * mf, rare = 8 * mf;
-            switch (src)
-            {
-                case LootSource.Champion: common = 25; magic *= 1.4f; rare *= 3f; leg *= 3; break;
-                case LootSource.Elite: common = 0; magic *= 1.2f; rare *= 5f; leg *= 5; break;
-                case LootSource.Boss: common = 0; magic = 0; rare = 60; leg *= 30; break;
-                case LootSource.Chest: common = 20; rare *= 2f; leg *= 2; break;
-                case LootSource.Gamble: common = 0; magic = 0; rare = 90; leg = 10; break;
-                case LootSource.Fishing: common = 30; rare *= 2.5f; leg *= 2; break;
-            }
-            float l = leg * 100 * 0.7f, s = leg * 100 * 0.3f;
-            int i = rng.Weighted(new[] { common, magic, rare, l, s });
-            return (Rarity)i;
+            var weights = new decimal[5];
+            DesignTable.DropWeights(floor, (decimal)magicFind, (decimal)Balance.LegendaryBonus(d), src, weights);
+            var floats = new float[5];
+            for (int i = 0; i < 5; i++) floats[i] = (float)weights[i];
+            return (Rarity)rng.Weighted(floats);
         }
 
         public static IEnumerable<ItemBase> BasesFor(HeroClass? cls, ItemSlot? slot, int ilvl)
             => ItemDb.Bases.Where(b => (slot == null || b.slot == slot) && b.minLevel <= ilvl && (b.classOnly == null || cls == null || b.classOnly == cls));
 
         /// <summary>Generate one equipment item. smartFor = the class whose gear this should favour.</summary>
-        public static Item Generate(Rng rng, int ilvl, Rarity rarity, HeroClass? smartFor, ItemSlot? slot = null, string forceBase = null)
+        public static Item Generate(Rng rng, int ilvl, Rarity rarity, HeroClass? smartFor, ItemSlot? slot = null, string forceBase = null, int floor = 0)
         {
             ItemBase b;
             string legendaryId = null, setId = null;
@@ -106,30 +96,25 @@ namespace Hollowmere.Core
             {
                 uid = NewUid(rng), kind = ItemKind.Equipment, baseId = b.id, rarity = rarity,
                 itemLevel = ilvl, legendaryId = legendaryId, setId = setId,
-                ancient = (rarity == Rarity.Legendary || rarity == Rarity.Set) && ilvl >= Balance.MaxLevel && rng.Chance(0.1f),
+                ancient = (rarity == Rarity.Legendary || rarity == Rarity.Set) && ilvl >= Balance.MaxLevel && floor >= DesignTable.DeepwroughtFloor && rng.Chance((float)DesignTable.DeepwroughtChance),
             };
 
             if (b.slot == ItemSlot.MainHand)
             {
-                float sc = Balance.WeaponScale(ilvl) * (it.ancient ? 1.3f : 1f) * (rarity >= Rarity.Legendary ? 1.15f : 1f);
+                float sc = Balance.WeaponScale(ilvl) * (it.ancient ? (float)DesignTable.DeepwroughtScale : 1f) * (rarity >= Rarity.Legendary ? 1.15f : 1f);
                 it.weaponMin = (float)Math.Round(b.dmgMin * sc * rng.Range(0.9f, 1.1f));
                 it.weaponMax = Math.Max(it.weaponMin + 1, (float)Math.Round(b.dmgMax * sc * rng.Range(0.9f, 1.1f)));
                 it.attacksPerSecond = b.aps;
             }
             else if (b.armor > 0)
             {
-                it.armor = (int)Math.Round(b.armor * Balance.ArmorScale(ilvl) * rng.Range(0.9f, 1.1f) * (it.ancient ? 1.3f : 1f));
+                it.armor = (int)Math.Round(b.armor * Balance.ArmorScale(ilvl) * rng.Range(0.9f, 1.1f) * (it.ancient ? (float)DesignTable.DeepwroughtScale : 1f));
             }
 
-            int primaries, secondaries;
-            switch (rarity)
-            {
-                case Rarity.Common: primaries = 0; secondaries = 0; break;
-                case Rarity.Magic: primaries = rng.Range(1, 3); secondaries = rng.Chance(0.3f) ? 1 : 0; if (primaries == 2) secondaries = 0; break;
-                case Rarity.Rare: primaries = rng.Range(3, 5); secondaries = rng.Range(1, 3); break;
-                default: primaries = 4; secondaries = rng.Range(1, 3); break;
-            }
+            DesignTable.AffixBudget(rarity, out int primaries, out int secondaries);
             RollAffixes(it, b, rng, primaries, secondaries, smartFor);
+            if (DesignTable.SocketSlot(b.slot) && rng.Chance((float)DesignTable.SocketChance(rarity)))
+                it.sockets = 1;
 
             if (legendaryId != null)
             {
@@ -232,7 +217,7 @@ namespace Hollowmere.Core
         }
 
         /// <summary>What a dead monster, a chest or the boss drops.</summary>
-        public static LootDrop Roll(Rng rng, LootSource src, int monsterLevel, Difficulty d, StatBlock heroStats, HeroClass cls)
+        public static LootDrop Roll(Rng rng, LootSource src, int monsterLevel, Difficulty d, StatBlock heroStats, HeroClass cls, int floor = 0)
         {
             var drop = new LootDrop();
             float mf = heroStats[Stat.MagicFind], gf = heroStats[Stat.GoldFind];
@@ -250,7 +235,7 @@ namespace Hollowmere.Core
             for (int i = 0; i < maxItems; i++)
                 if (rng.Chance(i == 0 ? itemChance : 0.55f)) count++;
             for (int i = 0; i < count; i++)
-                drop.items.Add(Generate(rng, ilvl, RollRarity(rng, mf, d, src), cls));
+                drop.items.Add(Generate(rng, ilvl, RollRarity(rng, mf, d, src, floor < 1 ? monsterLevel : floor), cls, floor: floor < 1 ? monsterLevel : floor));
             if (src == LootSource.Boss && !drop.items.Any(x => x.rarity >= Rarity.Legendary) && rng.Chance(0.35f + Balance.LegendaryBonus(d) * 0.2f))
                 drop.items.Add(Generate(rng, ilvl, rng.Chance(0.7f) ? Rarity.Legendary : Rarity.Set, cls));
 

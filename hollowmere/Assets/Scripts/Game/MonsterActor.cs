@@ -227,7 +227,7 @@ namespace Hollowmere
                 var pool = MonsterDb.ForDepth(GameManager.I.State.depth);
                 for (int i = 0; i < 3; i++)
                 {
-                    var s = MonsterDb.Create(pool[Random.Range(0, pool.Count)], stats.level, MonsterRank.Normal, GameManager.I.State.difficulty, rng);
+                    var s = MonsterDb.Create(pool[Random.Range(0, pool.Count)], stats.level, MonsterRank.Normal, GameManager.I.State.difficulty, rng, GameManager.I.State.depth);
                     var m = Spawn(s, World.ClampToFloor(Pos + Random.insideUnitSphere.Flat() * 3f), pack);
                     m.Aggro();
                 }

@@ -8,7 +8,7 @@ namespace Hollowmere.Core
     public enum MonsterRank { Normal, Champion, Elite, Minion, Boss }
 
     /// <summary>Elite affixes, D3 style. Each is implemented by the Unity MonsterController.</summary>
-    public enum EliteAffix { Hasty, Armored, Vampiric, Molten, Frozen, Teleporter, Shielding, Plagued, Extra }
+    public enum EliteAffix { Hasty, Armored, Vampiric, Molten, Frozen, Teleporter, Shielding, Plagued, Extra, Waller, Sweep, Pulse, Mortar, Jailer }
 
     public sealed class MonsterDef
     {
@@ -82,24 +82,26 @@ namespace Hollowmere.Core
         static readonly string[] ElitePrefix = { "Gorm", "Vex", "Ulda", "Krag", "Seth", "Morra", "Bryn", "Thol", "Iska", "Durn", "Wyl", "Ost" };
         static readonly string[] EliteSuffix = { "the Unwashed", "Gravebloom", "the Hungry", "Mirefang", "the Hollow", "Rotcoil", "the Patient", "Ashmaw", "the Drowned", "Bitterbone" };
 
-        public static MonsterStats Create(MonsterDef def, int level, MonsterRank rank, Difficulty d, Rng rng)
+        public static MonsterStats Create(MonsterDef def, int level, MonsterRank rank, Difficulty d, Rng rng, int floor = 0)
         {
             var m = new MonsterStats { def = def, rank = rank, level = level, displayName = def.name };
-            float life = Balance.ExpectedHeroDps(level) * Balance.MonsterToughness(level) * def.life;
-            float dmg = Balance.ExpectedHeroLife(level) * 0.055f * def.damage;
-            float xpBase = 18 + level * 7f;
+            decimal lifeRank = 1m, dmgRank = 1m, xpRank = 1m;
             switch (rank)
             {
-                case MonsterRank.Champion: life *= 4; dmg *= 1.6f; xpBase *= 4; break;
-                case MonsterRank.Elite: life *= 7; dmg *= 1.9f; xpBase *= 8; break;
-                case MonsterRank.Minion: life *= 1.8f; dmg *= 1.3f; xpBase *= 1.5f; break;
-                case MonsterRank.Boss: life = Balance.ExpectedHeroDps(level) * Balance.MonsterToughness(level) * 28; dmg *= 2.2f; xpBase *= 40; break;
+                case MonsterRank.Champion: lifeRank = 4m; dmgRank = 1.6m; xpRank = 4m; break;
+                case MonsterRank.Elite: lifeRank = 7m; dmgRank = 1.9m; xpRank = 8m; break;
+                case MonsterRank.Minion: lifeRank = 1.8m; dmgRank = 1.3m; xpRank = 1.5m; break;
+                case MonsterRank.Boss: lifeRank = 28m; dmgRank = 2.2m; xpRank = 40m; break;
             }
-            m.maxLife = life * Balance.MonsterLifeMult(d);
-            m.damage = dmg * Balance.MonsterDamageMult(d);
+            decimal lifeScale = DesignTable.LifeScale(floor);
+            decimal dmgScale = DesignTable.DamageScale(floor);
+            decimal life = DesignTable.RawLife(level) * (decimal)def.life * lifeRank * lifeScale * (decimal)Balance.MonsterLifeMult(d);
+            decimal dmg = DesignTable.RawDamage(level) * (decimal)def.damage * dmgRank * dmgScale * (decimal)Balance.MonsterDamageMult(d);
+            m.maxLife = (float)life;
+            m.damage = (float)dmg;
             m.speed = def.speed;
             m.attackCooldown = def.attackCooldown;
-            m.xp = (long)Math.Round(xpBase * def.xp * (1 + Balance.XpBonus(d)));
+            m.xp = DesignTable.RoundEven(DesignTable.Unit(level) * (decimal)def.xp * xpRank * (1m + (decimal)Balance.XpBonus(d)));
 
             int affixCount = rank switch { MonsterRank.Champion => 1 + (int)d / 3, MonsterRank.Elite => 2 + (int)d / 3, _ => 0 };
             if (rank == MonsterRank.Boss && d >= Difficulty.Master) affixCount = 1;
@@ -116,10 +118,6 @@ namespace Hollowmere.Core
             return m;
         }
 
-        public static string AffixName(EliteAffix a) => a switch
-        {
-            EliteAffix.Extra => "Extra Health",
-            _ => a.ToString(),
-        };
+        public static string AffixName(EliteAffix a) => DesignTable.AffixName(a);
     }
 }

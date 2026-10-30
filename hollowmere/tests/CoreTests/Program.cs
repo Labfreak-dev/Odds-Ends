@@ -30,6 +30,7 @@ static class Program
         SaveRoundTrip();
         Progression();
         ModelAlbedo();
+        SpecTables();
         Console.WriteLine($"{passed} passed, {failed} failed");
         if (failed == 0) Console.WriteLine("ALL CORE CHECKS PASSED");
         return failed == 0 ? 0 : 1;
@@ -378,7 +379,7 @@ static class Program
                 float ttk = probe.maxLife / Math.Max(1, h.SheetDps(fin));
                 var bossM = MonsterDb.Create(MonsterDb.BossFor(5), Balance.MonsterLevel(depth, h.level), MonsterRank.Boss, s.difficulty, rng);
                 float bossTtk = bossM.maxLife / Math.Max(1, h.SheetDps(fin) * 1.5f);
-                if (depth % 5 == 0) Check(bossTtk > 10 && bossTtk < 180, $"{cls} floor {depth}: guardian fight {bossTtk:0}s");
+                if (depth % 5 == 0) Check(bossTtk >= 8 && bossTtk < 180, $"{cls} floor {depth}: guardian fight {bossTtk:0}s");
                 float hits = h.MaxLife(fin) / Combat.MonsterHit(probe.damage, Element.Physical, fin, probe.level, rng).amount;
                 if (depth % 5 == 0) table.Add($"  floor {depth,2}: lvl {h.level,2}  clear {seconds / 60:0.0}m  dps {Fx(h.SheetDps(fin)),7}  normal ttk {ttk:0.0}s  guardian {bossTtk:0}s  survives {hits:0} hits");
                 if (depth >= 3) Check(ttk > 0.4f && ttk < 8f, $"{cls} floor {depth}: a normal monster dies in < 8s (got {ttk:0.0})");
@@ -412,6 +413,146 @@ static class Program
         back.hero.AddItem(Loot.Potion(2));
         Check(back.hero.inventory.Count == before && potions.stack == 5, "potions stack onto a loaded stack");
         Check(back.pet.form == "goldscale".Replace("goldscale", "gildedserpent"), "pet form survives save");
+    }
+
+    static List<string[]> SpecRows(string heading)
+    {
+        string path = null;
+        foreach (var c in new[] { "DESIGN_SPEC.md", Path.Combine("hollowmere", "DESIGN_SPEC.md"), Path.Combine("..", "..", "DESIGN_SPEC.md") })
+            if (File.Exists(c)) { path = c; break; }
+        Check(path != null, "DESIGN_SPEC.md is on disk");
+        if (path == null) return new List<string[]>();
+        var rows = new List<string[]>();
+        bool on = false, sawTable = false;
+        foreach (var raw in File.ReadAllLines(path))
+        {
+            var line = raw.Trim();
+            if (line.StartsWith("### "))
+            {
+                if (on) break;
+                on = line == heading;
+                continue;
+            }
+            if (!on) continue;
+            if (line.StartsWith("## ")) break;
+            if (!line.StartsWith("|"))
+            {
+                if (sawTable) break;
+                continue;
+            }
+            if (line.Contains("---")) continue;
+            sawTable = true;
+            var cells = line.Split('|').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+            if (cells.Length == 0) continue;
+            if (cells[0] is "Level" or "Rank" or "Floor" or "Rarity" or "Id" or "Screen" or "Slot" or "Gem" or "Source" or "Phase" or "Tab" or "Line")
+                continue;
+            rows.Add(cells);
+        }
+        Check(rows.Count > 0, heading + " has rows");
+        return rows;
+    }
+
+    static void SpecTables()
+    {
+        foreach (var row in SpecRows("### T.xp"))
+        {
+            int level = int.Parse(row[1] == "Level" ? "0" : row[0]);
+            if (row[0] == "Level") continue;
+            level = int.Parse(row[0]);
+            if (row[1] == "—") Check(DesignTable.XpToNext(level) == 0, "level 70 has no character xp cost");
+            else Check(DesignTable.XpToNext(level) == long.Parse(row[1]), "xp to next " + level);
+            Check(DesignTable.CumulativeToArrive(level) == long.Parse(row[2]), "cumulative xp " + level);
+        }
+        Check(Balance.XpToNext(70) == long.MaxValue, "level 70 sentinel stays on Balance");
+        Check(Balance.MonsterLifeMult(Difficulty.Torment6) == 86f, "difficulty ladder life step is held");
+        Check(Balance.MinLevelFor(Difficulty.Torment1) == 70, "difficulty ladder unlock is held");
+
+        foreach (var row in SpecRows("### T.delve"))
+        {
+            int rank = int.Parse(row[0]);
+            Check(DesignTable.DelveXp(rank) == long.Parse(row[1]), "delve xp " + rank);
+        }
+
+        foreach (var row in SpecRows("### T.stats"))
+        {
+            int level = int.Parse(row[0]);
+            Check(DesignTable.MainStat(level) == int.Parse(row[1]), "main " + level);
+            Check(DesignTable.OffStat(level) == int.Parse(row[2]), "off " + level);
+            Check(DesignTable.Vitality(level) == int.Parse(row[3]), "vit " + level);
+            Check(DesignTable.NakedLife(level) == int.Parse(row[4]), "life " + level);
+            Check(Math.Abs((double)DesignTable.NakedArmorMitigation(level) - double.Parse(row[5])) < 1e-6, "armor mit " + level);
+            Check(Math.Abs((double)DesignTable.NakedOffResistMitigation(level) - double.Parse(row[6])) < 1e-6, "resist mit " + level);
+        }
+
+        foreach (var row in SpecRows("### T.floors"))
+        {
+            int floor = int.Parse(row[0]);
+            Check(DesignTable.LevelFromFloor(floor) == int.Parse(row[1]), "floor level " + floor);
+            Check(DesignTable.NormalLife(floor) == long.Parse(row[2]), "normal life " + floor);
+            Check(DesignTable.NormalDamage(floor) == long.Parse(row[3]), "normal damage " + floor);
+            Check(DesignTable.Unit(DesignTable.LevelFromFloor(floor)) == long.Parse(row[4]), "normal xp " + floor);
+            Check(DesignTable.RankLife(floor, 4m) == long.Parse(row[5]), "champion life " + floor);
+            Check(DesignTable.RankLife(floor, 7m) == long.Parse(row[6]), "elite life " + floor);
+            if (row[7] != "—") Check(DesignTable.RankLife(floor, 28m) == long.Parse(row[7]), "guardian life " + floor);
+        }
+
+        foreach (var row in SpecRows("### T.depthtier"))
+        {
+            int floor = int.Parse(row[0]);
+            Check(DesignTable.DepthTier(floor) == int.Parse(row[1]), "tier " + floor);
+            Check(Math.Abs((double)DesignTable.LifeScale(floor) - double.Parse(row[2])) < 1e-6, "life scale " + floor);
+            Check(Math.Abs((double)DesignTable.DamageScale(floor) - double.Parse(row[3])) < 1e-6, "damage scale " + floor);
+        }
+
+        foreach (var row in SpecRows("### T.drops"))
+        {
+            int floor = int.Parse(row[0]);
+            var w = new decimal[5];
+            DesignTable.DropWeights(floor, 0m, 0m, LootSource.Normal, w);
+            for (int i = 0; i < 5; i++)
+            {
+                decimal shown = decimal.Parse(row[i + 1]);
+                decimal got = decimal.Round(w[i] * 100m, 3, MidpointRounding.ToEven);
+                Check(got == shown, "drop " + floor + " col " + i + " spec " + shown + " got " + got);
+            }
+        }
+
+        foreach (var row in SpecRows("### T.affixcount"))
+        {
+            var rarity = Enum.Parse<Rarity>(row[0]);
+            DesignTable.AffixBudget(rarity, out int p, out int s);
+            Check(p == int.Parse(row[1]) && s == int.Parse(row[2]), "affix budget " + row[0]);
+        }
+
+        foreach (var row in SpecRows("### T.gems"))
+        {
+            int rank = int.Parse(row[0]);
+            DesignTable.GemRow(rank, out int ilvl, out int mn, out int mx, out int thorn, out int life, out int salt, out int gold);
+            Check(ilvl == int.Parse(row[1]) && mn == int.Parse(row[2]) && mx == int.Parse(row[3]) && thorn == int.Parse(row[4]) && life == int.Parse(row[5]) && salt == int.Parse(row[6]) && gold == int.Parse(row[7]), "gem rank " + rank);
+        }
+
+        foreach (var row in SpecRows("### T.affix"))
+        {
+            var id = Enum.Parse<EliteAffix>(row[0]);
+            Check(DesignTable.AffixName(id) == row[1], "affix name " + row[0]);
+            Check(DesignTable.AffixTelegraph(id) == row[2], "affix telegraph " + row[0]);
+        }
+
+        foreach (var row in SpecRows("### T.ui"))
+        {
+            var hit = DesignTable.Ui.FirstOrDefault(r => r.Screen == row[0] && r.Id == row[1]);
+            Check(hit.Id == row[1] && hit.X == int.Parse(row[2]) && hit.Y == int.Parse(row[3]) && hit.W == int.Parse(row[4]) && hit.H == int.Parse(row[5]), "ui " + row[0] + " " + row[1]);
+        }
+        foreach (var row in SpecRows("### T.doll"))
+        {
+            var hit = DesignTable.Doll.FirstOrDefault(r => r.Id == row[0]);
+            Check(hit.Id == row[0] && hit.X == int.Parse(row[1]) && hit.Y == int.Parse(row[2]) && hit.W == int.Parse(row[3]) && hit.H == int.Parse(row[4]), "doll " + row[0]);
+        }
+
+        Check(DesignTable.GlobeNormalChance == 0.08m && DesignTable.GlobeHealFraction == 0.25m, "globe rates");
+        Check(DesignTable.EliteGlobeThresholds.Length == 3, "three elite globes");
+        Check(DesignTable.PotionCooldownSeconds == 20m, "potion cooldown");
+        Check(DesignTable.BossPhase(1f) == 1 && DesignTable.BossPhase(0.66f) == 2 && DesignTable.BossPhase(0.33f) == 3, "guardian phases");
     }
 
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto

@@ -22,7 +22,7 @@ namespace Hollowmere.Core
         public static float LegendaryBonus(Difficulty d) => new[] { 0f, 0f, 0.1f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0f, 1.3f, 1.6f }[(int)d];
         public static int MinLevelFor(Difficulty d) => new[] { 1, 1, 1, 1, 70, 70, 70, 70, 70, 70 }[(int)d];
 
-        public static long XpToNext(int level) => level >= MaxLevel ? long.MaxValue : (long)Math.Round(120 * Math.Pow(level, 1.75));
+        public static long XpToNext(int level) => level >= MaxLevel ? long.MaxValue : DesignTable.XpToNext(level);
 
         /// <summary>Monster level follows depth (Fate-style: deeper is harder), about one level per floor,
         /// reaching the cap around floor 64. A hero who outlevels a floor finds it easy; difficulty

@@ -188,7 +188,7 @@ namespace Hollowmere.Core
                 float r = rng.Value();
                 if (r < 0.45f) return new CatchResult { kind = CatchKind.Gold, gold = (int)((10 + monsterLevel * 6) * rng.Range(0.6f, 1.6f)) };
                 if (r < 0.75f) return new CatchResult { kind = CatchKind.Junk, item = JunkItem() };
-                return new CatchResult { kind = CatchKind.Item, item = Loot.Generate(rng, Balance.ItemLevelFor(monsterLevel, false), Loot.RollRarity(rng, luck, diff, LootSource.Fishing), cls) };
+                return new CatchResult { kind = CatchKind.Item, item = Loot.Generate(rng, Balance.ItemLevelFor(monsterLevel, false), Loot.RollRarity(rng, luck, diff, LootSource.Fishing, depth), cls, floor: depth) };
             }
             var pool = FishDb.Available(town, depth);
             var weights = pool.Select(f => f.weight * (f.rarity >= Rarity.Rare ? 1 + luck / 50f : f.rarity == Rarity.Magic ? 1 + luck / 100f : 1f)).ToList();

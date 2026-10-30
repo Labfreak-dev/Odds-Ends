@@ -152,7 +152,7 @@ namespace Hollowmere
             foreach (var s in map.spawns)
             {
                 var def = MonsterDb.Get(s.monsterId);
-                var ms = MonsterDb.Create(def, mlvl, s.rank, State.difficulty, rng);
+                var ms = MonsterDb.Create(def, mlvl, s.rank, State.difficulty, rng, depth);
                 if (s.rank == MonsterRank.Elite) packAffixes[s.pack] = ms.affixes;
                 else if (s.rank == MonsterRank.Minion && packAffixes.TryGetValue(s.pack, out var aff)) ms.affixes.AddRange(aff.Where(a => a != EliteAffix.Extra));
                 if (bounty != null && s.rank == MonsterRank.Elite) { ms.displayName = bounty.eliteName; bounty = null; }
@@ -162,7 +162,7 @@ namespace Hollowmere
             {
                 // No elite pack rolled: the bounty gets its own.
                 var room = map.rooms.OrderByDescending(r => r.Center.Chebyshev(map.entry)).First();
-                var ms = MonsterDb.Create(MonsterDb.ForDepth(depth)[0], mlvl, MonsterRank.Elite, State.difficulty, rng);
+                var ms = MonsterDb.Create(MonsterDb.ForDepth(depth)[0], mlvl, MonsterRank.Elite, State.difficulty, rng, depth);
                 ms.displayName = bounty.eliteName;
                 MonsterActor.Spawn(ms, World.ToWorld(room.Center), 9999);
             }
@@ -256,7 +256,7 @@ namespace Hollowmere
                 MonsterRank.Boss => LootSource.Boss, MonsterRank.Elite => LootSource.Elite,
                 MonsterRank.Champion => LootSource.Champion, _ => LootSource.Normal,
             };
-            var drop = Loot.Roll(rng, src, s.level, State.difficulty, hero != null ? hero.stats : State.Stats(), State.hero.heroClass);
+            var drop = Loot.Roll(rng, src, s.level, State.difficulty, hero != null ? hero.stats : State.Stats(), State.hero.heroClass, State.depth);
             foreach (var it in drop.items) Pickup.DropItem(it, m.Pos);
             Pickup.DropGold(drop.gold, m.Pos);
             if (drop.potions > 0) Pickup.DropItem(Loot.Potion(drop.potions), m.Pos);
@@ -349,7 +349,7 @@ namespace Hollowmere
                 {
                     it.used = true;
                     int mlvl = Balance.MonsterLevel(State.depth, State.hero.level);
-                    var drop = Loot.Roll(rng, LootSource.Chest, mlvl, State.difficulty, hero.stats, State.hero.heroClass);
+                    var drop = Loot.Roll(rng, LootSource.Chest, mlvl, State.difficulty, hero.stats, State.hero.heroClass, State.depth);
                     foreach (var x in drop.items) Pickup.DropItem(x, it.transform.position);
                     Pickup.DropGold(drop.gold, it.transform.position);
                     if (drop.potions > 0) Pickup.DropItem(Loot.Potion(1), it.transform.position);

@@ -238,7 +238,7 @@ namespace Hollowmere
                     break;
             }
             if (!string.IsNullOrEmpty(label))
-                Fx.WorldLabel(t, new Vector3(0, 2.6f, 0), label, new Color(1f, 0.92f, 0.7f), 48, 0.05f);
+                Fx.WorldLabel(t, new Vector3(0.85f, 2.05f, 0), label, new Color(1f, 0.92f, 0.7f), 48, 0.05f);
         }
 
         void Glow(Color c)

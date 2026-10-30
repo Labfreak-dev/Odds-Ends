@@ -54,6 +54,7 @@ namespace Hollowmere
         public Sprite iconSword;
         public Sprite iconShield;
         public Sprite iconSettings;
+        public Sprite iconGem;
         public AudioClip hexboltCast;
         public AudioClip hexboltImpact;
         public AudioClip hexboltImpact2;
@@ -176,6 +177,7 @@ namespace Hollowmere
                 else if (modal == "skills" || modal == "sword") s = c.iconSword != null ? c.iconSword : c.iconSkills;
                 else if (modal == "pet" || modal == "shield") s = c.iconShield != null ? c.iconShield : c.iconPet;
                 else if (modal == "menu" || modal == "settings") s = c.iconSettings != null ? c.iconSettings : c.iconMenu;
+                else if (modal == "gem") s = c.iconGem;
             }
             if (s != null) return s;
             if (modal == "bag" || modal == "skills" || modal == "pet" || modal == "menu") return ProceduralIcon(modal);

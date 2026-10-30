@@ -52,6 +52,7 @@ namespace Hollowmere.Editor
             cat.iconSword = Sprite("Assets/Art/UI/icons/icon_sword.png");
             cat.iconShield = Sprite("Assets/Art/UI/icons/icon_shield.png");
             cat.iconSettings = Sprite("Assets/Art/UI/icons/icon_settings.png");
+            cat.iconGem = Sprite("Assets/Art/UI/icons/icon_gem.png");
             cat.iconBag = cat.iconInventory ?? Sprite("Assets/Art/UI/icon_bag.png");
             cat.iconSkills = cat.iconSword ?? Sprite("Assets/Art/UI/icon_skills.png");
             cat.iconPet = cat.iconShield ?? Sprite("Assets/Art/UI/icon_pet.png");

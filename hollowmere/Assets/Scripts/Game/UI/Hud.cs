@@ -42,9 +42,9 @@ namespace Hollowmere
             var lvi = lv.gameObject.AddComponent<Image>();
             lvi.sprite = Ui.Circle; lvi.color = new Color(0.15f, 0.12f, 0.1f, 0.9f);
             levelText = Ui.Label(lv, "1", 44, TextAnchor.MiddleCenter, Ui.Gold);
-            lifeFill = Ui.Bar(Ui.At(tl, "life", new Vector2(0, 1), new Vector2(112, 0), new Vector2(480, 60)), new Color(0, 0, 0, 0.6f), new Color(0.75f, 0.12f, 0.12f), out lifeText, 24, "health");
-            resFill = Ui.Bar(Ui.At(tl, "res", new Vector2(0, 1), new Vector2(112, -68), new Vector2(480, 48)), new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.4f, 0.9f), out resText, 20, "mana");
-            xpFill = Ui.Bar(Ui.At(tl, "xp", new Vector2(0, 1), new Vector2(112, -122), new Vector2(480, 36)), new Color(0, 0, 0, 0.6f), new Color(0.85f, 0.7f, 0.25f), out xpText, 16, "xp");
+            lifeFill = Ui.Bar(Ui.At(tl, "life", new Vector2(0, 1), new Vector2(112, 0), new Vector2(360, 52)), new Color(0, 0, 0, 0.6f), new Color(0.75f, 0.12f, 0.12f), out lifeText, 22, "health");
+            resFill = Ui.Bar(Ui.At(tl, "res", new Vector2(0, 1), new Vector2(112, -58), new Vector2(360, 40)), new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.4f, 0.9f), out resText, 18, "mana");
+            xpFill = Ui.Bar(Ui.At(tl, "xp", new Vector2(0, 1), new Vector2(112, -104), new Vector2(360, 36)), new Color(0, 0, 0, 0.6f), new Color(0.85f, 0.7f, 0.25f), out xpText, 14, "xp");
             goldText = Ui.Label(Ui.At(tl, "gold", new Vector2(0, 1), new Vector2(0, -166), new Vector2(620, 40)), "", 28, TextAnchor.MiddleLeft, Ui.Gold);
             petFill = Ui.Bar(Ui.At(tl, "pet", new Vector2(0, 1), new Vector2(0, -210), new Vector2(360, 36)), new Color(0, 0, 0, 0.6f), new Color(0.4f, 0.75f, 0.35f), out petText, 18);
             buffText = Ui.Label(Ui.At(r, "buffs", new Vector2(0, 1), new Vector2(20, -300), new Vector2(560, 120)), "", 22, TextAnchor.UpperLeft, new Color(0.7f, 0.9f, 1f));

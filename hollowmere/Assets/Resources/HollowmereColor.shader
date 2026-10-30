@@ -7,6 +7,8 @@ Shader "Hollowmere/Color"
     {
         [MainColor] _BaseColor ("Color", Color) = (1,1,1,1)
         _Color ("Color", Color) = (1,1,1,1)
+        _BaseMap ("Albedo", 2D) = "white" {}
+        _HasMap ("Has Map", Float) = 0
         _EmissionColor ("Emission", Color) = (0,0,0,1)
         _Smoothness ("Smoothness", Range(0,1)) = 0.15
     }
@@ -31,23 +33,29 @@ Shader "Hollowmere/Color"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
+
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
                 half4 _Color;
                 half4 _EmissionColor;
                 half _Smoothness;
+                half _HasMap;
             CBUFFER_END
 
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                float2 uv : TEXCOORD0;
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
                 float3 normalWS : TEXCOORD0;
+                float2 uv : TEXCOORD1;
             };
 
             Varyings vert(Attributes v)
@@ -55,6 +63,7 @@ Shader "Hollowmere/Color"
                 Varyings o;
                 o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                o.uv = v.uv;
                 return o;
             }
 
@@ -63,7 +72,9 @@ Shader "Hollowmere/Color"
                 half3 n = normalize(i.normalWS);
                 // Material.color writes _Color. Art.Mat also writes _BaseColor to the same value,
                 // so use _BaseColor when it was set and fall back without multiplying the two.
+                // _HasMap stays 0 on flat colors. Sampling an unset map would turn the floor black.
                 half3 albedo = _BaseColor.rgb;
+                if (_HasMap > 0.5) albedo *= SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
                 Light mainLight = GetMainLight();
                 half ndotl = saturate(dot(n, mainLight.direction));
                 half3 ambient = SampleSH(n);

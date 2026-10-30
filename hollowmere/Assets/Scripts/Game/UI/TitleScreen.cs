@@ -22,6 +22,7 @@ namespace Hollowmere
         static readonly List<(HeroClass cls, Button button)> classes = new List<(HeroClass, Button)>();
         static readonly List<(PetSpecies pet, Button button)> pets = new List<(PetSpecies, Button)>();
         static bool onCreate;
+        static Button cornerBack;
 
         public static void Show(UiRoot rootUi)
         {
@@ -52,6 +53,13 @@ namespace Hollowmere
             settingsPage = BuildSettings(safe);
             createPage.gameObject.SetActive(false);
             settingsPage.gameObject.SetActive(false);
+            cornerBack = Ui.Button(safe, "Back", OpenMain, null, 26, UiSfx.Back);
+            var backRt = (RectTransform)cornerBack.transform;
+            backRt.anchorMin = backRt.anchorMax = new Vector2(0f, 1f);
+            backRt.pivot = new Vector2(0f, 1f);
+            backRt.sizeDelta = new Vector2(220f, 72f);
+            backRt.anchoredPosition = new Vector2(36f, -28f);
+            cornerBack.gameObject.SetActive(false);
             Slide(mainPage, new Vector2(0, -36f));
         }
 
@@ -61,7 +69,7 @@ namespace Hollowmere
             var logo = Ui.Rect(safe, "logo", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
             logo.pivot = new Vector2(0.5f, 1f);
             logo.sizeDelta = new Vector2(1300f, 428f);
-            logo.anchoredPosition = new Vector2(0f, -28f);
+            logo.anchoredPosition = new Vector2(0f, -120f);
             var sprite = UiArt.Logo;
             if (sprite != null)
             {
@@ -75,20 +83,20 @@ namespace Hollowmere
 
         static RectTransform Card(RectTransform safe, string name)
         {
-            var card = Ui.Rect(safe, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
-            card.pivot = new Vector2(0.5f, 0.5f);
-            card.sizeDelta = new Vector2(1180f, 820f);
-            card.anchoredPosition = new Vector2(0f, -40f);
+            var card = Ui.Rect(safe, name, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
+            card.pivot = new Vector2(0.5f, 1f);
+            card.sizeDelta = new Vector2(1180f, 620f);
+            card.anchoredPosition = new Vector2(0f, -520f);
             Ui.Box(card, new Color(0.04f, 0.05f, 0.07f, 0.72f));
             return card;
         }
 
         static RectTransform BuildMain(RectTransform safe)
         {
-            var col = Ui.Rect(safe, "main", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
-            col.pivot = new Vector2(0.5f, 0.5f);
+            var col = Ui.Rect(safe, "main", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
+            col.pivot = new Vector2(0.5f, 1f);
             col.sizeDelta = new Vector2(640f, 680f);
-            col.anchoredPosition = new Vector2(0f, -160f);
+            col.anchoredPosition = new Vector2(0f, -580f);
             var vl = col.gameObject.AddComponent<VerticalLayoutGroup>();
             vl.spacing = 18f;
             vl.childAlignment = TextAnchor.MiddleCenter;
@@ -133,8 +141,6 @@ namespace Hollowmere
             vl.childControlWidth = true;
             vl.childForceExpandHeight = false;
             vl.childForceExpandWidth = true;
-            var back = Ui.Button(col, "BACK", OpenMain, null, 30, UiSfx.Back);
-            Ui.Size(back, 100);
             var heading = Ui.Rect(col, "heading", Vector2.zero, Vector2.one);
             Ui.Label(heading, "<b>SETTINGS</b>", 36, TextAnchor.MiddleCenter, Ui.Gold);
             Ui.Size(heading, 64);
@@ -186,15 +192,22 @@ namespace Hollowmere
             vl.childForceExpandHeight = false;
             vl.childForceExpandWidth = true;
 
-            var back = Ui.Button(col, "Back", OpenMain, null, 26, UiSfx.Back);
-            Ui.Size(back, 64);
-
-            var row = Ui.Row(col, 120, 10);
+            var row = Ui.Row(col, 200, 10);
             foreach (HeroClass c in Enum.GetValues(typeof(HeroClass)))
             {
                 var cc = c;
                 var b = Ui.Button(row, $"<b>{ClassName(cc)}</b>", () => SelectClass(cc), null, 26);
-                b.GetComponentInChildren<Text>().alignment = TextAnchor.MiddleCenter;
+                b.GetComponentInChildren<Text>().alignment = TextAnchor.LowerCenter;
+                var icon = UiArt.Icon(cc == HeroClass.Ironclad ? "shield" : cc == HeroClass.Stalker ? "sword" : "gem");
+                if (icon != null)
+                {
+                    var slot = Ui.Rect(b.transform, "portrait", new Vector2(0.5f, 0.68f), new Vector2(0.5f, 0.68f));
+                    slot.sizeDelta = new Vector2(84f, 84f);
+                    var ii = slot.gameObject.AddComponent<Image>();
+                    ii.sprite = icon;
+                    ii.preserveAspect = true;
+                    ii.raycastTarget = false;
+                }
                 classes.Add((cc, b));
             }
             var blurbRt = Ui.Rect(col, "blurb", Vector2.zero, Vector2.one);
@@ -218,6 +231,7 @@ namespace Hollowmere
             mainPage.gameObject.SetActive(false);
             settingsPage.gameObject.SetActive(false);
             createPage.gameObject.SetActive(true);
+            if (cornerBack != null) cornerBack.gameObject.SetActive(true);
             Slide(createPage, new Vector2(72f, 0f));
         }
 
@@ -227,6 +241,7 @@ namespace Hollowmere
             mainPage.gameObject.SetActive(false);
             createPage.gameObject.SetActive(false);
             settingsPage.gameObject.SetActive(true);
+            if (cornerBack != null) cornerBack.gameObject.SetActive(true);
             RefreshSettings();
             Slide(settingsPage, new Vector2(0f, -28f));
         }
@@ -236,6 +251,7 @@ namespace Hollowmere
             onCreate = false;
             createPage.gameObject.SetActive(false);
             settingsPage.gameObject.SetActive(false);
+            if (cornerBack != null) cornerBack.gameObject.SetActive(false);
             mainPage.gameObject.SetActive(true);
             Slide(mainPage, new Vector2(0f, -28f));
         }

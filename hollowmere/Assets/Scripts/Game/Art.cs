@@ -81,19 +81,14 @@ namespace Hollowmere
             var go = Object.Instantiate(prefab, holder.transform);
             go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.Euler(0, ModelYaw, 0);
-            var rends = go.GetComponentsInChildren<Renderer>();
-            if (rends.Length > 0)
-            {
-                var b = rends[0].bounds;
-                foreach (var r in rends) b.Encapsulate(r.bounds);
-                float h = Mathf.Max(0.01f, b.size.y);
-                float s = height / h;
-                go.transform.localScale = Vector3.one * s;
-                var bottom = (b.center - holder.transform.position) * s;
-                go.transform.localPosition = new Vector3(-bottom.x, -(b.min.y - holder.transform.position.y) * s, -bottom.z);
-            }
+            // Measure the mesh, not Renderer.bounds. A skinned rig often reports the bind-pose
+            // box or ignores the armature's 0.01 scale, which turned heroes into specks and
+            // the blacksmith into a giant head. Multiplying the existing scale keeps that 0.01.
+            if (IsBiped(key)) StandUp(go.transform);
+            FitToHeight(go.transform, holder.transform, height);
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
             foreach (var animator in go.GetComponentsInChildren<Animator>()) animator.applyRootMotion = false;
+            AdoptShaders(go);
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -109,6 +104,119 @@ namespace Hollowmere
         /// <summary>The walk-cycle variant of a model if one was generated (Meshy rigging), else the static one.</summary>
         public static GameObject Animated(string key, float height, Transform parent)
             => Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+
+        static bool IsBiped(string key)
+        {
+            return key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("mon_") || key.StartsWith("boss_");
+        }
+
+        /// <summary>Meshy sometimes leaves a figure lying on Z. Try quarter-turns and keep the one
+        /// whose mesh stands tallest. Pets are skipped: a hound is supposed to be longer than it is tall.</summary>
+        static void StandUp(Transform root)
+        {
+            Quaternion best = root.localRotation;
+            float bestH = -1f;
+            Quaternion[] opts =
+            {
+                Quaternion.identity,
+                Quaternion.Euler(-90f, 0f, 0f),
+                Quaternion.Euler(90f, 0f, 0f),
+                Quaternion.Euler(0f, 0f, -90f),
+                Quaternion.Euler(0f, 0f, 90f),
+            };
+            foreach (var q in opts)
+            {
+                root.localRotation = q;
+                if (!WorldMeshBounds(root, out var b)) continue;
+                if (b.size.y > bestH)
+                {
+                    bestH = b.size.y;
+                    best = q;
+                }
+            }
+            root.localRotation = best;
+        }
+
+        static void FitToHeight(Transform go, Transform holder, float height)
+        {
+            if (!WorldMeshBounds(go, out var b)) return;
+            float h = Mathf.Max(0.01f, b.size.y);
+            go.localScale = go.localScale * (height / h);
+            if (!WorldMeshBounds(go, out b)) return;
+            go.position += new Vector3(holder.position.x - b.center.x, holder.position.y - b.min.y, holder.position.z - b.center.z);
+        }
+
+        static bool WorldMeshBounds(Transform root, out Bounds world)
+        {
+            world = new Bounds(root.position, Vector3.zero);
+            bool any = false;
+            foreach (var r in root.GetComponentsInChildren<Renderer>())
+            {
+                Mesh mesh = null;
+                var skin = r as SkinnedMeshRenderer;
+                if (skin != null) mesh = skin.sharedMesh;
+                else
+                {
+                    var mf = r.GetComponent<MeshFilter>();
+                    if (mf != null) mesh = mf.sharedMesh;
+                }
+                if (mesh == null) continue;
+                var mb = mesh.bounds;
+                var ext = mb.extents;
+                var l2w = r.transform.localToWorldMatrix;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = mb.center + new Vector3((i & 1) == 0 ? -ext.x : ext.x, (i & 2) == 0 ? -ext.y : ext.y, (i & 4) == 0 ? -ext.z : ext.z);
+                    var p = l2w.MultiplyPoint3x4(corner);
+                    if (!any) { world = new Bounds(p, Vector3.zero); any = true; }
+                    else world.Encapsulate(p);
+                }
+            }
+            return any;
+        }
+
+        /// <summary>glTF materials ship on URP shader graphs. Those graphs are not in the player
+        /// (always-including URP Lit compiles hundreds of thousands of variants), so a stripped
+        /// material draws magenta or drops out and leaves the black skirt showing through.
+        /// Copy albedo onto Hollowmere/Color, which is always included.</summary>
+        public static void AdoptShaders(GameObject go)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var src = r.sharedMaterials;
+                var next = new Material[src.Length];
+                for (int i = 0; i < src.Length; i++)
+                {
+                    var m = src[i];
+                    if (m != null && m.shader != null && (m.shader.name == "Hollowmere/Color" || m.shader.name == "Hollowmere/Text"))
+                    {
+                        next[i] = m;
+                        continue;
+                    }
+                    Color c = Color.white;
+                    Texture tex = null;
+                    if (m != null)
+                    {
+                        if (m.HasProperty("_BaseColor")) c = m.GetColor("_BaseColor");
+                        else if (m.HasProperty("_Color")) c = m.GetColor("_Color");
+                        else c = m.color;
+                        if (m.HasProperty("_BaseMap")) tex = m.GetTexture("_BaseMap");
+                        if (tex == null && m.HasProperty("_MainTex")) tex = m.mainTexture;
+                    }
+                    var dst = new Material(BaseMaterial());
+                    dst.color = c;
+                    if (dst.HasProperty("_BaseColor")) dst.SetColor("_BaseColor", c);
+                    if (tex != null && dst.HasProperty("_BaseMap"))
+                    {
+                        dst.SetTexture("_BaseMap", tex);
+                        if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
+                    }
+                    next[i] = dst;
+                }
+                r.sharedMaterials = next;
+            }
+        }
 
         static GameObject Prim(PrimitiveType t, Transform parent, Vector3 pos, Vector3 scale, Material m, Quaternion? rot = null)
         {

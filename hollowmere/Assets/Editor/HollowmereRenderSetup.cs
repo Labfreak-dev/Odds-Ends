@@ -22,19 +22,16 @@ namespace Hollowmere.Editor
         {
             "Hollowmere/Color",
             "Hollowmere/Text",
-            "Universal Render Pipeline/Lit",
-            "Universal Render Pipeline/Simple Lit",
-            "Universal Render Pipeline/Unlit",
-            "Shader Graphs/glTF-pbrMetallicRoughness",
-            "Shader Graphs/glTF-unlit",
-            "Shader Graphs/glTF-pbrSpecularGlossiness",
-            "Shader Graphs/glTF-pbrMetallicRoughness-Clearcoat",
         };
 
         public void OnPreprocessBuild(BuildReport report)
         {
             ReimportGlbsForUrp();
-            var included = new List<Shader>(GraphicsSettings.alwaysIncludedShaders);
+            var gsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0];
+            var gsSo = new SerializedObject(gsAsset);
+            var gsProp = gsSo.FindProperty("m_AlwaysIncludedShaders");
+            var included = new List<Shader>();
+            for (int i = 0; i < gsProp.arraySize; i++) { var sh = gsProp.GetArrayElementAtIndex(i).objectReferenceValue as Shader; if (sh != null) included.Add(sh); }
             var added = 0;
             foreach (var name in ShaderNames)
             {
@@ -50,7 +47,10 @@ namespace Hollowmere.Editor
             }
             if (added > 0)
             {
-                GraphicsSettings.alwaysIncludedShaders = included.ToArray();
+                gsProp.arraySize = included.Count;
+                for (int i = 0; i < included.Count; i++) gsProp.GetArrayElementAtIndex(i).objectReferenceValue = included[i];
+                gsSo.ApplyModifiedProperties();
+                AssetDatabase.SaveAssets();
                 Debug.Log("Hollowmere: added " + added + " shaders to Always Included Shaders.");
             }
         }

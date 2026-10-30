@@ -58,7 +58,6 @@ MonoBehaviour:
       m_List:
       - rid: 4892886629636899001
       - rid: 4892886629636899003
-      - rid: 4892886629636899005
       - rid: 4892886629636899006
       - rid: 4892886629636899008
       - rid: 4892886629636899009
@@ -89,6 +88,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 4892886629636899000
       type: {class: UniversalRenderPipelineEditorShaders, ns: UnityEngine.Rendering.Universal,
         asm: Unity.RenderPipelines.Universal.Runtime}

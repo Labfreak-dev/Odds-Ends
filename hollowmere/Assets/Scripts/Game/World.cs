@@ -82,7 +82,11 @@ namespace Hollowmere
                     }
                     else if (tile == Tile.Water)
                     {
-                        float wy = -0.25f;
+                        // A solid bed in the included shader, then the water sheet on top. A hole
+                        // here used to show the black skirt (and a pink edge where a stripped
+                        // material failed).
+                        Quad(fv, fn, (x + y) % 2 == 0 ? ta : tb, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
+                        float wy = -0.08f;
                         Quad(av, an, at, c + new Vector3(-half, wy, -half), c + new Vector3(-half, wy, half), c + new Vector3(half, wy, half), c + new Vector3(half, wy, -half), Vector3.up);
                         Box(bv, bt, c, half, 1.5f);
                     }
@@ -124,8 +128,11 @@ namespace Hollowmere
                 bm.SetVertices(bv); bm.SetTriangles(bt, 0);
                 block.AddComponent<MeshCollider>().sharedMesh = bm;
             }
-            // A dark skirt under everything so the void below never shows.
-            Art.Cube(root, new Vector3(map.width * T / 2, -0.6f, map.height * T / 2), new Vector3(map.width * T + 20, 1, map.height * T + 20), Art.Mat(Color.black));
+            // A skirt in the floor colour. Pure black read as a missing mesh once the camera
+            // looked past the last tile.
+            var skirt = Color.Lerp(fa, Color.black, 0.35f);
+            Art.Cube(root, new Vector3(map.width * T / 2, -0.6f, map.height * T / 2), new Vector3(map.width * T + 40, 1, map.height * T + 40), Art.Mat(skirt));
+            Art.AdoptShaders(root.gameObject);
 
             // ---------- lighting
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
@@ -140,7 +147,7 @@ namespace Hollowmere
             sun.transform.rotation = Quaternion.Euler(55, -30, 0);
             sun.intensity = map.theme == Theme.Town ? 1.1f : 0.35f;
             sun.color = map.theme == Theme.Town ? new Color(1f, 0.95f, 0.85f) : lightC;
-            if (Camera.main != null) Camera.main.backgroundColor = ambient * 0.35f;
+            if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 
             if (map.theme != Theme.Town)
             {

@@ -35,7 +35,10 @@ namespace Hollowmere
             DontDestroyOnLoad(ui.gameObject);
         }
 
-        void Start() => UiRoot.I.ShowTitle();
+        void Start()
+        {
+            if (!QaShot.RunIfRequested(this)) UiRoot.I.ShowTitle();
+        }
 
         // ====================== save / load ======================
 
@@ -192,7 +195,8 @@ namespace Hollowmere
         void SpawnHeroAndPet(Vector3 at)
         {
             var hero = HeroActor.Spawn(at);
-            PetActor.Spawn(at + new Vector3(-1.5f, 0, -1f));
+            // Beside the hero, toward the camera, so the companion is in frame instead of a speck behind it.
+            PetActor.Spawn(at + new Vector3(1.35f, 0, -0.85f));
             cam.follow = hero.transform;
             cam.Snap();
             UiRoot.I.Hud.Bind(hero);

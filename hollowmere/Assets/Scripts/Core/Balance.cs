@@ -2,32 +2,20 @@ using System;
 
 namespace Hollowmere.Core
 {
-    public enum Difficulty { Normal, Hard, Expert, Master, Torment1, Torment2, Torment3, Torment4, Torment5, Torment6 }
-
     /// <summary>Every tuning curve in one place. Monster numbers are derived from what a hero of the
-    /// same level is expected to have, so the game stays self-consistent as the item tables change.</summary>
+    /// same level is expected to have, so the game stays self-consistent as the item tables change.
+    /// Floor depth is the only difficulty. There is no ladder and no toggle.</summary>
     public static class Balance
     {
         public const int MaxLevel = 70;
         public const int InventorySize = 40;
         public const int StashSize = 120;
 
-        public static readonly string[] DifficultyNames =
-            { "Normal", "Hard", "Expert", "Master", "Torment I", "Torment II", "Torment III", "Torment IV", "Torment V", "Torment VI" };
-
-        public static float MonsterLifeMult(Difficulty d) => new[] { 1f, 2f, 3.2f, 5.1f, 8.2f, 13f, 21f, 34f, 54f, 86f }[(int)d];
-        public static float MonsterDamageMult(Difficulty d) => new[] { 1f, 1.3f, 1.6f, 2f, 2.5f, 3.1f, 3.9f, 4.9f, 6.1f, 7.6f }[(int)d];
-        public static float XpBonus(Difficulty d) => new[] { 0f, 0.75f, 1f, 1.5f, 2f, 3f, 4f, 6f, 8f, 11f }[(int)d];
-        public static float GoldBonus(Difficulty d) => XpBonus(d);
-        public static float LegendaryBonus(Difficulty d) => new[] { 0f, 0f, 0.1f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0f, 1.3f, 1.6f }[(int)d];
-        public static int MinLevelFor(Difficulty d) => new[] { 1, 1, 1, 1, 70, 70, 70, 70, 70, 70 }[(int)d];
-
         public static long XpToNext(int level) => level >= MaxLevel ? long.MaxValue : DesignTable.XpToNext(level);
 
-        /// <summary>Monster level follows depth (Fate-style: deeper is harder), about one level per floor,
-        /// reaching the cap around floor 64. A hero who outlevels a floor finds it easy; difficulty
-        /// is the dial for that. heroLevel only lifts the floor's level when the hero is far ahead,
-        /// so revisiting floor 1 at level 60 still drops useful items.</summary>
+        /// <summary>Monster level follows depth, about one level per floor, reaching the cap around
+        /// floor 64. heroLevel only lifts the floor's level when the hero is far ahead, so revisiting
+        /// floor 1 at level 60 still drops useful items. There is no separate difficulty multiplier.</summary>
         public static int MonsterLevel(int depth, int heroLevel) =>
             Math.Clamp(Math.Max(depth + depth / 10, heroLevel - 10), 1, MaxLevel + 3);
 

@@ -82,7 +82,7 @@ namespace Hollowmere.Core
         static readonly string[] ElitePrefix = { "Gorm", "Vex", "Ulda", "Krag", "Seth", "Morra", "Bryn", "Thol", "Iska", "Durn", "Wyl", "Ost" };
         static readonly string[] EliteSuffix = { "the Unwashed", "Gravebloom", "the Hungry", "Mirefang", "the Hollow", "Rotcoil", "the Patient", "Ashmaw", "the Drowned", "Bitterbone" };
 
-        public static MonsterStats Create(MonsterDef def, int level, MonsterRank rank, Difficulty d, Rng rng, int floor = 0)
+        public static MonsterStats Create(MonsterDef def, int level, MonsterRank rank, Rng rng, int floor = 0)
         {
             var m = new MonsterStats { def = def, rank = rank, level = level, displayName = def.name };
             decimal lifeRank = 1m, dmgRank = 1m, xpRank = 1m;
@@ -95,16 +95,15 @@ namespace Hollowmere.Core
             }
             decimal lifeScale = DesignTable.LifeScale(floor);
             decimal dmgScale = DesignTable.DamageScale(floor);
-            decimal life = DesignTable.RawLife(level) * (decimal)def.life * lifeRank * lifeScale * (decimal)Balance.MonsterLifeMult(d);
-            decimal dmg = DesignTable.RawDamage(level) * (decimal)def.damage * dmgRank * dmgScale * (decimal)Balance.MonsterDamageMult(d);
+            decimal life = DesignTable.RawLife(level) * (decimal)def.life * lifeRank * lifeScale;
+            decimal dmg = DesignTable.RawDamage(level) * (decimal)def.damage * dmgRank * dmgScale;
             m.maxLife = (float)life;
             m.damage = (float)dmg;
             m.speed = def.speed;
             m.attackCooldown = def.attackCooldown;
-            m.xp = DesignTable.RoundEven(DesignTable.Unit(level) * (decimal)def.xp * xpRank * (1m + (decimal)Balance.XpBonus(d)));
+            m.xp = DesignTable.RoundEven(DesignTable.Unit(level) * (decimal)def.xp * xpRank);
 
-            int affixCount = rank switch { MonsterRank.Champion => 1 + (int)d / 3, MonsterRank.Elite => 2 + (int)d / 3, _ => 0 };
-            if (rank == MonsterRank.Boss && d >= Difficulty.Master) affixCount = 1;
+            int affixCount = DesignTable.AffixCount(rank, floor);
             var options = Enum.GetValues(typeof(EliteAffix)).Cast<EliteAffix>().ToList();
             rng.Shuffle(options);
             for (int i = 0; i < Math.Min(affixCount, options.Count); i++) m.affixes.Add(options[i]);

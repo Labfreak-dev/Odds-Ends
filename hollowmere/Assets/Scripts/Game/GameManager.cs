@@ -152,7 +152,7 @@ namespace Hollowmere
             foreach (var s in map.spawns)
             {
                 var def = MonsterDb.Get(s.monsterId);
-                var ms = MonsterDb.Create(def, mlvl, s.rank, State.difficulty, rng, depth);
+                var ms = MonsterDb.Create(def, mlvl, s.rank, rng, depth);
                 if (s.rank == MonsterRank.Elite) packAffixes[s.pack] = ms.affixes;
                 else if (s.rank == MonsterRank.Minion && packAffixes.TryGetValue(s.pack, out var aff)) ms.affixes.AddRange(aff.Where(a => a != EliteAffix.Extra));
                 if (bounty != null && s.rank == MonsterRank.Elite) { ms.displayName = bounty.eliteName; bounty = null; }
@@ -162,7 +162,7 @@ namespace Hollowmere
             {
                 // No elite pack rolled: the bounty gets its own.
                 var room = map.rooms.OrderByDescending(r => r.Center.Chebyshev(map.entry)).First();
-                var ms = MonsterDb.Create(MonsterDb.ForDepth(depth)[0], mlvl, MonsterRank.Elite, State.difficulty, rng, depth);
+                var ms = MonsterDb.Create(MonsterDb.ForDepth(depth)[0], mlvl, MonsterRank.Elite, rng, depth);
                 ms.displayName = bounty.eliteName;
                 MonsterActor.Spawn(ms, World.ToWorld(room.Center), 9999);
             }
@@ -256,7 +256,7 @@ namespace Hollowmere
                 MonsterRank.Boss => LootSource.Boss, MonsterRank.Elite => LootSource.Elite,
                 MonsterRank.Champion => LootSource.Champion, _ => LootSource.Normal,
             };
-            var drop = Loot.Roll(rng, src, s.level, State.difficulty, hero != null ? hero.stats : State.Stats(), State.hero.heroClass, State.depth);
+            var drop = Loot.Roll(rng, src, s.level, hero != null ? hero.stats : State.Stats(), State.hero.heroClass, State.depth);
             float ring = s.rank == MonsterRank.Boss ? 1.5f : 0f;
             for (int i = 0; i < drop.items.Count; i++)
             {
@@ -375,7 +375,7 @@ namespace Hollowmere
                 {
                     it.used = true;
                     int mlvl = Balance.MonsterLevel(State.depth, State.hero.level);
-                    var drop = Loot.Roll(rng, LootSource.Chest, mlvl, State.difficulty, hero.stats, State.hero.heroClass, State.depth);
+                    var drop = Loot.Roll(rng, LootSource.Chest, mlvl, hero.stats, State.hero.heroClass, State.depth);
                     foreach (var x in drop.items) Pickup.DropItem(x, it.transform.position);
                     Pickup.DropGold(drop.gold, it.transform.position);
                     if (drop.potions > 0) Pickup.DropItem(Loot.Potion(1), it.transform.position);
@@ -443,7 +443,7 @@ namespace Hollowmere
             hero.busy = true;
             float window = State.hero.LegendaryTotal(LegendaryEffect.FishingBiteWindow);
             var session = new FishingSession(rng, InTown, Math.Max(1, State.depth), hero.stats[Stat.FishingLuck], window,
-                Balance.MonsterLevel(Math.Max(1, State.depth), State.hero.level), State.hero.heroClass, State.difficulty);
+                Balance.MonsterLevel(Math.Max(1, State.depth), State.hero.level), State.hero.heroClass);
             UiRoot.I.OpenFishing(session, World.ToWorld(pool.center), () => FinishFishing(session, spot));
         }
 
@@ -530,12 +530,6 @@ namespace Hollowmere
             h.RefreshStats();
             h.RefreshWeapon();
             PetActor.I?.RefreshLife(false);
-        }
-
-        public void ChangeDifficulty(Difficulty d)
-        {
-            if (Town.SetDifficulty(State, d)) Toast($"Difficulty: {Balance.DifficultyNames[(int)d]}");
-            else Toast($"Requires level {Balance.MinLevelFor(d)}");
         }
 
         public Rng Rng => rng;

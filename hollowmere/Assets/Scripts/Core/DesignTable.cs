@@ -5,7 +5,7 @@ namespace Hollowmere.Core
 {
     /// <summary>
     /// Every tuned figure from DESIGN_SPEC.md. Formulas live here so combat code does not
-    /// carry loose literals. The difficulty ladder in <see cref="Balance"/> is not part of this table.
+    /// carry loose literals. Floor depth is the only difficulty.
     /// </summary>
     public static class DesignTable
     {
@@ -261,18 +261,32 @@ namespace Hollowmere.Core
             gold = GemCombineGold(rank);
         }
 
-        public static void DropWeights(int floor, decimal magicFind, decimal legendaryBonus, LootSource src, decimal[] into)
+        public const decimal BossExtraSpecialChance = 0.35m;
+
+        /// <summary>Champions start at 1 affix, elites at 2, guardians at 0. Each gains one more every 20 floors.</summary>
+        public static int AffixCount(MonsterRank rank, int floor)
+        {
+            int extra = Math.Max(0, floor) / 20;
+            switch (rank)
+            {
+                case MonsterRank.Champion: return 1 + extra;
+                case MonsterRank.Elite: return 2 + extra;
+                case MonsterRank.Boss: return extra;
+                default: return 0;
+            }
+        }
+
+        public static void DropWeights(int floor, decimal magicFind, LootSource src, decimal[] into)
         {
             if (floor < 1) floor = 1;
             decimal special = Math.Min(0.06m, 0.01m + 0.0005m * floor);
             decimal rare0 = 0.08m + 0.001m * Math.Min(floor, 50);
             decimal mf = 1m + Math.Max(0m, magicFind) / 100m;
-            decimal legB = 1m + legendaryBonus;
             decimal common = 1m - special - rare0 - 0.28m;
             decimal magic = 0.28m * mf;
             decimal rare = rare0 * mf;
-            decimal leg = LegendarySplit * special * legB;
-            decimal set = SetSplit * special * legB;
+            decimal leg = LegendarySplit * special;
+            decimal set = SetSplit * special;
             switch (src)
             {
                 case LootSource.Champion:

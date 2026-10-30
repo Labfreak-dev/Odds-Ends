@@ -38,10 +38,10 @@ namespace Hollowmere.Core
 
         public static string NewUid(Rng rng) => $"{rng.NextU64():x12}{(++uidCounter):x}";
 
-        public static Rarity RollRarity(Rng rng, float magicFind, Difficulty d, LootSource src, int floor = 1)
+        public static Rarity RollRarity(Rng rng, float magicFind, LootSource src, int floor = 1)
         {
             var weights = new decimal[5];
-            DesignTable.DropWeights(floor, (decimal)magicFind, (decimal)Balance.LegendaryBonus(d), src, weights);
+            DesignTable.DropWeights(floor, (decimal)magicFind, src, weights);
             var floats = new float[5];
             for (int i = 0; i < 5; i++) floats[i] = (float)weights[i];
             return (Rarity)rng.Weighted(floats);
@@ -217,7 +217,7 @@ namespace Hollowmere.Core
         }
 
         /// <summary>What a dead monster, a chest or the boss drops.</summary>
-        public static LootDrop Roll(Rng rng, LootSource src, int monsterLevel, Difficulty d, StatBlock heroStats, HeroClass cls, int floor = 0)
+        public static LootDrop Roll(Rng rng, LootSource src, int monsterLevel, StatBlock heroStats, HeroClass cls, int floor = 0)
         {
             var drop = new LootDrop();
             float mf = heroStats[Stat.MagicFind], gf = heroStats[Stat.GoldFind];
@@ -235,13 +235,13 @@ namespace Hollowmere.Core
             for (int i = 0; i < maxItems; i++)
                 if (rng.Chance(i == 0 ? itemChance : 0.55f)) count++;
             for (int i = 0; i < count; i++)
-                drop.items.Add(Generate(rng, ilvl, RollRarity(rng, mf, d, src, floor < 1 ? monsterLevel : floor), cls, floor: floor < 1 ? monsterLevel : floor));
-            if (src == LootSource.Boss && !drop.items.Any(x => x.rarity >= Rarity.Legendary) && rng.Chance(0.35f + Balance.LegendaryBonus(d) * 0.2f))
-                drop.items.Add(Generate(rng, ilvl, rng.Chance(0.7f) ? Rarity.Legendary : Rarity.Set, cls));
+                drop.items.Add(Generate(rng, ilvl, RollRarity(rng, mf, src, floor < 1 ? monsterLevel : floor), cls, floor: floor < 1 ? monsterLevel : floor));
+            if (src == LootSource.Boss && !drop.items.Any(x => x.rarity >= Rarity.Legendary) && rng.Chance((float)DesignTable.BossExtraSpecialChance))
+                drop.items.Add(Generate(rng, ilvl, rng.Chance(0.7f) ? Rarity.Legendary : Rarity.Set, cls, floor: floor < 1 ? monsterLevel : floor));
 
             float goldChance = src == LootSource.Normal ? 0.35f : 1f;
             if (rng.Chance(goldChance))
-                drop.gold = (int)Math.Round((3 + monsterLevel * 2.2f) * rng.Range(0.7f, 1.3f) * (1 + gf / 100f) * (1 + Balance.GoldBonus(d))
+                drop.gold = (int)Math.Round((3 + monsterLevel * 2.2f) * rng.Range(0.7f, 1.3f) * (1 + gf / 100f)
                     * (src == LootSource.Boss ? 12 : src == LootSource.Elite ? 4 : src == LootSource.Champion ? 2.5f : src == LootSource.Chest ? 3 : 1));
             if (rng.Chance(src == LootSource.Normal ? 0.03f : 0.3f)) drop.potions = 1;
             return drop;

@@ -375,7 +375,7 @@ A guardian's rare weight is 0.60 before the weights are normalized, and its spec
 
 ### T.drops
 
-Chances for a normal kill, magic find 0, Normal difficulty. Percents, three decimals.
+Chances for a normal kill, magic find 0. Percents, three decimals.
 
 | Floor | Common | Magic | Rare | Legendary | Set |
 | --- | --- | --- | --- | --- | --- |

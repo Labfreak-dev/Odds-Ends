@@ -161,7 +161,7 @@ namespace Hollowmere
             resText.text = $"{StatInfo.ResourceName(h.heroClass)} {Mathf.FloorToInt(hero.resource)}";
             long need = Balance.XpToNext(h.level);
             Ui.SetBar(xpFill, h.level >= Balance.MaxLevel ? 1 : h.xp / (float)need);
-            goldText.text = $"{h.gold:N0} gold   <color=#bbbbbb>{Balance.DifficultyNames[(int)st.difficulty]}</color>";
+            goldText.text = st.depth <= 0 ? $"{h.gold:N0} gold" : $"{h.gold:N0} gold   <color=#bbbbbb>Floor {st.depth}</color>";
             var pet = PetActor.I;
             if (pet != null)
             {

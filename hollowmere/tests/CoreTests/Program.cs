@@ -52,12 +52,12 @@ static class Program
     {
         var rng = new Rng(1);
         var counts = new int[5];
-        for (int i = 0; i < 20000; i++) counts[(int)Loot.RollRarity(rng, 0, Difficulty.Normal, LootSource.Normal)]++;
+        for (int i = 0; i < 20000; i++) counts[(int)Loot.RollRarity(rng, 0, LootSource.Normal)]++;
         Check(counts[0] > counts[1] && counts[1] > counts[2] && counts[2] > counts[3], $"rarity is ordered common>magic>rare>legendary ({string.Join(",", counts)})");
         Check(counts[3] + counts[4] > 0 && counts[3] + counts[4] < 400, $"legendary+set rate is rare but present ({counts[3] + counts[4]}/20000)");
 
         var mf = new int[5];
-        for (int i = 0; i < 20000; i++) mf[(int)Loot.RollRarity(rng, 300, Difficulty.Normal, LootSource.Normal)]++;
+        for (int i = 0; i < 20000; i++) mf[(int)Loot.RollRarity(rng, 300, LootSource.Normal)]++;
         Check(mf[2] > counts[2], "magic find raises rare rate");
 
         foreach (HeroClass cls in Enum.GetValues(typeof(HeroClass)))
@@ -225,14 +225,14 @@ static class Program
         var rng = new Rng(4);
         foreach (var def in MonsterDb.All)
         {
-            var m = MonsterDb.Create(def, 20, def.boss ? MonsterRank.Boss : MonsterRank.Normal, Difficulty.Normal, rng);
+            var m = MonsterDb.Create(def, 20, def.boss ? MonsterRank.Boss : MonsterRank.Normal, rng);
             Check(m.maxLife > 0 && m.damage > 0 && m.xp > 0, $"{def.id} has stats");
         }
         // Time-to-kill sanity: an expected hero kills a normal in ~1-3s, boss in 30-90s.
         foreach (int lvl in new[] { 1, 10, 30, 60, 70 })
         {
-            var n = MonsterDb.Create(MonsterDb.Get("bonewalker"), lvl, MonsterRank.Normal, Difficulty.Normal, rng);
-            var boss = MonsterDb.Create(MonsterDb.Get("boss_abbot"), lvl, MonsterRank.Boss, Difficulty.Normal, rng);
+            var n = MonsterDb.Create(MonsterDb.Get("bonewalker"), lvl, MonsterRank.Normal, rng);
+            var boss = MonsterDb.Create(MonsterDb.Get("boss_abbot"), lvl, MonsterRank.Boss, rng);
             float dps = Balance.ExpectedHeroDps(lvl);
             float ttk = n.maxLife / dps, bttk = boss.maxLife / dps;
             Check(ttk > 0.5f && ttk < 6f, $"lvl {lvl}: normal ttk {ttk:0.0}s vs the expected curve");
@@ -240,8 +240,8 @@ static class Program
             float hits = Balance.ExpectedHeroLife(lvl) / n.damage;
             Check(hits > 8 && hits < 60, $"lvl {lvl}: hero survives {hits:0} unmitigated normal hits");
         }
-        var t6 = MonsterDb.Create(MonsterDb.Get("bonewalker"), 70, MonsterRank.Elite, Difficulty.Torment6, rng);
-        Check(t6.affixes.Count >= 4, "torment elites stack affixes");
+        var deep = MonsterDb.Create(MonsterDb.Get("bonewalker"), 70, MonsterRank.Elite, rng, 40);
+        Check(deep.affixes.Count == DesignTable.AffixCount(MonsterRank.Elite, 40), "floor 40 elites gain affixes from depth");
         Check(MonsterDb.BossFor(5).id == "boss_ossuary" && MonsterDb.BossFor(10).id == "boss_matriarch", "boss rotation");
         for (int d = 1; d < 60; d++) Check(MonsterDb.ForDepth(d).Count > 0, $"monsters exist at depth {d}");
     }
@@ -253,7 +253,7 @@ static class Program
         var seen = new HashSet<string>();
         for (int i = 0; i < sessions; i++)
         {
-            var fs = new FishingSession(new Rng((ulong)(i + 1)), i % 2 == 0, 12, 0, 0, 20, HeroClass.Stalker, Difficulty.Normal);
+            var fs = new FishingSession(new Rng((ulong)(i + 1)), i % 2 == 0, 12, 0, 0, 20, HeroClass.Stalker);
             fs.Cast();
             for (int t = 0; t < 3000 && !fs.Done; t++)
             {
@@ -272,7 +272,7 @@ static class Program
         int snapped = 0;
         for (int i = 0; i < 100; i++)
         {
-            var fs = new FishingSession(new Rng((ulong)(i + 999)), false, 25, 0, 0, 40, HeroClass.Stalker, Difficulty.Normal);
+            var fs = new FishingSession(new Rng((ulong)(i + 999)), false, 25, 0, 0, 40, HeroClass.Stalker);
             fs.Cast();
             for (int t = 0; t < 3000 && !fs.Done; t++)
             {
@@ -285,7 +285,7 @@ static class Program
         Check(snapped > 30, $"holding forever snaps lines ({snapped}/100)");
 
         // Tapping on a nibble spooks
-        var sp = new FishingSession(new Rng(5), true, 1, 0, 0, 1, HeroClass.Ironclad, Difficulty.Normal);
+        var sp = new FishingSession(new Rng(5), true, 1, 0, 0, 1, HeroClass.Ironclad);
         sp.Cast();
         bool spooked = false;
         for (int t = 0; t < 5000 && !sp.Done; t++) { if (sp.phase == FishingPhase.Nibble) { sp.Tap(); spooked = sp.phase == FishingPhase.Spooked; break; } sp.Tick(0.02f); }
@@ -328,8 +328,7 @@ static class Program
         s.quests.Add(fishQ);
         s.OnFish(FishDb.Get("minnow")); s.OnFish(FishDb.Get("minnow"));
         Check(fishQ.complete, "fish quest completes");
-        Check(!Town.SetDifficulty(s, Difficulty.Torment1), "torment locked before 70");
-        Check(Town.SetDifficulty(s, Difficulty.Master), "master open from the start");
+        Check(s.version == 2, "new games are save version 2");
     }
 
     /// <summary>A bot clears floors 1..40: kills everything, keeps any item that raises sheet DPS
@@ -349,13 +348,13 @@ static class Program
                 double seconds = 0;
                 foreach (var sp in map.spawns)
                 {
-                    var m = MonsterDb.Create(MonsterDb.Get(sp.monsterId), mlvl, sp.rank, s.difficulty, rng);
+                    var m = MonsterDb.Create(MonsterDb.Get(sp.monsterId), mlvl, sp.rank, rng, depth);
                     var st = h.ComputeStats();
                     seconds += m.maxLife / Math.Max(1, h.SheetDps(st) * 1.5f);   // skills ~1.5x sheet, some AoE
                     s.OnKill(m, depth);
                     h.GainXp(m.xp);
                     var src = sp.rank == MonsterRank.Boss ? LootSource.Boss : sp.rank == MonsterRank.Elite ? LootSource.Elite : sp.rank == MonsterRank.Champion ? LootSource.Champion : LootSource.Normal;
-                    var drop = Loot.Roll(rng, src, m.level, s.difficulty, st, cls);
+                    var drop = Loot.Roll(rng, src, m.level, st, cls, depth);
                     h.gold += drop.gold;
                     foreach (var it in drop.items)
                     {
@@ -375,9 +374,9 @@ static class Program
                 bool any = true;
                 while (any) { any = false; foreach (var sk in SkillDb.ForClass(cls)) if (h.skills.RankUp(sk, h.level)) any = true; }
                 var fin = h.ComputeStats();
-                var probe = MonsterDb.Create(MonsterDb.Get("bonewalker"), Balance.MonsterLevel(depth + 1, h.level), MonsterRank.Normal, s.difficulty, rng);
+                var probe = MonsterDb.Create(MonsterDb.Get("bonewalker"), Balance.MonsterLevel(depth + 1, h.level), MonsterRank.Normal, rng, depth + 1);
                 float ttk = probe.maxLife / Math.Max(1, h.SheetDps(fin));
-                var bossM = MonsterDb.Create(MonsterDb.BossFor(5), Balance.MonsterLevel(depth, h.level), MonsterRank.Boss, s.difficulty, rng);
+                var bossM = MonsterDb.Create(MonsterDb.BossFor(5), Balance.MonsterLevel(depth, h.level), MonsterRank.Boss, rng, depth);
                 float bossTtk = bossM.maxLife / Math.Max(1, h.SheetDps(fin) * 1.5f);
                 if (depth % 5 == 0) Check(bossTtk >= 8 && bossTtk < 180, $"{cls} floor {depth}: guardian fight {bossTtk:0}s");
                 float hits = h.MaxLife(fin) / Combat.MonsterHit(probe.damage, Element.Physical, fin, probe.level, rng).amount;
@@ -413,6 +412,13 @@ static class Program
         back.hero.AddItem(Loot.Potion(2));
         Check(back.hero.inventory.Count == before && potions.stack == 5, "potions stack onto a loaded stack");
         Check(back.pet.form == "goldscale".Replace("goldscale", "gildedserpent"), "pet form survives save");
+
+        const string oldSave = "{\"version\":1,\"seed\":7,\"difficulty\":6,\"hero\":{\"name\":\"Old\",\"heroClass\":0,\"level\":12},\"depth\":4,\"deepest\":9}";
+        var migrated = JsonSerializer.Deserialize<GameState>(oldSave, opts);
+        migrated.Normalize();
+        Check(migrated.version == 2 && migrated.hero.level == 12 && migrated.depth == 4 && migrated.deepest == 9, "a version 1 save with a difficulty field still loads");
+        string rewritten = JsonSerializer.Serialize(migrated, opts);
+        Check(!rewritten.Contains("difficulty"), "rewritten saves omit difficulty");
     }
 
     static List<string[]> SpecRows(string heading)
@@ -464,8 +470,6 @@ static class Program
             Check(DesignTable.CumulativeToArrive(level) == long.Parse(row[2]), "cumulative xp " + level);
         }
         Check(Balance.XpToNext(70) == long.MaxValue, "level 70 sentinel stays on Balance");
-        Check(Balance.MonsterLifeMult(Difficulty.Torment6) == 86f, "difficulty ladder life step is held");
-        Check(Balance.MinLevelFor(Difficulty.Torment1) == 70, "difficulty ladder unlock is held");
 
         foreach (var row in SpecRows("### T.delve"))
         {
@@ -508,7 +512,7 @@ static class Program
         {
             int floor = int.Parse(row[0]);
             var w = new decimal[5];
-            DesignTable.DropWeights(floor, 0m, 0m, LootSource.Normal, w);
+            DesignTable.DropWeights(floor, 0m, LootSource.Normal, w);
             for (int i = 0; i < 5; i++)
             {
                 decimal shown = decimal.Parse(row[i + 1]);
@@ -529,6 +533,14 @@ static class Program
             int rank = int.Parse(row[0]);
             DesignTable.GemRow(rank, out int ilvl, out int mn, out int mx, out int thorn, out int life, out int salt, out int gold);
             Check(ilvl == int.Parse(row[1]) && mn == int.Parse(row[2]) && mx == int.Parse(row[3]) && thorn == int.Parse(row[4]) && life == int.Parse(row[5]) && salt == int.Parse(row[6]) && gold == int.Parse(row[7]), "gem rank " + rank);
+        }
+
+        foreach (var row in SpecRows("### T.affixdepth"))
+        {
+            int floor = int.Parse(row[0]);
+            Check(DesignTable.AffixCount(MonsterRank.Champion, floor) == int.Parse(row[1]), "champion affixes floor " + floor);
+            Check(DesignTable.AffixCount(MonsterRank.Elite, floor) == int.Parse(row[2]), "elite affixes floor " + floor);
+            Check(DesignTable.AffixCount(MonsterRank.Boss, floor) == int.Parse(row[3]), "guardian affixes floor " + floor);
         }
 
         foreach (var row in SpecRows("### T.affix"))

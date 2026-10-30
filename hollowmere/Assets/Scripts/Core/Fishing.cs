@@ -84,14 +84,13 @@ namespace Hollowmere.Core
         readonly float bonusWindow;
         readonly int monsterLevel;
         readonly HeroClass cls;
-        readonly Difficulty diff;
         float runTimer, runStrength;
         int nibblesLeft;
 
-        public FishingSession(Rng rng, bool town, int depth, float fishingLuck, float bonusWindow, int monsterLevel, HeroClass cls, Difficulty d)
+        public FishingSession(Rng rng, bool town, int depth, float fishingLuck, float bonusWindow, int monsterLevel, HeroClass cls)
         {
             this.rng = rng; this.town = town; this.depth = depth; luck = fishingLuck; this.bonusWindow = bonusWindow;
-            this.monsterLevel = monsterLevel; this.cls = cls; diff = d;
+            this.monsterLevel = monsterLevel; this.cls = cls;
         }
 
         public bool Done => phase == FishingPhase.Caught || phase == FishingPhase.Escaped || phase == FishingPhase.Snapped || phase == FishingPhase.Spooked;
@@ -188,7 +187,7 @@ namespace Hollowmere.Core
                 float r = rng.Value();
                 if (r < 0.45f) return new CatchResult { kind = CatchKind.Gold, gold = (int)((10 + monsterLevel * 6) * rng.Range(0.6f, 1.6f)) };
                 if (r < 0.75f) return new CatchResult { kind = CatchKind.Junk, item = JunkItem() };
-                return new CatchResult { kind = CatchKind.Item, item = Loot.Generate(rng, Balance.ItemLevelFor(monsterLevel, false), Loot.RollRarity(rng, luck, diff, LootSource.Fishing, depth), cls, floor: depth) };
+                return new CatchResult { kind = CatchKind.Item, item = Loot.Generate(rng, Balance.ItemLevelFor(monsterLevel, false), Loot.RollRarity(rng, luck, LootSource.Fishing, depth), cls, floor: depth) };
             }
             var pool = FishDb.Available(town, depth);
             var weights = pool.Select(f => f.weight * (f.rarity >= Rarity.Rare ? 1 + luck / 50f : f.rarity == Rarity.Magic ? 1 + luck / 100f : 1f)).ToList();

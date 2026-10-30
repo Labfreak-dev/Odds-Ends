@@ -14,9 +14,11 @@ Everything here (names, classes, monsters, items, fish, places) is original.
 1. Install **Unity 6** (6000.0 LTS) with Android and/or iOS build support.
 2. In Unity Hub choose *Add project from disk* and pick this `hollowmere/` folder. Unity
    fetches the packages in `Packages/manifest.json` (uGUI, Input System, glTFast for
-   the `.glb` models) and creates the rest of `ProjectSettings/`.
-3. Open any scene, even the empty default one, and press Play. The game builds itself
-   from code (`Boot.cs`), so there are no scenes or prefabs to wire up.
+   the `.glb` models). Android player settings and `Assets/Scenes/Main.unity` are already
+   committed; Unity fills in any ProjectSettings file that is still missing.
+3. Open `Assets/Scenes/Main.unity` (or any other scene) and press Play. `Boot.cs` runs from
+   `RuntimeInitializeOnLoadMethod` after the scene loads and builds the camera, light, UI and
+   world itself, so the scene stays empty.
 4. On first open, if Unity asks which input backend to use, either works. The code
    supports the old Input Manager, the new Input System, or both.
 
@@ -25,7 +27,32 @@ use things, I for the bag, K for skills, P for the companion, T to read a portal
 
 For phones: *File → Build Profiles*, pick Android or iOS, landscape. The HUD is built
 for touch, with a floating thumbstick on the left and attack, skill, potion and portal
-buttons on the right. It keeps clear of notches.
+buttons on the right. It keeps clear of notches. Player settings for an installable
+Android APK (landscape, `com.labfreak.hollowmere`, IL2CPP, ARM64, minimum SDK 24) are
+already in `ProjectSettings/`. CI builds that APK; see below.
+
+## Android APK
+
+GitHub Actions workflow `.github/workflows/hollowmere-android.yml` builds a landscape APK
+with game-ci on every push to `main` that touches `hollowmere/`, and when someone runs the
+workflow by hand. It does not open the editor on a desk.
+
+The repository needs three Actions secrets, from a Unity Personal license:
+
+- `UNITY_LICENSE` — the contents of the `.ulf` license file
+- `UNITY_EMAIL` — the Unity account email
+- `UNITY_PASSWORD` — the Unity account password
+
+If any of them is missing, the job stops before Unity starts and names the missing secret.
+
+When a build succeeds, the APK is uploaded two ways:
+
+- Actions artifact `hollowmere-apk`, kept for 30 days, on the workflow run
+- a prerelease tagged `hollowmere-build-<run_number>`, with a direct file
+  `Hollowmere.apk` (the phone-friendly URL)
+
+The package is signed with Unity's debug keystore. Install it by opening the release link
+on the phone and allowing the browser to install the APK. It is not a Play Store upload.
 
 ## How it plays
 

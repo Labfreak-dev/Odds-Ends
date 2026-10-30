@@ -12,6 +12,8 @@ namespace Hollowmere
         Image img;
         Sprite normalSprite;
         Color baseColor;
+        RectTransform label;
+        Vector2 labelRest;
         float scale = 1f, vel;
         bool down;
 
@@ -39,6 +41,7 @@ namespace Hollowmere
             vel = -3.2f;
             AudioHub.PlayUi(sound);
             if (img != null && pressedSprite != null) img.sprite = pressedSprite;
+            ShiftLabel(true);
         }
 
         public void OnPointerUp(PointerEventData e)
@@ -47,12 +50,32 @@ namespace Hollowmere
             down = false;
             vel = 2.4f;
             if (img != null) img.sprite = normalSprite;
+            ShiftLabel(false);
+        }
+
+        /// <summary>The pressed plate already drops the face 4 px, so the label follows it.
+        /// The label is created after this component, so it is found on first use.</summary>
+        void ShiftLabel(bool pressed)
+        {
+            if (label == null)
+            {
+                var text = GetComponentInChildren<Text>();
+                if (text == null) return;
+                label = text.rectTransform;
+                labelRest = label.anchoredPosition;
+            }
+            label.anchoredPosition = labelRest + (pressed ? new Vector2(0f, -4f) : Vector2.zero);
         }
 
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
             if (dt <= 0f) return;
+            if (pressedSprite != null)
+            {
+                transform.localScale = Vector3.one;
+                return;
+            }
             float target = down ? 0.92f : 1f;
             vel += (target - scale) * 86f * dt;
             vel *= Mathf.Exp(-13f * dt);

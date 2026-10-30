@@ -17,7 +17,7 @@ namespace Hollowmere
 
         static GameObject root;
         static UiRoot ui;
-        static RectTransform mainPage, createPage;
+        static RectTransform mainPage, createPage, settingsPage;
         static Text blurb;
         static readonly List<(HeroClass cls, Button button)> classes = new List<(HeroClass, Button)>();
         static readonly List<(PetSpecies pet, Button button)> pets = new List<(PetSpecies, Button)>();
@@ -49,13 +49,19 @@ namespace Hollowmere
             BuildLogo(safe);
             mainPage = BuildMain(safe);
             createPage = BuildCreate(safe);
+            settingsPage = BuildSettings(safe);
             createPage.gameObject.SetActive(false);
+            settingsPage.gameObject.SetActive(false);
             Slide(mainPage, new Vector2(0, -36f));
         }
 
         static void BuildLogo(RectTransform safe)
         {
-            var logo = Ui.Rect(safe, "logo", new Vector2(0, 1), new Vector2(0, 1), new Vector2(48, -300), new Vector2(760, -36));
+            // About 1300 px wide on the 2400-wide reference, centred under the calm sky.
+            var logo = Ui.Rect(safe, "logo", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
+            logo.pivot = new Vector2(0.5f, 1f);
+            logo.sizeDelta = new Vector2(1300f, 428f);
+            logo.anchoredPosition = new Vector2(0f, -28f);
             var sprite = UiArt.Logo;
             if (sprite != null)
             {
@@ -64,46 +70,109 @@ namespace Hollowmere
                 img.preserveAspect = true;
                 img.raycastTarget = false;
             }
-            else
-            {
-                Ui.Label(logo, "<b>HOLLOWMERE</b>", 72, TextAnchor.UpperLeft, Ui.Gold);
-                var sub = Ui.Rect(logo, "sub", new Vector2(0, 0), new Vector2(1, 0), new Vector2(4, 8), new Vector2(0, 52));
-                Ui.Label(sub, "THE LAKE AND THE HOLLOW", 22, TextAnchor.UpperLeft, new Color(0.78f, 0.7f, 0.55f));
-            }
-            var line = Ui.Rect(safe, "tag", new Vector2(0, 0), new Vector2(0.52f, 0), new Vector2(56, 36), new Vector2(-12, 120));
-            Ui.Label(line, "A lakeside town. A hole that goes down forever.\nBring a rod.", 26, TextAnchor.LowerLeft, new Color(0.9f, 0.86f, 0.78f));
+            else Ui.Label(logo, "<b>HOLLOWMERE</b>", 72, TextAnchor.MiddleCenter, Ui.Gold);
         }
 
         static RectTransform Card(RectTransform safe, string name)
         {
-            var card = Ui.Rect(safe, name, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-640, 48), new Vector2(-36, -48));
-            Ui.Box(card, new Color(0.05f, 0.04f, 0.06f, 0.72f));
+            var card = Ui.Rect(safe, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            card.pivot = new Vector2(0.5f, 0.5f);
+            card.sizeDelta = new Vector2(1180f, 820f);
+            card.anchoredPosition = new Vector2(0f, -40f);
+            Ui.Box(card, new Color(0.04f, 0.05f, 0.07f, 0.72f));
             return card;
         }
 
         static RectTransform BuildMain(RectTransform safe)
         {
-            var card = Card(safe, "main");
-            var col = Ui.Rect(card, "col", Vector2.zero, Vector2.one, new Vector2(28, 28), new Vector2(-28, -28));
+            var col = Ui.Rect(safe, "main", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            col.pivot = new Vector2(0.5f, 0.5f);
+            col.sizeDelta = new Vector2(640f, 680f);
+            col.anchoredPosition = new Vector2(0f, -160f);
             var vl = col.gameObject.AddComponent<VerticalLayoutGroup>();
-            vl.spacing = 16;
+            vl.spacing = 18f;
             vl.childAlignment = TextAnchor.MiddleCenter;
             vl.childControlHeight = true;
             vl.childControlWidth = true;
             vl.childForceExpandHeight = false;
             vl.childForceExpandWidth = true;
-            var hello = Ui.Rect(col, "hello", Vector2.zero, Vector2.one);
-            Ui.Label(hello, "The gate is open.", 28, TextAnchor.MiddleCenter, new Color(0.8f, 0.74f, 0.62f));
-            Ui.Size(hello, 48);
 
             if (GameManager.HasSave)
             {
-                var cont = Ui.Button(col, "Continue", Continue, Ui.ButtonHot, 36, UiSfx.Confirm, true);
-                Ui.Size(cont, 96);
+                var cont = Ui.Button(col, "CONTINUE", Continue, null, 36, UiSfx.Confirm, true);
+                Ui.Size(cont, 144);
             }
-            var neu = Ui.Button(col, GameManager.HasSave ? "New Hero" : "Begin", OpenCreate, null, 34, UiSfx.Click, !GameManager.HasSave);
-            Ui.Size(neu, 96);
+            var neu = Ui.Button(col, "NEW HERO", OpenCreate, null, 36, UiSfx.Click);
+            Ui.Size(neu, 144);
+            var settings = Ui.Button(col, "SETTINGS", OpenSettings, null, 36, UiSfx.Click);
+            Ui.Size(settings, 144);
+            var online = Ui.Button(col, "ONLINE", null, null, 36, UiSfx.None);
+            Ui.Size(online, 144);
+            online.interactable = false;
+            var skin = UiArt.ButtonSprite(UiArt.ButtonKind.Disabled);
+            var img = online.GetComponent<Image>();
+            if (skin != null && img != null)
+            {
+                img.sprite = skin;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+            }
+            var colors = online.colors;
+            colors.disabledColor = Color.white;
+            online.colors = colors;
+            return col;
+        }
+
+        static RectTransform BuildSettings(RectTransform safe)
+        {
+            var card = Card(safe, "settings");
+            var col = Ui.Rect(card, "col", Vector2.zero, Vector2.one, new Vector2(36, 36), new Vector2(-36, -36));
+            var vl = col.gameObject.AddComponent<VerticalLayoutGroup>();
+            vl.spacing = 16f;
+            vl.childControlHeight = true;
+            vl.childControlWidth = true;
+            vl.childForceExpandHeight = false;
+            vl.childForceExpandWidth = true;
+            var back = Ui.Button(col, "BACK", OpenMain, null, 30, UiSfx.Back);
+            Ui.Size(back, 100);
+            var heading = Ui.Rect(col, "heading", Vector2.zero, Vector2.one);
+            Ui.Label(heading, "<b>SETTINGS</b>", 36, TextAnchor.MiddleCenter, Ui.Gold);
+            Ui.Size(heading, 64);
+            var sound = Ui.Button(col, SoundLabel(), ToggleSound, null, 32);
+            Ui.Size(sound, 120);
+            var music = Ui.Button(col, MusicLabel(), ToggleMusic, null, 32);
+            Ui.Size(music, 120);
             return card;
+        }
+
+        static string SoundLabel() => AudioHub.I != null && AudioHub.I.sfxVolume <= 0f ? "SOUND: OFF" : "SOUND: ON";
+        static string MusicLabel() => AudioHub.I != null && AudioHub.I.musicVolume <= 0f ? "MUSIC: OFF" : "MUSIC: ON";
+
+        static void ToggleSound()
+        {
+            if (AudioHub.I == null) return;
+            AudioHub.SetVolumes(AudioHub.I.sfxVolume > 0f ? 0f : 0.8f, AudioHub.I.musicVolume);
+            RefreshSettings();
+        }
+
+        static void ToggleMusic()
+        {
+            if (AudioHub.I == null) return;
+            AudioHub.SetVolumes(AudioHub.I.sfxVolume, AudioHub.I.musicVolume > 0f ? 0f : 0.45f);
+            RefreshSettings();
+        }
+
+        static void RefreshSettings()
+        {
+            if (settingsPage == null) return;
+            var buttons = settingsPage.GetComponentsInChildren<Button>();
+            foreach (var b in buttons)
+            {
+                var text = b.GetComponentInChildren<Text>();
+                if (text == null) continue;
+                if (text.text.StartsWith("SOUND")) text.text = SoundLabel();
+                else if (text.text.StartsWith("MUSIC")) text.text = MusicLabel();
+            }
         }
 
         static RectTransform BuildCreate(RectTransform safe)
@@ -147,17 +216,28 @@ namespace Hollowmere
             if (onCreate) return;
             onCreate = true;
             mainPage.gameObject.SetActive(false);
+            settingsPage.gameObject.SetActive(false);
             createPage.gameObject.SetActive(true);
             Slide(createPage, new Vector2(72f, 0f));
         }
 
+        static void OpenSettings()
+        {
+            onCreate = false;
+            mainPage.gameObject.SetActive(false);
+            createPage.gameObject.SetActive(false);
+            settingsPage.gameObject.SetActive(true);
+            RefreshSettings();
+            Slide(settingsPage, new Vector2(0f, -28f));
+        }
+
         static void OpenMain()
         {
-            if (!onCreate) return;
             onCreate = false;
             createPage.gameObject.SetActive(false);
+            settingsPage.gameObject.SetActive(false);
             mainPage.gameObject.SetActive(true);
-            Slide(mainPage, new Vector2(-72f, 0f));
+            Slide(mainPage, new Vector2(0f, -28f));
         }
 
         static void Slide(RectTransform page, Vector2 delta)
@@ -260,6 +340,7 @@ namespace Hollowmere
         readonly List<float> emberSeed = new List<float>();
         Image torch;
         float torchPhase;
+        bool hasArt;
 
         public static void Build(RectTransform parent)
         {
@@ -271,9 +352,12 @@ namespace Hollowmere
             rt.offsetMin = rt.offsetMax = Vector2.zero;
             var at = go.AddComponent<TitleAtmosphere>();
             at.LayArt(rt);
-            at.LayFog(rt);
-            at.LayTorch(rt);
-            at.LayEmbers(rt);
+            if (!at.hasArt)
+            {
+                at.LayFog(rt);
+                at.LayTorch(rt);
+                at.LayEmbers(rt);
+            }
         }
 
         void LayArt(RectTransform parent)
@@ -281,19 +365,22 @@ namespace Hollowmere
             var art = UiArt.Layers;
             if (art != null)
             {
+                // Far, mid, near. The bleed lets a ±40 px drift stay inside the frame.
+                float[] speeds = { 0.1f, 0.35f, 0.7f };
                 int added = 0;
                 for (int i = 0; i < art.Count; i++)
                 {
                     if (art[i] == null) continue;
-                    var rt = Stretch(parent, "layer" + i, 36f + i * 18f);
+                    var rt = Stretch(parent, "layer" + i, 48f);
                     var img = rt.gameObject.AddComponent<Image>();
                     img.sprite = art[i];
                     img.preserveAspect = false;
                     img.raycastTarget = false;
-                    layers.Add(new Layer { rt = rt, speed = 0.07f + i * 0.035f, amp = 10f + i * 14f });
+                    float speed = i < speeds.Length ? speeds[i] : speeds[speeds.Length - 1];
+                    layers.Add(new Layer { rt = rt, speed = speed, amp = 40f });
                     added++;
                 }
-                if (added > 0) return;
+                if (added > 0) { hasArt = true; return; }
             }
             PaintLayer(parent, "sky", Sky(), 0, 8f);
             PaintLayer(parent, "ridge", Ridge(), 1, 16f);

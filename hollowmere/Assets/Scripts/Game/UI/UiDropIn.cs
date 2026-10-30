@@ -20,6 +20,8 @@ namespace Hollowmere
         public Sprite buttonNormal;
         public Sprite buttonPressed;
         public Sprite buttonPrimary;
+        public Sprite buttonDisabled;
+        public Font labelFont;
         public AudioClip titleTheme;
         public AudioClip uiClick;
         public AudioClip uiConfirm;
@@ -33,7 +35,7 @@ namespace Hollowmere
 
     public static class UiArt
     {
-        public enum ButtonKind { Normal, Pressed, Primary }
+        public enum ButtonKind { Normal, Pressed, Primary, Disabled }
 
         static UiDropIn cat;
         static bool tried;
@@ -65,6 +67,8 @@ namespace Hollowmere
 
         public static Sprite Fog => Catalog != null ? Catalog.fog : null;
 
+        public static Font LabelFont => Catalog != null ? Catalog.labelFont : null;
+
         public static Sprite ButtonSprite(ButtonKind kind)
         {
             var c = Catalog;
@@ -73,6 +77,7 @@ namespace Hollowmere
             {
                 case ButtonKind.Pressed: return c.buttonPressed != null ? c.buttonPressed : c.buttonNormal;
                 case ButtonKind.Primary: return c.buttonPrimary != null ? c.buttonPrimary : c.buttonNormal;
+                case ButtonKind.Disabled: return c.buttonDisabled != null ? c.buttonDisabled : c.buttonNormal;
                 default: return c.buttonNormal;
             }
         }

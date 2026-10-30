@@ -1,0 +1,8 @@
+Drop UI audio here. Any of ogg, wav, or mp3. Missing files use a soft synthesized stand-in.
+
+  title_theme.ogg   looped while the title is up
+  ui_click.ogg
+  ui_confirm.ogg
+  ui_back.ogg
+
+Use CC0 or MIT recordings only. Rebuild so Hollowmere/Bind title drop-in art can attach them.

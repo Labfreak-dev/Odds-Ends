@@ -90,11 +90,12 @@ namespace Hollowmere
             Ui.Box(root, Ui.Dim, false);
             var panel = Ui.Rect(root, "panel", min, max);
             Ui.Box(panel, Ui.Panel);
+            root.gameObject.AddComponent<UiMenuMotion>().Arm(panel, new Vector2(0, -28f));
             var head = Ui.Rect(panel, "title", new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -76), new Vector2(-20, -10));
             Ui.Label(head, $"<b>{title}</b>", 40, TextAnchor.MiddleLeft, Ui.Gold);
             if (closable)
             {
-                var x = Ui.Button(panel, "X", () => { Close(root.gameObject); onClose?.Invoke(); }, new Color(0.45f, 0.15f, 0.12f), 34);
+                var x = Ui.Button(panel, "X", () => { Close(root.gameObject); onClose?.Invoke(); }, new Color(0.45f, 0.15f, 0.12f), 34, UiSfx.Back);
                 var xr = (RectTransform)x.transform;
                 xr.anchorMin = xr.anchorMax = new Vector2(1, 1); xr.pivot = new Vector2(1, 1);
                 xr.sizeDelta = new Vector2(84, 66); xr.anchoredPosition = new Vector2(-12, -10);
@@ -126,6 +127,28 @@ namespace Hollowmere
         // ---------------- screens ----------------
 
         public void ShowTitle() { Hud.gameObject.SetActive(false); TitleScreen.Show(this); }
+
+        /// <summary>Fade a menu out, then close it. Uses unscaled time so it still plays while paused.</summary>
+        public void FadeAndClose(GameObject m, Action then)
+        {
+            if (m == null) { then?.Invoke(); return; }
+            StartCoroutine(FadeAndCloseRoutine(m, then));
+        }
+
+        System.Collections.IEnumerator FadeAndCloseRoutine(GameObject m, Action then)
+        {
+            var cg = m.GetComponent<CanvasGroup>() ?? m.AddComponent<CanvasGroup>();
+            cg.blocksRaycasts = false;
+            float t = 0f;
+            while (t < 0.28f && m != null)
+            {
+                t += Time.unscaledDeltaTime;
+                cg.alpha = 1f - Mathf.Clamp01(t / 0.28f);
+                yield return null;
+            }
+            if (m != null) Close(m);
+            then?.Invoke();
+        }
         public void ShowDeath() => DeathScreen.Show(this);
         public void ShowWaypoints() => WaypointScreen.Show(this);
         public void OpenInventory() => InventoryScreen.Show(this);

@@ -6,54 +6,6 @@ using UnityEngine.UI;
 
 namespace Hollowmere
 {
-    public static class TitleScreen
-    {
-        static HeroClass cls = HeroClass.Ironclad;
-        static PetSpecies pet = PetSpecies.Hound;
-        static readonly string[] HeroNames = { "Aldric", "Maren", "Tobin", "Wren", "Corvin", "Isolde", "Bram", "Sela" };
-        static readonly string[] PetNames = { "Biscuit", "Pickles", "Bramble", "Soot", "Mossy", "Pepper" };
-
-        public static void Show(UiRoot ui)
-        {
-            var body = ui.Modal("title", "HOLLOWMERE", new Vector2(0.12f, 0.06f), new Vector2(0.88f, 0.94f), closable: false);
-            var col = Ui.Rect(body, "col", Vector2.zero, Vector2.one);
-            var vl = col.gameObject.AddComponent<VerticalLayoutGroup>();
-            vl.spacing = 14; vl.childControlHeight = true; vl.childControlWidth = true; vl.childForceExpandHeight = false;
-            Ui.Size(Ui.Label(Ui.Rect(col, "sub", Vector2.zero, Vector2.one), "<i>A lakeside town. A hole that goes down forever. Bring a rod.</i>", 30, TextAnchor.MiddleCenter, new Color(0.8f, 0.75f, 0.65f)), 50);
-
-            if (GameManager.HasSave)
-            {
-                var cont = Ui.Button(col, "Continue", () => { if (!GameManager.I.Continue()) ui.Toast("Save could not be loaded."); else ui.CloseAll(); }, Ui.ButtonHot, 40);
-                Ui.Size(cont, 90);
-                Ui.Size(Ui.Label(Ui.Rect(col, "or", Vector2.zero, Vector2.one), "— or start a new hero (replaces the save) —", 24, TextAnchor.MiddleCenter, new Color(0.6f, 0.6f, 0.6f)), 40);
-            }
-
-            var classes = Ui.Row(col, 250, 14);
-            foreach (HeroClass c in Enum.GetValues(typeof(HeroClass)))
-            {
-                var cc = c;
-                string desc = c switch
-                {
-                    HeroClass.Ironclad => "<b>Ironclad</b>\nStrength · Fury\nA wall of iron that cleaves, slams and charges. Builds Fury by hitting things.",
-                    HeroClass.Stalker => "<b>Stalker</b>\nDexterity · Focus\nBows, traps and tumbling. Kills things before they arrive.",
-                    _ => "<b>Hexweaver</b>\nIntelligence · Arcana\nArcane bolts, chain lightning, thralls and meteors.",
-                };
-                var b = Ui.Button(classes, desc, () => { cls = cc; Show(ui); }, c == cls ? Ui.ButtonHot : Ui.ButtonC, 26);
-                b.GetComponentInChildren<Text>().alignment = TextAnchor.MiddleCenter;
-            }
-            var pets = Ui.Row(col, 90, 14);
-            Ui.Button(pets, "Companion: Hound", () => { pet = PetSpecies.Hound; Show(ui); }, pet == PetSpecies.Hound ? Ui.ButtonHot : Ui.ButtonC);
-            Ui.Button(pets, "Companion: Lynx", () => { pet = PetSpecies.Lynx; Show(ui); }, pet == PetSpecies.Lynx ? Ui.ButtonHot : Ui.ButtonC);
-            var start = Ui.Button(col, "Begin", () =>
-            {
-                ui.CloseAll();
-                var r = new System.Random();
-                GameManager.I.NewGame(cls, HeroNames[r.Next(HeroNames.Length)], pet, PetNames[r.Next(PetNames.Length)]);
-            }, new Color(0.25f, 0.45f, 0.2f), 40);
-            Ui.Size(start, 90);
-        }
-    }
-
     public static class DeathScreen
     {
         public static void Show(UiRoot ui)

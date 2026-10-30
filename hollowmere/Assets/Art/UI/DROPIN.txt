@@ -1,0 +1,17 @@
+Hollowmere title art. Original drawings for this project, released under CC0.
+
+Drop replacements in this folder (same names) and rebuild. The player loads them
+through Assets/Resources/UiDropIn.asset, which references these files.
+
+  keyart_bg_0_sky.png
+  keyart_bg_1_ridge.png
+  keyart_bg_2_lake.png
+  keyart_bg_3_fore.png
+  keyart_bg_fog.png
+  logo.png
+  button_normal.png
+  button_pressed.png
+  button_primary.png
+
+Button images are 9-sliced (24 px border on a 96 px plate).
+If a file is missing, the title paints a procedural stand-in.

@@ -1,0 +1,25 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.unityproj
+*.pidb
+*.booproj
+*.apk
+*.aab
+*.ipa
+.vs/
+.idea/
+# Core test runner build output
+tests/**/bin/
+tests/**/obj/
+# fetch_assets.py journal of paid Meshy tasks is kept (it prevents paying twice)
+!tests/CoreTests/CoreTests.csproj
+!tests/UnityCompileCheck/UnityCompileCheck.csproj

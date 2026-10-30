@@ -46,7 +46,8 @@ namespace Hollowmere
         AudioClip Clip(string key)
         {
             if (cache.TryGetValue(key, out var c)) return c;
-            c = Resources.Load<AudioClip>("Audio/UI/" + key);
+            c = Resources.Load<AudioClip>("Audio/SFX/" + key);
+            if (c == null) c = Resources.Load<AudioClip>("Audio/UI/" + key);
             if (c == null) c = Resources.Load<AudioClip>("Audio/" + key);
             if (c == null) c = UiArt.Clip(key);
             cache[key] = c;

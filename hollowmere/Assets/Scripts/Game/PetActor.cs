@@ -12,6 +12,10 @@ namespace Hollowmere
         float nextAttack, fleeUntil, hidden;
         string builtForm = "?";
         Actor foe;
+        ModelAnim anim;
+        Vector3 followVel;
+        float gaitPhase;
+        bool gaitMoving, clipDriven;
         readonly Rng rng = new Rng();
 
         public bool Taunting => P.Form?.taunt > 0;
@@ -51,9 +55,11 @@ namespace Hollowmere
             var form = P.Form;
             float h = form == null ? 0.9f : form.id == "leviathan" ? 1.6f : form.id == "boneguard" ? 1.4f : 1.15f;
             string key = P.species == PetSpecies.Hound ? "pet_hound" : "pet_lynx";
-            var m = Art.Model(key, h, body);
+            var m = Art.Animated(key, h, body);
             if (m == null) m = Art.Quadruped(body, P.species == PetSpecies.Hound ? new Color(0.55f, 0.55f, 0.58f) : new Color(0.75f, 0.6f, 0.4f), h);
-            if (form != null)
+            anim = m != null ? m.GetComponent<ModelAnim>() : null;
+            clipDriven = anim != null && anim.PlaysClips;
+            if (form != null && m != null)
             {
                 // Tint the form: recolour every renderer's material copy and add an element glow.
                 var c = Art.Hex(form.color);
@@ -86,57 +92,145 @@ namespace Hollowmere
             }
             if (!show) return;
 
+            if (cc != null) cc.enabled = false;
             float dt = Time.deltaTime;
             var form = P.Form;
             float speed = 7.5f * (form?.speedMult ?? 1);
 
-            if (GameManager.I.InTown) { Follow(hero, speed, dt); return; }
-
-            if (foe == null || !foe.Targetable || (foe.Pos - hero.Pos).magnitude > 12) foe = Nearest(Team.Hero, hero.Pos, 10f);
-            if (foe != null)
+            if (GameManager.I.InTown) Follow(hero, speed, dt);
+            else
             {
-                var to = foe.Pos - Pos; to.y = 0;
-                if (to.magnitude > 1.6f + foe.radius) { Step(to, speed, dt); }
-                else if (Time.time >= nextAttack && !Stunned)
+                if (foe == null || !foe.Targetable || (foe.Pos - hero.Pos).magnitude > 12) foe = Nearest(Team.Hero, hero.Pos, 10f);
+                if (foe != null)
                 {
-                    nextAttack = Time.time + 0.9f;
-                    Face(to);
-                    var hit = Combat.PetHit(hero.Ctx, 0.35f * (form?.damageMult ?? 1), form?.element ?? Element.Physical, rng);
-                    foe.TakeDamage(hit, hero);
-                    if (form != null && form.aoeRadius > 0)
+                    var to = foe.Pos - Pos; to.y = 0;
+                    if (to.magnitude > 1.6f + foe.radius) Chase(to, speed, dt);
+                    else
                     {
-                        foreach (var a in InRadius(Team.Hero, foe.Pos, form.aoeRadius))
-                            if (a != foe) a.TakeDamage(new Hit { amount = hit.amount * 0.6f, element = hit.element }, hero);
-                        Fx.Ring(foe.Pos, form.aoeRadius, Art.Hex(form.color), 0.25f);
+                        SetMoving(false);
+                        if (Time.time >= nextAttack && !Stunned)
+                        {
+                            nextAttack = Time.time + 0.9f;
+                            Face(to);
+                            var hit = Combat.PetHit(hero.Ctx, 0.35f * (form?.damageMult ?? 1), form?.element ?? Element.Physical, rng);
+                            foe.TakeDamage(hit, hero);
+                            if (form != null && form.aoeRadius > 0)
+                            {
+                                foreach (var a in InRadius(Team.Hero, foe.Pos, form.aoeRadius))
+                                    if (a != foe) a.TakeDamage(new Hit { amount = hit.amount * 0.6f, element = hit.element }, hero);
+                                Fx.Ring(foe.Pos, form.aoeRadius, Art.Hex(form.color), 0.25f);
+                            }
+                            if (form != null && form.slow > 0) foe.Slow(form.slow, 2);
+                            body.localPosition = transform.InverseTransformDirection(to.normalized) * 0.3f;
+                        }
                     }
-                    if (form != null && form.slow > 0) foe.Slow(form.slow, 2);
-                    body.localPosition = transform.InverseTransformDirection(to.normalized) * 0.3f;
                 }
+                else Follow(hero, speed, dt);
             }
-            else Follow(hero, speed, dt);
-            body.localPosition = Vector3.Lerp(body.localPosition, Vector3.zero, dt * 8);
+            Pose(dt);
         }
 
         void Follow(HeroActor hero, float speed, float dt)
         {
-            var spot = hero.Pos - hero.transform.forward * 1.6f + hero.transform.right * 0.8f;
-            var to = spot - Pos; to.y = 0;
-            if (to.magnitude > 18f) { Teleport(spot); return; }
-            if (to.magnitude > 0.5f) Step(to, speed * Mathf.Clamp(to.magnitude / 3f, 0.5f, 1.3f), dt);
+            if (World.Map == null) { SetMoving(false); return; }
+            var back = hero.transform.forward;
+            back.y = 0;
+            if (back.sqrMagnitude < 0.01f) back = Vector3.forward;
+            back.Normalize();
+            var side = hero.transform.right;
+            side.y = 0;
+            if (side.sqrMagnitude > 0.01f) side.Normalize();
+            var slot = hero.Pos - back * 1.75f + side * 0.55f;
+            if (!World.Walkable(slot)) slot = World.ClampToFloor(slot);
+            if (!World.Walkable(Pos))
+            {
+                Teleport(World.Walkable(slot) ? slot : World.ClampToFloor(hero.Pos));
+                followVel = Vector3.zero;
+                SetMoving(false);
+                return;
+            }
+            var to = slot - Pos;
+            to.y = 0;
+            float dist = to.magnitude;
+            if (dist > 14f)
+            {
+                Teleport(slot);
+                followVel = Vector3.zero;
+                SetMoving(false);
+                return;
+            }
+            if (dist < 0.4f)
+            {
+                followVel = Vector3.Lerp(followVel, Vector3.zero, dt * 8f);
+                SetMoving(false);
+                return;
+            }
+            var smoothed = Vector3.SmoothDamp(Pos, slot, ref followVel, 0.16f, speed, dt);
+            var delta = smoothed - Pos;
+            delta.y = 0;
+            Step(delta, speed, dt);
         }
 
-        void Step(Vector3 to, float speed, float dt)
+        void Chase(Vector3 to, float speed, float dt)
         {
-            var dir = to.normalized;
-            var next = World.Sweep(Pos, dir, speed * dt + 0.3f);
-            var delta = Vector3.ClampMagnitude(next - Pos, speed * dt);
-            if (delta.sqrMagnitude < 0.00001f)
+            if (World.Map == null) { SetMoving(false); return; }
+            var delta = Vector3.ClampMagnitude(to, speed * dt);
+            Step(delta, speed, dt);
+        }
+
+        void Step(Vector3 delta, float speed, float dt)
+        {
+            if (delta.sqrMagnitude < 0.000001f) { SetMoving(false); return; }
+            var dir = delta.normalized;
+            float stepLen = Mathf.Min(delta.magnitude, speed * dt);
+            var swept = World.Sweep(Pos, dir, stepLen);
+            var step = swept - Pos;
+            step.y = 0;
+            if (step.sqrMagnitude < 0.000001f)
             {
-                // Blocked: walk the hero's path instead (they always take a walkable one).
-                delta = Vector3.ClampMagnitude((HeroActor.I.Pos - Pos).Flat(), speed * dt);
+                var side = Vector3.Cross(Vector3.up, dir);
+                swept = World.Sweep(Pos, side, Mathf.Min(0.7f, speed * dt));
+                if ((swept - Pos).sqrMagnitude < 0.000001f)
+                    swept = World.Sweep(Pos, -side, Mathf.Min(0.7f, speed * dt));
+                step = swept - Pos;
+                step.y = 0;
             }
-            Move(delta);
-            Face(dir);
+            float spd = dt > 0.0001f ? step.magnitude / dt : 0f;
+            bool moving = spd > 0.3f;
+            if (moving)
+            {
+                Move(step);
+                Face(step);
+            }
+            SetMoving(moving);
+        }
+
+        void SetMoving(bool moving)
+        {
+            gaitMoving = moving;
+            anim?.SetMoving(moving);
+        }
+
+        /// <summary>The shipped pet meshes are a single static node, so a trot versus a breathe stands in
+        /// for walk and idle. A pet_*_walk clip, when one is imported, takes over and this holds still.</summary>
+        void Pose(float dt)
+        {
+            if (body == null) return;
+            var target = Vector3.zero;
+            var rot = Quaternion.identity;
+            if (!clipDriven)
+            {
+                gaitPhase += dt * (gaitMoving ? 12f : 1.8f);
+                if (gaitMoving)
+                {
+                    float s = Mathf.Sin(gaitPhase);
+                    target = new Vector3(0f, Mathf.Abs(s) * 0.08f, 0f);
+                    rot = Quaternion.Euler(s * 8f, 0f, Mathf.Sin(gaitPhase * 0.5f) * 6f);
+                }
+                else target = new Vector3(0f, Mathf.Sin(gaitPhase) * 0.015f, 0f);
+            }
+            body.localPosition = Vector3.Lerp(body.localPosition, target, dt * 10f);
+            body.localRotation = Quaternion.Slerp(body.localRotation, rot, dt * 10f);
         }
 
         protected override void Die(Actor killer)

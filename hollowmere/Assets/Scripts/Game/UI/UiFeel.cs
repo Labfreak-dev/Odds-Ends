@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -86,38 +87,93 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>Fade and a short slide when a menu opens. Unscaled, so it runs while the game is paused.</summary>
+    /// <summary>Fade, slide, and (when asked) a scale pop when a menu opens. Close scales back down.
+    /// Unscaled, so it runs while the game is paused. scaleFrom of 1 leaves the rect's scale alone.</summary>
     public sealed class UiMenuMotion : MonoBehaviour
     {
         RectTransform panel;
         Vector2 from, to;
         CanvasGroup group;
-        float t;
-        bool armed;
+        float t, scaleFrom, outT, outScale;
+        bool armed, doScale, playingOut;
+        Action onOutro;
 
-        public void Arm(RectTransform panel, Vector2 delta)
+        public void Arm(RectTransform panel, Vector2 delta, float scaleFrom = 1f)
         {
             this.panel = panel;
             t = 0f;
+            playingOut = false;
             to = panel.anchoredPosition;
             from = to + delta;
             panel.anchoredPosition = from;
+            this.scaleFrom = scaleFrom;
+            doScale = scaleFrom < 0.999f;
+            if (doScale) panel.localScale = new Vector3(scaleFrom, scaleFrom, 1f);
             group = gameObject.GetComponent<CanvasGroup>() ?? gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;
+            group.blocksRaycasts = true;
             armed = true;
+        }
+
+        /// <summary>Scale down and fade, then invoke done. A second call is ignored so the callback runs once.</summary>
+        public bool PlayOut(Action done)
+        {
+            if (playingOut) return true;
+            playingOut = true;
+            armed = false;
+            onOutro = done;
+            outT = 0f;
+            outScale = panel != null ? panel.localScale.x : 1f;
+            group = group != null ? group : GetComponent<CanvasGroup>();
+            if (group != null) group.blocksRaycasts = false;
+            return true;
         }
 
         void Update()
         {
-            if (!armed) return;
-            t += Time.unscaledDeltaTime;
-            float k = Mathf.Clamp01(t / 0.32f);
-            float e = 1f - Mathf.Pow(1f - k, 3f);
-            if (panel != null) panel.anchoredPosition = Vector2.LerpUnclamped(from, to, e);
-            if (group != null) group.alpha = e;
-            if (k >= 1f)
+            float dt = Time.unscaledDeltaTime;
+            if (playingOut)
             {
-                if (panel != null) panel.anchoredPosition = to;
+                outT += dt;
+                float k = Mathf.Clamp01(outT / 0.18f);
+                float e = k * k;
+                if (group != null) group.alpha = 1f - e;
+                if (panel != null)
+                {
+                    float s = Mathf.Lerp(outScale, 0.9f, e);
+                    panel.localScale = new Vector3(s, s, 1f);
+                }
+                if (k >= 1f)
+                {
+                    playingOut = false;
+                    var cb = onOutro;
+                    onOutro = null;
+                    cb?.Invoke();
+                }
+                return;
+            }
+            if (!armed) return;
+            t += dt;
+            float open = Mathf.Clamp01(t / 0.28f);
+            float ease = 1f - Mathf.Pow(1f - open, 3f);
+            if (panel != null)
+            {
+                panel.anchoredPosition = Vector2.LerpUnclamped(from, to, ease);
+                if (doScale)
+                {
+                    float s = Mathf.LerpUnclamped(scaleFrom, 1f, ease);
+                    s *= 1f + 0.035f * Mathf.Sin(open * Mathf.PI);
+                    panel.localScale = new Vector3(s, s, 1f);
+                }
+            }
+            if (group != null) group.alpha = ease;
+            if (open >= 1f)
+            {
+                if (panel != null)
+                {
+                    panel.anchoredPosition = to;
+                    if (doScale) panel.localScale = Vector3.one;
+                }
                 if (group != null) group.alpha = 1f;
                 armed = false;
             }

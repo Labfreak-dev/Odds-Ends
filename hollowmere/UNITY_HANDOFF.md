@@ -21,9 +21,10 @@ Read `README.md` first for what the game is and where the code lives.
    - uGUI
 3. If Unity asks to enable the new Input System backend, choose **Yes** (or "Both").
    The code handles either.
-4. Open the default scene (or make an empty one) and press **Play**. `Boot.cs` builds
-   everything from code: camera, light, UI and world. You should see the title screen.
-   Pick a class and press Begin.
+4. Open `Assets/Scenes/Main.unity` and press **Play**. That scene is empty on purpose.
+   `Boot.cs` is a `RuntimeInitializeOnLoadMethod` (`AfterSceneLoad`), so it does not need a
+   GameObject in the scene. It builds the camera, light, UI and world. You should see the
+   title screen. Pick a class and press Begin. The same scene is the one Android builds.
 
 Desktop keys:
 
@@ -44,11 +45,12 @@ Desktop keys:
 The 28 Meshy models are in `Assets/Resources/Models/`. Files named `<key>_walk.glb`
 contain a rigged walk cycle. Code loads them with `Resources.Load` by key.
 
-- **Animation.** Select any `_walk.glb`. In the glTFast importer, set
-  **Animation → Legacy** and apply. `ModelAnim` (in `Art.cs`) drives the legacy
-  `Animation` component. It also handles an `Animator`, but a Mecanim import has no
-  controller and so won't play by itself. Apply the setting to every `_walk.glb`, in
-  one multi-select.
+- **Animation.** Every `*_walk.glb` is already set to **Animation → Legacy**. glTFast
+  6.18's `GltfImporter` is internal and its design-time default is Mecanim, which will
+  not play (`ModelAnim` in `Art.cs` drives the legacy `Animation` component). The
+  committed `.meta` files store `importSettings.animationMethod: 1` (Legacy), and
+  `WalkClipLegacyImporter` sets the same field before import for any new walk clip.
+  A Mecanim import has no controller and so won't play by itself.
 - **Facing.** Walk around in Play mode. If heroes and monsters move backwards, set
   `Art.ModelYaw = 180f` in `Art.cs`. That one constant applies to every model.
 - **Scale.** `Art.Model` rescales each model to a target height and puts its feet on
@@ -115,7 +117,9 @@ These are listed in priority order.
 - **Assets are optional by design.** A missing model or sound falls back to a stand-in
   or silence. Keep that behaviour so the game always runs.
 - **Commit the `.meta` files Unity generates**, along with any scene or prefab you add.
-  The project currently has none because Unity creates them on first open.
+  `Assets/Scenes/Main.unity`, the editor scripts, and the `*_walk.glb` importer metas
+  are already committed. Unity still creates metas for the other assets on first open;
+  commit those too.
 
 ## 6. Generating more assets
 

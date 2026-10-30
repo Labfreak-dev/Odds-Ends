@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Compile-only check of the Unity scripts against Unity's reference assemblies from NuGet
        (2021.3 module DLLs; the API surface used here is unchanged in Unity 6). Nothing runs.
+       Editor scripts under Assets/Editor reference UnityEditor (and glTFast's editor importer)
+       and are not part of this check; Unity compiles them inside the editor.
        dotnet build tests/UnityCompileCheck -->
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>

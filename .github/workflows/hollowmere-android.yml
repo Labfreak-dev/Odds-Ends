@@ -1,0 +1,110 @@
+# Landscape Android APK for hollowmere/. Models are normal git blobs, not Git LFS.
+name: Hollowmere Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "hollowmere/**"
+
+concurrency:
+  group: hollowmere-android
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build Hollowmere APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Fail if Unity license secrets are missing
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=()
+          if [[ -z "${UNITY_LICENSE}" ]]; then
+            missing+=("UNITY_LICENSE")
+          fi
+          if [[ -z "${UNITY_EMAIL}" ]]; then
+            missing+=("UNITY_EMAIL")
+          fi
+          if [[ -z "${UNITY_PASSWORD}" ]]; then
+            missing+=("UNITY_PASSWORD")
+          fi
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing GitHub Actions secret(s): ${missing[*]}. Hollowmere Android builds need a Unity Personal license. Add UNITY_LICENSE (the .ulf file contents), UNITY_EMAIL, and UNITY_PASSWORD under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.2
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: hollowmere/Library
+          key: hollowmere-Library-Android-${{ hashFiles('hollowmere/Assets/**', 'hollowmere/Packages/**', 'hollowmere/ProjectSettings/**') }}
+          restore-keys: |
+            hollowmere-Library-Android-
+
+      - name: Build Android APK
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: hollowmere
+          targetPlatform: Android
+          unityVersion: 6000.0.23f1
+          androidExportType: androidPackage
+          buildName: Hollowmere
+          buildMethod: Hollowmere.Editor.HollowmereBuild.Android
+          versioning: Custom
+          version: 0.1.${{ github.run_number }}
+          androidVersionCode: ${{ github.run_number }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hollowmere-apk
+          path: build/Android/Hollowmere.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: hollowmere-build-${{ github.run_number }}
+          name: Hollowmere Android build ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: build/Android/Hollowmere.apk
+          body: |
+            Installable landscape Android APK for Hollowmere (debug keystore, arm64).
+
+            On a phone, open this release in a browser and download `Hollowmere.apk`, or use the direct asset URL:
+            https://github.com/${{ github.repository }}/releases/download/hollowmere-build-${{ github.run_number }}/Hollowmere.apk
+
+            Allow install from the browser, then open the file. The build is signed with Unity's debug keystore, so it is for sideloading rather than Play Store upload.
+            The same file is also attached to this workflow run as the `hollowmere-apk` artifact (kept 30 days).

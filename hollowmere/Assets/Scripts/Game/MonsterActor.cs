@@ -13,7 +13,8 @@ namespace Hollowmere
         Actor foe;
         List<Int2> path;
         int pathIndex;
-        float repath, nextAttack, windup, affixTimer, affixTimer2, shieldUntil, bossTimer;
+        float repath, nextAttack, windup, affixTimer, affixTimer2, shieldUntil, bossTimer, hazardTimer;
+        int globeBits, bossPhase = 1;
         bool winding;
         ModelAnim modelAnim;
         Transform shield;
@@ -95,7 +96,7 @@ namespace Hollowmere
                 Face(to);
                 if (Time.time >= nextAttack)
                 {
-                    nextAttack = Time.time + stats.attackCooldown;
+                    nextAttack = Time.time + stats.attackCooldown * PhaseCooldownScale();
                     winding = true;
                     windup = stats.def.role == MonsterRole.Brute || stats.rank == MonsterRank.Boss ? 0.6f : 0.3f;
                     if (stats.def.role == MonsterRole.Brute || stats.rank == MonsterRank.Boss)
@@ -176,8 +177,13 @@ namespace Hollowmere
             AudioHub.Play("sfx_hit", 0.4f);
         }
 
+        float PhaseCooldownScale() => stats.rank == MonsterRank.Boss && bossPhase >= 2 ? (float)DesignTable.PhaseTwoCooldownScale : 1f;
+
+        float PhaseDamageScale() => stats.rank == MonsterRank.Boss && bossPhase >= 3 ? (float)DesignTable.PhaseThreeDamageScale : 1f;
+
         void Deal(Actor a, float raw, bool melee)
         {
+            raw *= PhaseDamageScale();
             if (a is HeroActor h) h.TakeMonsterHit(raw, stats.def.element, this, melee);
             else a.TakeDamage(new Hit { amount = raw * 0.5f, element = stats.def.element }, this);
             if (stats.affixes.Contains(EliteAffix.Frozen)) a.Slow(0.4f, 1.5f);
@@ -197,6 +203,22 @@ namespace Hollowmere
                 if (stats.affixes.Contains(EliteAffix.Frozen))
                     for (int i = 0; i < 3; i++)
                         GroundEffect.Monster(this, World.ClampToFloor(hero.Pos + new Vector3(Random.Range(-3f, 3f), 0, Random.Range(-3f, 3f))), 1.8f, stats.damage * 1.2f, Element.Frost, 0.01f, 1.5f, 0.6f);
+                if (stats.affixes.Contains(EliteAffix.Mortar))
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 2f, stats.damage, Element.Physical, 0.01f, 1f);
+                if (stats.affixes.Contains(EliteAffix.Jailer))
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 1.4f, stats.damage * 0.4f, Element.Physical, 2f, 0.5f, 0.9f);
+                if (stats.affixes.Contains(EliteAffix.Pulse))
+                    GroundEffect.Monster(this, Pos, 5f, stats.damage, Element.Frost, 0.01f, 1.2f, 0.5f);
+                if (stats.affixes.Contains(EliteAffix.Sweep))
+                    GroundEffect.Monster(this, Pos + transform.forward * 3f, 1.2f, stats.damage, Element.Arcane, 0.4f, 0.4f);
+                if (stats.affixes.Contains(EliteAffix.Waller))
+                {
+                    for (int i = -2; i <= 2; i++)
+                    {
+                        var block = Art.Cube(null, hero.Pos + hero.transform.right * (i * 0.8f) + Vector3.up * 0.6f, new Vector3(0.7f, 1.2f, 0.25f), Art.Mat(new Color(0.45f, 0.42f, 0.38f)));
+                        Destroy(block, 3f);
+                    }
+                }
             }
             if (affixTimer2 <= 0)
             {
@@ -219,8 +241,17 @@ namespace Hollowmere
 
         void BossMoves(float dt, HeroActor hero)
         {
+            if (bossPhase >= 3)
+            {
+                hazardTimer -= dt;
+                if (hazardTimer <= 0f)
+                {
+                    hazardTimer = (float)DesignTable.PhaseThreeHazardSeconds;
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), (float)DesignTable.PhaseThreeHazardRadius, stats.damage, stats.def.element, 0.01f, (float)DesignTable.PhaseThreeHazardWarn);
+                }
+            }
             if ((bossTimer -= dt) > 0) return;
-            bossTimer = Random.Range(7f, 10f);
+            bossTimer = Random.Range(7f, 10f) * PhaseCooldownScale();
             if (Random.value < 0.5f)
             {
                 // Summon a few of the floor's monsters.
@@ -258,8 +289,31 @@ namespace Hollowmere
         {
             if (Time.time < shieldUntil) { Fx.Text(Pos, "Immune", Color.gray, 0.8f); return; }
             if (stats.affixes.Contains(EliteAffix.Armored)) h.amount *= 0.7f;
+            float before = LifeFraction;
             Aggro();
             base.TakeDamage(h, source);
+            if (stats.IsEliteish)
+            {
+                float after = LifeFraction;
+                for (int i = 0; i < DesignTable.EliteGlobeThresholds.Length; i++)
+                {
+                    float mark = (float)DesignTable.EliteGlobeThresholds[i];
+                    int bit = 1 << i;
+                    if ((globeBits & bit) != 0 || before <= mark || after > mark) continue;
+                    globeBits |= bit;
+                    Pickup.DropGlobe(Pos);
+                }
+            }
+            if (stats.rank == MonsterRank.Boss) CheckBossPhase();
+        }
+
+        void CheckBossPhase()
+        {
+            int next = DesignTable.BossPhase(LifeFraction);
+            if (next == bossPhase) return;
+            bossPhase = next;
+            Fx.Ring(Pos, 4f, new Color(1f, 0.45f, 0.2f), 0.6f);
+            GameManager.I.Toast($"{stats.displayName} — phase {bossPhase}");
         }
 
         void SetMoving(bool moving)

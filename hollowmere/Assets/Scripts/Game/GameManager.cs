@@ -257,9 +257,17 @@ namespace Hollowmere
                 MonsterRank.Champion => LootSource.Champion, _ => LootSource.Normal,
             };
             var drop = Loot.Roll(rng, src, s.level, State.difficulty, hero != null ? hero.stats : State.Stats(), State.hero.heroClass, State.depth);
-            foreach (var it in drop.items) Pickup.DropItem(it, m.Pos);
+            float ring = s.rank == MonsterRank.Boss ? 1.5f : 0f;
+            for (int i = 0; i < drop.items.Count; i++)
+            {
+                float ang = drop.items.Count <= 1 ? 0f : i * Mathf.PI * 2f / drop.items.Count;
+                var at = m.Pos + new Vector3(Mathf.Cos(ang) * ring, 0f, Mathf.Sin(ang) * ring);
+                Pickup.DropItem(drop.items[i], at);
+            }
             Pickup.DropGold(drop.gold, m.Pos);
             if (drop.potions > 0) Pickup.DropItem(Loot.Potion(drop.potions), m.Pos);
+            if (s.rank == MonsterRank.Normal && rng.Chance((float)DesignTable.GlobeNormalChance))
+                Pickup.DropGlobe(m.Pos);
 
             if (s.rank == MonsterRank.Elite) Toast($"{s.displayName} slain!");
             if (s.rank == MonsterRank.Boss)
@@ -274,12 +282,30 @@ namespace Hollowmere
         void OnLevelUp(int levels)
         {
             var hero = HeroActor.I;
-            Toast($"Level {State.hero.level}! +{levels} skill point{(levels > 1 ? "s" : "")}");
+            int lvl = State.hero.level;
+            var names = new System.Collections.Generic.List<string>();
+            foreach (var sk in SkillDb.ForClass(State.hero.heroClass))
+            {
+                if (sk.reqLevel == lvl) names.Add(sk.name);
+                if (sk.runes == null) continue;
+                foreach (var r in sk.runes)
+                    if (r.unlockLevel == lvl) names.Add(r.name);
+            }
+            string extra = names.Count > 0 ? " — " + string.Join(", ", names) : "";
+            Toast($"Level {lvl}{extra}");
             AudioHub.Play("sfx_levelup");
             if (hero != null)
             {
                 hero.RefreshStats(true);
-                Fx.Ring(hero.Pos, 4f, new Color(1f, 0.9f, 0.4f), 0.8f);
+                var pillar = new GameObject("levelPillar");
+                pillar.transform.position = hero.Pos + Vector3.up * 1.2f;
+                var light = pillar.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.color = Art.Hex("#e8c77a");
+                light.range = 8f;
+                light.intensity = 6f;
+                pillar.AddComponent<LightFade>().Init((float)DesignTable.LevelUpSeconds, 6f);
+                Fx.Ring(hero.Pos, 4f, new Color(1f, 0.9f, 0.4f), (float)DesignTable.LevelUpSeconds);
                 PetActor.I?.RefreshLife(true);
             }
         }

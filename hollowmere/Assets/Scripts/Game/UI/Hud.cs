@@ -183,7 +183,12 @@ namespace Hollowmere
             if (boss != null)
             {
                 if (boss.Dead) SetBoss(null);
-                else { Ui.SetBar(bossFill, boss.LifeFraction); bossText.text = $"<b>{boss.stats.displayName}</b>"; }
+                else
+                {
+                    Ui.SetBar(bossFill, boss.LifeFraction);
+                    string aff = boss.stats.affixes.Count > 0 ? "\n<size=18><color=#e8d7a8>" + string.Join(" · ", boss.stats.affixes.Select(MonsterDb.AffixName)) + "</color></size>" : "";
+                    bossText.text = $"<b>{boss.stats.displayName}</b>{aff}";
+                }
             }
 
             // skills
@@ -202,7 +207,7 @@ namespace Hollowmere
             var prim = SkillDb.Get(h.skills.bar[0]);
             primary.label.text = prim != null ? prim.name : "Attack";
             potion.label.text = $"Potion\n{h.Count(ItemKind.Potion)}";
-            potion.SetCooldown(hero.PotionCooldown / 5f);
+            potion.SetCooldown(hero.PotionCooldown / (float)DesignTable.PotionCooldownSeconds);
             portal.gameObject.SetActive(!GameManager.I.InTown);
             portal.label.text = $"Portal\n{h.Count(ItemKind.TownPortal)}";
             skillsBtn.GetComponentInChildren<Text>().text = h.skills.unspent > 0 ? $"Skills <color=#ffe25a>+{h.skills.unspent}</color>" : "Skills";

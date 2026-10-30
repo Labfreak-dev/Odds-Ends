@@ -11,6 +11,7 @@ namespace Hollowmere
         static readonly List<Pickup> all = new List<Pickup>();
         public Item item;
         public int gold;
+        public bool globe;
         float bob, age;
 
         public static void DropItem(Item it, Vector3 at)
@@ -19,19 +20,28 @@ namespace Hollowmere
             p.item = it;
             var c = it.kind == ItemKind.Equipment ? Art.Rarity(it.rarity) : it.kind == ItemKind.Potion ? new Color(0.9f, 0.2f, 0.25f) : Art.Hex("#c9a14a");
             Art.Cube(p.transform, new Vector3(0, 0.25f, 0), new Vector3(0.45f, 0.18f, 0.3f), Art.Mat(c, it.rarity >= Rarity.Rare ? 1.2f : 0.3f), Quaternion.Euler(0, Random.Range(0, 360), 0));
-            if (it.rarity >= Rarity.Legendary)
+            if (it.kind == ItemKind.Equipment)
             {
-                Art.Cylinder(p.transform, new Vector3(0, 4, 0), new Vector3(0.25f, 4, 0.25f), Art.Mat(c, 2.5f));
+                float beam = (float)DesignTable.BeamHeight;
+                Art.Cylinder(p.transform, new Vector3(0, beam * 0.5f, 0), new Vector3(0.22f, beam * 0.5f, 0.22f), Art.Mat(c, 2.5f));
                 var l = new GameObject("glow").AddComponent<Light>();
                 l.transform.SetParent(p.transform, false);
                 l.transform.localPosition = Vector3.up;
                 l.color = c; l.range = 6; l.intensity = 2;
-                AudioHub.Play("sfx_legendary");
+                Fx.WorldLabel(p.transform, new Vector3(0, 1.2f, 0), it.name, c, 48, 0.04f);
+                if (it.rarity >= Rarity.Legendary) AudioHub.Play("sfx_legendary");
             }
-            if (it.rarity >= Rarity.Rare || it.kind != ItemKind.Equipment)
+            else if (it.kind != ItemKind.Equipment)
             {
-                Fx.WorldLabel(p.transform, new Vector3(0, 0.9f, 0), it.name, c, 48, 0.04f);
+                Fx.WorldLabel(p.transform, new Vector3(0, 1.2f, 0), it.name, c, 48, 0.04f);
             }
+        }
+
+        public static void DropGlobe(Vector3 at)
+        {
+            var p = Make(at);
+            p.globe = true;
+            Art.Sphere(p.transform, new Vector3(0, 0.35f, 0), Vector3.one * 0.35f, Art.Mat(new Color(0.85f, 0.12f, 0.14f), 1.6f));
         }
 
         public static void DropGold(int amount, Vector3 at)
@@ -69,7 +79,7 @@ namespace Hollowmere
                 var p = all[i];
                 if (p == null || p.age < 0.4f) continue;
                 float d = (p.transform.position - h.Pos).Flat().magnitude;
-                bool vacuum = p.gold > 0 || (p.item != null && p.item.kind != ItemKind.Equipment);
+                bool vacuum = p.gold > 0 || p.globe || (p.item != null && p.item.kind != ItemKind.Equipment);
                 if (d > (vacuum ? radius * 1.2f : 1.3f)) continue;
                 if (p.gold > 0)
                 {
@@ -79,6 +89,12 @@ namespace Hollowmere
                     AudioHub.Play("sfx_gold", 0.5f);
                     float heal = h.Hero.LegendaryTotal(LegendaryEffect.GoldToLife);
                     if (heal > 0) h.Heal(h.maxLife * heal / 100f);
+                }
+                else if (p.globe)
+                {
+                    h.Heal(h.maxLife * (float)DesignTable.GlobeHealFraction);
+                    Fx.Text(p.transform.position, "Globe", new Color(1f, 0.35f, 0.3f), 0.8f);
+                    AudioHub.Play("sfx_gold", 0.35f);
                 }
                 else if (p.item != null)
                 {

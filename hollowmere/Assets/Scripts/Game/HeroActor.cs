@@ -254,9 +254,10 @@ namespace Hollowmere
         {
             if (potionCd > 0 || Dead) return false;
             if (!Hero.Consume(ItemKind.Potion)) { GameManager.I.Toast("No potions"); return false; }
-            potionCd = 5f;
-            potionHeal = maxLife * 0.3f;   // 60% over 2s
-            potionUntil = Time.time + 2f;
+            potionCd = (float)DesignTable.PotionCooldownSeconds;
+            // The regen tick multiplies this by elapsed seconds, so the rate is the total heal divided by the window.
+            potionHeal = maxLife * (float)(DesignTable.PotionHealFraction / DesignTable.PotionDurationSeconds);
+            potionUntil = Time.time + (float)DesignTable.PotionDurationSeconds;
             Fx.Ring(Pos, 1.5f, new Color(1f, 0.3f, 0.3f));
             AudioHub.Play("sfx_gold", 0.4f);
             return true;

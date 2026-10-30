@@ -32,12 +32,25 @@ MonoBehaviour:
   uiPanelOpen: {fileID: 8300000, guid: a77b0c0d1e2f4031a4b5c6d7e8f90777, type: 3}
   uiPanelClose: {fileID: 8300000, guid: a88b0c0d1e2f4031a4b5c6d7e8f90888, type: 3}
   uiStartGame: {fileID: 8300000, guid: a99b0c0d1e2f4031a4b5c6d7e8f90999, type: 3}
-  panel: {fileID: 21300000, guid: a7c3e91b4d2f4a6e8b1c0d5f7a9e2b31, type: 3}
+  panel: {fileID: 21300000, guid: ab29250379a49542715c939b22f73db4, type: 3}
   frame: {fileID: 21300000, guid: b8d4f02c5e3a4b7f9c2d1e6a8b0f3c42, type: 3}
-  iconBag: {fileID: 21300000, guid: c9e5013d6f4b4c809d3e2f7b9c104d53, type: 3}
-  iconSkills: {fileID: 21300000, guid: d0f6124e705c4d91ae4f308c0d215e64, type: 3}
-  iconPet: {fileID: 21300000, guid: e107235f816d4ea2bf50419d1e326f75, type: 3}
-  iconMenu: {fileID: 21300000, guid: f2183460927e4fb3c06152ae2f437086, type: 3}
+  iconBag: {fileID: 21300000, guid: dd9c4aab14e6ce15b8404fb8131d27ff, type: 3}
+  iconSkills: {fileID: 21300000, guid: 3c35db397b27884091d032a5a80cb9e1, type: 3}
+  iconPet: {fileID: 21300000, guid: 66d6eda267f650548d40492a4b414c1b, type: 3}
+  iconMenu: {fileID: 21300000, guid: 466383ed7ae253114af1c9f036c3fa0d, type: 3}
+  panelHeader: {fileID: 21300000, guid: 1c62ba334bb2dc7d916b3a8282689ea7, type: 3}
+  closeButton: {fileID: 21300000, guid: 5b362b000aec5b8834d5dcef87b28ed6, type: 3}
+  iconButton: {fileID: 21300000, guid: 6d6f800846626564a32001b835b3e6e4, type: 3}
+  iconButtonPressed: {fileID: 21300000, guid: e053f4818aad46ffbd4e195ac9d25f8d, type: 3}
+  hudFrame: {fileID: 21300000, guid: c73b6b2225206f1448332a77773f1005, type: 3}
+  hudFillHealth: {fileID: 21300000, guid: 02e16b24cb34fe25fff23113f3b20836, type: 3}
+  hudFillMana: {fileID: 21300000, guid: 09c7bee5b56f576776a51171a0d9dd8d, type: 3}
+  hudFillXp: {fileID: 21300000, guid: 020fc8885fca006af0ff5b1df57cb2cf, type: 3}
+  hudFillGhost: {fileID: 21300000, guid: c6e6c487553ccb2859b07f956e40e38b, type: 3}
+  iconInventory: {fileID: 21300000, guid: dd9c4aab14e6ce15b8404fb8131d27ff, type: 3}
+  iconSword: {fileID: 21300000, guid: 3c35db397b27884091d032a5a80cb9e1, type: 3}
+  iconShield: {fileID: 21300000, guid: 66d6eda267f650548d40492a4b414c1b, type: 3}
+  iconSettings: {fileID: 21300000, guid: 466383ed7ae253114af1c9f036c3fa0d, type: 3}
   hexboltCast: {fileID: 8300000, guid: b11c0d0e1f2a4034b5c6d7e8f9011122, type: 3}
   hexboltImpact: {fileID: 8300000, guid: b22c0d0e1f2a4034b5c6d7e8f9022233, type: 3}
   hexboltImpact2: {fileID: 8300000, guid: b33c0d0e1f2a4034b5c6d7e8f9033344, type: 3}

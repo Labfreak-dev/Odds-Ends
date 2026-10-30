@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Hollowmere.Core;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace Hollowmere
         HeroActor hero;
         Joystick stick;
         RectTransform lifeFill, resFill, xpFill, targetBox, targetFill, bossBox, bossFill, petFill;
+        float lifeTrail = 1f;
         Text lifeText, resText, xpText, levelText, goldText, locText, targetText, bossText, buffText, petText, potionText, portalText;
         HoldButton primary, potion, portal, action;
         readonly HoldButton[] skills = new HoldButton[4];
@@ -35,16 +37,17 @@ namespace Hollowmere
             stick = Joystick.Create(r);
 
             // ---- top-left: level, life, resource, xp, gold
-            var tl = Ui.At(r, "status", new Vector2(0, 1), new Vector2(20, -16), new Vector2(560, 190));
+            var tl = Ui.At(r, "status", new Vector2(0, 1), new Vector2(20, -16), new Vector2(620, 280));
             var lv = Ui.At(tl, "level", new Vector2(0, 1), Vector2.zero, new Vector2(100, 100));
-            var lvi = lv.gameObject.AddComponent<Image>(); lvi.sprite = Ui.Circle; lvi.color = new Color(0.15f, 0.12f, 0.1f, 0.9f);
+            var lvi = lv.gameObject.AddComponent<Image>();
+            lvi.sprite = Ui.Circle; lvi.color = new Color(0.15f, 0.12f, 0.1f, 0.9f);
             levelText = Ui.Label(lv, "1", 44, TextAnchor.MiddleCenter, Ui.Gold);
-            lifeFill = Ui.Bar(Ui.At(tl, "life", new Vector2(0, 1), new Vector2(110, -4), new Vector2(440, 42)), new Color(0, 0, 0, 0.6f), new Color(0.75f, 0.12f, 0.12f), out lifeText);
-            resFill = Ui.Bar(Ui.At(tl, "res", new Vector2(0, 1), new Vector2(110, -52), new Vector2(440, 30)), new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.4f, 0.9f), out resText, 20);
-            xpFill = Ui.Bar(Ui.At(tl, "xp", new Vector2(0, 1), new Vector2(110, -88), new Vector2(440, 16)), new Color(0, 0, 0, 0.6f), new Color(0.85f, 0.7f, 0.25f), out xpText, 14);
-            goldText = Ui.Label(Ui.At(tl, "gold", new Vector2(0, 1), new Vector2(0, -108), new Vector2(560, 40)), "", 28, TextAnchor.MiddleLeft, Ui.Gold);
-            petFill = Ui.Bar(Ui.At(tl, "pet", new Vector2(0, 1), new Vector2(0, -150), new Vector2(300, 28)), new Color(0, 0, 0, 0.6f), new Color(0.4f, 0.75f, 0.35f), out petText, 18);
-            buffText = Ui.Label(Ui.At(r, "buffs", new Vector2(0, 1), new Vector2(20, -212), new Vector2(560, 120)), "", 22, TextAnchor.UpperLeft, new Color(0.7f, 0.9f, 1f));
+            lifeFill = Ui.Bar(Ui.At(tl, "life", new Vector2(0, 1), new Vector2(112, 0), new Vector2(480, 60)), new Color(0, 0, 0, 0.6f), new Color(0.75f, 0.12f, 0.12f), out lifeText, 24, "health");
+            resFill = Ui.Bar(Ui.At(tl, "res", new Vector2(0, 1), new Vector2(112, -68), new Vector2(480, 48)), new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.4f, 0.9f), out resText, 20, "mana");
+            xpFill = Ui.Bar(Ui.At(tl, "xp", new Vector2(0, 1), new Vector2(112, -122), new Vector2(480, 36)), new Color(0, 0, 0, 0.6f), new Color(0.85f, 0.7f, 0.25f), out xpText, 16, "xp");
+            goldText = Ui.Label(Ui.At(tl, "gold", new Vector2(0, 1), new Vector2(0, -166), new Vector2(620, 40)), "", 28, TextAnchor.MiddleLeft, Ui.Gold);
+            petFill = Ui.Bar(Ui.At(tl, "pet", new Vector2(0, 1), new Vector2(0, -210), new Vector2(360, 36)), new Color(0, 0, 0, 0.6f), new Color(0.4f, 0.75f, 0.35f), out petText, 18);
+            buffText = Ui.Label(Ui.At(r, "buffs", new Vector2(0, 1), new Vector2(20, -300), new Vector2(560, 120)), "", 22, TextAnchor.UpperLeft, new Color(0.7f, 0.9f, 1f));
 
             // ---- top-centre: target and boss
             targetBox = Ui.At(r, "target", new Vector2(0.5f, 1), new Vector2(0, -16), new Vector2(560, 46));
@@ -57,10 +60,10 @@ namespace Hollowmere
             var tr = Ui.At(r, "menus", new Vector2(1, 1), new Vector2(-16, -16), new Vector2(560, 84));
             var hl = tr.gameObject.AddComponent<HorizontalLayoutGroup>();
             hl.spacing = 10; hl.childControlWidth = true; hl.childControlHeight = true; hl.childForceExpandWidth = true;
-            Ui.Button(tr, "Bag", () => UiRoot.I.OpenInventory());
-            skillsBtn = Ui.Button(tr, "Skills", () => UiRoot.I.OpenSkills());
-            Ui.Button(tr, "Pet", () => UiRoot.I.OpenPet());
-            Ui.Button(tr, "Menu", () => UiRoot.I.OpenMenu());
+            MenuButton(tr, "Bag", "bag", () => UiRoot.I.OpenInventory());
+            skillsBtn = MenuButton(tr, "Skills", "skills", () => UiRoot.I.OpenSkills());
+            MenuButton(tr, "Pet", "pet", () => UiRoot.I.OpenPet());
+            MenuButton(tr, "Menu", "menu", () => UiRoot.I.OpenMenu());
             locText = Ui.Label(Ui.At(r, "loc", new Vector2(1, 1), new Vector2(-16, -104), new Vector2(560, 40)), "", 26, TextAnchor.MiddleRight, new Color(0.85f, 0.8f, 0.7f));
 
             // ---- bottom-right: combat buttons
@@ -83,12 +86,48 @@ namespace Hollowmere
             action.onDown.AddListener(() => { if (near != null) GameManager.I.Interact(near); });
         }
 
+        static Button MenuButton(Transform parent, string label, string iconKey, System.Action click)
+        {
+            var b = Ui.Button(parent, label, click, null, 22);
+            var plate = b.GetComponent<Image>();
+            var skin = UiArt.Catalog != null ? UiArt.Catalog.iconButton : null;
+            if (plate != null && skin != null)
+            {
+                plate.sprite = skin;
+                plate.type = Image.Type.Sliced;
+                plate.color = Color.white;
+                plate.pixelsPerUnitMultiplier = 1f;
+                var press = b.GetComponent<UiPress>();
+                if (press != null) press.pressedSprite = UiArt.Catalog.iconButtonPressed != null ? UiArt.Catalog.iconButtonPressed : skin;
+            }
+            var icon = UiArt.Icon(iconKey);
+            if (icon != null)
+            {
+                var slot = Ui.Rect(b.transform, "glyph", new Vector2(0.5f, 0.62f), new Vector2(0.5f, 0.62f));
+                slot.sizeDelta = new Vector2(56, 56);
+                var ii = slot.gameObject.AddComponent<Image>();
+                ii.sprite = icon;
+                ii.preserveAspect = true;
+                ii.raycastTarget = false;
+                var text = b.GetComponentInChildren<Text>();
+                if (text != null)
+                {
+                    text.alignment = TextAnchor.LowerCenter;
+                    text.fontSize = 18;
+                }
+            }
+            Ui.Size(b, 128);
+            return b;
+        }
+
         public void Bind(HeroActor h)
         {
             hero = h;
             gameObject.SetActive(true);
             var cls = h.Hero.heroClass;
-            ((Image)resFill.GetComponent<Image>()).color = cls == HeroClass.Ironclad ? new Color(0.8f, 0.35f, 0.1f) : cls == HeroClass.Stalker ? new Color(0.25f, 0.7f, 0.4f) : new Color(0.45f, 0.35f, 0.95f);
+            var resImg = resFill.GetComponent<Image>();
+            if (resImg != null && resImg.sprite == null)
+                resImg.color = cls == HeroClass.Ironclad ? new Color(0.8f, 0.35f, 0.1f) : cls == HeroClass.Stalker ? new Color(0.25f, 0.7f, 0.4f) : new Color(0.45f, 0.35f, 0.95f);
         }
 
         public void SetLocation(string s) { if (locText != null) locText.text = s; }
@@ -108,7 +147,15 @@ namespace Hollowmere
             hero.moveInput = stick.Value + KeyMove();
 
             levelText.text = h.level.ToString();
-            Ui.SetBar(lifeFill, hero.LifeFraction);
+            float lifeFrac = hero.LifeFraction;
+            Ui.SetBar(lifeFill, lifeFrac);
+            var trail = lifeFill.parent.Find("ghost") as RectTransform;
+            if (trail != null)
+            {
+                if (lifeFrac >= lifeTrail) lifeTrail = lifeFrac;
+                else lifeTrail = Mathf.MoveTowards(lifeTrail, lifeFrac, Time.deltaTime * 0.35f);
+                Ui.SetBar(trail, lifeTrail);
+            }
             lifeText.text = $"{Fx.Short(hero.life)} / {Fx.Short(hero.maxLife)}";
             Ui.SetBar(resFill, hero.maxResource > 0 ? hero.resource / hero.maxResource : 0);
             resText.text = $"{StatInfo.ResourceName(h.heroClass)} {Mathf.FloorToInt(hero.resource)}";

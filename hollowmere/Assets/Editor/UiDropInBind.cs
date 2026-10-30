@@ -54,6 +54,7 @@ namespace Hollowmere.Editor
             cat.uiStartGame = Clip("ui_start_game");
             cat.hexboltCast = Sfx("hexbolt_cast");
             cat.hexboltImpact = Sfx("hexbolt_impact");
+            cat.hexboltImpact2 = Sfx("hexbolt_impact_2");
             EditorUtility.SetDirty(cat);
             AssetDatabase.SaveAssets();
         }

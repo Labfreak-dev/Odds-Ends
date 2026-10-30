@@ -276,7 +276,7 @@ namespace Hollowmere
                 if (hexBolt)
                 {
                     Fx.Impact(transform.position, tint, null);
-                    AudioHub.Play("hexbolt_impact", 0.55f);
+                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.55f);
                 }
                 Destroy(gameObject);
                 return;
@@ -300,7 +300,7 @@ namespace Hollowmere
                 if (hexBolt)
                 {
                     Fx.Impact(transform.position, tint, a);
-                    AudioHub.Play("hexbolt_impact", 0.85f);
+                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.85f);
                 }
                 else Fx.Burst(transform.position, GetComponent<Renderer>() != null ? GetComponent<Renderer>().sharedMaterial.color : tint, 0.7f, 0.15f);
                 if (pierce-- <= 0) { Destroy(gameObject); return; }

@@ -61,8 +61,17 @@ def load_journal():
 
 
 def save_journal(j):
-    with open(JOURNAL, "w") as f:
-        json.dump(j, f, indent=1, sort_keys=True)
+    # Several fetches may run in parallel (--only a b / --only c d): merge into what's on
+    # disk under a lock instead of overwriting other processes' paid task ids.
+    import fcntl
+    with open(JOURNAL + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        disk = load_journal()
+        for k, v in j.items():
+            disk.setdefault(k, {}).update(v)
+        with open(JOURNAL + ".tmp", "w") as f:
+            json.dump(disk, f, indent=1, sort_keys=True)
+        os.replace(JOURNAL + ".tmp", JOURNAL)
 
 
 def meshy_wait(path, task_id, key):

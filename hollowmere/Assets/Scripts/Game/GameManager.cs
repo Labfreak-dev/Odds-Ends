@@ -110,6 +110,9 @@ namespace Hollowmere
             fishSpot.range = 3.2f;
             // Scenery
             Art.Model("prop_well", 1.5f, root)?.transform.SetPositionAndRotation(World.ToWorld(new Int2(18, 7)), Quaternion.identity);
+            // A little dock out into the lake beside the Old Angler.
+            var dock = Art.Model("prop_dock", 0.5f, root);
+            if (dock != null) dock.transform.SetPositionAndRotation(World.ToWorld(marks['F']) + new Vector3(-World.T, -0.2f, 0), Quaternion.Euler(0, 90, 0));
             for (int i = 0; i < 6; i++)
             {
                 var tp = World.ToWorld(new Int2(2 + i * 5, 13)) + new Vector3(0, 0, 0.6f);

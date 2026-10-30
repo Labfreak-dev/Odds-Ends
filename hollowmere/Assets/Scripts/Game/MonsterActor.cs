@@ -15,8 +15,7 @@ namespace Hollowmere
         int pathIndex;
         float repath, nextAttack, windup, affixTimer, affixTimer2, shieldUntil, bossTimer;
         bool winding;
-        Animation anim;
-        Animator animator;
+        ModelAnim modelAnim;
         Transform shield;
         static readonly Rng rng = new Rng();
 
@@ -40,8 +39,8 @@ namespace Hollowmere
             b.SetParent(go.transform, false);
             m.body = b;
             Art.MonsterBody(s.def, b, scale);
-            m.anim = b.GetComponentInChildren<Animation>();
-            m.animator = b.GetComponentInChildren<Animator>();
+            m.modelAnim = b.GetComponentInChildren<ModelAnim>();
+            if (m.modelAnim != null && !m.modelAnim.HasClips) m.modelAnim = null;
             if (s.rank == MonsterRank.Champion || s.rank == MonsterRank.Elite || s.rank == MonsterRank.Boss)
             {
                 // Coloured halo under elites, like the glow champions get in the classics.
@@ -265,10 +264,8 @@ namespace Hollowmere
 
         void SetMoving(bool moving)
         {
-            if (anim != null)
-                foreach (AnimationState st in anim) st.speed = moving ? 1f : 0.15f;
-            if (animator != null) animator.speed = moving ? 1f : 0.15f;
-            if (anim == null && animator == null && body != null && moving)
+            if (modelAnim != null) { modelAnim.SetMoving(moving); return; }
+            if (body != null && moving)
                 body.localPosition = new Vector3(0, Mathf.Abs(Mathf.Sin(Time.time * 10)) * 0.08f, 0);
         }
 

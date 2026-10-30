@@ -24,6 +24,7 @@ namespace Hollowmere
         readonly Combat.Context ctx = new Combat.Context();
         readonly Rng rng = new Rng();
         Transform hand, figure;
+        ModelAnim modelAnim;
         float nextAttack, potionUntil, potionHeal, potionCd, swing, combatTimer, spinUntil, spinTick;
         SkillCast spinCast;
         float regenAcc;
@@ -46,8 +47,9 @@ namespace Hollowmere
             var b = new GameObject("body").transform;
             b.SetParent(transform, false);
             body = b;
-            var model = Art.Model(Art.HeroModelKey(Hero.heroClass), 1.8f, b);
-            if (model != null) { figure = model.transform; hand = new GameObject("hand").transform; hand.SetParent(figure, false); hand.localPosition = new Vector3(0.45f, 0.9f, 0.2f); }
+            var model = Art.Animated(Art.HeroModelKey(Hero.heroClass), 1.8f, b);
+            // A generated hero carries its own weapon, so no primitive weapon is attached (hand stays null).
+            if (model != null) { figure = model.transform; modelAnim = model.GetComponent<ModelAnim>(); }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.heroClass), Art.ClassColor(Hero.heroClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
             RefreshWeapon();
             // A torch-light that follows the hero keeps dark floors readable on small screens.
@@ -129,6 +131,7 @@ namespace Hollowmere
                 // Camera looks along +Z rotated; map joystick to camera-relative directions.
                 var cam = CameraRig.Yaw;
                 input = Quaternion.Euler(0, cam, 0) * input;
+                modelAnim?.SetMoving(input.sqrMagnitude > 0.01f || spinUntil > Time.time);
                 if (input.sqrMagnitude > 0.01f)
                 {
                     Move(input * MoveSpeed * dt);
@@ -146,10 +149,12 @@ namespace Hollowmere
             }
 
             // ---- swing animation
-            if (swing > 0 && hand != null)
+            if (swing > 0)
             {
                 swing -= dt * 4;
-                hand.localRotation = Quaternion.Euler(Mathf.Sin(Mathf.Clamp01(swing) * Mathf.PI) * -110, 0, 0);
+                float k = Mathf.Sin(Mathf.Clamp01(swing) * Mathf.PI);
+                if (hand != null) hand.localRotation = Quaternion.Euler(k * -110, 0, 0);
+                else if (figure != null && spinUntil <= Time.time) figure.localPosition = new Vector3(0, 0, k * 0.35f);  // lunge
             }
 
             // ---- pickups

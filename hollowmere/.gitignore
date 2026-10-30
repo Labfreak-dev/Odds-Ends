@@ -23,3 +23,5 @@ tests/**/obj/
 # fetch_assets.py journal of paid Meshy tasks is kept (it prevents paying twice)
 !tests/CoreTests/CoreTests.csproj
 !tests/UnityCompileCheck/UnityCompileCheck.csproj
+tools/.meshy-tasks.json.lock
+tools/.meshy-tasks.json.tmp

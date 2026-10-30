@@ -1,11 +1,31 @@
 {
+ "hero_hexweaver": {
+  "preview": "01a18dd8-7928-7227-afc9-687998c0d66f",
+  "refine": "01a18dd9-c5c5-74dd-b046-0f5c066307aa"
+ },
+ "hero_stalker": {
+  "preview": "01a18dd8-78f7-77a2-b98f-3b2fabc39936",
+  "refine": "01a18dd9-9da7-703d-928a-4c61f813d493"
+ },
  "mon_bonewalker": {
   "preview": "01a18dbe-014f-7181-b654-e042b25919bd",
   "refine": "01a18dbe-896d-7661-91cf-18039da06890",
   "rig": "01a18dbf-08a8-7577-b29a-e156a070fc4d"
  },
+ "mon_cinderimp": {
+  "preview": "01a18dd8-78f7-70b1-bb1f-e1b46b265f26",
+  "refine": "01a18dd9-c4ce-71a5-8680-7484ea4bc40e"
+ },
+ "mon_drownedwraith": {
+  "preview": "01a18dd8-79d5-722b-8210-1f4e8c34d73e",
+  "refine": "01a18dd9-9ef2-7462-9ebf-6cd74e095766"
+ },
  "pet_hound": {
   "preview": "01a18dbc-d151-7303-b0ff-2d5fecda08dd",
   "refine": "01a18dbd-8070-71d4-9f92-eaab493003bb"
+ },
+ "pet_lynx": {
+  "preview": "01a18dd8-78fd-773b-9de1-78132c2e0b1b",
+  "refine": "01a18dd9-c87a-7348-b8de-ac5a91b06fb4"
  }
 }

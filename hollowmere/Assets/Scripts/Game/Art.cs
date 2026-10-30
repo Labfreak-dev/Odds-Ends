@@ -11,6 +11,10 @@ namespace Hollowmere
     /// </summary>
     public static class Art
     {
+        /// <summary>Extra yaw applied to every imported model. Meshy exports face glTF +Z, which glTFast
+        /// keeps as Unity +Z (forward). If models ever walk backwards after an importer change, set 180.</summary>
+        public static float ModelYaw = 0f;
+
         static Material baseMat;
         static readonly Dictionary<string, Material> mats = new Dictionary<string, Material>();
         static readonly Dictionary<string, GameObject> modelCache = new Dictionary<string, GameObject>();
@@ -69,7 +73,7 @@ namespace Hollowmere
             holder.transform.SetParent(parent, false);
             var go = Object.Instantiate(prefab, holder.transform);
             go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.identity;
+            go.transform.localRotation = Quaternion.Euler(0, ModelYaw, 0);
             var rends = go.GetComponentsInChildren<Renderer>();
             if (rends.Length > 0)
             {
@@ -88,8 +92,15 @@ namespace Hollowmere
                 anim.wrapMode = WrapMode.Loop;
                 anim.Play();
             }
+            var ma = holder.AddComponent<ModelAnim>();
+            ma.anim = anim;
+            ma.animator = go.GetComponentInChildren<Animator>();
             return holder;
         }
+
+        /// <summary>The walk-cycle variant of a model if one was generated (Meshy rigging), else the static one.</summary>
+        public static GameObject Animated(string key, float height, Transform parent)
+            => Model(key + "_walk", height, parent) ?? Model(key, height, parent);
 
         static GameObject Prim(PrimitiveType t, Transform parent, Vector3 pos, Vector3 scale, Material m, Quaternion? rot = null)
         {
@@ -230,9 +241,7 @@ namespace Hollowmere
         public static GameObject MonsterBody(MonsterDef def, Transform parent, float scale)
         {
             float h = def.role switch { MonsterRole.Swarm => 0.8f, MonsterRole.Brute => 2.6f, _ => 1.8f } * scale;
-            var walk = Model(def.model + "_walk", h, parent);
-            if (walk != null) return walk;
-            var m = Model(def.model, h, parent);
+            var m = Animated(def.model, h, parent);
             if (m != null) return m;
             var c = Hex(def.color);
             switch (def.model)
@@ -265,5 +274,23 @@ namespace Hollowmere
             Theme.EmberDepths => (Hex("#4a3530"), Hex("#422f2a"), Hex("#2e1e1a"), Hex("#3a1a10"), Hex("#ff7a3a")),
             _ => (Hex("#6f8a4a"), Hex("#678244"), Hex("#6a5a48"), Hex("#8a8aa0"), Hex("#fff0d0")),
         };
+    }
+
+    /// <summary>Plays an imported model's walk cycle while it moves and nearly freezes it when idle
+    /// (the rig only ships walk/run clips, so a slowed walk reads as a breathing idle).</summary>
+    public sealed class ModelAnim : MonoBehaviour
+    {
+        public Animation anim;
+        public Animator animator;
+        public bool HasClips => (anim != null && anim.clip != null) || animator != null;
+        bool? last;
+
+        public void SetMoving(bool moving)
+        {
+            if (last == moving) return;
+            last = moving;
+            if (anim != null) foreach (AnimationState st in anim) st.speed = moving ? 1f : 0.15f;
+            if (animator != null) animator.speed = moving ? 1f : 0.15f;
+        }
     }
 }

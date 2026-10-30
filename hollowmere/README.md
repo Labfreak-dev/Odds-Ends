@@ -54,6 +54,21 @@ When a build succeeds, the APK is uploaded two ways:
 The package is signed with Unity's debug keystore. Install it by opening the release link
 on the phone and allowing the browser to install the APK. It is not a Play Store upload.
 
+## Title screen
+
+The start menu is a full-bleed night scene with a logo and two pages (main, new hero).
+Buttons use a 9-slice skin, a press-and-bounce, and click sounds. Panels fade and slide.
+The picture runs edge to edge; every control sits inside `Screen.safeArea`.
+
+Drop replacements into these folders and rebuild. Missing files use a procedural stand-in.
+The pictures already in the repo are original and released under CC0.
+
+- `Assets/Art/UI/keyart_bg_*.png` parallax layers, `keyart_bg_fog.png`, `logo.png`
+- `Assets/Art/UI/button_normal.png`, `button_pressed.png`, `button_primary.png` (24 px 9-slice border)
+- `Assets/Audio/UI/title_theme.ogg`, `ui_click.ogg`, `ui_confirm.ogg`, `ui_back.ogg`
+
+Only CC0 or MIT recordings. `Hollowmere/Bind title drop-in art` attaches new files before a build.
+
 ## How it plays
 
 - **Town (Hollowmere).** Merchant (potions, portal scrolls, selling), Blacksmith

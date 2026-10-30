@@ -12,6 +12,8 @@ namespace Hollowmere
         public static Font UiFont()
         {
             if (font != null) return font;
+            var cinzel = UiArt.LabelFont;
+            if (cinzel != null) { font = cinzel; return font; }
             try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
             if (font == null) try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { }
             if (font == null) font = Font.CreateDynamicFontFromOSFont("Arial", 32);

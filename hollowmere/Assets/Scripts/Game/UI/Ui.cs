@@ -112,15 +112,30 @@ namespace Hollowmere
             return t;
         }
 
-        public static Button Button(Transform parent, string text, Action onClick, Color? color = null, int size = 30)
+        public static Button Button(Transform parent, string text, Action onClick, Color? color = null, int size = 30, UiSfx sound = UiSfx.Click, bool primary = false)
         {
             var go = new GameObject("button", typeof(RectTransform));
             go.transform.SetParent(parent, false);
-            var img = Box((RectTransform)go.transform, color ?? ButtonC);
+            var tint = color ?? (primary ? ButtonHot : ButtonC);
+            var img = Box((RectTransform)go.transform, tint);
+            var skin = UiArt.ButtonSprite(primary ? UiArt.ButtonKind.Primary : UiArt.ButtonKind.Normal);
+            if (skin != null)
+            {
+                img.sprite = skin;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+            }
             var b = go.AddComponent<Button>();
             b.targetGraphic = img;
-            var cb = b.colors; cb.highlightedColor = new Color(1.15f, 1.15f, 1.15f); cb.pressedColor = new Color(0.75f, 0.75f, 0.75f); cb.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.7f); b.colors = cb;
-            if (onClick != null) b.onClick.AddListener(() => { AudioHub.Play("sfx_hit", 0.15f); onClick(); });
+            var cb = b.colors;
+            cb.normalColor = cb.highlightedColor = cb.pressedColor = cb.selectedColor = Color.white;
+            cb.disabledColor = new Color(0.55f, 0.55f, 0.55f, 0.75f);
+            cb.fadeDuration = 0.04f;
+            b.colors = cb;
+            var press = go.AddComponent<UiPress>();
+            press.sound = sound;
+            press.pressedSprite = UiArt.ButtonSprite(UiArt.ButtonKind.Pressed);
+            if (onClick != null) b.onClick.AddListener(() => onClick());
             Label(go.transform, text, size, TextAnchor.MiddleCenter);
             return b;
         }

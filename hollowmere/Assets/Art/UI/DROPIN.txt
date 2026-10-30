@@ -1,0 +1,17 @@
+Hollowmere UI art. The paintings, frames and icons in this folder are the project art.
+The logo uses Cinzel Decorative (SIL Open Font License). Button labels use Cinzel Bold,
+also OFL. Both licenses are in Fonts/.
+
+  keyart_bg_far.png    parallax 0.1
+  keyart_bg_mid.png    parallax 0.35
+  keyart_bg_near.png   parallax 0.7
+  logo.png
+  button_normal.png, button_pressed.png, button_disabled.png
+  ui_slices.json       left, right, top, bottom — Unity border is L, B, R, T
+  title_mockup.png     the title layout
+  Fonts/Cinzel-Bold.ttf
+  Fonts/CinzelDecorative-Black.ttf
+  Fonts/OFL-Cinzel.txt
+  Fonts/OFL-CinzelDecorative.txt
+
+See README.md for the full sheet, including panels, HUD fills and icons/.

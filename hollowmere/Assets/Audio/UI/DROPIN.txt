@@ -1,0 +1,17 @@
+Drop UI audio here. ogg, wav, or mp3. The originals in this folder are CC0.
+
+  title_sting.ogg    plays once when the title appears (Vorbis, streaming)
+  title_theme.ogg    loops after the sting (Vorbis, streaming)
+  ui_click.ogg       alternates with ui_click_2
+  ui_click_2.ogg
+  ui_confirm.ogg
+  ui_back.ogg
+  ui_panel_open.ogg
+  ui_panel_close.ogg
+  ui_start_game.ogg  plays when a new game begins
+
+UI clips import as mono, Decompress On Load. Music imports as Vorbis, Streaming.
+Clicks, panels, and the start sting go through the SFX mixer group.
+The sting and the theme go through the Music mixer group (Resources/HollowmereMix).
+Missing UI clicks fall back to a soft synthesized tone. Rebuild so
+Hollowmere/Bind title drop-in art can attach new files.

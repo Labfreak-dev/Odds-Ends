@@ -31,7 +31,7 @@ namespace Hollowmere
             canvas.sortingOrder = 10;
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.referenceResolution = new Vector2(2400, 1080);
             scaler.matchWidthOrHeight = 0.6f;
             gameObject.AddComponent<GraphicRaycaster>();
 
@@ -90,21 +90,25 @@ namespace Hollowmere
             Ui.Box(root, Ui.Dim, false);
             var panel = Ui.Rect(root, "panel", min, max);
             Ui.Box(panel, Ui.Panel);
+            root.gameObject.AddComponent<UiMenuMotion>().Arm(panel, new Vector2(0, -28f));
             var head = Ui.Rect(panel, "title", new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -76), new Vector2(-20, -10));
             Ui.Label(head, $"<b>{title}</b>", 40, TextAnchor.MiddleLeft, Ui.Gold);
             if (closable)
             {
-                var x = Ui.Button(panel, "X", () => { Close(root.gameObject); onClose?.Invoke(); }, new Color(0.45f, 0.15f, 0.12f), 34);
+                var x = Ui.Button(panel, "X", () => { Close(root.gameObject); onClose?.Invoke(); }, new Color(0.45f, 0.15f, 0.12f), 34, UiSfx.Back);
                 var xr = (RectTransform)x.transform;
                 xr.anchorMin = xr.anchorMax = new Vector2(1, 1); xr.pivot = new Vector2(1, 1);
                 xr.sizeDelta = new Vector2(84, 66); xr.anchoredPosition = new Vector2(-12, -10);
             }
             modals.Add(root.gameObject);
+            AudioHub.Panel(true);
             return Ui.Rect(panel, "body", Vector2.zero, Vector2.one, new Vector2(20, 20), new Vector2(-20, -84));
         }
 
         public void Close(GameObject m)
         {
+            if (m != null && m.name != "title" && m.name != "fishing" && modals.Contains(m))
+                AudioHub.Panel(false);
             modals.Remove(m);
             Destroy(m);
             Time.timeScale = AnyModal ? 0f : 1f;
@@ -126,6 +130,28 @@ namespace Hollowmere
         // ---------------- screens ----------------
 
         public void ShowTitle() { Hud.gameObject.SetActive(false); TitleScreen.Show(this); }
+
+        /// <summary>Fade a menu out, then close it. Uses unscaled time so it still plays while paused.</summary>
+        public void FadeAndClose(GameObject m, Action then)
+        {
+            if (m == null) { then?.Invoke(); return; }
+            StartCoroutine(FadeAndCloseRoutine(m, then));
+        }
+
+        System.Collections.IEnumerator FadeAndCloseRoutine(GameObject m, Action then)
+        {
+            var cg = m.GetComponent<CanvasGroup>() ?? m.AddComponent<CanvasGroup>();
+            cg.blocksRaycasts = false;
+            float t = 0f;
+            while (t < 0.28f && m != null)
+            {
+                t += Time.unscaledDeltaTime;
+                cg.alpha = 1f - Mathf.Clamp01(t / 0.28f);
+                yield return null;
+            }
+            if (m != null) Close(m);
+            then?.Invoke();
+        }
         public void ShowDeath() => DeathScreen.Show(this);
         public void ShowWaypoints() => WaypointScreen.Show(this);
         public void OpenInventory() => InventoryScreen.Show(this);

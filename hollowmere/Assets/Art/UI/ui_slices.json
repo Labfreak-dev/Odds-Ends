@@ -1,0 +1,145 @@
+{
+ "note": "9-slice borders in px: left,right,top,bottom (Unity Sprite Editor Border = L,B,R,T order!). Sprites at 100 PPU, Pixels Per Unit Multiplier 1 on a 2400x1080 reference canvas.",
+ "sprites": {
+  "button_normal.png": {
+   "left": 44,
+   "right": 44,
+   "top": 40,
+   "bottom": 46,
+   "size": [
+    480,
+    144
+   ]
+  },
+  "button_pressed.png": {
+   "left": 44,
+   "right": 44,
+   "top": 40,
+   "bottom": 46,
+   "size": [
+    480,
+    144
+   ]
+  },
+  "button_disabled.png": {
+   "left": 44,
+   "right": 44,
+   "top": 40,
+   "bottom": 46,
+   "size": [
+    480,
+    144
+   ]
+  },
+  "icon_button.png": {
+   "left": 46,
+   "right": 46,
+   "top": 44,
+   "bottom": 48,
+   "size": [
+    160,
+    160
+   ]
+  },
+  "icon_button_pressed.png": {
+   "left": 46,
+   "right": 46,
+   "top": 44,
+   "bottom": 48,
+   "size": [
+    160,
+    160
+   ]
+  },
+  "panel.png": {
+   "left": 72,
+   "right": 72,
+   "top": 72,
+   "bottom": 76,
+   "size": [
+    512,
+    512
+   ]
+  },
+  "panel_header.png": {
+   "left": 60,
+   "right": 60,
+   "top": 36,
+   "bottom": 36,
+   "size": [
+    640,
+    112
+   ]
+  },
+  "hud_frame.png": {
+   "left": 30,
+   "right": 30,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    520,
+    60
+   ]
+  },
+  "hud_fill_health.png": {
+   "left": 18,
+   "right": 18,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    200,
+    36
+   ]
+  },
+  "hud_fill_mana.png": {
+   "left": 18,
+   "right": 18,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    200,
+    36
+   ]
+  },
+  "hud_fill_xp.png": {
+   "left": 18,
+   "right": 18,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    200,
+    36
+   ]
+  },
+  "hud_fill_ghost.png": {
+   "left": 18,
+   "right": 18,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    200,
+    36
+   ]
+  },
+  "slider_track.png": {
+   "left": 22,
+   "right": 22,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    400,
+    40
+   ]
+  },
+  "slider_fill.png": {
+   "left": 10,
+   "right": 10,
+   "top": 0,
+   "bottom": 0,
+   "size": [
+    120,
+    20
+   ]
+  }
+ }
+}

@@ -205,7 +205,6 @@ namespace Hollowmere
         int pierce;
         bool hexBolt;
         Color tint;
-        float trail;
         Vector3 baseScale;
         Light glow;
         HeroActor hero; SkillCast cast;
@@ -216,22 +215,44 @@ namespace Hollowmere
         {
             bool bolt = c.skill.id == "hx_bolt";
             var tint = Art.Element(c.element);
-            var core = bolt ? Color.Lerp(tint, Color.white, 0.4f) : tint;
-            var p = Make(from + (bolt ? Vector3.up * 0.45f : Vector3.zero), core, bolt ? Vector3.one * 1.25f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            // Stay on the element colour. Lerping toward white and cranking emission clipped the
+            // bolt to three white dots in the dungeon shot.
+            var core = bolt ? new Color(0.62f, 0.18f, 1f, 1f) : tint;
+            var p = Make(from + (bolt ? Vector3.up * 0.55f : Vector3.zero), core, bolt ? Vector3.one * 1.15f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
             p.team = Team.Hero; p.hero = h; p.cast = c; p.dir = dir.normalized; p.speed = speed; p.rangeLeft = range; p.mult = mult; p.pierce = c.pierce;
             p.hexBolt = bolt; p.tint = tint;
             p.transform.rotation = Quaternion.LookRotation(p.dir);
             if (bolt)
             {
-                Fx.Burst(from, tint, 0.45f, 0.12f);
+                Fx.Burst(from, tint, 0.7f, 0.16f);
                 var rend = p.GetComponent<Renderer>();
-                if (rend != null) rend.sharedMaterial = Art.Mat(Color.Lerp(core, Color.white, 0.35f), 10f);
-                Art.Sphere(p.transform, Vector3.zero, Vector3.one * 1.7f, Art.Mat(tint, 4f));
+                if (rend != null)
+                {
+                    rend.sharedMaterial = Art.Mat(core, 1.1f);
+                    rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+                // Parent scale is the 1.15 m core. The sprite is sized so the world quad is ~2.6 m.
+                Art.GlowSprite(p.transform, 2.6f / 1.15f, tint);
+                var trail = p.gameObject.AddComponent<TrailRenderer>();
+                trail.time = 0.45f;
+                trail.startWidth = 0.72f;
+                trail.endWidth = 0.08f;
+                trail.minVertexDistance = 0.04f;
+                trail.numCornerVertices = 2;
+                trail.alignment = LineAlignment.View;
+                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                trail.receiveShadows = false;
+                trail.material = Art.GlowMat(Color.white, true);
+                var grad = new Gradient();
+                grad.SetKeys(
+                    new[] { new GradientColorKey(tint, 0f), new GradientColorKey(new Color(0.45f, 0.15f, 0.95f), 1f) },
+                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+                trail.colorGradient = grad;
                 var glow = p.gameObject.AddComponent<Light>();
                 glow.type = LightType.Point;
                 glow.color = tint;
-                glow.range = 10f;
-                glow.intensity = 8f;
+                glow.range = 12f;
+                glow.intensity = 7f;
                 p.glow = glow;
             }
         }
@@ -257,26 +278,15 @@ namespace Hollowmere
             rangeLeft -= step;
             if (hexBolt)
             {
-                float pulse = 1f + 0.14f * Mathf.Sin(Time.time * 32f);
+                float pulse = 1f + 0.1f * Mathf.Sin(Time.time * 32f);
                 transform.localScale = baseScale * pulse;
-                if (glow != null) glow.intensity = 2.1f + 0.7f * Mathf.Sin(Time.time * 28f);
-                trail -= Time.deltaTime;
-                if (trail <= 0f)
-                {
-                    trail = 0.028f;
-                    var side = Vector3.Cross(dir, Vector3.up);
-                    if (side.sqrMagnitude < 0.01f) side = Vector3.right;
-                    side.Normalize();
-                    var jitter = side * Mathf.Sin(Time.time * 40f) * 0.08f + Vector3.up * Mathf.Cos(Time.time * 33f) * 0.06f;
-                    var mote = Art.Sphere(null, transform.position - dir * 0.55f + jitter, Vector3.one * 0.55f, Art.Mat(tint, 6f));
-                    mote.AddComponent<FxLife>().Init(0.28f, Vector3.one * 0.55f, Vector3.zero);
-                }
+                if (glow != null) glow.intensity = 6.5f + 1.2f * Mathf.Sin(Time.time * 28f);
             }
             if (rangeLeft <= 0 || World.Solid(transform.position))
             {
                 if (hexBolt)
                 {
-                    Fx.Impact(transform.position, tint, null);
+                    Fx.HexImpact(transform.position, tint, null);
                     AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.55f);
                 }
                 Destroy(gameObject);
@@ -300,7 +310,7 @@ namespace Hollowmere
                 }
                 if (hexBolt)
                 {
-                    Fx.Impact(transform.position, tint, a);
+                    Fx.HexImpact(transform.position, tint, a);
                     AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.85f);
                 }
                 else Fx.Burst(transform.position, GetComponent<Renderer>() != null ? GetComponent<Renderer>().sharedMaterial.color : tint, 0.7f, 0.15f);

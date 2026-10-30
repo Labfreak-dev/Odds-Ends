@@ -16,7 +16,10 @@ namespace Hollowmere
         public static float ModelYaw = 0f;
 
         static Material baseMat;
+        static Material glowBase;
+        static Mesh glowQuad;
         static readonly Dictionary<string, Material> mats = new Dictionary<string, Material>();
+        static readonly Dictionary<string, Material> glowMats = new Dictionary<string, Material>();
         static readonly Dictionary<string, GameObject> modelCache = new Dictionary<string, GameObject>();
 
         /// <summary>The URP color material in Resources. A player build keeps it because the asset
@@ -55,6 +58,75 @@ namespace Hollowmere
         }
 
         public static Material Mat(string hex, float emission = 0f) => Mat(Hex(hex), emission);
+
+        /// <summary>Additive unlit material. Vertex-color mode is for TrailRenderer gradients;
+        /// the sprite quad uses a flat color so a mesh without colors still glows.</summary>
+        public static Material GlowMat(Color c, bool vertexColor = false)
+        {
+            string key = ColorUtility.ToHtmlStringRGBA(c) + (vertexColor ? "v" : "c");
+            if (glowMats.TryGetValue(key, out var m)) return m;
+            if (glowBase == null)
+            {
+                var loaded = Resources.Load<Material>("HollowmereGlow");
+                if (loaded == null)
+                    Debug.LogError("Hollowmere: Resources/HollowmereGlow is missing. Spell glow falls back to the lit color shader.");
+                glowBase = loaded != null ? loaded : BaseMaterial();
+            }
+            m = new Material(glowBase);
+            m.color = c;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", vertexColor ? Color.white : c);
+            if (m.HasProperty("_UseVertexColor")) m.SetFloat("_UseVertexColor", vertexColor ? 1f : 0f);
+            glowMats[key] = m;
+            return m;
+        }
+
+        /// <summary>Camera-facing additive quad. Size is in metres.</summary>
+        public static GameObject GlowSprite(Transform parent, float size, Color c)
+        {
+            var g = new GameObject("glowSprite");
+            g.transform.SetParent(parent, false);
+            var mf = g.AddComponent<MeshFilter>();
+            mf.sharedMesh = GlowQuadMesh();
+            var mr = g.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = GlowMat(c, false);
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            g.transform.localScale = Vector3.one * size;
+            g.AddComponent<FaceCamera>();
+            return g;
+        }
+
+        static Mesh GlowQuadMesh()
+        {
+            if (glowQuad != null) return glowQuad;
+            glowQuad = new Mesh { name = "glowQuad" };
+            glowQuad.vertices = new[]
+            {
+                new Vector3(-0.5f, -0.5f, 0f), new Vector3(-0.5f, 0.5f, 0f),
+                new Vector3(0.5f, 0.5f, 0f), new Vector3(0.5f, -0.5f, 0f),
+            };
+            glowQuad.colors = new[] { Color.white, Color.white, Color.white, Color.white };
+            glowQuad.triangles = new[] { 0, 1, 2, 0, 2, 3 };
+            glowQuad.RecalculateBounds();
+            return glowQuad;
+        }
+
+        /// <summary>Dashed ring on the ground so a dark hero still reads at screen centre.</summary>
+        public static void GroundRing(Transform parent, Color c, float radius = 0.95f)
+        {
+            var root = new GameObject("heroRing").transform;
+            root.SetParent(parent, false);
+            var m = Mat(c, 1.8f);
+            const int n = 20;
+            for (int i = 0; i < n; i++)
+            {
+                float a = i * Mathf.PI * 2f / n;
+                var pos = new Vector3(Mathf.Cos(a), 0.05f, Mathf.Sin(a)) * radius;
+                Cube(root, pos, new Vector3(radius * 0.28f, 0.03f, 0.09f), m, Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f));
+            }
+        }
 
         public static Color Hex(string hex) => ColorUtility.TryParseHtmlString(hex, out var c) ? c : Color.magenta;
 
@@ -95,6 +167,11 @@ namespace Hollowmere
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
             foreach (var animator in go.GetComponentsInChildren<Animator>()) animator.applyRootMotion = false;
             AdoptShaders(go);
+            // ModelFit measures Renderer.bounds after the skin has updated. mesh.bounds stays
+            // about two metres even when the armature scale is dropped and the draw is huge.
+            var fit = holder.AddComponent<ModelFit>();
+            fit.targetHeight = IsCharacter(key) ? height : 0f;
+            fit.maxAxis = IsCharacter(key) ? Mathf.Max(2.5f, height * 1.3f) : 4f;
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -201,7 +278,7 @@ namespace Hollowmere
                 for (int i = 0; i < src.Length; i++)
                 {
                     var m = src[i];
-                    if (m != null && m.shader != null && (m.shader.name == "Hollowmere/Color" || m.shader.name == "Hollowmere/Text"))
+                    if (m != null && m.shader != null && (m.shader.name == "Hollowmere/Color" || m.shader.name == "Hollowmere/Text" || m.shader.name == "Hollowmere/Glow"))
                     {
                         next[i] = m;
                         continue;
@@ -294,6 +371,89 @@ namespace Hollowmere
                 }
             }
             return null;
+        }
+
+        public static float MaxAxis(Vector3 size) => Mathf.Max(size.x, Mathf.Max(size.y, size.z));
+
+        /// <summary>World AABB of mesh and skinned renderers. Ignores trails and text.</summary>
+        public static bool UnionBounds(GameObject go, out Bounds world)
+        {
+            world = new Bounds(go != null ? go.transform.position : Vector3.zero, Vector3.zero);
+            if (go == null) return false;
+            bool any = false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (!any) { world = r.bounds; any = true; }
+                else world.Encapsulate(r.bounds);
+            }
+            return any;
+        }
+
+        /// <summary>Log every renderer bigger than about 10 m, or sitting on the camera, and
+        /// shrink anything that is not the floor, walls or the ground skirt.</summary>
+        public static void TameOversized(Camera cam)
+        {
+            var seen = new HashSet<Transform>();
+            Vector3 eye = cam != null ? cam.transform.position : Vector3.zero;
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (r == null || !r.enabled) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                var b = r.bounds;
+                float max = MaxAxis(b.size);
+                bool near = cam != null && (b.Contains(eye) || DistanceToBounds(eye, b) < 3.5f);
+                bool level = IsLevelMesh(r.transform);
+                if (max > 10f || near)
+                    Debug.LogWarning("Hollowmere bounds: " + PathOf(r.transform) + " size=" + b.size + " center=" + b.center + (near ? " near-camera" : "") + (level ? " level" : ""));
+                if (level || max <= 10f) continue;
+                var root = ScalableRoot(r.transform);
+                if (root == null || !seen.Add(root)) continue;
+                var fit = root.GetComponent<ModelFit>();
+                float goal = fit != null && fit.targetHeight > 0.2f ? fit.targetHeight : 2.6f;
+                float factor = goal / max;
+                root.localScale *= factor;
+                Debug.LogWarning("Hollowmere: shrunk " + root.name + " x" + factor.ToString("0.###") + " (was " + max.ToString("0.#") + " m)");
+            }
+        }
+
+        public static bool IsLevelMesh(Transform t)
+        {
+            while (t != null)
+            {
+                string n = t.name;
+                if (n == "floor" || n == "walls" || n == "water" || n == "skirt" || n == "waterBlock") return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        public static Transform ScalableRoot(Transform t)
+        {
+            Transform best = t;
+            while (t.parent != null)
+            {
+                var p = t.parent;
+                string n = p.name;
+                if (n == "Town" || n.StartsWith("Floor ") || n == "body" || n == "Hero" || n == "Pet") break;
+                if (p.GetComponent<Actor>() != null || p.GetComponent<Interactable>() != null) break;
+                t = p;
+                best = t;
+            }
+            return best;
+        }
+
+        public static string PathOf(Transform t)
+        {
+            string s = t.name;
+            while (t.parent != null) { t = t.parent; s = t.name + "/" + s; }
+            return s;
+        }
+
+        public static float DistanceToBounds(Vector3 p, Bounds b)
+        {
+            var c = b.ClosestPoint(p);
+            return Vector3.Distance(p, c);
         }
 
         static GameObject Prim(PrimitiveType t, Transform parent, Vector3 pos, Vector3 scale, Material m, Quaternion? rot = null)
@@ -515,6 +675,60 @@ namespace Hollowmere
                 }
             }
             if (animator != null) animator.speed = moving ? 1f : 0f;
+        }
+    }
+
+    /// <summary>After the skin updates, pull a blown-up rig or prop back to a human size.
+    /// Only grows a character whose bounds are already a real (small) body, never a 2 cm
+    /// bind-pose reading that has not been skinned yet.</summary>
+    [DefaultExecutionOrder(-40)]
+    public sealed class ModelFit : MonoBehaviour
+    {
+        public float targetHeight;
+        public float maxAxis = 4f;
+        int pass;
+        bool applied;
+
+        void LateUpdate()
+        {
+            // Frame 0 is often the bind pose. Measure once the skin has written bounds.
+            if (pass++ < 2) return;
+            enabled = false;
+            if (applied) return;
+            if (!Art.UnionBounds(gameObject, out var b)) return;
+            float max = Art.MaxAxis(b.size);
+            if (max < 0.02f) return;
+            float factor = 1f;
+            if (max > 10f)
+                factor = (targetHeight > 0.2f ? targetHeight : Mathf.Min(maxAxis, 2.6f)) / max;
+            else if (targetHeight > 0.2f && b.size.y > 0.3f && b.size.y < targetHeight * 0.65f)
+                factor = targetHeight / b.size.y;
+            if (factor > 0.92f && factor < 1.08f) return;
+            applied = true;
+            Debug.LogWarning("Hollowmere scale: " + name + " size " + b.size + " center " + b.center + " x" + factor.ToString("0.###"));
+            transform.localScale *= factor;
+            if (targetHeight > 0.2f && Art.UnionBounds(gameObject, out b))
+            {
+                var p = transform.position;
+                var shift = new Vector3(p.x - b.center.x, p.y - b.min.y, p.z - b.center.z);
+                if (shift.sqrMagnitude > 0.0004f)
+                    foreach (Transform c in transform) c.position += shift;
+            }
+        }
+    }
+
+    /// <summary>One sweep after the level exists, so a mesh that is not a Model() instance
+    /// still gets logged and, when it is not the floor, shrunk.</summary>
+    [DefaultExecutionOrder(80)]
+    public sealed class BoundsGuard : MonoBehaviour
+    {
+        int frame;
+
+        void LateUpdate()
+        {
+            if (frame++ < 4) return;
+            Art.TameOversized(Camera.main);
+            Destroy(this);
         }
     }
 }

@@ -131,7 +131,9 @@ namespace Hollowmere
             // A skirt in the floor colour. Pure black read as a missing mesh once the camera
             // looked past the last tile.
             var skirt = Color.Lerp(fa, Color.black, 0.35f);
-            Art.Cube(root, new Vector3(map.width * T / 2, -0.6f, map.height * T / 2), new Vector3(map.width * T + 40, 1, map.height * T + 40), Art.Mat(skirt));
+            var skirtGo = Art.Cube(root, new Vector3(map.width * T / 2, -1.2f, map.height * T / 2), new Vector3(map.width * T + 40, 1, map.height * T + 40), Art.Mat(skirt));
+            skirtGo.name = "skirt";
+            root.gameObject.AddComponent<BoundsGuard>();
             Art.AdoptShaders(root.gameObject);
 
             // ---------- lighting

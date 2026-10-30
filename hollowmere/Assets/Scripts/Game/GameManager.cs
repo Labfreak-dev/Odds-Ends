@@ -112,7 +112,9 @@ namespace Hollowmere
             fishSpot.pool = map.pools[0];
             fishSpot.range = 3.2f;
             // Scenery
-            Art.Model("prop_well", 1.5f, root)?.transform.SetPositionAndRotation(World.ToWorld(new Int2(18, 7)), Quaternion.identity);
+            // North of the hero, off the camera-to-hero line. The old south-east tile sat in the
+            // foreground and a blown-up well mesh covered the top-right of the town shot.
+            Art.Model("prop_well", 1.5f, root)?.transform.SetPositionAndRotation(World.ToWorld(new Int2(24, 10)), Quaternion.identity);
             // A little dock out into the lake beside the Old Angler.
             var dock = Art.Model("prop_dock", 0.5f, root);
             if (dock != null) dock.transform.SetPositionAndRotation(World.ToWorld(marks['F']) + new Vector3(-World.T, -0.2f, 0), Quaternion.Euler(0, 90, 0));

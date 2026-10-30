@@ -50,17 +50,18 @@ namespace Hollowmere
                 if (dungeon) gm.EnterFloor(1);
                 else gm.EnterTown(false);
                 yield return new WaitForSeconds(0.8f);
+                Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
                 if (albedo == null)
                     Debug.LogError("Hollowmere QA: hero material has no albedo texture.");
                 else
                     Debug.Log("Hollowmere QA: hero albedo " + albedo.name + " " + albedo.width + "x" + albedo.height
                         + (albedo is Texture2D t && t.isReadable ? " readable" : ""));
+                if (HeroActor.I != null && Art.UnionBounds(HeroActor.I.gameObject, out var hb))
+                    Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
                 if (dungeon && HeroActor.I != null)
                 {
-                    var aim = OpenAim(HeroActor.I.Pos);
-                    HeroActor.I.aim = aim;
-                    HeroActor.I.transform.rotation = Quaternion.LookRotation(aim);
+                    StandForBolt(HeroActor.I);
                     var bolt = SkillDb.Get("hx_bolt");
                     bool fired = bolt != null && HeroActor.I.UseSkill(bolt);
                     if (!fired) Debug.LogError("Hollowmere QA: Hex Bolt did not fire.");
@@ -91,15 +92,52 @@ namespace Hollowmere
             for (int i = 0; i < 8; i++)
             {
                 var d = Quaternion.Euler(0f, i * 45f, 0f) * Vector3.forward;
-                float dist = 0f;
-                for (float s = 0.5f; s <= 8f; s += 0.5f)
-                {
-                    if (!World.Walkable(from + d * s)) break;
-                    dist = s;
-                }
+                float dist = ClearDistance(from, d);
                 if (dist > bestD) { bestD = dist; best = d; }
             }
             return best;
+        }
+
+        static float ClearDistance(Vector3 from, Vector3 dir)
+        {
+            float dist = 0f;
+            for (float s = 0.5f; s <= 10f; s += 0.5f)
+            {
+                if (!World.Walkable(from + dir * s)) break;
+                dist = s;
+            }
+            return dist;
+        }
+
+        /// <summary>Stand where Hex Bolt still has several metres of floor in front of it at 0.15 s,
+        /// so the shot shows the projectile instead of a bolt that died in a wall.</summary>
+        static void StandForBolt(HeroActor hero)
+        {
+            var map = World.Map;
+            Vector3 origin = hero.Pos;
+            Vector3 bestPos = origin;
+            Vector3 bestAim = OpenAim(origin);
+            float bestScore = ClearDistance(origin, bestAim);
+            if (map != null)
+            {
+                for (int y = 0; y < map.height; y++)
+                    for (int x = 0; x < map.width; x++)
+                    {
+                        if (!map.Walkable(x, y)) continue;
+                        var p = World.ToWorld(new Int2(x, y));
+                        var aim = OpenAim(p);
+                        float dist = ClearDistance(p, aim);
+                        float score = dist - Vector3.Distance(p, origin) * 0.02f;
+                        if (score > bestScore) { bestScore = score; bestPos = p; bestAim = aim; }
+                    }
+            }
+            hero.Teleport(bestPos);
+            hero.aim = bestAim;
+            hero.Face(bestAim);
+            if (PetActor.I != null) PetActor.I.Teleport(bestPos + new Vector3(1.35f, 0f, -0.85f));
+            var rig = UnityEngine.Object.FindObjectOfType<CameraRig>();
+            if (rig != null) { rig.follow = hero.transform; rig.Snap(); }
+            Debug.Log("Hollowmere QA: bolt lane " + ClearDistance(bestPos, bestAim).ToString("0.0") + "m from " + bestPos);
         }
     }
 }

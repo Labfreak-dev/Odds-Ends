@@ -251,12 +251,14 @@ namespace Hollowmere
     }
 
     /// <summary>Fixed-angle isometric-style follow camera, the classic dungeon crawler view.</summary>
+    [DefaultExecutionOrder(120)]
     public sealed class CameraRig : MonoBehaviour
     {
         public static float Yaw = 0f;
         public Transform follow;
         public float distance = 15f, pitch = 55f;
         Camera cam;
+        readonly List<Renderer> hidden = new List<Renderer>();
 
         public static CameraRig Create()
         {
@@ -283,6 +285,74 @@ namespace Hollowmere
             var targetPos = follow.position + Vector3.up * 1f - rot * Vector3.forward * d;
             transform.position = Vector3.Lerp(transform.position, targetPos, 1 - Mathf.Exp(-10 * Time.unscaledDeltaTime));
             transform.rotation = rot;
+            HideOccluders();
+        }
+
+        /// <summary>Props that sit between the lens and the hero are hidden for the frame.
+        /// Characters, the floor and the bolt stay. A mesh the camera is inside of is hidden too.</summary>
+        void HideOccluders()
+        {
+            for (int i = 0; i < hidden.Count; i++)
+                if (hidden[i] != null) hidden[i].enabled = true;
+            hidden.Clear();
+            Vector3 eye = transform.position;
+            Vector3 chest = follow.position + Vector3.up * 1.15f;
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (r == null || !r.enabled) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (KeepVisible(r)) continue;
+                var b = r.bounds;
+                if (!b.Contains(eye) && !SegmentHits(eye, chest, b, 0.35f)) continue;
+                r.enabled = false;
+                hidden.Add(r);
+            }
+        }
+
+        static bool KeepVisible(Renderer r)
+        {
+            if (r.GetComponent<TextMesh>() != null) return true;
+            Transform t = r.transform;
+            while (t != null)
+            {
+                string n = t.name;
+                if (n == "floor" || n == "walls" || n == "water" || n == "skirt" || n == "waterBlock" || n == "heroRing") return true;
+                if (t.GetComponent<HeroActor>() != null || t.GetComponent<PetActor>() != null) return true;
+                if (t.GetComponent<Projectile>() != null || t.GetComponent<FxLife>() != null) return true;
+                if (n.StartsWith("npc_") || n.StartsWith("hero_") || n.StartsWith("pet_") || n.StartsWith("mon_") || n.StartsWith("boss_"))
+                    return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        static bool SegmentHits(Vector3 a, Vector3 b, Bounds box, float pad)
+        {
+            var min = box.min - Vector3.one * pad;
+            var max = box.max + Vector3.one * pad;
+            var d = b - a;
+            float t0 = 0f, t1 = 1f;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                float origin = axis == 0 ? a.x : axis == 1 ? a.y : a.z;
+                float dir = axis == 0 ? d.x : axis == 1 ? d.y : d.z;
+                float bmin = axis == 0 ? min.x : axis == 1 ? min.y : min.z;
+                float bmax = axis == 0 ? max.x : axis == 1 ? max.y : max.z;
+                if (Mathf.Abs(dir) < 1e-6f)
+                {
+                    if (origin < bmin || origin > bmax) return false;
+                    continue;
+                }
+                float inv = 1f / dir;
+                float ta = (bmin - origin) * inv;
+                float tb = (bmax - origin) * inv;
+                if (ta > tb) { float s = ta; ta = tb; tb = s; }
+                if (ta > t0) t0 = ta;
+                if (tb < t1) t1 = tb;
+                if (t0 > t1) return false;
+            }
+            // Ignore a graze at the hero's chest so the ring and nearby ground stay up.
+            return t0 < 0.92f;
         }
 
         public void Snap()

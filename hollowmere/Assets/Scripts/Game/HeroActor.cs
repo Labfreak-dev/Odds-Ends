@@ -51,6 +51,16 @@ namespace Hollowmere
             // A generated hero carries its own weapon, so no primitive weapon is attached (hand stays null).
             if (model != null) { figure = model.transform; modelAnim = model.GetComponent<ModelAnim>(); }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.heroClass), Art.ClassColor(Hero.heroClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
+            var ring = Art.ClassColor(Hero.heroClass);
+            Art.GroundRing(transform, new Color(Mathf.Clamp01(ring.r + 0.45f), Mathf.Clamp01(ring.g + 0.25f), Mathf.Clamp01(ring.b + 0.45f)));
+            // Fill from the camera side (default rig sits on -Z) so a dark robe still has an edge.
+            var rim = new GameObject("rimLight").AddComponent<Light>();
+            rim.transform.SetParent(transform, false);
+            rim.transform.localPosition = new Vector3(0.35f, 1.45f, -1.35f);
+            rim.type = LightType.Point;
+            rim.range = 5.5f;
+            rim.intensity = 2.6f;
+            rim.color = new Color(0.82f, 0.72f, 1f);
             RefreshWeapon();
             // A torch-light that follows the hero keeps dark floors readable on small screens.
             var l = new GameObject("heroLight").AddComponent<Light>();

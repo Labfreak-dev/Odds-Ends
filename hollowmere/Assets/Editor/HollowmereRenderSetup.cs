@@ -22,6 +22,7 @@ namespace Hollowmere.Editor
         {
             "Hollowmere/Color",
             "Hollowmere/Text",
+            "Hollowmere/Glow",
         };
 
         public void OnPreprocessBuild(BuildReport report)

@@ -38,6 +38,24 @@ namespace Hollowmere
             if (target != null) target.PunchFlash(c);
         }
 
+        /// <summary>Hex Bolt's hit: a coloured burst plus a point light that fades out.</summary>
+        public static void HexImpact(Vector3 at, Color c, Actor target)
+        {
+            Impact(at, c, target);
+            Burst(at + Vector3.up * 0.8f, c, 2.8f, 0.42f);
+            Ring(at, 2.4f, c, 0.45f);
+            var host = new GameObject("hexImpact");
+            host.transform.position = at + Vector3.up * 1.05f;
+            var sprite = Art.GlowSprite(host.transform, 2.4f, c);
+            sprite.AddComponent<FxLife>().Init(0.4f, Vector3.one * 2.4f, Vector3.one * 3.6f);
+            var l = host.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = c;
+            l.range = 11f;
+            l.intensity = 8f;
+            host.AddComponent<LightFade>().Init(0.42f, 8f);
+        }
+
         public static void Burst(Vector3 at, Color c, float size = 0.6f, float seconds = 0.25f)
         {
             var g = Art.Sphere(null, at, Vector3.one * size * 0.3f, Art.Mat(c, 2f));
@@ -133,6 +151,27 @@ namespace Hollowmere
             if (tm == null) transform.localScale = Vector3.Lerp(from, to, k);
             if (rise != 0) transform.position += Vector3.up * rise * Time.deltaTime;
             if (tm != null) { var c = tm.color; c.a = 1 - k * k; tm.color = c; }
+            if (t >= life) Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Point light that dims and then removes its object. Used by Hex Bolt's impact.</summary>
+    public sealed class LightFade : MonoBehaviour
+    {
+        float t, life, intensity;
+        Light light;
+
+        public void Init(float seconds, float from)
+        {
+            life = Mathf.Max(0.05f, seconds);
+            intensity = from;
+            light = GetComponent<Light>();
+        }
+
+        void Update()
+        {
+            t += Time.deltaTime;
+            if (light != null) light.intensity = intensity * (1f - Mathf.Clamp01(t / life));
             if (t >= life) Destroy(gameObject);
         }
     }

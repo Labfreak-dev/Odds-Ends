@@ -16,7 +16,7 @@ Read `README.md` first for what the game is and where the code lives.
 1. Use **Unity 6 (6000.0 LTS)**. Add the `hollowmere/` folder in Unity Hub and open it.
    A newer 6000.x patch is fine, so accept the upgrade prompt if one appears.
 2. Unity resolves `Packages/manifest.json`:
-   - glTFast 6.18.0, which imports the `.glb` models
+   - glTFast 6.10.1, which imports the `.glb` models (6.18 does not compile on 6000.0.23f1)
    - Input System 1.19.0
    - uGUI
 3. If Unity asks to enable the new Input System backend, choose **Yes** (or "Both").
@@ -46,7 +46,7 @@ The 28 Meshy models are in `Assets/Resources/Models/`. Files named `<key>_walk.g
 contain a rigged walk cycle. Code loads them with `Resources.Load` by key.
 
 - **Animation.** Every `*_walk.glb` is already set to **Animation → Legacy**. glTFast
-  6.18's `GltfImporter` is internal and its design-time default is Mecanim, which will
+  6.10's `GltfImporter` is internal and its design-time default is Mecanim, which will
   not play (`ModelAnim` in `Art.cs` drives the legacy `Animation` component). The
   committed `.meta` files store `importSettings.animationMethod: 1` (Legacy), and
   `WalkClipLegacyImporter` sets the same field before import for any new walk clip.
@@ -55,10 +55,14 @@ contain a rigged walk cycle. Code loads them with `Resources.Load` by key.
   `Art.ModelYaw = 180f` in `Art.cs`. That one constant applies to every model.
 - **Scale.** `Art.Model` rescales each model to a target height and puts its feet on
   the ground, so there's nothing to do here unless something looks off.
-- **Materials.** If any model renders pink, the render pipeline doesn't match the
-  material. The project uses the Built-in pipeline by default. If you switch to URP,
-  run the URP material converter. Procedural materials clone the primitive default
-  material, so they follow the active pipeline automatically.
+- **Materials.** The project uses URP (`Assets/Settings/HollowmereURP.asset`), assigned
+  in Graphics settings and on every quality level. Android defaults to Medium.
+  Procedural meshes use `Resources/HollowmereColor` (shader `Hollowmere/Color`), and
+  world-space labels use `Resources/HollowmereText`. Those shaders are in Always
+  Included Shaders. Do not `Shader.Find` a shader that the player build can strip:
+  that is what painted the floor magenta on a phone. glTF models use glTFast's URP
+  shader graphs; the build step adds them to Always Included Shaders. Reimport the
+  `.glb` files after opening this project so their materials are generated for URP.
 
 ## 3. First-run checklist
 

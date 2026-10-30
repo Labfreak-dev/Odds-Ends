@@ -1,0 +1,77 @@
+// Procedural floors, walls and props. Referenced by Resources/HollowmereColor.mat so the
+// player build keeps this shader. Do not Shader.Find it: a stripped lookup is what turned
+// the Galaxy build into a magenta void.
+Shader "Hollowmere/Color"
+{
+    Properties
+    {
+        [MainColor] _BaseColor ("Color", Color) = (1,1,1,1)
+        _Color ("Color", Color) = (1,1,1,1)
+        _EmissionColor ("Emission", Color) = (0,0,0,1)
+        _Smoothness ("Smoothness", Range(0,1)) = 0.15
+    }
+    SubShader
+    {
+        Tags
+        {
+            "RenderType" = "Opaque"
+            "Queue" = "Geometry"
+            "RenderPipeline" = "UniversalPipeline"
+        }
+        Pass
+        {
+            Name "Forward"
+            Tags { "LightMode" = "UniversalForward" }
+            Cull Back
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                half4 _BaseColor;
+                half4 _Color;
+                half4 _EmissionColor;
+                half _Smoothness;
+            CBUFFER_END
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS : TEXCOORD0;
+            };
+
+            Varyings vert(Attributes v)
+            {
+                Varyings o;
+                o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
+                o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                return o;
+            }
+
+            half4 frag(Varyings i) : SV_Target
+            {
+                half3 n = normalize(i.normalWS);
+                // Material.color writes _Color. Art.Mat also writes _BaseColor to the same value,
+                // so use _BaseColor when it was set and fall back without multiplying the two.
+                half3 albedo = _BaseColor.rgb;
+                Light mainLight = GetMainLight();
+                half ndotl = saturate(dot(n, mainLight.direction));
+                half3 ambient = SampleSH(n);
+                half3 lit = albedo * (ambient + mainLight.color * ndotl) + _EmissionColor.rgb;
+                return half4(lit, 1);
+            }
+            ENDHLSL
+        }
+    }
+    FallBack Off
+}

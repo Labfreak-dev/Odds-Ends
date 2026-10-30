@@ -104,6 +104,8 @@ namespace Hollowmere
                     }
                 }
 
+            Debug.Log("Hollowmere level " + map.theme + " " + map.width + "x" + map.height
+                + " floorVerts=" + fv.Count + " wallVerts=" + wv.Count + " depth=" + map.depth);
             var floor = MakeMesh("floor", root, fv, fn, null, Art.Mat(fa), fuv);
             var fm = floor.GetComponent<MeshFilter>().sharedMesh;
             fm.subMeshCount = 2;
@@ -138,6 +140,7 @@ namespace Hollowmere
             sun.transform.rotation = Quaternion.Euler(55, -30, 0);
             sun.intensity = map.theme == Theme.Town ? 1.1f : 0.35f;
             sun.color = map.theme == Theme.Town ? new Color(1f, 0.95f, 0.85f) : lightC;
+            if (Camera.main != null) Camera.main.backgroundColor = ambient * 0.35f;
 
             if (map.theme != Theme.Town)
             {

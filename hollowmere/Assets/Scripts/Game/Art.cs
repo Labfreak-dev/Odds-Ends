@@ -19,11 +19,18 @@ namespace Hollowmere
         static readonly Dictionary<string, Material> mats = new Dictionary<string, Material>();
         static readonly Dictionary<string, GameObject> modelCache = new Dictionary<string, GameObject>();
 
-        /// <summary>Clone the built-in primitive material: guaranteed to exist in builds
-        /// (Shader.Find can be stripped) and works in whichever render pipeline is active.</summary>
+        /// <summary>The URP color material in Resources. A player build keeps it because the asset
+        /// is referenced, which is what Shader.Find cannot promise once variants are stripped.</summary>
         static Material BaseMaterial()
         {
             if (baseMat != null) return baseMat;
+            var loaded = Resources.Load<Material>("HollowmereColor");
+            if (loaded != null)
+            {
+                baseMat = loaded;
+                return baseMat;
+            }
+            Debug.LogError("Hollowmere: Resources/HollowmereColor is missing. Procedural meshes have no shader.");
             var tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
             baseMat = new Material(tmp.GetComponent<Renderer>().sharedMaterial);
             Object.Destroy(tmp);

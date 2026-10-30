@@ -41,6 +41,19 @@ namespace Hollowmere
         public Sprite iconSkills;
         public Sprite iconPet;
         public Sprite iconMenu;
+        public Sprite panelHeader;
+        public Sprite closeButton;
+        public Sprite iconButton;
+        public Sprite iconButtonPressed;
+        public Sprite hudFrame;
+        public Sprite hudFillHealth;
+        public Sprite hudFillMana;
+        public Sprite hudFillXp;
+        public Sprite hudFillGhost;
+        public Sprite iconInventory;
+        public Sprite iconSword;
+        public Sprite iconShield;
+        public Sprite iconSettings;
         public AudioClip hexboltCast;
         public AudioClip hexboltImpact;
         public AudioClip hexboltImpact2;
@@ -130,27 +143,52 @@ namespace Hollowmere
             return s != null ? s : ProceduralFrame();
         }
 
-        /// <summary>Header icon for the bag, skills, pet, and menu modals. Null for every other screen.</summary>
+        public static bool HasAuthoredPanel => Catalog != null && Catalog.panel != null;
+
+        public static Sprite PanelHeader => Catalog != null ? Catalog.panelHeader : null;
+
+        public static Sprite CloseButton => Catalog != null ? Catalog.closeButton : null;
+
+        /// <summary>HUD chrome. key is frame, fill_health, fill_mana, fill_xp, or fill_ghost.</summary>
+        public static Sprite Hud(string key)
+        {
+            var c = Catalog;
+            if (c == null || string.IsNullOrEmpty(key)) return null;
+            switch (key)
+            {
+                case "frame": return c.hudFrame;
+                case "fill_health": return c.hudFillHealth;
+                case "fill_mana": return c.hudFillMana;
+                case "fill_xp": return c.hudFillXp;
+                case "fill_ghost": return c.hudFillGhost;
+                default: return null;
+            }
+        }
+
+        /// <summary>Header icon. Modal names map onto icons/icon_&lt;name&gt;.png.</summary>
         public static Sprite Icon(string modal)
         {
-            if (modal != "bag" && modal != "skills" && modal != "pet" && modal != "menu") return null;
             var c = Catalog;
             Sprite s = null;
             if (c != null)
             {
-                if (modal == "bag") s = c.iconBag;
-                else if (modal == "skills") s = c.iconSkills;
-                else if (modal == "pet") s = c.iconPet;
-                else s = c.iconMenu;
+                if (modal == "bag" || modal == "inventory") s = c.iconInventory != null ? c.iconInventory : c.iconBag;
+                else if (modal == "skills" || modal == "sword") s = c.iconSword != null ? c.iconSword : c.iconSkills;
+                else if (modal == "pet" || modal == "shield") s = c.iconShield != null ? c.iconShield : c.iconPet;
+                else if (modal == "menu" || modal == "settings") s = c.iconSettings != null ? c.iconSettings : c.iconMenu;
             }
-            return s != null ? s : ProceduralIcon(modal);
+            if (s != null) return s;
+            if (modal == "bag" || modal == "skills" || modal == "pet" || modal == "menu") return ProceduralIcon(modal);
+            return null;
         }
 
-        public static void ApplySlice(Image img, Sprite sprite)
+        /// <summary>Sliced by default. tileCenter keeps the 9-slice border and repeats the middle.</summary>
+        public static void ApplySlice(Image img, Sprite sprite, bool tileCenter = false)
         {
             if (img == null || sprite == null) return;
             img.sprite = sprite;
-            img.type = Image.Type.Sliced;
+            img.type = tileCenter ? Image.Type.Tiled : Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = 1f;
             img.color = Color.white;
         }
 

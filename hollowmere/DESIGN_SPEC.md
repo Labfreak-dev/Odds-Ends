@@ -356,10 +356,12 @@ Other sources multiply the special weight and shift the common weight, then norm
 | Normal | as above | 1 | 1 |
 | Champion | 0.25 | 3 | 3 |
 | Elite | 0 | 5 | 5 |
-| Guardian | 0 (and magic weight 0) | 30 | rare weight fixed at 0.60 of the pre-normalize mass |
+| Guardian | 0, and magic weight 0 | 30 | rare weight is 0.60 before normalize |
 | Chest | 0.20 | 2 | 2 |
+| Gamble | 0, and magic weight 0 | the special weight is 0.10, split 70/30, and is not multiplied again | rare weight is 0.90 |
+| Fishing | 0.30 | 2 | 2.5 |
 
-The guardian row keeps a rare floor under the special multiplier so a guardian is usually rare-or-better. After the weights are built, a guardian that rolled no legendary and no set has an extra `0.35 + 0.2 * LegendaryBonus` chance to add one. That extra chance is already in `Loot.Roll` and stays.
+A guardian's rare weight is 0.60 before the weights are normalized, and its special weight is thirty times the floor's special chance. After that roll, a guardian that produced no legendary and no set still has an extra `0.35 + 0.2 * LegendaryBonus` chance to add one. That extra chance is already in `Loot.Roll` and stays. Gamble spends the curio's price on a 0.90 rare / 0.10 special roll. Fishing keeps a common weight of 0.30, doubles special, and multiplies rare by 2.5.
 
 ### T.drops
 

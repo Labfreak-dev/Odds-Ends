@@ -38,5 +38,6 @@ MonoBehaviour:
   iconSkills: {fileID: 21300000, guid: d0f6124e705c4d91ae4f308c0d215e64, type: 3}
   iconPet: {fileID: 21300000, guid: e107235f816d4ea2bf50419d1e326f75, type: 3}
   iconMenu: {fileID: 21300000, guid: f2183460927e4fb3c06152ae2f437086, type: 3}
-  hexboltCast: {fileID: 0}
-  hexboltImpact: {fileID: 0}
+  hexboltCast: {fileID: 8300000, guid: b11c0d0e1f2a4034b5c6d7e8f9011122, type: 3}
+  hexboltImpact: {fileID: 8300000, guid: b22c0d0e1f2a4034b5c6d7e8f9022233, type: 3}
+  hexboltImpact2: {fileID: 8300000, guid: b33c0d0e1f2a4034b5c6d7e8f9033344, type: 3}

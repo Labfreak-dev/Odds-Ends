@@ -12,7 +12,7 @@ namespace Hollowmere
     ///   Assets/Art/UI/ui_slices.json — 9-slice borders [left, bottom, right, top] per file name
     ///   Assets/Audio/UI/title_theme.ogg, title_sting.ogg, ui_click.ogg, ui_click_2.ogg,
     ///   ui_confirm.ogg, ui_back.ogg, ui_panel_open.ogg, ui_panel_close.ogg, ui_start_game.ogg
-    ///   Assets/Audio/SFX/hexbolt_cast.ogg, hexbolt_impact.ogg
+    ///   Assets/Audio/SFX/hexbolt_cast.ogg, hexbolt_impact.ogg, hexbolt_impact_2.ogg
     /// Missing files fall back to procedural art and synthesized UI sounds.
     /// The images in the repo are original and released under CC0.
     /// </summary>
@@ -43,6 +43,7 @@ namespace Hollowmere
         public Sprite iconMenu;
         public AudioClip hexboltCast;
         public AudioClip hexboltImpact;
+        public AudioClip hexboltImpact2;
     }
 
     public static class UiArt
@@ -112,6 +113,7 @@ namespace Hollowmere
                 case "ui_start_game": return c.uiStartGame;
                 case "hexbolt_cast": return c.hexboltCast;
                 case "hexbolt_impact": return c.hexboltImpact;
+                case "hexbolt_impact_2": return c.hexboltImpact2;
                 default: return null;
             }
         }

@@ -1,0 +1,98 @@
+{
+ "boss_abbot": {
+  "preview": "01a18ddb-44b0-7386-93e1-98b2bc470be8",
+  "refine": "01a18ddd-a93c-7377-afef-1c4a1e96fc50",
+  "rig": "01a18ddf-91ad-7217-bac9-596cf1854bc5"
+ },
+ "hero_hexweaver": {
+  "preview": "01a18dd8-7928-7227-afc9-687998c0d66f",
+  "refine": "01a18dd9-c5c5-74dd-b046-0f5c066307aa",
+  "rig": "01a18ddb-361d-7082-a81f-40d884cc1304"
+ },
+ "hero_ironclad": {
+  "preview": "01a18ddb-100f-7173-8752-1cf3af72a282",
+  "refine": "01a18ddd-5162-70aa-9c36-5b2e88debe6f",
+  "rig": "01a18ddf-1256-70b9-a9d3-6dd2bcca11ea"
+ },
+ "hero_stalker": {
+  "preview": "01a18dd8-78f7-77a2-b98f-3b2fabc39936",
+  "refine": "01a18dd9-9da7-703d-928a-4c61f813d493",
+  "rig": "01a18dda-bdc4-76ce-8cdb-ac58c0dc9791"
+ },
+ "mon_bogfiend": {
+  "preview": "01a18ddb-970f-7719-9e5a-3f5ae0c6da22",
+  "refine": "01a18ddd-8379-7019-8960-c9020baedddc",
+  "rig": "01a18ddf-4240-778f-87c3-01c753bbc02e"
+ },
+ "mon_bonewalker": {
+  "preview": "01a18dbe-014f-7181-b654-e042b25919bd",
+  "refine": "01a18dbe-896d-7661-91cf-18039da06890",
+  "rig": "01a18dbf-08a8-7577-b29a-e156a070fc4d"
+ },
+ "mon_cinderimp": {
+  "preview": "01a18dd8-78f7-70b1-bb1f-e1b46b265f26",
+  "refine": "01a18dd9-c4ce-71a5-8680-7484ea4bc40e",
+  "rig": "01a18ddb-0c69-7494-8c21-284e2b0c8c01"
+ },
+ "mon_drownedwraith": {
+  "preview": "01a18dd8-79d5-722b-8210-1f4e8c34d73e",
+  "refine": "01a18dd9-9ef2-7462-9ebf-6cd74e095766",
+  "rig": "01a18dda-e5f1-7510-ade3-9131d2570116"
+ },
+ "mon_gloomspider": {
+  "preview": "01a18dda-f558-71f4-a8c9-323b484d3ab8",
+  "refine": "01a18ddd-3642-75f1-9d5d-4fcb22ee120b"
+ },
+ "mon_stonehulk": {
+  "preview": "01a18ddf-4c6e-73da-b63d-104323b55d04",
+  "refine": "01a18de0-7299-73e1-8fa6-0e29454d80c2"
+ },
+ "npc_fisher": {
+  "preview": "01a18ddb-46e8-72b4-91a6-8eb0c7bdcb05",
+  "refine": "01a18ddd-8616-70b6-9dc1-cf98baf519ce"
+ },
+ "npc_merchant": {
+  "preview": "01a18de2-0cea-741c-9531-59f78539d100",
+  "refine": "01a18de3-3276-7784-9fca-c327eef4ff36"
+ },
+ "npc_mystic": {
+  "preview": "01a18de1-c2bd-76f7-8e2b-b8558b3281e1",
+  "refine": "01a18de2-e731-73f7-aec2-49c569352dc6"
+ },
+ "npc_smith": {
+  "preview": "01a18de2-b1b7-73d1-b640-cb59f950e45a",
+  "refine": "01a18de3-d776-743a-827d-a7ce2ef6acd0"
+ },
+ "pet_hound": {
+  "preview": "01a18dbc-d151-7303-b0ff-2d5fecda08dd",
+  "refine": "01a18dbd-8070-71d4-9f92-eaab493003bb"
+ },
+ "pet_lynx": {
+  "preview": "01a18dd8-78fd-773b-9de1-78132c2e0b1b",
+  "refine": "01a18dd9-c87a-7348-b8de-ac5a91b06fb4"
+ },
+ "prop_chest": {
+  "preview": "01a18dde-f930-7349-bbf3-2d3dfeea822e",
+  "refine": "01a18de0-9a12-7005-a340-820059dd3173"
+ },
+ "prop_dock": {
+  "preview": "01a18de1-912b-7144-b330-80e01b0dd092",
+  "refine": "01a18de2-8cf2-7176-90ea-a9036491ff07"
+ },
+ "prop_shrine": {
+  "preview": "01a18ddf-d000-752a-8f0e-3d364c23265c",
+  "refine": "01a18de0-a2d8-74fa-b600-3e87496f9590"
+ },
+ "prop_stairs": {
+  "preview": "01a18ddf-7d0e-7088-942b-7919182fc562",
+  "refine": "01a18de1-182b-7003-8bed-76de69e767eb"
+ },
+ "prop_torch": {
+  "preview": "01a18de1-be23-76f8-9e5b-86ba0004a25d",
+  "refine": "01a18de2-babc-75d4-84ab-47f6dc52161d"
+ },
+ "prop_well": {
+  "preview": "01a18ddf-4882-717e-984a-8d392c354393",
+  "refine": "01a18de0-6f7c-77d3-8420-105f0a904b8f"
+ }
+}

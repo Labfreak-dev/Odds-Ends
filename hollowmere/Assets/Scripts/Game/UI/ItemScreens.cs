@@ -10,16 +10,38 @@ namespace Hollowmere
     /// <summary>Shared item widgets: a coloured cell per item and the tooltip card.</summary>
     public static class ItemUi
     {
-        public static Button Cell(Transform parent, Item it, bool selected, Action onClick, string emptyLabel = "")
+        public static Button Cell(Transform parent, Item it, bool selected, Action onClick, string emptyLabel = "", Sprite silhouette = null)
         {
-            var c = Item.IsNone(it) ? new Color(0.12f, 0.11f, 0.1f) : Art.Rarity(it.rarity) * 0.35f + new Color(0.05f, 0.05f, 0.05f, 1f);
+            var c = Item.IsNone(it) ? new Color(0.16f, 0.13f, 0.1f) : Color.Lerp(new Color(0.14f, 0.11f, 0.09f), Art.Rarity(it.rarity), 0.28f);
             if (selected) c = Ui.ButtonHot;
-            var b = Ui.Button(parent, "", onClick, c, 20);
+            var b = Ui.Button(parent, "", onClick, c, 18);
+            var img = b.GetComponent<Image>();
+            var slot = InventoryArt.Slot();
+            if (slot != null && img != null)
+            {
+                img.sprite = slot;
+                img.type = Image.Type.Sliced;
+                img.color = selected ? Color.white : Item.IsNone(it) ? new Color(0.75f, 0.7f, 0.6f, 1f) : Color.Lerp(Color.white, Art.Rarity(it.rarity), 0.45f);
+            }
             var txt = b.GetComponentInChildren<Text>();
-            if (Item.IsNone(it)) { txt.text = $"<color=#666666>{emptyLabel}</color>"; return b; }
+            if (Item.IsNone(it))
+            {
+                txt.text = $"<color=#8a8070>{emptyLabel}</color>";
+                if (silhouette != null)
+                {
+                    var icon = Ui.Rect(b.transform, "sil", new Vector2(0.5f, 0.62f), new Vector2(0.5f, 0.62f));
+                    icon.sizeDelta = new Vector2(52, 52);
+                    var ii = icon.gameObject.AddComponent<Image>();
+                    ii.sprite = silhouette;
+                    ii.preserveAspect = true;
+                    ii.raycastTarget = false;
+                    ii.color = new Color(1f, 0.95f, 0.85f, 0.45f);
+                }
+                return b;
+            }
             string stack = it.stack > 1 ? $"\nx{it.stack}" : "";
-            txt.text = $"<color={ItemText.RarityColor(it.rarity)}><b>{ItemText.SlotLabel(it)}</b></color>{stack}" + (it.ancient ? "\n<color=#ff8a1e>A</color>" : "");
-            // Rarity edge
+            string name = it.kind == ItemKind.Equipment && it.Base != null ? it.Base.name : ItemText.SlotLabel(it);
+            txt.text = $"<color={ItemText.RarityColor(it.rarity)}><b>{name}</b></color>{stack}" + (it.ancient ? "\n<color=#ff8a1e>Ancient</color>" : "");
             var edge = Ui.Rect(b.transform, "edge", new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 8));
             Ui.Box(edge, Art.Rarity(it.rarity), false).raycastTarget = false;
             return b;
@@ -59,36 +81,46 @@ namespace Hollowmere
             if (selected != null && !h.inventory.Contains(selected) && !h.equipment.Contains(selected)) { selected = null; selectedSlot = null; }
 
             // ---- paper doll
-            var doll = Ui.Rect(body, "doll", Vector2.zero, new Vector2(0.3f, 1), Vector2.zero, new Vector2(-8, 0));
-            var dg = Ui.Grid(doll, new Vector2(160, 104), 6);
+            var doll = Ui.Rect(body, "doll", Vector2.zero, new Vector2(0.28f, 1), Vector2.zero, new Vector2(-8, 0));
+            var frame = InventoryArt.Frame();
+            var dollBg = Ui.Box(doll, new Color(0.08f, 0.06f, 0.05f, 0.9f));
+            if (frame != null) { dollBg.sprite = frame; dollBg.type = Image.Type.Sliced; dollBg.color = Color.white; }
+            var dg = Ui.Grid(Ui.Rect(doll, "slots", Vector2.zero, Vector2.one, new Vector2(8, 8), new Vector2(-8, -8)), new Vector2(148, 108), 6);
             foreach (EquipSlot es in Enum.GetValues(typeof(EquipSlot)))
             {
                 if (es == EquipSlot.Count) continue;
                 var e = es;
                 var it = h.Equipped(es);
-                ItemUi.Cell(dg, it, selectedSlot == es, () => { selected = h.Equipped(e); selectedSlot = e; Show(ui); }, es.ToString());
+                ItemUi.Cell(dg, it, selectedSlot == es, () => { selected = h.Equipped(e); selectedSlot = e; Show(ui); }, SlotName(es), SlotSilhouette(es));
             }
+
+            var stats = Ui.Rect(body, "stats", new Vector2(0.28f, 0), new Vector2(0.46f, 1), new Vector2(8, 0), new Vector2(-8, 0));
+            var statsBg = Ui.Box(stats, new Color(0.07f, 0.06f, 0.05f, 0.92f));
+            if (frame != null) { statsBg.sprite = frame; statsBg.type = Image.Type.Sliced; statsBg.color = Color.white; }
             var hero = HeroActor.I;
             var st = hero != null ? hero.stats : gm.State.Stats();
-            var statBox = Ui.Rect(dg, "stats", Vector2.zero, Vector2.one);
-            Ui.Label(statBox, $"<color=#ffe25a>DPS {Fx.Short(h.SheetDps(st))}</color>\nLife {Fx.Short(h.MaxLife(st))}\nArmor {st[Stat.Armor]:0}", 20, TextAnchor.UpperLeft);
+            Ui.Label(Ui.Rect(stats, "sheet", Vector2.zero, Vector2.one, new Vector2(12, 12), new Vector2(-12, -12)), StatSheet(h, st), 22, TextAnchor.UpperLeft);
 
             // ---- bag
-            var bag = Ui.Rect(body, "bag", new Vector2(0.3f, 0), new Vector2(0.64f, 1), new Vector2(8, 80), new Vector2(-8, 0));
-            var grid = Ui.Grid(bag, new Vector2(120, 104), 6);
+            var bag = Ui.Rect(body, "bag", new Vector2(0.46f, 0), new Vector2(0.72f, 1), new Vector2(8, 80), new Vector2(-8, 0));
+            var bagBg = Ui.Box(bag, new Color(0.08f, 0.06f, 0.05f, 0.85f));
+            if (frame != null) { bagBg.sprite = frame; bagBg.type = Image.Type.Sliced; bagBg.color = Color.white; }
+            var grid = Ui.Grid(Ui.Rect(bag, "cells", Vector2.zero, Vector2.one, new Vector2(8, 8), new Vector2(-8, -8)), new Vector2(118, 100), 6);
             foreach (var it in h.inventory)
             {
                 var itx = it;
                 ItemUi.Cell(grid, it, it == selected, () => { selected = itx; selectedSlot = null; Show(ui); });
             }
-            var bagBtns = Ui.Rect(body, "bagBtns", new Vector2(0.3f, 0), new Vector2(0.64f, 0), new Vector2(8, 0), new Vector2(-8, 70));
+            var bagBtns = Ui.Rect(body, "bagBtns", new Vector2(0.46f, 0), new Vector2(0.72f, 0), new Vector2(8, 0), new Vector2(-8, 70));
             var hl = bagBtns.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.spacing = 8; hl.childControlWidth = true; hl.childControlHeight = true;
             Ui.Button(bagBtns, "Sort", () => { h.inventory = h.inventory.OrderBy(i => i.kind).ThenByDescending(i => i.rarity).ThenBy(i => i.Base?.slot).ToList(); Show(ui); }, Ui.ButtonC, 24);
             Ui.Button(bagBtns, $"Gold {h.gold:N0}", null, new Color(0.15f, 0.13f, 0.1f), 24).interactable = false;
 
             // ---- tooltip + actions
-            var side = Ui.Rect(body, "side", new Vector2(0.64f, 0), Vector2.one, new Vector2(8, 0), Vector2.zero);
-            Ui.Box(side, Ui.PanelLight);
+            var side = Ui.Rect(body, "side", new Vector2(0.72f, 0), Vector2.one, new Vector2(8, 0), Vector2.zero);
+            var sideBg = Ui.Box(side, Ui.PanelLight);
+            var tipSkin = InventoryArt.Tooltip();
+            if (tipSkin != null) { sideBg.sprite = tipSkin; sideBg.type = Image.Type.Sliced; sideBg.color = Color.white; }
             var tip = Ui.Rect(side, "tip", Vector2.zero, Vector2.one, new Vector2(10, 230), new Vector2(-10, -10));
             if (selected == null)
             {
@@ -142,6 +174,43 @@ namespace Hollowmere
             else { AudioHub.Play("sfx_swing", 0.4f); selected = null; }
             GameManager.I.OnEquipmentChanged();
             Show(ui);
+        }
+
+        static string SlotName(EquipSlot es) => es switch
+        {
+            EquipSlot.MainHand => "Weapon",
+            EquipSlot.OffHand => "Off hand",
+            EquipSlot.Ring1 => "Ring",
+            EquipSlot.Ring2 => "Ring",
+            _ => es.ToString(),
+        };
+
+        static Sprite SlotSilhouette(EquipSlot es) => es switch
+        {
+            EquipSlot.Head => InventoryArt.Silhouette("head"),
+            EquipSlot.Shoulders or EquipSlot.Chest => InventoryArt.Silhouette("chest"),
+            EquipSlot.Hands or EquipSlot.Wrists => InventoryArt.Silhouette("hands"),
+            EquipSlot.Waist or EquipSlot.Legs => InventoryArt.Silhouette("legs"),
+            EquipSlot.Feet => InventoryArt.Silhouette("feet"),
+            EquipSlot.Amulet => InventoryArt.Silhouette("amulet"),
+            EquipSlot.Ring1 or EquipSlot.Ring2 => InventoryArt.Silhouette("ring"),
+            EquipSlot.MainHand => InventoryArt.Silhouette("weapon"),
+            _ => InventoryArt.Silhouette("offhand"),
+        };
+
+        static string StatSheet(Hero h, StatBlock st)
+        {
+            return "<color=#ffe25a><b>" + h.name + "</b></color>\n" +
+                "<color=#c9a14a>DPS " + Fx.Short(h.SheetDps(st)) + "</color>\n" +
+                "Life " + Fx.Short(h.MaxLife(st)) + "\n\n" +
+                "Strength " + st[Stat.Strength].ToString("0") + "\n" +
+                "Dexterity " + st[Stat.Dexterity].ToString("0") + "\n" +
+                "Intelligence " + st[Stat.Intelligence].ToString("0") + "\n" +
+                "Vitality " + st[Stat.Vitality].ToString("0") + "\n\n" +
+                "Armor " + st[Stat.Armor].ToString("0") + "\n" +
+                "Crit " + st[Stat.CritChance].ToString("0") + "%\n" +
+                "Crit damage " + st[Stat.CritDamage].ToString("0") + "%\n" +
+                "Move speed " + st[Stat.MoveSpeed].ToString("0") + "%";
         }
     }
 

@@ -11,6 +11,8 @@ namespace Hollowmere
     ///   Hollowmere -qaShot town
     ///   Hollowmere -qaShot dungeon
     ///   Hollowmere -qaShot title
+    ///   Hollowmere -qaShot inventory
+    ///   Hollowmere -qaShot newhero
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
     /// </summary>
@@ -38,10 +40,13 @@ namespace Hollowmere
         static IEnumerator Run(GameManager gm, string scene)
         {
             bool title = scene == "title";
+            bool newHero = scene == "newhero" || scene == "new-hero" || scene == "create";
+            bool inventory = scene == "inventory" || scene == "bag";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1";
-            if (title)
+            if (title || newHero)
             {
                 UiRoot.I.ShowTitle();
+                if (newHero) TitleScreen.ShowNewHero();
                 yield return new WaitForSecondsRealtime(1.2f);
             }
             else
@@ -59,7 +64,12 @@ namespace Hollowmere
                         + (albedo is Texture2D t && t.isReadable ? " readable" : ""));
                 if (HeroActor.I != null && Art.UnionBounds(HeroActor.I.gameObject, out var hb))
                     Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
-                if (dungeon && HeroActor.I != null)
+                if (inventory)
+                {
+                    InventoryScreen.Show(UiRoot.I);
+                    yield return new WaitForSecondsRealtime(0.4f);
+                }
+                else if (dungeon && HeroActor.I != null)
                 {
                     StandForBolt(HeroActor.I);
                     var bolt = SkillDb.Get("hx_bolt");

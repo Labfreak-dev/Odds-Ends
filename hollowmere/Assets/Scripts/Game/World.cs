@@ -168,6 +168,7 @@ namespace Hollowmere
                     l.type = LightType.Point; l.color = lightC; l.range = 12; l.intensity = 1.6f;
                 }
             }
+            Dressing.Mood(map);
             return root;
         }
 

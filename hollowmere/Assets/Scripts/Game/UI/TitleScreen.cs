@@ -23,6 +23,8 @@ namespace Hollowmere
         static readonly List<(PetSpecies pet, Button button)> pets = new List<(PetSpecies, Button)>();
         static bool onCreate;
         static Button cornerBack;
+        static HeroStage stage;
+        static RawImage stageView;
 
         public static void Show(UiRoot rootUi)
         {
@@ -177,15 +179,17 @@ namespace Hollowmere
         static RectTransform BuildCreate(RectTransform safe)
         {
             var card = Card(safe, "create");
+            card.anchorMin = new Vector2(0.02f, 0.03f);
+            card.anchorMax = new Vector2(0.58f, 0.70f);
             var col = Ui.Rect(card, "col", Vector2.zero, Vector2.one, new Vector2(22, 22), new Vector2(-22, -22));
             var vl = col.gameObject.AddComponent<VerticalLayoutGroup>();
-            vl.spacing = 12;
+            vl.spacing = 10;
             vl.childControlHeight = true;
             vl.childControlWidth = true;
             vl.childForceExpandHeight = false;
             vl.childForceExpandWidth = true;
 
-            var row = Ui.Row(col, 200, 10);
+            var row = Ui.Row(col, 132, 10);
             foreach (HeroClass c in Enum.GetValues(typeof(HeroClass)))
             {
                 var cc = c;
@@ -195,7 +199,7 @@ namespace Hollowmere
                 if (icon != null)
                 {
                     var slot = Ui.Rect(b.transform, "portrait", new Vector2(0.5f, 0.68f), new Vector2(0.5f, 0.68f));
-                    slot.sizeDelta = new Vector2(84f, 84f);
+                    slot.sizeDelta = new Vector2(64f, 64f);
                     var ii = slot.gameObject.AddComponent<Image>();
                     ii.sprite = icon;
                     ii.preserveAspect = true;
@@ -204,16 +208,22 @@ namespace Hollowmere
                 classes.Add((cc, b));
             }
             var blurbRt = Ui.Rect(col, "blurb", Vector2.zero, Vector2.one);
-            blurb = Ui.Label(blurbRt, "", 24, TextAnchor.MiddleCenter, new Color(0.86f, 0.82f, 0.74f));
-            Ui.Size(blurbRt, 88);
+            blurb = Ui.Label(blurbRt, "", 22, TextAnchor.UpperLeft, new Color(0.9f, 0.86f, 0.76f));
+            Ui.Size(blurbRt, 250);
 
-            var petRow = Ui.Row(col, 72, 10);
+            var petRow = Ui.Row(col, 64, 10);
             pets.Add((PetSpecies.Hound, Ui.Button(petRow, "Hound", () => SelectPet(PetSpecies.Hound), null, 26)));
             pets.Add((PetSpecies.Lynx, Ui.Button(petRow, "Lynx", () => SelectPet(PetSpecies.Lynx), null, 26)));
 
             var begin = Ui.Button(col, "Begin", StartGame, new Color(0.75f, 0.55f, 0.22f), 36, UiSfx.None, true);
-            Ui.Size(begin, 96);
+            Ui.Size(begin, 84);
             Paint();
+
+            var view = Ui.Rect(safe, "stageView", new Vector2(0.60f, 0.08f), new Vector2(0.98f, 0.68f));
+            stageView = view.gameObject.AddComponent<RawImage>();
+            stageView.raycastTarget = false;
+            stageView.color = Color.white;
+            stageView.gameObject.SetActive(false);
             return card;
         }
 
@@ -226,6 +236,14 @@ namespace Hollowmere
             createPage.gameObject.SetActive(true);
             if (cornerBack != null) cornerBack.gameObject.SetActive(true);
             Slide(createPage, new Vector2(72f, 0f));
+            EnsureStage();
+        }
+
+        /// <summary>Used by -qaShot newhero.</summary>
+        public static void ShowNewHero()
+        {
+            if (root == null) return;
+            OpenCreate();
         }
 
         static void OpenSettings()
@@ -246,6 +264,8 @@ namespace Hollowmere
             settingsPage.gameObject.SetActive(false);
             if (cornerBack != null) cornerBack.gameObject.SetActive(false);
             mainPage.gameObject.SetActive(true);
+            if (stage != null) stage.gameObject.SetActive(false);
+            if (stageView != null) stageView.gameObject.SetActive(false);
             Slide(mainPage, new Vector2(0f, -28f));
         }
 
@@ -269,9 +289,26 @@ namespace Hollowmere
 
         static void Paint()
         {
-            if (blurb != null) blurb.text = ClassLine(cls);
+            if (blurb != null) blurb.text = ClassSheet(cls) + "\n" + PetSheet(pet);
+            if (onCreate && stage != null) stage.Set(cls, pet);
             foreach (var (c, b) in classes) PaintChoice(b, c == cls);
             foreach (var (p, b) in pets) PaintChoice(b, p == pet);
+        }
+
+        static void EnsureStage()
+        {
+            if (stageView == null) return;
+            if (stage == null) stage = HeroStage.Create(stageView);
+            stage.gameObject.SetActive(true);
+            stageView.gameObject.SetActive(true);
+            stage.Set(cls, pet);
+        }
+
+        static void DropStage()
+        {
+            if (stage == null) return;
+            UnityEngine.Object.Destroy(stage.gameObject);
+            stage = null;
         }
 
         static void PaintChoice(Button b, bool on)
@@ -300,6 +337,7 @@ namespace Hollowmere
             }
             var go = root;
             root = null;
+            DropStage();
             ui.FadeAndClose(go, null);
         }
 
@@ -312,6 +350,7 @@ namespace Hollowmere
             var companion = pet;
             var go = root;
             root = null;
+            DropStage();
             AudioHub.Play("ui_start_game", 1f);
             ui.FadeAndClose(go, () => GameManager.I.NewGame(chosen, hero, companion, petName));
         }
@@ -323,12 +362,28 @@ namespace Hollowmere
             _ => "Hexweaver",
         };
 
-        static string ClassLine(HeroClass c) => c switch
+        static string ClassSheet(HeroClass c)
         {
-            HeroClass.Ironclad => "Strength · Fury\nA wall of iron that cleaves, slams and charges.",
-            HeroClass.Stalker => "Dexterity · Focus\nBows, traps and tumbling. Strike before they arrive.",
-            _ => "Intelligence · Arcana\nBolts, chain lightning, thralls and meteors.",
-        };
+            switch (c)
+            {
+                case HeroClass.Ironclad:
+                    return "<b>Ironclad</b>  <color=#8fd48f>Easy</color>\nStrength · melee\nHold the pack and swing.\nLife " + Bar(0.9f) + "\nDamage " + Bar(0.65f) + "\nSpeed " + Bar(0.35f) + "\n<color=#e8d7a8>Cleave · Ground Slam · Iron Charge</color>";
+                case HeroClass.Stalker:
+                    return "<b>Stalker</b>  <color=#e6c35c>Medium</color>\nDexterity · ranged\nStay at range. Tumble out.\nLife " + Bar(0.4f) + "\nDamage " + Bar(0.72f) + "\nSpeed " + Bar(0.95f) + "\n<color=#e8d7a8>Twin Shot · Volley · Shadow Roll</color>";
+                default:
+                    return "<b>Hexweaver</b>  <color=#e07070>Hard</color>\nIntelligence · caster\nGlass cannon. Blink, then meteor.\nLife " + Bar(0.35f) + "\nDamage " + Bar(0.95f) + "\nSpeed " + Bar(0.55f) + "\n<color=#e8d7a8>Hex Bolt · Chain Spark · Meteor</color>";
+            }
+        }
+
+        static string PetSheet(PetSpecies p) => p == PetSpecies.Hound
+            ? "<b>Hound</b>  <color=#8fd48f>Easy</color>\nA sturdy biter that stays at your heel."
+            : "<b>Lynx</b>  <color=#e6c35c>Medium</color>\nFaster and meaner, and easier to lose.";
+
+        static string Bar(float t)
+        {
+            int n = Mathf.Clamp(Mathf.RoundToInt(Mathf.Clamp01(t) * 8f), 0, 8);
+            return "<color=#d7b15a>" + new string('|', n) + "</color><color=#5a5044>" + new string('|', 8 - n) + "</color>";
+        }
     }
 
     /// <summary>Parallax key art, drifting fog, embers and a flickering torch. Uses drop-in

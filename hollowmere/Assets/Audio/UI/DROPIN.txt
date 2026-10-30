@@ -14,4 +14,6 @@ UI clips import as mono, Decompress On Load. Music imports as Vorbis, Streaming.
 Clicks, panels, and the start sting go through the SFX mixer group.
 The sting and the theme go through the Music mixer group (Resources/HollowmereMix).
 Missing UI clicks fall back to a soft synthesized tone. Rebuild so
-Hollowmere/Bind title drop-in art can attach new files.
+Hollowmere/Bind UI drop-in art can attach new files.
+
+Skill sounds go in Assets/Audio/SFX/ (hexbolt_cast.ogg, hexbolt_impact.ogg, hexbolt_impact_2.ogg).

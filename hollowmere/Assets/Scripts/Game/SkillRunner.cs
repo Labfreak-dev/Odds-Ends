@@ -185,6 +185,7 @@ namespace Hollowmere
 
         static void Sound(SkillCast c)
         {
+            if (c.skill.id == "hx_bolt") { AudioHub.Play("hexbolt_cast", 0.9f); return; }
             switch (c.element)
             {
                 case Element.Fire: AudioHub.Play("sfx_fire", 0.6f); return;
@@ -202,15 +203,36 @@ namespace Hollowmere
         Vector3 dir;
         float speed, rangeLeft, mult;
         int pierce;
+        bool hexBolt;
+        Color tint;
+        float trail;
+        Vector3 baseScale;
+        Light glow;
         HeroActor hero; SkillCast cast;
         MonsterActor monster; float raw; Element el; float slow;
         readonly HashSet<Actor> hit = new HashSet<Actor>();
 
         public static void FireHero(HeroActor h, SkillCast c, Vector3 from, Vector3 dir, float speed, float range, float mult)
         {
-            var p = Make(from, Art.Element(c.element), c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            bool bolt = c.skill.id == "hx_bolt";
+            var tint = Art.Element(c.element);
+            var core = bolt ? Color.Lerp(tint, Color.white, 0.4f) : tint;
+            var p = Make(from, core, bolt ? Vector3.one * 0.55f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
             p.team = Team.Hero; p.hero = h; p.cast = c; p.dir = dir.normalized; p.speed = speed; p.rangeLeft = range; p.mult = mult; p.pierce = c.pierce;
+            p.hexBolt = bolt; p.tint = tint;
             p.transform.rotation = Quaternion.LookRotation(p.dir);
+            if (bolt)
+            {
+                Fx.Burst(from, tint, 0.45f, 0.12f);
+                var rend = p.GetComponent<Renderer>();
+                if (rend != null) rend.sharedMaterial = Art.Mat(core, 4.5f);
+                var glow = p.gameObject.AddComponent<Light>();
+                glow.type = LightType.Point;
+                glow.color = tint;
+                glow.range = 4.5f;
+                glow.intensity = 2.4f;
+                p.glow = glow;
+            }
         }
 
         public static void FireMonster(MonsterActor m, Vector3 from, Vector3 dir, float raw, Element el, float range, float slow = 0)
@@ -222,7 +244,9 @@ namespace Hollowmere
         static Projectile Make(Vector3 at, Color c, Vector3 scale)
         {
             var g = Art.Sphere(null, at, scale, Art.Mat(c, 2f));
-            return g.AddComponent<Projectile>();
+            var p = g.AddComponent<Projectile>();
+            p.baseScale = scale;
+            return p;
         }
 
         void Update()
@@ -230,7 +254,33 @@ namespace Hollowmere
             float step = speed * Time.deltaTime;
             transform.position += dir * step;
             rangeLeft -= step;
-            if (rangeLeft <= 0 || World.Solid(transform.position)) { Destroy(gameObject); return; }
+            if (hexBolt)
+            {
+                float pulse = 1f + 0.14f * Mathf.Sin(Time.time * 32f);
+                transform.localScale = baseScale * pulse;
+                if (glow != null) glow.intensity = 2.1f + 0.7f * Mathf.Sin(Time.time * 28f);
+                trail -= Time.deltaTime;
+                if (trail <= 0f)
+                {
+                    trail = 0.028f;
+                    var side = Vector3.Cross(dir, Vector3.up);
+                    if (side.sqrMagnitude < 0.01f) side = Vector3.right;
+                    side.Normalize();
+                    var jitter = side * Mathf.Sin(Time.time * 40f) * 0.08f + Vector3.up * Mathf.Cos(Time.time * 33f) * 0.06f;
+                    var mote = Art.Sphere(null, transform.position - dir * 0.35f + jitter, Vector3.one * 0.22f, Art.Mat(tint, 3.5f));
+                    mote.AddComponent<FxLife>().Init(0.22f, Vector3.one * 0.22f, Vector3.zero);
+                }
+            }
+            if (rangeLeft <= 0 || World.Solid(transform.position))
+            {
+                if (hexBolt)
+                {
+                    Fx.Impact(transform.position, tint, null);
+                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.55f);
+                }
+                Destroy(gameObject);
+                return;
+            }
             var flat = new Vector3(transform.position.x, 0, transform.position.z);
             foreach (var a in Actor.InRadius(team, flat, 0.4f))
             {
@@ -247,7 +297,12 @@ namespace Hollowmere
                     else a.TakeDamage(new Hit { amount = raw * 0.5f, element = el }, monster);
                     if (slow > 0) a.Slow(slow, 2);
                 }
-                Fx.Burst(transform.position, GetComponent<Renderer>().sharedMaterial.color, 0.7f, 0.15f);
+                if (hexBolt)
+                {
+                    Fx.Impact(transform.position, tint, a);
+                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.85f);
+                }
+                else Fx.Burst(transform.position, GetComponent<Renderer>() != null ? GetComponent<Renderer>().sharedMaterial.color : tint, 0.7f, 0.15f);
                 if (pierce-- <= 0) { Destroy(gameObject); return; }
             }
         }

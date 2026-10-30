@@ -17,7 +17,7 @@ namespace Hollowmere.Editor
 
         public void OnPreprocessBuild(BuildReport report) => Bind();
 
-        [MenuItem("Hollowmere/Bind title drop-in art")]
+        [MenuItem("Hollowmere/Bind UI drop-in art")]
         public static void Bind()
         {
             const string path = "Assets/Resources/UiDropIn.asset";
@@ -37,6 +37,25 @@ namespace Hollowmere.Editor
             cat.buttonPrimary = Sprite("Assets/Art/UI/button_primary.png");
             cat.buttonDisabled = Sprite("Assets/Art/UI/button_disabled.png");
             cat.labelFont = AssetDatabase.LoadAssetAtPath<Font>("Assets/Art/UI/Fonts/Cinzel-Bold.ttf");
+            cat.panel = Sprite("Assets/Art/UI/panel.png") ?? Sprite("Assets/Art/UI/panel_bg.png") ?? FirstSprite("panel_*.png");
+            cat.panelHeader = Sprite("Assets/Art/UI/panel_header.png");
+            cat.closeButton = Sprite("Assets/Art/UI/close_button.png");
+            cat.iconButton = Sprite("Assets/Art/UI/icon_button.png");
+            cat.iconButtonPressed = Sprite("Assets/Art/UI/icon_button_pressed.png");
+            cat.frame = Sprite("Assets/Art/UI/frame_gold.png") ?? FirstSprite("frame_*.png");
+            cat.hudFrame = Sprite("Assets/Art/UI/hud_frame.png");
+            cat.hudFillHealth = Sprite("Assets/Art/UI/hud_fill_health.png");
+            cat.hudFillMana = Sprite("Assets/Art/UI/hud_fill_mana.png");
+            cat.hudFillXp = Sprite("Assets/Art/UI/hud_fill_xp.png");
+            cat.hudFillGhost = Sprite("Assets/Art/UI/hud_fill_ghost.png");
+            cat.iconInventory = Sprite("Assets/Art/UI/icons/icon_inventory.png");
+            cat.iconSword = Sprite("Assets/Art/UI/icons/icon_sword.png");
+            cat.iconShield = Sprite("Assets/Art/UI/icons/icon_shield.png");
+            cat.iconSettings = Sprite("Assets/Art/UI/icons/icon_settings.png");
+            cat.iconBag = cat.iconInventory ?? Sprite("Assets/Art/UI/icon_bag.png");
+            cat.iconSkills = cat.iconSword ?? Sprite("Assets/Art/UI/icon_skills.png");
+            cat.iconPet = cat.iconShield ?? Sprite("Assets/Art/UI/icon_pet.png");
+            cat.iconMenu = cat.iconSettings ?? Sprite("Assets/Art/UI/icon_menu.png");
             cat.titleTheme = Clip("title_theme");
             cat.titleSting = Clip("title_sting");
             cat.uiClick = Clip("ui_click");
@@ -46,8 +65,19 @@ namespace Hollowmere.Editor
             cat.uiPanelOpen = Clip("ui_panel_open");
             cat.uiPanelClose = Clip("ui_panel_close");
             cat.uiStartGame = Clip("ui_start_game");
+            cat.hexboltCast = Sfx("hexbolt_cast");
+            cat.hexboltImpact = Sfx("hexbolt_impact");
+            cat.hexboltImpact2 = Sfx("hexbolt_impact_2");
             EditorUtility.SetDirty(cat);
             AssetDatabase.SaveAssets();
+        }
+
+        static Sprite FirstSprite(string pattern)
+        {
+            var dir = "Assets/Art/UI";
+            if (!Directory.Exists(dir)) return null;
+            var file = Directory.GetFiles(dir, pattern).OrderBy(p => p).FirstOrDefault();
+            return file == null ? null : Sprite(file.Replace('\\', '/'));
         }
 
         static Sprite[] Layers()
@@ -129,6 +159,16 @@ namespace Hollowmere.Editor
             foreach (var ext in new[] { ".ogg", ".wav", ".mp3" })
             {
                 var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/UI/" + name + ext);
+                if (clip != null) return clip;
+            }
+            return null;
+        }
+
+        static AudioClip Sfx(string name)
+        {
+            foreach (var ext in new[] { ".ogg", ".wav", ".mp3" })
+            {
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/SFX/" + name + ext);
                 if (clip != null) return clip;
             }
             return null;

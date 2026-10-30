@@ -26,6 +26,18 @@ namespace Hollowmere
             g.AddComponent<FxLife>().Init(seconds, Vector3.one * 0.2f, new Vector3(radius * 2, 0.02f, radius * 2));
         }
 
+        public static void Impact(Vector3 at, Color c, Actor target)
+        {
+            Burst(at + Vector3.up * 0.6f, c, 1.5f, 0.28f);
+            Ring(at, 1.5f, c, 0.32f);
+            for (int i = 0; i < 5; i++)
+            {
+                var off = new Vector3(Mathf.Sin(i * 1.3f), 0.4f + i * 0.05f, Mathf.Cos(i * 1.7f)) * 0.35f;
+                Burst(at + off, c, 0.28f, 0.18f);
+            }
+            if (target != null) target.PunchFlash(c);
+        }
+
         public static void Burst(Vector3 at, Color c, float size = 0.6f, float seconds = 0.25f)
         {
             var g = Art.Sphere(null, at, Vector3.one * size * 0.3f, Art.Mat(c, 2f));

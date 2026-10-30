@@ -185,11 +185,51 @@ namespace Hollowmere
         }
 
         /// <summary>Horizontal bar; returns the fill rect (set anchorMax.x to the fraction).</summary>
-        public static RectTransform Bar(RectTransform area, Color back, Color fill, out Text label, int fontSize = 24)
+        public static RectTransform Bar(RectTransform area, Color back, Color fill, out Text label, int fontSize = 24, string fillName = null)
         {
-            Box(area, back);
-            var f = Rect(area, "fill", Vector2.zero, Vector2.one, new Vector2(3, 3), new Vector2(-3, -3));
-            Box(f, fill);
+            var frame = UiArt.Hud("frame");
+            if (frame != null)
+            {
+                var plate = area.gameObject.AddComponent<Image>();
+                plate.sprite = frame;
+                plate.type = Image.Type.Sliced;
+                plate.color = Color.white;
+                plate.pixelsPerUnitMultiplier = 1f;
+            }
+            else Box(area, back);
+            int inset = frame != null ? 12 : 3;
+            if (fillName == "health")
+            {
+                var ghost = Rect(area, "ghost", Vector2.zero, Vector2.one, new Vector2(inset, inset), new Vector2(-inset, -inset));
+                var gi = ghost.gameObject.AddComponent<Image>();
+                var gs = UiArt.Hud("fill_ghost");
+                if (gs != null)
+                {
+                    gi.sprite = gs;
+                    gi.type = Image.Type.Sliced;
+                    gi.color = Color.white;
+                    gi.pixelsPerUnitMultiplier = 1f;
+                }
+                else gi.color = new Color(fill.r, fill.g, fill.b, 0.45f);
+                gi.raycastTarget = false;
+            }
+            var f = Rect(area, "fill", Vector2.zero, Vector2.one, new Vector2(inset, inset), new Vector2(-inset, -inset));
+            var fi = f.gameObject.AddComponent<Image>();
+            var fs = fillName != null ? UiArt.Hud("fill_" + fillName) : null;
+            if (fs != null)
+            {
+                fi.sprite = fs;
+                fi.type = Image.Type.Sliced;
+                fi.color = Color.white;
+                fi.pixelsPerUnitMultiplier = 1f;
+            }
+            else
+            {
+                fi.sprite = Round;
+                fi.type = Image.Type.Sliced;
+                fi.color = fill;
+            }
+            fi.raycastTarget = false;
             label = Label(area, "", fontSize, TextAnchor.MiddleCenter);
             return f;
         }

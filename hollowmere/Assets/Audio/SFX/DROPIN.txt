@@ -1,0 +1,9 @@
+Drop skill sound effects here. ogg, wav, or mp3. The originals in this folder are CC0.
+
+  hexbolt_cast.ogg
+  hexbolt_impact.ogg
+  hexbolt_impact_2.ogg   alternates with hexbolt_impact
+
+Import as mono, Decompress On Load. They play through the SFX group on
+Resources/HollowmereMix. A build runs Hollowmere/Bind UI drop-in art, which
+attaches these to Resources/UiDropIn so AudioHub can find them.

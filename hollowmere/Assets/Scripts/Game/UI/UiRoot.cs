@@ -89,28 +89,84 @@ namespace Hollowmere
             var root = Ui.Rect(modalLayer, name, Vector2.zero, Vector2.one);
             Ui.Box(root, Ui.Dim, false);
             var panel = Ui.Rect(root, "panel", min, max);
-            Ui.Box(panel, Ui.Panel);
-            root.gameObject.AddComponent<UiMenuMotion>().Arm(panel, new Vector2(0, -28f));
-            var head = Ui.Rect(panel, "title", new Vector2(0, 1), new Vector2(1, 1), new Vector2(20, -76), new Vector2(-20, -10));
-            Ui.Label(head, $"<b>{title}</b>", 40, TextAnchor.MiddleLeft, Ui.Gold);
+            var bg = Ui.Box(panel, Color.white);
+            bool authored = UiArt.HasAuthoredPanel;
+            UiArt.ApplySlice(bg, UiArt.PanelSprite(), authored);
+            RectTransform frame = null;
+            if (!authored)
+            {
+                frame = Ui.Rect(panel, "frame", Vector2.zero, Vector2.one);
+                var frameImg = frame.gameObject.AddComponent<Image>();
+                UiArt.ApplySlice(frameImg, UiArt.FrameSprite());
+                frameImg.raycastTarget = false;
+            }
+            root.gameObject.AddComponent<UiMenuMotion>().Arm(panel, new Vector2(0, -22f), 0.9f);
+            var head = Ui.Rect(panel, "title", new Vector2(0, 1), new Vector2(1, 1), new Vector2(48, -108), new Vector2(-120, -16));
+            if (UiArt.PanelHeader != null)
+            {
+                var banner = Ui.Rect(head, "banner", Vector2.zero, Vector2.one);
+                var bi = banner.gameObject.AddComponent<Image>();
+                UiArt.ApplySlice(bi, UiArt.PanelHeader);
+                bi.raycastTarget = false;
+            }
+            var icon = UiArt.Icon(name);
+            float textLeft = 8f;
+            if (icon != null)
+            {
+                var slot = Ui.At(head, "icon", new Vector2(0, 0.5f), Vector2.zero, new Vector2(52, 52));
+                slot.pivot = new Vector2(0, 0.5f);
+                var ii = slot.gameObject.AddComponent<Image>();
+                ii.sprite = icon;
+                ii.preserveAspect = true;
+                ii.raycastTarget = false;
+                textLeft = 64f;
+            }
+            var label = Ui.Label(head, $"<b>{title}</b>", 40, TextAnchor.MiddleLeft, Ui.Gold);
+            var lr = (RectTransform)label.transform;
+            lr.offsetMin = new Vector2(textLeft, lr.offsetMin.y);
             if (closable)
             {
-                var x = Ui.Button(panel, "X", () => { Close(root.gameObject); onClose?.Invoke(); }, new Color(0.45f, 0.15f, 0.12f), 34, UiSfx.Back);
+                var x = Ui.Button(panel, UiArt.CloseButton != null ? "" : "X", () => { Close(root.gameObject); onClose?.Invoke(); }, new Color(0.45f, 0.15f, 0.12f), 34, UiSfx.Back);
                 var xr = (RectTransform)x.transform;
                 xr.anchorMin = xr.anchorMax = new Vector2(1, 1); xr.pivot = new Vector2(1, 1);
-                xr.sizeDelta = new Vector2(84, 66); xr.anchoredPosition = new Vector2(-12, -10);
+                if (UiArt.CloseButton != null)
+                {
+                    var xi = x.GetComponent<Image>();
+                    xi.sprite = UiArt.CloseButton;
+                    xi.type = Image.Type.Simple;
+                    xi.color = Color.white;
+                    var press = x.GetComponent<UiPress>();
+                    if (press != null) press.pressedSprite = null;
+                    xr.sizeDelta = new Vector2(96, 96);
+                    xr.anchoredPosition = new Vector2(-18, -18);
+                }
+                else
+                {
+                    xr.sizeDelta = new Vector2(84, 66);
+                    xr.anchoredPosition = new Vector2(-22, -22);
+                }
             }
             modals.Add(root.gameObject);
             AudioHub.Panel(true);
-            return Ui.Rect(panel, "body", Vector2.zero, Vector2.one, new Vector2(20, 20), new Vector2(-20, -84));
+            var body = Ui.Rect(panel, "body", Vector2.zero, Vector2.one, new Vector2(48, 40), new Vector2(-48, -120));
+            if (frame != null) frame.SetAsLastSibling();
+            return body;
         }
 
         public void Close(GameObject m)
         {
-            if (m != null && m.name != "title" && m.name != "fishing" && modals.Contains(m))
+            if (m == null) return;
+            if (m.name != "title" && m.name != "fishing" && modals.Contains(m))
                 AudioHub.Panel(false);
+            var motion = m.GetComponent<UiMenuMotion>();
+            if (motion != null && motion.PlayOut(() => FinishClose(m))) return;
+            FinishClose(m);
+        }
+
+        void FinishClose(GameObject m)
+        {
             modals.Remove(m);
-            Destroy(m);
+            if (m != null) Destroy(m);
             Time.timeScale = AnyModal ? 0f : 1f;
         }
 

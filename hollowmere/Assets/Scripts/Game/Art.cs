@@ -93,6 +93,7 @@ namespace Hollowmere
                 go.transform.localPosition = new Vector3(-bottom.x, -(b.min.y - holder.transform.position.y) * s, -bottom.z);
             }
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
+            foreach (var animator in go.GetComponentsInChildren<Animator>()) animator.applyRootMotion = false;
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -283,21 +284,51 @@ namespace Hollowmere
         };
     }
 
-    /// <summary>Plays an imported model's walk cycle while it moves and nearly freezes it when idle
-    /// (the rig only ships walk/run clips, so a slowed walk reads as a breathing idle).</summary>
+    /// <summary>Plays an imported model's walk cycle while it moves. An idle clip is used when one
+    /// exists; otherwise the walk freezes on the current frame the moment movement stops. A slowed
+    /// walk still reads as walking, so idle speed is zero.</summary>
     public sealed class ModelAnim : MonoBehaviour
     {
         public Animation anim;
         public Animator animator;
         public bool HasClips => (anim != null && anim.clip != null) || animator != null;
+        /// <summary>True only when a clip or an animator controller will actually play. A bare Animator does not.</summary>
+        public bool PlaysClips => (anim != null && anim.clip != null) || (animator != null && animator.runtimeAnimatorController != null);
         bool? last;
 
         public void SetMoving(bool moving)
         {
             if (last == moving) return;
             last = moving;
-            if (anim != null) foreach (AnimationState st in anim) st.speed = moving ? 1f : 0.15f;
-            if (animator != null) animator.speed = moving ? 1f : 0.15f;
+            if (anim != null)
+            {
+                AnimationState idle = null, walk = null;
+                foreach (AnimationState st in anim)
+                {
+                    string n = st.name.ToLowerInvariant();
+                    if (n.Contains("idle")) idle = st;
+                    else if (walk == null || n.Contains("walk") || n.Contains("run")) walk = st;
+                }
+                if (walk == null && anim.clip != null) walk = anim[anim.clip.name];
+                if (moving && walk != null)
+                {
+                    walk.speed = 1f;
+                    walk.wrapMode = WrapMode.Loop;
+                    anim.Play(walk.name);
+                }
+                else if (!moving && idle != null)
+                {
+                    idle.speed = 1f;
+                    idle.wrapMode = WrapMode.Loop;
+                    anim.CrossFade(idle.name, 0.08f);
+                }
+                else
+                {
+                    // No idle clip: freeze the walk. A slowed walk still reads as walking.
+                    foreach (AnimationState st in anim) st.speed = 0f;
+                }
+            }
+            if (animator != null) animator.speed = moving ? 1f : 0f;
         }
     }
 }

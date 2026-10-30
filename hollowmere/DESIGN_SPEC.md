@@ -1,6 +1,6 @@
 # Hollowmere design spec
 
-This is the number source for Hollowmere. Reference notes supplied the shape of the curves. Every figure below is computed from the formula in the same section. The ten-step difficulty ladder already in `Balance.cs` (`Difficulty`, `DifficultyNames`, `MonsterLifeMult`, `MonsterDamageMult`, `XpBonus`, `GoldBonus`, `LegendaryBonus`, `MinLevelFor`) is held. Do not remove or retune it until a later decision.
+This is the number source for Hollowmere. Reference notes supplied the shape of the curves. Every figure below is computed from the formula in the same section. There is no difficulty ladder and no optional harder-dive toggle. Floor depth is the only scale. An old save may still contain a `difficulty` field; load ignores it, and the next save does not write it.
 
 Player-facing words in this spec are Hollowmere's. The code field `Item.ancient` stays, because saves already use it. The word shown to the player for that flag is Deepwrought.
 
@@ -181,7 +181,7 @@ Monster level from the floor alone, before the hero-level lift already in `Balan
 
 `73` is `MaxLevel + 3`. `Balance.MonsterLevel` may still raise this when the hero is more than 10 levels above the floor, and that function is unchanged. The table uses `LevelFromFloor` only, which is the dive when the hero is not ahead.
 
-A normal monster with role multipliers 1, on the held Normal difficulty (life and damage multipliers 1), has
+A normal monster with role multipliers 1 has
 
 `NormalLife(F) = round(ExpectedHeroDps(L) * MonsterToughness(L) * 1.12^Tier(F))`
 
@@ -201,7 +201,7 @@ Rank multipliers, applied to the unrounded normal life and damage before the fin
 | Elite | 7 | 1.9 | 8 |
 | Guardian | 28 on the DPS*toughness base, not on NormalLife | 2.2 | 40 |
 
-The held difficulty multipliers apply after those.
+Nothing else multiplies life, damage, or XP. There is no per-save difficulty.
 
 ### Monster XP and the two pace anchors
 
@@ -226,7 +226,7 @@ Those two coefficients are the unique solution of
 
 21,263 is the cumulative XP to arrive at level 10. 480,573 is the cumulative XP to arrive at level 30. So an expected clear of floors 1–8 reaches level 10, and floors 1–28 reaches level 30, before per-kill rounding. `a + bL` is positive for every legal monster level (4.54 at level 1).
 
-A spawned monster's XP is `round(Unit(L) * def.xp * rankXp * (1 + XpBonus(difficulty)))`. The table's NormalXP column is `round(Unit(L))` for `def.xp = 1` and rank XP 1, with the held Normal bonus of 0.
+A spawned monster's XP is `round(Unit(L) * def.xp * rankXp)`. The table's NormalXP column is `round(Unit(L))` for `def.xp = 1` and rank XP 1.
 
 ### T.floors
 
@@ -306,7 +306,17 @@ Each pack rolls one number in `[0, 1)`.
 
 With 6 to 12 spawning rooms and 1.5 packs each, a floor expects about 0.7 to 1.4 elite packs and 1.1 to 2.2 champion packs.
 
-Affix count, from the held difficulty index `d` (`Normal` is 0 … the last step is 9): champions roll `1 + floor(d/3)` affixes, elites roll `2 + floor(d/3)`, guardians on Master and above roll 1. The new affixes are added at the end of the enum so existing ordinals do not move.
+Affix count comes from the floor, not from a menu. `extra = floor(F / 20)`. Champions roll `1 + extra`, elites roll `2 + extra`, and a guardian rolls `extra` (none on floors 1–19, one from floor 20, two from floor 40). The new affixes are added at the end of the enum so existing ordinals do not move.
+
+### T.affixdepth
+
+| Floor | Champion | Elite | Guardian |
+| --- | --- | --- | --- |
+| 1 | 1 | 2 | 0 |
+| 19 | 1 | 2 | 0 |
+| 20 | 2 | 3 | 1 |
+| 40 | 3 | 4 | 2 |
+| 50 | 3 | 4 | 2 |
 
 Each affix shows its name under the elite bar and draws the telegraph before the damage.
 
@@ -333,19 +343,19 @@ Each affix shows its name under the elite bar and draws the telegraph before the
 
 Item level is `clamp(monsterLevel + (1 if the source is elite, guardian, or boss), 1, 70)`.
 
-On a normal kill, magic find 0, and the held Normal difficulty, the five chances sum to 1:
+On a normal kill with magic find 0, the five chances sum to 1:
 
 `Special(F) = min(0.06, 0.01 + 0.0005 * F)`
 
-`P(Legendary) = 0.70 * Special(F) * (1 + LegendaryBonus(difficulty))` before normalizing
+`P(Legendary) = 0.70 * Special(F)` before normalizing
 
-`P(Set) = 0.30 * Special(F) * (1 + LegendaryBonus(difficulty))`
+`P(Set) = 0.30 * Special(F)`
 
 `P(Rare) = (0.08 + 0.001 * min(F, 50)) * (1 + MagicFind/100)`
 
 `P(Magic) = 0.28 * (1 + MagicFind/100)`
 
-`P(Common) = 1 - Special(F) - P0(Rare) - 0.28` when magic find is 0 and the legendary bonus is 0. With magic find or a difficulty bonus, the five weights are normalized so they sum to 1. `LegendaryBonus` is the held array. It is not retuned.
+`P(Common) = 1 - Special(F) - P0(Rare) - 0.28` when magic find is 0. With magic find, the five weights are normalized so they sum to 1. Depth does not add a second loot multiplier on top of `Special(F)`.
 
 Special hits the 6% cap at floor 100, because `0.01 + 0.0005 * 100 = 0.06`.
 
@@ -361,7 +371,7 @@ Other sources multiply the special weight and shift the common weight, then norm
 | Gamble | 0, and magic weight 0 | the special weight is 0.10, split 70/30, and is not multiplied again | rare weight is 0.90 |
 | Fishing | 0.30 | 2 | 2.5 |
 
-A guardian's rare weight is 0.60 before the weights are normalized, and its special weight is thirty times the floor's special chance. After that roll, a guardian that produced no legendary and no set still has an extra `0.35 + 0.2 * LegendaryBonus` chance to add one. That extra chance is already in `Loot.Roll` and stays. Gamble spends the curio's price on a 0.90 rare / 0.10 special roll. Fishing keeps a common weight of 0.30, doubles special, and multiplies rare by 2.5.
+A guardian's rare weight is 0.60 before the weights are normalized, and its special weight is thirty times the floor's special chance. After that roll, a guardian that produced no legendary and no set still has an extra 0.35 chance to add one. Gamble spends the curio's price on a 0.90 rare / 0.10 special roll. Fishing keeps a common weight of 0.30, doubles special, and multiplies rare by 2.5.
 
 ### T.drops
 

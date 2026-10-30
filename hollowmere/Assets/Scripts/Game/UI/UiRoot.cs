@@ -101,11 +101,14 @@ namespace Hollowmere
                 xr.sizeDelta = new Vector2(84, 66); xr.anchoredPosition = new Vector2(-12, -10);
             }
             modals.Add(root.gameObject);
+            AudioHub.Panel(true);
             return Ui.Rect(panel, "body", Vector2.zero, Vector2.one, new Vector2(20, 20), new Vector2(-20, -84));
         }
 
         public void Close(GameObject m)
         {
+            if (m != null && m.name != "title" && m.name != "fishing" && modals.Contains(m))
+                AudioHub.Panel(false);
             modals.Remove(m);
             Destroy(m);
             Time.timeScale = AnyModal ? 0f : 1f;

@@ -26,7 +26,7 @@ namespace Hollowmere
         public static void Show(UiRoot rootUi)
         {
             ui = rootUi;
-            AudioHub.Music("title_theme");
+            AudioHub.PlayTitle();
             if (root != null) return;
             onCreate = false;
             classes.Clear();
@@ -136,7 +136,7 @@ namespace Hollowmere
             pets.Add((PetSpecies.Hound, Ui.Button(petRow, "Hound", () => SelectPet(PetSpecies.Hound), null, 26)));
             pets.Add((PetSpecies.Lynx, Ui.Button(petRow, "Lynx", () => SelectPet(PetSpecies.Lynx), null, 26)));
 
-            var begin = Ui.Button(col, "Begin", StartGame, new Color(0.75f, 0.55f, 0.22f), 36, UiSfx.Confirm, true);
+            var begin = Ui.Button(col, "Begin", StartGame, new Color(0.75f, 0.55f, 0.22f), 36, UiSfx.None, true);
             Ui.Size(begin, 96);
             Paint();
             return card;
@@ -224,6 +224,7 @@ namespace Hollowmere
             var companion = pet;
             var go = root;
             root = null;
+            AudioHub.Play("ui_start_game", 1f);
             ui.FadeAndClose(go, () => GameManager.I.NewGame(chosen, hero, companion, petName));
         }
 

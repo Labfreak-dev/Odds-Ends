@@ -33,9 +33,14 @@ namespace Hollowmere.Editor
             cat.buttonPressed = Sprite("Assets/Art/UI/button_pressed.png");
             cat.buttonPrimary = Sprite("Assets/Art/UI/button_primary.png");
             cat.titleTheme = Clip("title_theme");
+            cat.titleSting = Clip("title_sting");
             cat.uiClick = Clip("ui_click");
+            cat.uiClick2 = Clip("ui_click_2");
             cat.uiConfirm = Clip("ui_confirm");
             cat.uiBack = Clip("ui_back");
+            cat.uiPanelOpen = Clip("ui_panel_open");
+            cat.uiPanelClose = Clip("ui_panel_close");
+            cat.uiStartGame = Clip("ui_start_game");
             EditorUtility.SetDirty(cat);
             AssetDatabase.SaveAssets();
         }

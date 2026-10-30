@@ -22,7 +22,12 @@ MonoBehaviour:
   buttonNormal: {fileID: 21300000, guid: e94ffdc2ecac53fc8456cbc63262b540, type: 3}
   buttonPressed: {fileID: 21300000, guid: 026a87f7b68b5115bd05b5b78466d9fd, type: 3}
   buttonPrimary: {fileID: 21300000, guid: 41afb63dccd85d0cbd0b3ac947e84672, type: 3}
-  titleTheme: {fileID: 0}
-  uiClick: {fileID: 0}
-  uiConfirm: {fileID: 0}
-  uiBack: {fileID: 0}
+  titleTheme: {fileID: 8300000, guid: a11b0c0d1e2f4031a4b5c6d7e8f90111, type: 3}
+  uiClick: {fileID: 8300000, guid: a33b0c0d1e2f4031a4b5c6d7e8f90333, type: 3}
+  uiConfirm: {fileID: 8300000, guid: a55b0c0d1e2f4031a4b5c6d7e8f90555, type: 3}
+  uiBack: {fileID: 8300000, guid: a66b0c0d1e2f4031a4b5c6d7e8f90666, type: 3}
+  titleSting: {fileID: 8300000, guid: a22b0c0d1e2f4031a4b5c6d7e8f90222, type: 3}
+  uiClick2: {fileID: 8300000, guid: a44b0c0d1e2f4031a4b5c6d7e8f90444, type: 3}
+  uiPanelOpen: {fileID: 8300000, guid: a77b0c0d1e2f4031a4b5c6d7e8f90777, type: 3}
+  uiPanelClose: {fileID: 8300000, guid: a88b0c0d1e2f4031a4b5c6d7e8f90888, type: 3}
+  uiStartGame: {fileID: 8300000, guid: a99b0c0d1e2f4031a4b5c6d7e8f90999, type: 3}

@@ -7,7 +7,8 @@ namespace Hollowmere
     /// Drop-in title art and UI audio. Put files here and they ship in the player build
     /// because this catalog, which lives in Resources, references them:
     ///   Assets/Art/UI/keyart_bg_*.png, logo.png, button_normal.png, button_pressed.png, button_primary.png
-    ///   Assets/Audio/UI/title_theme.ogg, ui_click.ogg, ui_confirm.ogg, ui_back.ogg
+    ///   Assets/Audio/UI/title_theme.ogg, title_sting.ogg, ui_click.ogg, ui_click_2.ogg,
+    ///   ui_confirm.ogg, ui_back.ogg, ui_panel_open.ogg, ui_panel_close.ogg, ui_start_game.ogg
     /// Missing files fall back to procedural art and synthesized UI sounds.
     /// The images in the repo are original and released under CC0.
     /// </summary>
@@ -23,6 +24,11 @@ namespace Hollowmere
         public AudioClip uiClick;
         public AudioClip uiConfirm;
         public AudioClip uiBack;
+        public AudioClip titleSting;
+        public AudioClip uiClick2;
+        public AudioClip uiPanelOpen;
+        public AudioClip uiPanelClose;
+        public AudioClip uiStartGame;
     }
 
     public static class UiArt
@@ -78,9 +84,14 @@ namespace Hollowmere
             switch (key)
             {
                 case "title_theme": return c.titleTheme;
+                case "title_sting": return c.titleSting;
                 case "ui_click": return c.uiClick;
+                case "ui_click_2": return c.uiClick2;
                 case "ui_confirm": return c.uiConfirm;
                 case "ui_back": return c.uiBack;
+                case "ui_panel_open": return c.uiPanelOpen;
+                case "ui_panel_close": return c.uiPanelClose;
+                case "ui_start_game": return c.uiStartGame;
                 default: return null;
             }
         }

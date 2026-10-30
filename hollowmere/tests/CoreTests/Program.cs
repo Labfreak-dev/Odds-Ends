@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using Hollowmere.Core;
 
@@ -27,6 +29,7 @@ static class Program
         TownAndQuests();
         SaveRoundTrip();
         Progression();
+        ModelAlbedo();
         Console.WriteLine($"{passed} passed, {failed} failed");
         if (failed == 0) Console.WriteLine("ALL CORE CHECKS PASSED");
         return failed == 0 ? 0 : 1;
@@ -409,5 +412,34 @@ static class Program
         back.hero.AddItem(Loot.Potion(2));
         Check(back.hero.inventory.Count == before && potions.stack == 5, "potions stack onto a loaded stack");
         Check(back.pet.form == "goldscale".Replace("goldscale", "gildedserpent"), "pet form survives save");
+    }
+
+    /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto
+    /// Hollowmere/Color; a model with no embedded texture cannot show anything but flat white.</summary>
+    static void ModelAlbedo()
+    {
+        string path = null;
+        foreach (var c in new[]
+        {
+            "Assets/Resources/Models/npc_smith.glb",
+            "hollowmere/Assets/Resources/Models/npc_smith.glb",
+            Path.Combine("..", "..", "Assets", "Resources", "Models", "npc_smith.glb"),
+        })
+            if (File.Exists(c)) { path = c; break; }
+        Check(path != null, "npc_smith.glb is on disk to load");
+        if (path == null) return;
+        var json = GlbJson(path);
+        int tex = json.IndexOf("baseColorTexture", StringComparison.Ordinal);
+        Check(tex >= 0, "npc_smith material references baseColorTexture");
+        int images = json.IndexOf("\"images\"", StringComparison.Ordinal);
+        Check(images >= 0 && images < tex, "npc_smith.glb embeds an image before the material uses it");
+    }
+
+    static string GlbJson(string path)
+    {
+        var data = File.ReadAllBytes(path);
+        if (data.Length < 20) return "";
+        int len = BitConverter.ToInt32(data, 12);
+        return Encoding.UTF8.GetString(data, 20, len);
     }
 }

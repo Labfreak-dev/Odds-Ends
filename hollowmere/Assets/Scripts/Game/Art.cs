@@ -84,8 +84,14 @@ namespace Hollowmere
             // Measure the mesh, not Renderer.bounds. A skinned rig often reports the bind-pose
             // box or ignores the armature's 0.01 scale, which turned heroes into specks and
             // the blacksmith into a giant head. Multiplying the existing scale keeps that 0.01.
-            if (IsBiped(key)) StandUp(go.transform);
-            FitToHeight(go.transform, holder.transform, height);
+            // Props (dock, well, torch, skirt-sized scenery) keep the exported size.
+            // Fitting those to a short target height blew a flat mesh into the giant plane
+            // that covered the corner of the town and the dungeon.
+            if (IsCharacter(key))
+            {
+                if (IsBiped(key)) StandUp(go.transform);
+                FitToHeight(go.transform, holder.transform, height);
+            }
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
             foreach (var animator in go.GetComponentsInChildren<Animator>()) animator.applyRootMotion = false;
             AdoptShaders(go);
@@ -104,6 +110,12 @@ namespace Hollowmere
         /// <summary>The walk-cycle variant of a model if one was generated (Meshy rigging), else the static one.</summary>
         public static GameObject Animated(string key, float height, Transform parent)
             => Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+
+        static bool IsCharacter(string key)
+        {
+            return key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("pet_")
+                || key.StartsWith("mon_") || key.StartsWith("boss_");
+        }
 
         static bool IsBiped(string key)
         {
@@ -200,22 +212,88 @@ namespace Hollowmere
                     {
                         if (m.HasProperty("_BaseColor")) c = m.GetColor("_BaseColor");
                         else if (m.HasProperty("_Color")) c = m.GetColor("_Color");
+                        else if (m.HasProperty("baseColorFactor")) c = m.GetColor("baseColorFactor");
                         else c = m.color;
-                        if (m.HasProperty("_BaseMap")) tex = m.GetTexture("_BaseMap");
-                        if (tex == null && m.HasProperty("_MainTex")) tex = m.mainTexture;
+                        tex = FirstAlbedo(m);
                     }
                     var dst = new Material(BaseMaterial());
                     dst.color = c;
                     if (dst.HasProperty("_BaseColor")) dst.SetColor("_BaseColor", c);
-                    if (tex != null && dst.HasProperty("_BaseMap"))
+                    if (tex != null)
                     {
-                        dst.SetTexture("_BaseMap", tex);
+                        var readable = ReadableCopy(tex);
+                        if (dst.HasProperty("_BaseMap")) dst.SetTexture("_BaseMap", readable);
+                        if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", readable);
                         if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
+                        if (dst.GetTexture("_BaseMap") == null && dst.mainTexture == null)
+                            Debug.LogError("Hollowmere: albedo texture did not stick on " + go.name);
                     }
                     next[i] = dst;
                 }
                 r.sharedMaterials = next;
             }
+        }
+
+        /// <summary>glTFast's shader graph calls the base-color image baseColorTexture, not _BaseMap.</summary>
+        static readonly string[] AlbedoNames = { "baseColorTexture", "_BaseMap", "_MainTex", "_BaseColorTexture", "baseColorTexture_tex" };
+
+        static Texture FirstAlbedo(Material m)
+        {
+            if (m == null) return null;
+            foreach (var name in AlbedoNames)
+            {
+                if (!m.HasProperty(name)) continue;
+                var tex = m.GetTexture(name);
+                if (tex != null) return tex;
+            }
+            if (m.shader != null)
+            {
+                int count = m.shader.GetPropertyCount();
+                for (int i = 0; i < count; i++)
+                {
+                    if (m.shader.GetPropertyType(i) != UnityEngine.Rendering.ShaderPropertyType.Texture) continue;
+                    var tex = m.GetTexture(m.shader.GetPropertyName(i));
+                    if (tex != null) return tex;
+                }
+            }
+            return m.mainTexture;
+        }
+
+        /// <summary>GPU-only glTF textures cannot be read back. Blit into a Texture2D so the
+        /// copy is readable and is the one the included shader actually samples.</summary>
+        static Texture ReadableCopy(Texture src)
+        {
+            if (src == null) return null;
+            if (src is Texture2D tex2d && tex2d.isReadable) return src;
+            int w = Mathf.Max(1, src.width);
+            int h = Mathf.Max(1, src.height);
+            var rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(src, rt);
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var copy = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = src.name + " albedo" };
+            copy.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            copy.Apply();
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(rt);
+            return copy;
+        }
+
+        /// <summary>First albedo on a character, for the QA check that the copy kept a texture.</summary>
+        public static Texture AlbedoOf(GameObject go)
+        {
+            if (go == null) return null;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                foreach (var m in r.sharedMaterials)
+                {
+                    if (m == null) continue;
+                    var tex = m.GetTexture("_BaseMap");
+                    if (tex == null) tex = m.mainTexture;
+                    if (tex != null) return tex;
+                }
+            }
+            return null;
         }
 
         static GameObject Prim(PrimitiveType t, Transform parent, Vector3 pos, Vector3 scale, Material m, Quaternion? rot = null)

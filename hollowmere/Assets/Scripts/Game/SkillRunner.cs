@@ -217,7 +217,7 @@ namespace Hollowmere
             bool bolt = c.skill.id == "hx_bolt";
             var tint = Art.Element(c.element);
             var core = bolt ? Color.Lerp(tint, Color.white, 0.4f) : tint;
-            var p = Make(from, core, bolt ? Vector3.one * 0.55f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            var p = Make(from + (bolt ? Vector3.up * 0.45f : Vector3.zero), core, bolt ? Vector3.one * 1.25f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
             p.team = Team.Hero; p.hero = h; p.cast = c; p.dir = dir.normalized; p.speed = speed; p.rangeLeft = range; p.mult = mult; p.pierce = c.pierce;
             p.hexBolt = bolt; p.tint = tint;
             p.transform.rotation = Quaternion.LookRotation(p.dir);
@@ -225,12 +225,13 @@ namespace Hollowmere
             {
                 Fx.Burst(from, tint, 0.45f, 0.12f);
                 var rend = p.GetComponent<Renderer>();
-                if (rend != null) rend.sharedMaterial = Art.Mat(core, 4.5f);
+                if (rend != null) rend.sharedMaterial = Art.Mat(Color.Lerp(core, Color.white, 0.35f), 10f);
+                Art.Sphere(p.transform, Vector3.zero, Vector3.one * 1.7f, Art.Mat(tint, 4f));
                 var glow = p.gameObject.AddComponent<Light>();
                 glow.type = LightType.Point;
                 glow.color = tint;
-                glow.range = 4.5f;
-                glow.intensity = 2.4f;
+                glow.range = 10f;
+                glow.intensity = 8f;
                 p.glow = glow;
             }
         }
@@ -267,8 +268,8 @@ namespace Hollowmere
                     if (side.sqrMagnitude < 0.01f) side = Vector3.right;
                     side.Normalize();
                     var jitter = side * Mathf.Sin(Time.time * 40f) * 0.08f + Vector3.up * Mathf.Cos(Time.time * 33f) * 0.06f;
-                    var mote = Art.Sphere(null, transform.position - dir * 0.35f + jitter, Vector3.one * 0.22f, Art.Mat(tint, 3.5f));
-                    mote.AddComponent<FxLife>().Init(0.22f, Vector3.one * 0.22f, Vector3.zero);
+                    var mote = Art.Sphere(null, transform.position - dir * 0.55f + jitter, Vector3.one * 0.55f, Art.Mat(tint, 6f));
+                    mote.AddComponent<FxLife>().Init(0.28f, Vector3.one * 0.55f, Vector3.zero);
                 }
             }
             if (rangeLeft <= 0 || World.Solid(transform.position))

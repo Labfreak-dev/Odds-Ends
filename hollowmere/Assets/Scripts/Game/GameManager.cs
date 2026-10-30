@@ -166,7 +166,8 @@ namespace Hollowmere
             }
 
             stairsDown = Interactable.Create(InteractKind.StairsDown, World.ToWorld(map.exit), root, $"Floor {depth + 1}");
-            Interactable.Create(InteractKind.StairsUp, World.ToWorld(map.entry) + new Vector3(0, 0, -World.T), root, depth == 1 ? "Hollowmere" : $"Floor {depth - 1}");
+            // No floating town name over the spawn. The Ascend prompt is the interact button.
+            Interactable.Create(InteractKind.StairsUp, World.ToWorld(map.entry) + new Vector3(0, 0, -World.T), root);
             foreach (var c in map.chests) Interactable.Create(InteractKind.Chest, World.ToWorld(c), root);
             foreach (var s in map.shrines) Interactable.Create(InteractKind.Shrine, World.ToWorld(s), root);
             foreach (var p in map.pools)

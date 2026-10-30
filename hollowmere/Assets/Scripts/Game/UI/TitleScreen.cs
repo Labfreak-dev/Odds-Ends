@@ -65,11 +65,10 @@ namespace Hollowmere
 
         static void BuildLogo(RectTransform safe)
         {
-            // About 1300 px wide on the 2400-wide reference, centred under the calm sky.
-            var logo = Ui.Rect(safe, "logo", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
-            logo.pivot = new Vector2(0.5f, 1f);
-            logo.sizeDelta = new Vector2(1300f, 428f);
-            logo.anchoredPosition = new Vector2(0f, -120f);
+            // Top band only. The button stack owns everything below 0.70, so the two
+            // cannot overlap from 16:9 through 20:9. Slide() used to zero anchoredPosition,
+            // which pulled a pixel-offset column back up onto the logo.
+            var logo = Ui.Rect(safe, "logo", new Vector2(0.16f, 0.72f), new Vector2(0.84f, 0.98f));
             var sprite = UiArt.Logo;
             if (sprite != null)
             {
@@ -83,20 +82,14 @@ namespace Hollowmere
 
         static RectTransform Card(RectTransform safe, string name)
         {
-            var card = Ui.Rect(safe, name, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
-            card.pivot = new Vector2(0.5f, 1f);
-            card.sizeDelta = new Vector2(1180f, 620f);
-            card.anchoredPosition = new Vector2(0f, -520f);
+            var card = Ui.Rect(safe, name, new Vector2(0.14f, 0.04f), new Vector2(0.86f, 0.68f));
             Ui.Box(card, new Color(0.04f, 0.05f, 0.07f, 0.72f));
             return card;
         }
 
         static RectTransform BuildMain(RectTransform safe)
         {
-            var col = Ui.Rect(safe, "main", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f));
-            col.pivot = new Vector2(0.5f, 1f);
-            col.sizeDelta = new Vector2(640f, 680f);
-            col.anchoredPosition = new Vector2(0f, -580f);
+            var col = Ui.Rect(safe, "main", new Vector2(0.31f, 0.05f), new Vector2(0.69f, 0.68f));
             var vl = col.gameObject.AddComponent<VerticalLayoutGroup>();
             vl.spacing = 18f;
             vl.childAlignment = TextAnchor.MiddleCenter;
@@ -258,7 +251,6 @@ namespace Hollowmere
 
         static void Slide(RectTransform page, Vector2 delta)
         {
-            page.anchoredPosition = Vector2.zero;
             var motion = page.GetComponent<UiMenuMotion>() ?? page.gameObject.AddComponent<UiMenuMotion>();
             motion.Arm(page, delta);
         }

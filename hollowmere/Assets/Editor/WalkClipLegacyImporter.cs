@@ -8,12 +8,12 @@ namespace Hollowmere.Editor
 {
     /// <summary>
     /// Forces glTFast to import every <c>*_walk.glb</c> under Resources/Models as a Legacy clip.
-    /// ModelAnim plays a legacy Animation component. glTFast 6.18's design-time default is Mecanim
+    /// ModelAnim plays a legacy Animation component. glTFast 6.10's design-time default is Mecanim
     /// (GltfImporter.OnImportAsset assigns AnimationMethod.Mecanim when importSettings is null), and a
     /// Mecanim import has no controller so the walk never plays.
     /// </summary>
     /// <remarks>
-    /// <c>GLTFast.Editor.GltfImporter</c> is internal in 6.18.0, so this cannot assign
+    /// <c>GLTFast.Editor.GltfImporter</c> is internal in 6.10.1, so this cannot assign
     /// <c>ImportSettings.AnimationMethod</c> through a public importer property. The setting is the
     /// importer's serialized <c>importSettings</c> field (enum value Legacy = 1). The same values are
     /// committed in each walk clip's <c>.meta</c> so the first import is already Legacy; this hook

@@ -30,14 +30,7 @@ namespace Hollowmere
             }
             if (it.rarity >= Rarity.Rare || it.kind != ItemKind.Equipment)
             {
-                var label = new GameObject("label");
-                label.transform.SetParent(p.transform, false);
-                label.transform.localPosition = new Vector3(0, 0.9f, 0);
-                var tm = label.AddComponent<TextMesh>();
-                tm.font = Fx.UiFont();
-                tm.GetComponent<MeshRenderer>().sharedMaterial = tm.font.material;
-                tm.text = it.name; tm.fontSize = 48; tm.characterSize = 0.04f; tm.anchor = TextAnchor.MiddleCenter; tm.color = c;
-                if (Camera.main != null) label.transform.rotation = Camera.main.transform.rotation;
+                Fx.WorldLabel(p.transform, new Vector3(0, 0.9f, 0), it.name, c, 48, 0.04f);
             }
         }
 
@@ -245,16 +238,7 @@ namespace Hollowmere
                     break;
             }
             if (!string.IsNullOrEmpty(label))
-            {
-                var lab = new GameObject("label");
-                lab.transform.SetParent(t, false);
-                lab.transform.localPosition = new Vector3(0, 2.6f, 0);
-                var tm = lab.AddComponent<TextMesh>();
-                tm.font = Fx.UiFont();
-                tm.GetComponent<MeshRenderer>().sharedMaterial = tm.font.material;
-                tm.text = label; tm.fontSize = 48; tm.characterSize = 0.05f; tm.anchor = TextAnchor.MiddleCenter; tm.color = new Color(1f, 0.92f, 0.7f);
-                if (Camera.main != null) lab.transform.rotation = Camera.main.transform.rotation;
-            }
+                Fx.WorldLabel(t, new Vector3(0, 2.6f, 0), label, new Color(1f, 0.92f, 0.7f), 48, 0.05f);
         }
 
         void Glow(Color c)

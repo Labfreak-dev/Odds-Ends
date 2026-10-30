@@ -43,17 +43,44 @@ namespace Hollowmere
         {
             var g = new GameObject("ftext");
             g.transform.position = at + new Vector3(Random.Range(-0.3f, 0.3f), 2.2f, 0);
-            var tm = g.AddComponent<TextMesh>();
-            tm.font = UiFont();
-            tm.GetComponent<MeshRenderer>().sharedMaterial = tm.font.material;
-            tm.text = text;
-            tm.fontSize = 64;
-            tm.characterSize = 0.05f * size;
-            tm.anchor = TextAnchor.MiddleCenter;
-            tm.color = c;
-            var cam = Camera.main;
-            if (cam != null) g.transform.rotation = cam.transform.rotation;
+            StyleWorldText(g.AddComponent<TextMesh>(), text, c, 64, 0.05f * size);
+            g.AddComponent<FaceCamera>();
             g.AddComponent<FxLife>().Init(seconds, Vector3.one, Vector3.one, rise: 1.6f);
+        }
+
+        /// <summary>World-space name. TextMesh faces along its -Z, so matching the camera's rotation
+        /// shows the front of the glyphs. A one-shot copy is wrong: labels are created before the
+        /// rig aims, and the NPC is then yawed 180, which leaves the text mirrored.</summary>
+        public static TextMesh WorldLabel(Transform parent, Vector3 localPos, string text, Color color, int fontSize, float characterSize)
+        {
+            var lab = new GameObject("label");
+            lab.transform.SetParent(parent, false);
+            lab.transform.localPosition = localPos;
+            var tm = StyleWorldText(lab.AddComponent<TextMesh>(), text, color, fontSize, characterSize);
+            lab.AddComponent<FaceCamera>();
+            return tm;
+        }
+
+        public static TextMesh StyleWorldText(TextMesh tm, string text, Color color, int fontSize, float characterSize)
+        {
+            tm.font = UiFont();
+            tm.text = text;
+            tm.fontSize = fontSize;
+            tm.characterSize = characterSize;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.color = color;
+            var rend = tm.GetComponent<MeshRenderer>();
+            var src = Resources.Load<Material>("HollowmereText");
+            if (src != null)
+            {
+                var mat = new Material(src);
+                if (tm.font != null && tm.font.material != null && tm.font.material.mainTexture != null)
+                    mat.mainTexture = tm.font.material.mainTexture;
+                rend.sharedMaterial = mat;
+            }
+            else if (tm.font != null)
+                rend.sharedMaterial = tm.font.material;
+            return tm;
         }
 
         public static void Damage(Vector3 at, Hit h, bool onHero)
@@ -93,6 +120,17 @@ namespace Hollowmere
             if (rise != 0) transform.position += Vector3.up * rise * Time.deltaTime;
             if (tm != null) { var c = tm.color; c.a = 1 - k * k; tm.color = c; }
             if (t >= life) Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Keep a world-space label facing the camera. Runs after the rig writes its rotation.</summary>
+    [DefaultExecutionOrder(200)]
+    public sealed class FaceCamera : MonoBehaviour
+    {
+        void LateUpdate()
+        {
+            var cam = Camera.main;
+            if (cam != null) transform.rotation = cam.transform.rotation;
         }
     }
 }

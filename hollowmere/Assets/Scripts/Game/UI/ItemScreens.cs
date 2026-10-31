@@ -36,12 +36,26 @@ namespace Hollowmere
                 dot.pivot = new Vector2(1f, 1f);
                 var img = dot.gameObject.AddComponent<Image>();
                 img.raycastTarget = false;
-                img.color = string.IsNullOrEmpty(it.gemId) ? new Color(0.9f, 0.78f, 0.48f, 0.35f) : new Color(0.91f, 0.78f, 0.48f, 1f);
+                var empty = ArtDrop.Sprite("socket_empty");
+                var gem = GemSprite(it.gemId);
+                if (string.IsNullOrEmpty(it.gemId) && empty != null) { img.sprite = empty; img.color = Color.white; }
+                else if (gem != null) { img.sprite = gem; img.preserveAspect = true; img.color = Color.white; }
+                else img.color = string.IsNullOrEmpty(it.gemId) ? new Color(0.9f, 0.78f, 0.48f, 0.35f) : new Color(0.91f, 0.78f, 0.48f, 1f);
             }
             // Rarity edge
             var edge = Ui.Rect(b.transform, "edge", new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 8));
             Ui.Box(edge, Art.Rarity(it.rarity), false).raycastTarget = false;
             return b;
+        }
+
+        static Sprite GemSprite(string gemId)
+        {
+            if (string.IsNullOrEmpty(gemId)) return null;
+            if (gemId.StartsWith("cinder")) return ArtDrop.Sprite("gem_ruby");
+            if (gemId.StartsWith("thorn")) return ArtDrop.Sprite("gem_emerald");
+            if (gemId.StartsWith("marrow")) return ArtDrop.Sprite("gem_diamond");
+            if (gemId.StartsWith("salt")) return ArtDrop.Sprite("gem_sapphire");
+            return null;
         }
 
         public static Item EquippedCounterpart(Hero h, Item it)
@@ -88,19 +102,23 @@ namespace Hollowmere
                 return Ui.Dp(root, id, r.X, r.Y, r.W, r.H);
             }
 
-            var name = At("name");
-            Ui.Label(name, $"<b>{h.name}</b>", 32, TextAnchor.MiddleLeft, Ui.Gold);
-            var level = At("level");
-            Ui.Label(level, $"Level {h.level}", 24, TextAnchor.MiddleLeft, new Color(0.78f, 0.74f, 0.66f));
+            var frame = ArtDrop.Sprite("inv_screen_frame");
+            if (frame != null)
+            {
+                var plate = root.GetComponent<Image>() ?? root.gameObject.AddComponent<Image>();
+                plate.sprite = frame;
+                plate.type = Image.Type.Simple;
+                plate.color = Color.white;
+                plate.raycastTarget = false;
+            }
+            var heroActor = HeroActor.I;
+            var st = heroActor != null ? heroActor.stats : gm.State.Stats();
+            var header = At("header");
+            Ui.Label(header, $"<b>{h.name}</b>   Level {h.level}\n<color=#ffe25a>DPS {Fx.Short(h.SheetDps(st))}</color>   Life {Fx.Short(h.MaxLife(st))}   Armor {st[Stat.Armor]:0}", 24, TextAnchor.MiddleCenter, Ui.Gold);
 
-            var hero = HeroActor.I;
-            var st = hero != null ? hero.stats : gm.State.Stats();
-            var stats = At("stats");
-            Ui.Box(stats, new Color(0.1f, 0.09f, 0.08f, 0.9f), true);
-            Ui.Label(stats, $"<color=#ffe25a>DPS {Fx.Short(h.SheetDps(st))}</color>    Life {Fx.Short(h.MaxLife(st))}    Armor {st[Stat.Armor]:0}", 22, TextAnchor.MiddleLeft);
-
-            var model = At("model");
-            Ui.Box(model, new Color(0.07f, 0.06f, 0.08f, 1f), false);
+            PaintSlice(At("leftColumn"), "slot_column");
+            PaintSlice(At("rightColumn"), "slot_column");
+            var model = At("hero");
             var rawGo = new GameObject("portrait", typeof(RectTransform));
             rawGo.transform.SetParent(model, false);
             var rawRt = (RectTransform)rawGo.transform;
@@ -117,26 +135,36 @@ namespace Hollowmere
                 if (es == EquipSlot.Count) continue;
                 var cell = Ui.Dp(root, slotId, d.X, d.Y, d.W, d.H);
                 var it = h.Equipped(es);
-                Stretch(ItemUi.Cell(cell, it, selectedSlot == es, () =>
+                var slotBtn = ItemUi.Cell(cell, it, selectedSlot == es, () =>
                 {
                     var worn = h.Equipped(es);
                     selected = worn;
                     selectedSlot = worn != null ? es : (EquipSlot?)null;
                     Show(ui);
-                }, es.ToString()));
+                }, "");
+                Stretch(slotBtn);
+                SkinGearSlot(slotBtn, it, slotId);
             }
 
             var tabs = At("tabs");
             var equipTab = Ui.Button(tabs, "Equipment", () => { }, Ui.ButtonHot, 22);
             var cosTab = Ui.Button(tabs, "Cosmetics", () => ui.Toast("Cosmetics are not available yet."), Ui.ButtonC, 22);
             SplitPair(equipTab, cosTab);
+            SkinTab(equipTab, "tab_active");
+            SkinTab(cosTab, "tab_inactive");
 
-            var bag = At("bag");
-            Ui.Box(bag, new Color(0.07f, 0.06f, 0.05f, 0.96f), true);
-            var currency = At("currency");
-            Ui.Label(currency, $"{h.gold:N0} gold    {h.inventory.Count}/{DesignTable.BagCapacity}", 24, TextAnchor.MiddleLeft, Ui.Gold);
+            PaintSlice(At("bag"), "bag_panel");
             var close = At("close");
-            Stretch(Ui.Button(close, "X", () => { ui.Close(root.gameObject); gm.OnEquipmentChanged(); }, new Color(0.45f, 0.15f, 0.12f), 28, UiSfx.Back));
+            var closeBtn = Ui.Button(close, "", () => { ui.Close(root.gameObject); gm.OnEquipmentChanged(); }, new Color(0.45f, 0.15f, 0.12f), 28, UiSfx.Back);
+            Stretch(closeBtn);
+            var closeArt = ArtDrop.Sprite("close_x");
+            if (closeArt != null)
+            {
+                var ci = closeBtn.GetComponent<Image>();
+                ci.sprite = closeArt;
+                ci.type = Image.Type.Simple;
+                ci.color = Color.white;
+            }
 
             var grid = DesignTable.UiRect("inventory", "grid");
             var cellSize = DesignTable.UiRect("inventory", "gridCell");
@@ -162,22 +190,26 @@ namespace Hollowmere
                     continue;
                 }
                 var itx = h.inventory[i];
-                Stretch(ItemUi.Cell(cell, itx, selectedSlot == null && itx == selected, () =>
+                var bagBtn = ItemUi.Cell(cell, itx, selectedSlot == null && itx == selected, () =>
                 {
                     selected = itx;
                     selectedSlot = null;
                     Show(ui);
-                }));
+                });
+                Stretch(bagBtn);
+                SkinGearSlot(bagBtn, itx, null);
             }
 
-            var sort = At("sort");
-            Stretch(Ui.Button(sort, "Sort", () =>
+            var bottom = At("bottom");
+            var sortBtn = Ui.Button(bottom, "Sort", () =>
             {
                 h.inventory = h.inventory.OrderBy(i => i.kind).ThenByDescending(i => i.rarity).ThenBy(i => i.Base?.slot).ToList();
                 Show(ui);
-            }, Ui.ButtonC, 22));
-
-            var acts = At("actions");
+            }, Ui.ButtonC, 22);
+            var sortRt = (RectTransform)sortBtn.transform;
+            sortRt.anchorMin = new Vector2(0f, 0f); sortRt.anchorMax = new Vector2(0.34f, 1f);
+            sortRt.offsetMin = Vector2.zero; sortRt.offsetMax = new Vector2(-4f, 0f);
+            var acts = Ui.Rect(bottom, "acts", new Vector2(0.34f, 0f), Vector2.one, new Vector2(4f, 0f), Vector2.zero);
             var buttons = new List<(string label, Action fn, Color color)>();
             var sel = selected;
             if (selectedSlot != null)
@@ -237,8 +269,18 @@ namespace Hollowmere
             if (sel != null)
             {
                 var tip = At("tooltip");
-                Ui.Box(tip, new Color(0.1f, 0.09f, 0.08f, 0.96f), true);
-                var inner = Ui.Rect(tip, "inner", Vector2.zero, Vector2.one, new Vector2(8, 8), new Vector2(-8, -8));
+                PaintSlice(tip, "tooltip_frame");
+                var head = Ui.At(tip, "thead", new Vector2(0f, 1f), new Vector2(16f, -16f), new Vector2(508f, 72f));
+                var hi = head.gameObject.AddComponent<Image>();
+                var headerArt = ArtDrop.Sprite("tooltip_header");
+                if (headerArt != null)
+                {
+                    hi.sprite = headerArt;
+                    hi.type = Image.Type.Sliced;
+                    hi.color = ArtDrop.RarityTint(sel.rarity.ToString());
+                }
+                else hi.color = ArtDrop.RarityTint(sel.rarity.ToString());
+                var inner = Ui.Rect(tip, "inner", Vector2.zero, Vector2.one, new Vector2(24, 24), new Vector2(-24, -96));
                 ItemUi.Tooltip(inner, sel, h, selectedSlot == null);
             }
         }
@@ -282,6 +324,65 @@ namespace Hollowmere
             }
         }
 
+        static void SkinTab(Button b, string sprite)
+        {
+            var s = ArtDrop.Sprite(sprite);
+            var img = b.GetComponent<Image>();
+            if (s == null || img == null) return;
+            img.sprite = s;
+            img.type = Image.Type.Sliced;
+            img.color = Color.white;
+        }
+
+        static void PaintSlice(RectTransform rt, string sprite)
+        {
+            var s = ArtDrop.Sprite(sprite);
+            var img = rt.GetComponent<Image>() ?? rt.gameObject.AddComponent<Image>();
+            if (s == null) { img.color = new Color(0.07f, 0.06f, 0.05f, 0.9f); return; }
+            img.sprite = s;
+            img.type = Image.Type.Sliced;
+            img.color = Color.white;
+            img.raycastTarget = false;
+        }
+
+        static void SkinGearSlot(Button b, Item it, string slotId)
+        {
+            var img = b.GetComponent<Image>();
+            string plate = "slot_normal";
+            if (!Item.IsNone(it)) plate = "slot_" + it.rarity.ToString().ToLowerInvariant();
+            var s = ArtDrop.Sprite(plate) ?? ArtDrop.Sprite("slot_normal");
+            if (s != null && img != null)
+            {
+                img.sprite = s;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+            }
+            if (Item.IsNone(it) && slotId != null)
+            {
+                var ghost = ArtDrop.Sprite("ghost_" + GhostName(slotId));
+                if (ghost != null)
+                {
+                    var g = Ui.At(b.transform, "ghost", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(72f, 72f));
+                    var gi = g.gameObject.AddComponent<Image>();
+                    gi.sprite = ghost;
+                    gi.color = new Color(1f, 1f, 1f, 0.45f);
+                    gi.raycastTarget = false;
+                    gi.preserveAspect = true;
+                }
+            }
+        }
+
+        static string GhostName(string slotId) => slotId switch
+        {
+            "belt" => "belt",
+            "mainhand" => "mainhand",
+            "offhand" => "offhand",
+            "ring_l" => "ring",
+            "ring_r" => "ring",
+            "cloak" => "cloak",
+            _ => slotId,
+        };
+
         static EquipSlot SlotOf(string id) => id switch
         {
             "head" => EquipSlot.Head,
@@ -289,12 +390,17 @@ namespace Hollowmere
             "chest" => EquipSlot.Chest,
             "hands" => EquipSlot.Hands,
             "wrists" => EquipSlot.Wrists,
+            "belt" => EquipSlot.Waist,
             "waist" => EquipSlot.Waist,
             "legs" => EquipSlot.Legs,
             "feet" => EquipSlot.Feet,
             "amulet" => EquipSlot.Amulet,
+            "ring_l" => EquipSlot.Ring1,
+            "ring_r" => EquipSlot.Ring2,
             "ring1" => EquipSlot.Ring1,
             "ring2" => EquipSlot.Ring2,
+            "cloak" => EquipSlot.Cloak,
+            "mainhand" => EquipSlot.MainHand,
             "weapon" => EquipSlot.MainHand,
             "offhand" => EquipSlot.OffHand,
             _ => EquipSlot.Count,

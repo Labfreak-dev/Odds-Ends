@@ -70,6 +70,8 @@ namespace Hollowmere
         public static Sprite Get(string id)
         {
             if (string.IsNullOrEmpty(id)) id = "item";
+            var painted = ArtDrop.Sprite(IconName(id));
+            if (painted != null) return painted;
             if (cache.TryGetValue(id, out var have)) return have;
             var loaded = Resources.Load<Sprite>("Icons/" + id);
             if (loaded == null)
@@ -95,5 +97,24 @@ namespace Hollowmere
             cache[id] = sprite;
             return sprite;
         }
+
+        static string IconName(string id) => id switch
+        {
+            "greataxe" or "axe" => "icon_axe",
+            "warhammer" or "mace" => "icon_mace",
+            "crossbow" or "bow" or "quiver" => "icon_bow",
+            "rod" or "staff" => "icon_staff",
+            "hood" or "helm" => "icon_helm",
+            "pauldrons" or "mantle" => "icon_shoulders",
+            "plate" or "robe" or "jerkin" => "icon_chest",
+            "gauntlets" or "gloves" => "icon_gloves",
+            "sash" or "belt" => "icon_belt",
+            "greaves" or "trousers" => "icon_pants",
+            "waders" or "boots" => "icon_boots",
+            "cloak" => "icon_cloak",
+            "potion" => "icon_hpotion",
+            "portal" => "icon_scroll",
+            _ => "icon_" + id,
+        };
     }
 }

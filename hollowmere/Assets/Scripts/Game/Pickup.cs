@@ -24,7 +24,31 @@ namespace Hollowmere
             if (it.kind == ItemKind.Equipment)
             {
                 float beam = (float)DesignTable.BeamHeight;
-                Art.Cylinder(p.transform, new Vector3(0, beam * 0.5f, 0), new Vector3(0.22f, beam * 0.5f, 0.22f), Art.Mat(c, 2.5f));
+                var beamSprite = ArtDrop.Sprite("loot_beam");
+                if (beamSprite != null)
+                {
+                    var column = new GameObject("beam");
+                    column.transform.SetParent(p.transform, false);
+                    column.transform.localPosition = new Vector3(0f, beam * 0.5f, 0f);
+                    column.transform.localScale = new Vector3(0.45f, beam, 1f);
+                    var sr = column.AddComponent<SpriteRenderer>();
+                    sr.sprite = beamSprite;
+                    sr.color = ArtDrop.BeamTint(it.rarity.ToString());
+                    var glow = ArtDrop.Sprite("loot_ground_glow");
+                    if (glow != null)
+                    {
+                        var g = new GameObject("glow");
+                        g.transform.SetParent(p.transform, false);
+                        g.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+                        g.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                        g.transform.localScale = Vector3.one * 1.4f;
+                        var gr = g.AddComponent<SpriteRenderer>();
+                        gr.sprite = glow;
+                        gr.color = ArtDrop.BeamTint(it.rarity.ToString());
+                    }
+                }
+                else
+                    Art.Cylinder(p.transform, new Vector3(0, beam * 0.5f, 0), new Vector3(0.22f, beam * 0.5f, 0.22f), Art.Mat(c, 2.5f));
                 var l = new GameObject("glow").AddComponent<Light>();
                 l.transform.SetParent(p.transform, false);
                 l.transform.localPosition = Vector3.up;

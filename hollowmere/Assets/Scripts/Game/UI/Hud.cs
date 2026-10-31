@@ -84,6 +84,101 @@ namespace Hollowmere
             portal.onDown.AddListener(() => GameManager.I.UseTownPortal());
             action = HoldButton.Create(r, "action", new Vector2(0.5f, 0), new Vector2(0, 40), 190, new Color(0.75f, 0.55f, 0.15f, 0.95f), "", 32);
             action.onDown.AddListener(() => { if (near != null) GameManager.I.Interact(near); });
+            Skin(r);
+        }
+
+        void Skin(RectTransform r)
+        {
+            var frame = ArtDrop.Sprite("globe_frame");
+            var glass = ArtDrop.Sprite("globe_glass");
+            var health = ArtDrop.Sprite("globe_fill_health");
+            if (frame != null && lifeFill != null) Globe(lifeFill, health, glass, frame);
+            var fury = ArtDrop.Sprite("globe_fill_fury");
+            var mana = ArtDrop.Sprite("globe_fill_mana");
+            var essence = ArtDrop.Sprite("globe_fill_essence");
+            if (frame != null && resFill != null)
+            {
+                var fill = GameManager.I != null && GameManager.I.State != null && GameManager.I.State.hero.heroClass == HeroClass.Ironclad ? fury
+                    : GameManager.I != null && GameManager.I.State != null && GameManager.I.State.hero.heroClass == HeroClass.Stalker ? essence : mana;
+                if (fill == null) fill = mana;
+                Globe(resFill, fill, glass, frame);
+            }
+            var bossFrame = ArtDrop.Sprite("boss_bar_frame");
+            var bossFillSprite = ArtDrop.Sprite("boss_bar_fill");
+            if (bossFrame != null && bossBox != null)
+            {
+                var img = bossBox.GetComponent<Image>() ?? bossBox.gameObject.AddComponent<Image>();
+                img.sprite = bossFrame;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+            }
+            if (bossFillSprite != null && bossFill != null)
+            {
+                var img = bossFill.GetComponent<Image>();
+                if (img != null) { img.sprite = bossFillSprite; img.type = Image.Type.Sliced; img.color = Color.white; }
+            }
+            var ring = ArtDrop.Sprite("skill_ring_bronze");
+            var mask = ArtDrop.Sprite("cooldown_mask");
+            if (ring != null && primary != null && primary.image != null)
+            {
+                primary.image.sprite = ring;
+                primary.image.type = Image.Type.Simple;
+                primary.image.color = Color.white;
+            }
+            for (int i = 0; i < skills.Length; i++)
+            {
+                if (ring == null || skills[i] == null || skills[i].image == null) continue;
+                skills[i].image.sprite = ring;
+                skills[i].image.type = Image.Type.Simple;
+                skills[i].image.color = Color.white;
+                if (mask != null && skills[i].cooldown != null)
+                {
+                    var cd = skills[i].cooldown.GetComponent<Image>();
+                    if (cd != null)
+                    {
+                        cd.sprite = mask;
+                        cd.type = Image.Type.Filled;
+                        cd.fillMethod = Image.FillMethod.Radial360;
+                        cd.color = new Color(0f, 0f, 0f, 0.72f);
+                    }
+                }
+            }
+            var map = ArtDrop.Sprite("minimap_frame");
+            if (map != null)
+            {
+                var slot = Ui.At(r, "minimap", new Vector2(1f, 1f), new Vector2(-200f, -210f), new Vector2(180f, 180f));
+                var img = slot.gameObject.AddComponent<Image>();
+                img.sprite = map;
+                img.preserveAspect = true;
+                img.raycastTarget = false;
+            }
+        }
+
+        static void Globe(RectTransform fill, Sprite liquid, Sprite glass, Sprite frame)
+        {
+            var parent = fill.parent as RectTransform;
+            if (parent == null) return;
+            var back = parent.GetComponent<Image>() ?? parent.gameObject.AddComponent<Image>();
+            back.sprite = frame;
+            back.type = Image.Type.Simple;
+            back.color = Color.white;
+            var img = fill.GetComponent<Image>();
+            if (img != null && liquid != null)
+            {
+                img.sprite = liquid;
+                img.type = Image.Type.Filled;
+                img.fillMethod = Image.FillMethod.Vertical;
+                img.color = Color.white;
+            }
+            if (glass != null && parent.Find("glass") == null)
+            {
+                var g = Ui.Rect(parent, "glass", Vector2.zero, Vector2.one);
+                var gi = g.gameObject.AddComponent<Image>();
+                gi.sprite = glass;
+                gi.preserveAspect = true;
+                gi.raycastTarget = false;
+                g.SetAsLastSibling();
+            }
         }
 
         static Button MenuButton(Transform parent, string label, string iconKey, System.Action click)
@@ -128,6 +223,10 @@ namespace Hollowmere
             var resImg = resFill.GetComponent<Image>();
             if (resImg != null && resImg.sprite == null)
                 resImg.color = cls == HeroClass.Ironclad ? new Color(0.8f, 0.35f, 0.1f) : cls == HeroClass.Stalker ? new Color(0.25f, 0.7f, 0.4f) : new Color(0.45f, 0.35f, 0.95f);
+            var liquid = ArtDrop.Sprite(cls == HeroClass.Ironclad ? "globe_fill_fury" : cls == HeroClass.Stalker ? "globe_fill_essence" : "globe_fill_mana");
+            var frame = ArtDrop.Sprite("globe_frame");
+            if (liquid != null && frame != null && resFill != null)
+                Globe(resFill, liquid, ArtDrop.Sprite("globe_glass"), frame);
         }
 
         public void SetLocation(string s) { if (locText != null) locText.text = s; }
@@ -136,7 +235,36 @@ namespace Hollowmere
         {
             boss = m;
             bossBox.gameObject.SetActive(m != null);
+            var row = bossBox.Find("affixes") as RectTransform;
+            if (row == null) row = Ui.At(bossBox, "affixes", new Vector2(1f, 0.5f), new Vector2(-8f, 0f), new Vector2(360f, 40f));
+            for (int i = row.childCount - 1; i >= 0; i--) Destroy(row.GetChild(i).gameObject);
+            if (m == null) return;
+            int n = 0;
+            foreach (var a in m.stats.affixes)
+            {
+                var icon = ArtDrop.Sprite(AffixIcon(a));
+                if (icon == null) continue;
+                var slot = Ui.At(row, "affix" + n, new Vector2(1f, 0.5f), new Vector2(-n * 36f, 0f), new Vector2(32f, 32f));
+                var img = slot.gameObject.AddComponent<Image>();
+                img.sprite = icon;
+                img.preserveAspect = true;
+                img.raycastTarget = false;
+                n++;
+            }
         }
+
+        static string AffixIcon(EliteAffix a) => a switch
+        {
+            EliteAffix.Molten => "molten",
+            EliteAffix.Frozen => "frozen",
+            EliteAffix.Teleporter => "teleporter",
+            EliteAffix.Shielding => "shielding",
+            EliteAffix.Plagued => "plagued",
+            EliteAffix.Vampiric => "vampiric",
+            EliteAffix.Jailer => "jailer",
+            EliteAffix.Hasty => "fastest",
+            _ => null,
+        };
 
         void Update()
         {

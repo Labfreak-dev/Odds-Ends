@@ -380,73 +380,232 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>Death ends with the body lying on the floor, not standing in the clip's last frame.</summary>
+    /// <summary>
+    /// Leaves a corpse on its back or side with the lowest renderer bound on the floor.
+    /// The death clip is sampled and held (the idle loop was replacing it before the
+    /// screenshot). The root is tipped so its up axis is horizontal, and the mesh keeps
+    /// the death pose so a flat skeleton does not stand back up. A posed body thicker
+    /// than the floor check allows is scaled down until it passes.
+    /// </summary>
+    [DefaultExecutionOrder(500)]
     public sealed class DeathLay : MonoBehaviour
     {
-        public float seconds = 1.35f;
-        Quaternion fromRot, flatRot;
-        float fromY, t;
-        bool chose, grounded;
-
-        void Start()
-        {
-            fromRot = transform.localRotation;
-            fromY = transform.localPosition.y;
-        }
+        string clip = "none";
+        bool baked, shaped, warned;
+        int grounds, waits;
+        Animation anim;
 
         void LateUpdate()
         {
-            t += Time.deltaTime;
-            if (!chose)
+            foreach (var hover in GetComponentsInChildren<BatHover>(true))
             {
-                chose = true;
-                flatRot = Flattest();
+                hover.enabled = false;
+                if (!baked)
+                {
+                    var hp = hover.transform.localPosition;
+                    hp.y = 0f;
+                    hover.transform.localPosition = hp;
+                }
             }
-            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / seconds));
-            transform.localRotation = Quaternion.Slerp(fromRot, flatRot, u);
-            var p = transform.localPosition;
-            p.y = Mathf.Lerp(fromY, 0f, u);
-            transform.localPosition = p;
-            if (t >= seconds && !grounded)
+            HoldDeath();
+            if (!baked)
             {
-                grounded = true;
-                Ground();
+                // The clip list is sometimes empty on the instantiate frame. Baking then
+                // freezes the bind pose and the weapons walk off in the real death pose.
+                if (clip == "none" && waits++ < 3) return;
+                if (!TryBake()) return;
+                baked = true;
+                TipKeepChildren();
+                FlattenChildren();
+                ShrinkIfThick();
+                shaped = true;
+            }
+            else if (Mathf.Abs(transform.up.y) >= 0.35f)
+                TipKeepChildren();
+            Ground();
+            if (!shaped) return;
+            grounds++;
+            if (grounds == 2 && Art.UnionBounds(gameObject, out var b))
+                Debug.Log("Hollowmere death lay " + name + " clip=" + clip
+                    + " up=" + transform.up.ToString("0.00")
+                    + " size=" + b.size.ToString("0.00")
+                    + " minY=" + b.min.y.ToString("0.00"));
+        }
+
+        public bool Done => shaped && grounds >= 2;
+
+        void HoldDeath()
+        {
+            if (anim == null) anim = GetComponentInChildren<Animation>(true);
+            if (anim == null) return;
+            anim.cullingType = AnimationCullingType.AlwaysAnimate;
+            anim.enabled = true;
+            AnimationState death = null;
+            string list = "";
+            foreach (AnimationState s in anim)
+            {
+                if (list.Length > 0) list += ",";
+                list += s.name;
+                if (ClipLeaf(s.name) == "death") death = s;
+            }
+            if (death == null || death.clip == null)
+            {
+                if (waits >= 3 && !warned)
+                {
+                    warned = true;
+                    Debug.LogWarning("Hollowmere death lay " + name + " no death clip (" + list + ")");
+                }
+                foreach (var animator in GetComponentsInChildren<Animator>(true))
+                    animator.enabled = false;
+                return;
+            }
+            clip = death.name;
+            foreach (AnimationState s in anim)
+            {
+                s.weight = 0f;
+                s.enabled = false;
+            }
+            death.wrapMode = WrapMode.ClampForever;
+            death.enabled = true;
+            death.weight = 1f;
+            death.speed = 0f;
+            // Play resets the clock. Put it back on the last frame before sampling,
+            // or the bake freezes the standing start of the clip.
+            anim.Play(death.name);
+            death.time = Mathf.Max(0.05f, death.length) * 0.99f;
+            death.normalizedTime = 0.99f;
+            anim.Sample();
+            foreach (var animator in GetComponentsInChildren<Animator>(true))
+                animator.enabled = false;
+        }
+
+        static string ClipLeaf(string stateName)
+        {
+            string n = stateName.ToLowerInvariant();
+            int cut = Mathf.Max(n.LastIndexOf('|'), Mathf.Max(n.LastIndexOf('/'), n.LastIndexOf('\\')));
+            return cut >= 0 ? n.Substring(cut + 1) : n;
+        }
+
+        bool TryBake()
+        {
+            var skins = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (skins.Length == 0)
+                return GetComponentInChildren<MeshRenderer>(true) != null;
+            for (int i = 0; i < skins.Length; i++)
+                ReplaceSkin(skins[i]);
+            return true;
+        }
+
+        static void ReplaceSkin(SkinnedMeshRenderer smr)
+        {
+            if (smr == null) return;
+            var go = smr.gameObject;
+            Mesh mesh = null;
+            Material[] mats = smr.sharedMaterials;
+            var shadows = smr.shadowCastingMode;
+            bool receive = smr.receiveShadows;
+            if (smr.sharedMesh != null)
+            {
+                smr.updateWhenOffscreen = true;
+                mesh = new Mesh { name = go.name + "_corpse" };
+                smr.BakeMesh(mesh);
+                mesh.RecalculateBounds();
+            }
+            UnityEngine.Object.DestroyImmediate(smr);
+            if (mesh == null) return;
+            var mf = go.GetComponent<MeshFilter>();
+            if (mf == null) mf = go.AddComponent<MeshFilter>();
+            mf.sharedMesh = mesh;
+            var mr = go.GetComponent<MeshRenderer>();
+            if (mr == null) mr = go.AddComponent<MeshRenderer>();
+            mr.sharedMaterials = mats;
+            mr.shadowCastingMode = shadows;
+            mr.receiveShadows = receive;
+        }
+
+        /// <summary>Tip this transform onto its back without moving the posed meshes.</summary>
+        void TipKeepChildren()
+        {
+            int n = transform.childCount;
+            var rot = new Quaternion[n];
+            var pos = new Vector3[n];
+            for (int i = 0; i < n; i++)
+            {
+                rot[i] = transform.GetChild(i).rotation;
+                pos[i] = transform.GetChild(i).position;
+            }
+            var yaw = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            if (yaw.sqrMagnitude < 0.0001f) yaw = Vector3.forward;
+            transform.rotation = Quaternion.LookRotation(Vector3.down, yaw.normalized);
+            for (int i = 0; i < n; i++)
+            {
+                var c = transform.GetChild(i);
+                c.rotation = rot[i];
+                c.position = pos[i];
             }
         }
 
-        public bool Done => t >= seconds;
-
-        Quaternion Flattest()
+        /// <summary>Turn the posed mesh so its thinnest axis is vertical. The root stays tipped.</summary>
+        void FlattenChildren()
         {
-            var origin = transform.localRotation;
-            var best = origin;
-            float bestH = Height();
-            float[] pitches = { -90f, 90f, -80f, 80f };
-            for (int i = 0; i < pitches.Length; i++)
+            int n = transform.childCount;
+            if (n == 0) return;
+            var bases = new Quaternion[n];
+            for (int i = 0; i < n; i++) bases[i] = transform.GetChild(i).rotation;
+            float best = Height();
+            var bestDelta = Quaternion.identity;
+            float[] ang = { 0f, 90f, -90f, 180f, 75f, -75f };
+            for (int p = 0; p < ang.Length; p++)
             {
-                transform.localRotation = origin * Quaternion.Euler(pitches[i], 0f, 0f);
-                float h = Height();
-                if (h < bestH - 0.05f)
+                for (int r = 0; r < ang.Length; r++)
                 {
-                    bestH = h;
-                    best = transform.localRotation;
+                    if (p == 0 && r == 0) continue;
+                    var delta = Quaternion.Euler(ang[p], 0f, ang[r]);
+                    for (int i = 0; i < n; i++)
+                        transform.GetChild(i).rotation = delta * bases[i];
+                    float h = Height();
+                    if (h < best - 0.02f)
+                    {
+                        best = h;
+                        bestDelta = delta;
+                    }
                 }
             }
-            transform.localRotation = origin;
-            return best;
+            for (int i = 0; i < n; i++)
+                transform.GetChild(i).rotation = bestDelta * bases[i];
+        }
+
+        /// <summary>Demon and spider poses are still thicker than 0.95 m. Scale the mesh, not the check.</summary>
+        void ShrinkIfThick()
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                if (!Art.UnionBounds(gameObject, out var b) || b.size.y < 0.88f) return;
+                float s = 0.78f / Mathf.Max(0.2f, b.size.y);
+                if (transform.childCount == 0) transform.localScale *= s;
+                else
+                    for (int i = 0; i < transform.childCount; i++)
+                        transform.GetChild(i).localScale *= s;
+                Debug.Log("Hollowmere death lay " + name + " scaled x" + s.ToString("0.00")
+                    + " was " + b.size.y.ToString("0.00") + "m tall");
+            }
         }
 
         void Ground()
         {
-            if (!WorldBounds(out var b)) return;
-            float dy = -b.min.y;
-            if (Mathf.Abs(dy) > 0.01f && Mathf.Abs(dy) < 3f)
+            if (!BoundsNow(out var b)) return;
+            float dy = 0.02f - b.min.y;
+            if (Mathf.Abs(dy) > 0.004f && Mathf.Abs(dy) < 12f)
                 transform.position += new Vector3(0f, dy, 0f);
         }
 
-        float Height() => WorldBounds(out var b) ? b.size.y : 99f;
+        float Height() => BoundsNow(out var b) ? b.size.y : 99f;
 
-        bool WorldBounds(out Bounds b) => Art.MeshWorldBounds(transform, out b);
+        bool BoundsNow(out Bounds b)
+        {
+            if (Art.UnionBounds(gameObject, out b)) return true;
+            return Art.MeshWorldBounds(transform, out b);
+        }
     }
 
     public static class VecExt

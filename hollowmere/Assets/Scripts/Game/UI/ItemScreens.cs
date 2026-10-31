@@ -17,6 +17,15 @@ namespace Hollowmere
             var b = Ui.Button(parent, "", onClick, c, 20);
             var txt = b.GetComponentInChildren<Text>();
             if (Item.IsNone(it)) { txt.text = $"<color=#666666>{emptyLabel}</color>"; return b; }
+            if (it.kind == ItemKind.Equipment && !string.IsNullOrEmpty(it.baseId))
+            {
+                var icon = Ui.At(b.transform, "icon", new Vector2(0f, 0.5f), new Vector2(4f, 0f), new Vector2(36f, 36f));
+                icon.pivot = new Vector2(0f, 0.5f);
+                var ii = icon.gameObject.AddComponent<Image>();
+                ii.sprite = ItemIcon.Get(it.baseId);
+                ii.preserveAspect = true;
+                ii.raycastTarget = false;
+            }
             string stack = it.stack > 1 ? $"\nx{it.stack}" : "";
             txt.text = $"<color={ItemText.RarityColor(it.rarity)}><b>{ItemText.SlotLabel(it)}</b></color>{stack}" + (it.ancient ? "\n<color=#ff8a1e>A</color>" : "");
             // Rarity edge

@@ -19,7 +19,8 @@ namespace Hollowmere
             var p = Make(at);
             p.item = it;
             var c = it.kind == ItemKind.Equipment ? Art.Rarity(it.rarity) : it.kind == ItemKind.Potion ? new Color(0.9f, 0.2f, 0.25f) : Art.Hex("#c9a14a");
-            Art.Cube(p.transform, new Vector3(0, 0.25f, 0), new Vector3(0.45f, 0.18f, 0.3f), Art.Mat(c, it.rarity >= Rarity.Rare ? 1.2f : 0.3f), Quaternion.Euler(0, Random.Range(0, 360), 0));
+            if (it.kind == ItemKind.Equipment) LootDrop.Dress(p, it);
+            else Art.Cube(p.transform, new Vector3(0, 0.25f, 0), new Vector3(0.45f, 0.18f, 0.3f), Art.Mat(c, 0.3f), Quaternion.Euler(0, Random.Range(0, 360), 0));
             if (it.kind == ItemKind.Equipment)
             {
                 float beam = (float)DesignTable.BeamHeight;

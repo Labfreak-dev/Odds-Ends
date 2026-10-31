@@ -36,7 +36,7 @@ namespace Hollowmere
 
         static IEnumerator Run(GameManager gm, string mode)
         {
-            if (mode != "move" && mode != "pet" && mode != "combat")
+            if (mode != "move" && mode != "pet" && mode != "combat" && mode != "loot")
             {
                 Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
                 Application.Quit();
@@ -69,6 +69,15 @@ namespace Hollowmere
                 var def = MonsterDb.Get("bonewalker");
                 var ms = MonsterDb.Create(def, 1, MonsterRank.Normal, new Rng(3), 1);
                 MonsterActor.Spawn(ms, World.ClampToFloor(hero.Pos + drive.forward * 2.4f), 9);
+            }
+            if (mode == "loot")
+            {
+                var rarities = new[] { Rarity.Common, Rarity.Magic, Rarity.Rare, Rarity.Legendary, Rarity.Set };
+                for (int n = 0; n < rarities.Length; n++)
+                {
+                    var it = Loot.Generate(new Rng((ulong)(20 + n)), 12, rarities[n], HeroClass.Hexweaver, floor: 8);
+                    Pickup.DropItem(it, hero.Pos + drive.right * (n - 2) * 1.4f + drive.forward * 2.2f);
+                }
             }
             Debug.Log("Hollowmere QA frames: " + mode + " nav=" + FloorNav.Ready
                 + " open=" + Clear(hero.Pos, drive.forward).ToString("0.0") + "m"

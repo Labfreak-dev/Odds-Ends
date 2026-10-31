@@ -31,7 +31,7 @@ namespace Hollowmere
             canvas.sortingOrder = 10;
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(2400, 1080);
+            scaler.referenceResolution = new Vector2(DesignTable.QaWidth, DesignTable.QaHeight);
             scaler.matchWidthOrHeight = 0.6f;
             gameObject.AddComponent<GraphicRaycaster>();
 
@@ -176,6 +176,17 @@ namespace Hollowmere
         }
 
         public void Track(GameObject m) => modals.Add(m);
+
+        /// <summary>A full-canvas modal with no title inset, so design-dp rectangles land on the canvas.</summary>
+        public RectTransform Fullscreen(string name)
+        {
+            CloseAll();
+            var root = Ui.Rect(modalLayer, name, Vector2.zero, Vector2.one);
+            modals.Add(root.gameObject);
+            AudioHub.Panel(true);
+            Time.timeScale = 0f;
+            return root;
+        }
 
         /// <summary>Drop any open fishing overlay without resolving it (the world is being torn down).</summary>
         public void CloseFishing()

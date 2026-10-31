@@ -630,9 +630,12 @@ namespace Hollowmere
         };
     }
 
-    /// <summary>Plays an imported model's walk cycle while it moves. An idle clip is used when one
-    /// exists; otherwise the walk freezes on the current frame the moment movement stops. A slowed
-    /// walk still reads as walking, so idle speed is zero.</summary>
+    /// <summary>
+    /// Blends idle, walk, and run from the ground speed, and crossfades attacks.
+    /// Shipped clips are legacy, so the blend is Animation.CrossFade. An Animator
+    /// controller is used when the model already has one. Playback rate is
+    /// groundSpeed / clipWalk so the feet match the ground. Root motion stays off.
+    /// </summary>
     public sealed class ModelAnim : MonoBehaviour
     {
         public Animation anim;
@@ -640,41 +643,119 @@ namespace Hollowmere
         public bool HasClips => (anim != null && anim.clip != null) || animator != null;
         /// <summary>True only when a clip or an animator controller will actually play. A bare Animator does not.</summary>
         public bool PlaysClips => (anim != null && anim.clip != null) || (animator != null && animator.runtimeAnimatorController != null);
-        bool? last;
-
-        public void SetMoving(bool moving)
+        public bool HasAttackClip { get { Ensure(); return attack != null || HasAttackTrigger; } }
+        public bool Attacking => attackLeft > 0f;
+        public bool Casting { get; private set; }
+        /// <summary>0 at the start of the attack, 1 at the end.</summary>
+        public float AttackUnit
         {
-            if (last == moving) return;
-            last = moving;
+            get
+            {
+                float total = Mathf.Max(0.05f, Feel.Active.attackSeconds);
+                return Mathf.Clamp01(1f - attackLeft / total);
+            }
+        }
+
+        AnimationState idle, walk, run, attack, current;
+        float attackLeft;
+        bool cached, attackEdge;
+        bool HasAttackTrigger;
+
+        public void BeginAttack(bool cast)
+        {
+            Ensure();
+            Casting = cast;
+            attackLeft = Feel.Active.attackSeconds;
+            attackEdge = true;
+        }
+
+        public void CancelAttack()
+        {
+            attackLeft = 0f;
+            Casting = false;
+            attackEdge = false;
+        }
+
+        /// <summary>Binary helper for callers that only know moving or still. Prefer Tick.</summary>
+        public void SetMoving(bool moving) => Tick(moving ? Feel.Active.walkRun : 0f, Time.deltaTime);
+
+        public void Tick(float groundSpeed, float dt)
+        {
+            Ensure();
+            if (attackLeft > 0f) attackLeft = Mathf.Max(0f, attackLeft - dt);
+            var f = Feel.Active;
+            if (anim != null && (walk != null || idle != null))
+            {
+                var clip = attackLeft > 0f && attack != null ? attack : Loco(groundSpeed, f.idle, f.walkRun);
+                if (clip != null)
+                {
+                    float rate = Rate(clip, groundSpeed, f.idle, f.clipWalk);
+                    float blend = attackLeft > 0f && clip == attack ? f.attackBlend : f.locoBlend;
+                    if (clip != current)
+                    {
+                        current = clip;
+                        clip.wrapMode = clip == attack ? WrapMode.Once : WrapMode.Loop;
+                        clip.speed = rate;
+                        anim.CrossFade(clip.name, Mathf.Max(0.02f, blend));
+                    }
+                    else clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
+                }
+            }
+            DriveAnimator(groundSpeed, f);
+            attackEdge = false;
+        }
+
+        void DriveAnimator(float groundSpeed, FeelProfile f)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return;
+            animator.applyRootMotion = false;
+            animator.speed = 1f;
+            var ps = animator.parameters;
+            for (int i = 0; i < ps.Length; i++)
+            {
+                if (ps[i].name == "Speed" && ps[i].type == AnimatorControllerParameterType.Float)
+                    animator.SetFloat("Speed", groundSpeed, f.locoBlend, Time.deltaTime);
+                else if (ps[i].name == "Attack" && attackEdge)
+                    animator.SetTrigger("Attack");
+            }
+        }
+
+        AnimationState Loco(float speed, float idleAt, float runAt)
+        {
+            if (speed < idleAt) return idle != null && idle != walk ? idle : walk;
+            if (speed >= runAt && run != null) return run;
+            return walk ?? idle;
+        }
+
+        float Rate(AnimationState clip, float speed, float idleAt, float clipWalk)
+        {
+            if (clip == idle && idle != walk) return 1f;
+            if (speed < idleAt) return 0f;
+            return speed / Mathf.Max(0.1f, clipWalk);
+        }
+
+        void Ensure()
+        {
+            if (cached) return;
+            cached = true;
             if (anim != null)
             {
-                AnimationState idle = null, walk = null;
                 foreach (AnimationState st in anim)
                 {
                     string n = st.name.ToLowerInvariant();
-                    if (n.Contains("idle")) idle = st;
-                    else if (walk == null || n.Contains("walk") || n.Contains("run")) walk = st;
+                    if (n.Contains("attack") || n.Contains("swing") || n.Contains("cast")) attack = st;
+                    else if (n.Contains("run")) run = st;
+                    else if (n.Contains("walk")) walk = st;
+                    else if (n.Contains("idle") || n.Contains("clip0")) idle = st;
+                    else if (walk == null) walk = st;
                 }
                 if (walk == null && anim.clip != null) walk = anim[anim.clip.name];
-                if (moving && walk != null)
-                {
-                    walk.speed = 1f;
-                    walk.wrapMode = WrapMode.Loop;
-                    anim.Play(walk.name);
-                }
-                else if (!moving && idle != null)
-                {
-                    idle.speed = 1f;
-                    idle.wrapMode = WrapMode.Loop;
-                    anim.CrossFade(idle.name, 0.08f);
-                }
-                else
-                {
-                    // No idle clip: freeze the walk. A slowed walk still reads as walking.
-                    foreach (AnimationState st in anim) st.speed = 0f;
-                }
             }
-            if (animator != null) animator.speed = moving ? 1f : 0f;
+            if (animator != null && animator.runtimeAnimatorController != null)
+            {
+                foreach (var p in animator.parameters)
+                    if (p.name == "Attack") HasAttackTrigger = true;
+            }
         }
     }
 

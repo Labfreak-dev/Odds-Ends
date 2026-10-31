@@ -4,7 +4,7 @@ This is the number source for Hollowmere. Reference notes supplied the shape of 
 
 Player-facing words in this spec are Hollowmere's. The code field `Item.ancient` stays, because saves already use it. The word shown to the player for that flag is Deepwrought.
 
-The shipping numbers live in `Hollowmere.Core.DesignTable`. Tests read the tables in this file and compare them to `DesignTable`.
+The shipping numbers live in `Hollowmere.Core.DesignTable`. Movement, pet follow, and the QA frame capture also ship in `Assets/Resources/FeelProfile.asset`, with the same values. Tests read the tables in this file and compare them to `DesignTable` and to that asset.
 
 ## 1. Experience
 
@@ -518,7 +518,9 @@ The story guardian is the floor-40 exit. It uses the same phase rules. No separa
 
 ## 8. UI layout, 2340 × 1080 dp
 
-The design canvas is 2340 by 1080 dp, landscape, origin at the top-left. 1 dp is one pixel of that canvas. The runtime scaler may letterbox; these rectangles are in design dp, not raw device pixels. Nothing here overlaps another rectangle in the same screen.
+The design canvas is 2340 by 1080 dp, landscape, origin at the top-left, +y down. 1 dp is one pixel of that canvas. The runtime scaler uses this reference resolution and may letterbox; these rectangles are in design dp, not raw device pixels. Place one with its pivot and anchor on the canvas top-left and its anchored position at (x, −y).
+
+The inventory screen keeps the hero model in the centre, with gear slots down both sides and the bag on the right. Slot coordinates are on the canvas. The tooltip is the only card that covers another rectangle, and only while an item is selected: it covers the left of the bag grid. Every other pair on a screen is disjoint, apart from a panel and the rectangles inside it (the bag contains the grid, currency, sort, actions, tooltip, and close). The two column rectangles contain their slots.
 
 ### T.ui
 
@@ -541,13 +543,22 @@ The design canvas is 2340 by 1080 dp, landscape, origin at the top-left. 1 dp is
 | hud | skill3 | 2148 | 808 | 72 | 72 |
 | hud | skill4 | 2244 | 848 | 72 | 72 |
 | hud | potion | 1980 | 984 | 64 | 64 |
-| inventory | panel | 48 | 48 | 2244 | 984 |
-| inventory | doll | 72 | 120 | 640 | 860 |
-| inventory | model | 248 | 200 | 280 | 520 |
-| inventory | stats | 760 | 120 | 480 | 860 |
-| inventory | grid | 1500 | 160 | 472 | 552 |
-| inventory | gridCell | 0 | 0 | 72 | 72 |
-| inventory | tooltip | 1040 | 200 | 440 | 560 |
+| inventory | screen | 0 | 0 | 2340 | 1080 |
+| inventory | name | 40 | 36 | 480 | 44 |
+| inventory | level | 40 | 84 | 240 | 32 |
+| inventory | stats | 540 | 36 | 450 | 72 |
+| inventory | model | 168 | 120 | 720 | 880 |
+| inventory | leftColumn | 40 | 140 | 104 | 708 |
+| inventory | rightColumn | 912 | 140 | 104 | 688 |
+| inventory | tabs | 168 | 1012 | 720 | 48 |
+| inventory | bag | 1088 | 36 | 1216 | 1008 |
+| inventory | currency | 1148 | 52 | 520 | 40 |
+| inventory | close | 2216 | 48 | 64 | 64 |
+| inventory | grid | 1148 | 148 | 636 | 744 |
+| inventory | gridCell | 0 | 0 | 96 | 96 |
+| inventory | sort | 1148 | 920 | 200 | 64 |
+| inventory | actions | 1368 | 920 | 416 | 64 |
+| inventory | tooltip | 1148 | 160 | 480 | 640 |
 | vendor | panel | 48 | 48 | 2244 | 984 |
 | vendor | goods | 72 | 120 | 900 | 760 |
 | vendor | actions | 72 | 900 | 900 | 80 |
@@ -557,27 +568,107 @@ The design canvas is 2340 by 1080 dp, landscape, origin at the top-left. 1 dp is
 | hero | info | 1580 | 120 | 480 | 560 |
 | hero | play | 960 | 960 | 420 | 72 |
 
-Inventory grid is 6 columns by 7 rows. Cell pitch is 72 plus an 8 dp gap, and `6*72 + 5*8 = 472`, `7*72 + 6*8 = 552`. The cell row's X and Y are the cell size, not a position. Tooltip is a card, not a hover, and it sits between the stat column and the grid.
+The bag grid is 6 columns by 7 rows. Cell size is 96 and the gap is 12, so the grid is `6*96 + 5*12 = 636` wide and `7*96 + 6*12 = 744` tall. The gridCell row's X and Y are unused; W and H are the cell. Capacity stays 40, so the last two cells are sealed. The tabs rect is split into two equal buttons, Equipment and Cosmetics.
 
-Paper-doll slots, coordinates inside the doll rect (add 72, 120 for canvas position). Each slot is 72×72 except the two weapons, which are 72×120.
+### T.bag
+
+| Id | Value |
+| --- | --- |
+| columns | 6 |
+| rows | 7 |
+| gap | 12 |
+| capacity | 40 |
+
+Gear slots, canvas coordinates. Weapons are 104×148. Every other slot is 104×88. The left column, top to bottom, is amulet, ring, ring, weapon, off-hand, wrists. The right column is head, shoulders, chest, hands, waist, legs, feet. Empty slots name the family. Filled slots wash the cell with the rarity colour at 45% toward white and put an 8 dp rarity bar on the bottom edge.
 
 ### T.doll
 
 | Slot | X | Y | W | H |
 | --- | --- | --- | --- | --- |
-| head | 284 | 24 | 72 | 72 |
-| shoulders | 120 | 160 | 72 | 72 |
-| amulet | 448 | 160 | 72 | 72 |
-| chest | 284 | 200 | 72 | 72 |
-| hands | 40 | 300 | 72 | 72 |
-| wrists | 40 | 390 | 72 | 72 |
-| waist | 284 | 400 | 72 | 72 |
-| legs | 284 | 490 | 72 | 72 |
-| feet | 284 | 620 | 72 | 72 |
-| weapon | 40 | 520 | 72 | 120 |
-| offhand | 528 | 520 | 72 | 120 |
-| ring1 | 40 | 660 | 72 | 72 |
-| ring2 | 528 | 660 | 72 | 72 |
+| amulet | 40 | 140 | 104 | 88 |
+| ring1 | 40 | 240 | 104 | 88 |
+| ring2 | 40 | 340 | 104 | 88 |
+| weapon | 40 | 440 | 104 | 148 |
+| offhand | 40 | 600 | 104 | 148 |
+| wrists | 40 | 760 | 104 | 88 |
+| head | 912 | 140 | 104 | 88 |
+| shoulders | 912 | 240 | 104 | 88 |
+| chest | 912 | 340 | 104 | 88 |
+| hands | 912 | 440 | 104 | 88 |
+| waist | 912 | 540 | 104 | 88 |
+| legs | 912 | 640 | 104 | 88 |
+| feet | 912 | 740 | 104 | 88 |
 
-Empty slots draw the silhouette for that family. Filled slots wash the cell with the rarity colour at 45% toward white and put an 8 dp rarity bar on the bottom edge.
+## 9. Movement
+
+The hero, monsters, and the pet share one motor. Wish velocity is the stick, the chase direction, or the nav steering, times the wish speed. Velocity moves toward that wish at `accel` metres per second squared while speeding up, and at `decel` while slowing down or reversing. Below `idle` metres per second with no wish, velocity is zero. Facing turns toward the velocity, or toward the aim while an attack is playing, at `turn` degrees per second, or `attackTurn` during an attack. A dash still snaps to its direction so it cannot leave on the old heading.
+
+Clips on the shipped models are legacy, so the blend is `Animation.CrossFade` on the model's Animation component. An Animator controller is used when one is already on the model (`Speed` float, `Attack` trigger). Idle, walk, and run crossfade over `locoBlend` seconds. An attack crossfades in and back out over `attackBlend` seconds and holds for `attackSeconds` seconds. Root motion stays off. The walk or run clip plays at `groundSpeed / clipWalk`, using the distance actually covered that frame, so a wall stops the feet. `walkRun` is the ground speed where the run clip takes over. A missing run clip reuses the walk clip at that same rate. A missing idle clip freezes the walk clip. A missing attack clip uses a short procedural lean that eases in and out across the attack, instead of a snap.
+
+### T.motion
+
+| Id | Value |
+| --- | --- |
+| accel | 28 |
+| decel | 36 |
+| turn | 540 |
+| attackTurn | 900 |
+| idle | 0.15 |
+| walkRun | 3.2 |
+| clipWalk | 2.2 |
+| locoBlend | 0.18 |
+| attackBlend | 0.12 |
+| attackSeconds | 0.35 |
+
+`Assets/Resources/FeelProfile.asset` stores this table and the pet and QA tables. The player reads the asset. `DesignTable` holds the same numbers so tests can check them without starting Unity.
+
+## 10. Pet follow
+
+The pet paths on a navmesh built at level load from the walkable floor tiles. It does not teleport onto the hero's heel.
+
+The slot is `trailBack` metres behind the hero's facing and `trailSide` metres to the hero's right. Distance in the formula is metres from the pet to that slot. Speed is 0 while the distance is below `arrive`. Otherwise it is
+
+`min(maxSpeed, cruise + catchup * (distance - arrive))`.
+
+A form's speed multiplier scales that result, and the result is then clamped to `maxSpeed` times the same multiplier. Section 9 accelerates into that speed, and the walk or run clip follows the ground speed the same way the hero's does.
+
+A point off the mesh but within `sample` metres is slid onto the mesh with no effect. A warp happens only when the pet has been stuck (wish speed above idle, ground speed below idle) for `stuck` seconds, or when it is off the mesh and farther than `warp` metres from the slot. If the pet or the destination is inside the camera view, the warp plays a burst at the old point and the new point. If both are off-screen, the warp is silent. Coming back from town or from fleeing is a warp and always plays the burst, because the pet is reappearing beside the hero.
+
+### T.pet
+
+| Id | Value |
+| --- | --- |
+| trailBack | 1.75 |
+| trailSide | 0.55 |
+| arrive | 0.45 |
+| cruise | 6.2 |
+| catchup | 1.1 |
+| maxSpeed | 14 |
+| warp | 18 |
+| stuck | 1.25 |
+| sample | 2 |
+
+### T.follow
+
+| Id | Value |
+| --- | --- |
+| 0 | 0 |
+| 0.45 | 6.2 |
+| 2.45 | 8.4 |
+| 20 | 14 |
+
+The Id column is the distance to the slot in metres. The value is the follow speed before a form multiplier.
+
+## 11. QA frame capture
+
+`-qaFrames move` and `-qaFrames pet` write a PNG sequence at `width` by `height`, `frames` images, `fps` frames per second: `qa-move-00.png`, `qa-pet-00.png`, and so on. `move` walks, then runs, then stops, then turns, across the three seconds. `pet` holds a full sprint along the longest open ground so the companion has to catch a long run. The player quits after the last frame.
+
+### T.qa
+
+| Id | Value |
+| --- | --- |
+| frames | 30 |
+| fps | 10 |
+| width | 2340 |
+| height | 1080 |
 

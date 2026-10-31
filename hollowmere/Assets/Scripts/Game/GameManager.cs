@@ -37,7 +37,7 @@ namespace Hollowmere
 
         void Start()
         {
-            if (!QaShot.RunIfRequested(this)) UiRoot.I.ShowTitle();
+            if (!QaShot.RunIfRequested(this) && !QaFrames.RunIfRequested(this)) UiRoot.I.ShowTitle();
         }
 
         // ====================== save / load ======================
@@ -81,6 +81,7 @@ namespace Hollowmere
         void ClearWorld()
         {
             UiRoot.I.CloseFishing();
+            FloorNav.Clear();
             Pickup.ClearAll();
             foreach (var a in Actor.All.ToList()) if (a != null) Destroy(a.gameObject);
             Actor.All.Clear();

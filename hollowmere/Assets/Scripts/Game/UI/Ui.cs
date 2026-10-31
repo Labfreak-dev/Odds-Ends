@@ -72,6 +72,10 @@ namespace Hollowmere
             return rt;
         }
 
+        /// <summary>Design-dp rectangle. Origin is the parent's top-left, +y down, matching DESIGN_SPEC.</summary>
+        public static RectTransform Dp(Transform parent, string name, int x, int y, int w, int h)
+            => At(parent, name, new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(w, h));
+
         /// <summary>A rect at a fixed pixel size anchored to a point (pivot = anchor).</summary>
         public static RectTransform At(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size)
         {

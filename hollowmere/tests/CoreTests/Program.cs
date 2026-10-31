@@ -421,6 +421,35 @@ static class Program
         Check(!rewritten.Contains("difficulty"), "rewritten saves omit difficulty");
     }
 
+    static bool Overlaps(DesignTable.Rect a, DesignTable.Rect b)
+        => a.X < b.X + b.W && b.X < a.X + a.W && a.Y < b.Y + b.H && b.Y < a.Y + a.H;
+
+    static bool Contains(DesignTable.Rect outer, DesignTable.Rect inner)
+        => inner.X >= outer.X && inner.Y >= outer.Y && inner.X + inner.W <= outer.X + outer.W && inner.Y + inner.H <= outer.Y + outer.H;
+
+    static string FeelAsset()
+    {
+        foreach (var c in new[]
+        {
+            Path.Combine("Assets", "Resources", "FeelProfile.asset"),
+            Path.Combine("hollowmere", "Assets", "Resources", "FeelProfile.asset"),
+            Path.Combine("..", "..", "Assets", "Resources", "FeelProfile.asset"),
+        })
+            if (File.Exists(c)) return File.ReadAllText(c);
+        return null;
+    }
+
+    static string YamlField(string text, string key)
+    {
+        foreach (var raw in text.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.StartsWith(key + ":", StringComparison.Ordinal))
+                return line.Substring(key.Length + 1).Trim();
+        }
+        return null;
+    }
+
     static List<string[]> SpecRows(string heading)
     {
         string path = null;
@@ -559,6 +588,52 @@ static class Program
         {
             var hit = DesignTable.Doll.FirstOrDefault(r => r.Id == row[0]);
             Check(hit.Id == row[0] && hit.X == int.Parse(row[1]) && hit.Y == int.Parse(row[2]) && hit.W == int.Parse(row[3]) && hit.H == int.Parse(row[4]), "doll " + row[0]);
+        }
+
+        foreach (var heading in new[] { "### T.motion", "### T.pet", "### T.qa", "### T.bag" })
+        {
+            foreach (var row in SpecRows(heading))
+                Check(DesignTable.Tune(row[0]) == decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture), heading + " " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.follow"))
+        {
+            var d = decimal.Parse(row[0], System.Globalization.CultureInfo.InvariantCulture);
+            var want = decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture);
+            Check(DesignTable.FollowSpeed(d) == want, "follow speed at " + row[0]);
+        }
+        Check(DesignTable.BagCapacity == Balance.InventorySize, "bag capacity matches the inventory");
+        var grid = DesignTable.UiRect("inventory", "grid");
+        var cell = DesignTable.UiRect("inventory", "gridCell");
+        Check(DesignTable.BagColumns * cell.W + (DesignTable.BagColumns - 1) * DesignTable.BagGap == grid.W, "grid width");
+        Check(DesignTable.BagRows * cell.H + (DesignTable.BagRows - 1) * DesignTable.BagGap == grid.H, "grid height");
+        Check(DesignTable.BagColumns * DesignTable.BagRows - DesignTable.BagCapacity == 2, "two sealed bag cells");
+
+        string[] leftSlots = { "amulet", "ring1", "ring2", "weapon", "offhand", "wrists" };
+        string[] rightSlots = { "head", "shoulders", "chest", "hands", "waist", "legs", "feet" };
+        var leftCol = DesignTable.UiRect("inventory", "leftColumn");
+        var rightCol = DesignTable.UiRect("inventory", "rightColumn");
+        var model = DesignTable.UiRect("inventory", "model");
+        var bag = DesignTable.UiRect("inventory", "bag");
+        foreach (var id in leftSlots) Check(Contains(leftCol, DesignTable.DollRect(id)), id + " sits in the left column");
+        foreach (var id in rightSlots) Check(Contains(rightCol, DesignTable.DollRect(id)), id + " sits in the right column");
+        for (int i = 0; i < DesignTable.Doll.Length; i++)
+            for (int j = i + 1; j < DesignTable.Doll.Length; j++)
+                Check(!Overlaps(DesignTable.Doll[i], DesignTable.Doll[j]), "slots overlap " + DesignTable.Doll[i].Id + " " + DesignTable.Doll[j].Id);
+        Check(!Overlaps(leftCol, model) && !Overlaps(rightCol, model) && !Overlaps(leftCol, rightCol), "columns clear the model");
+        Check(!Overlaps(model, bag) && !Overlaps(rightCol, bag), "bag clears the doll");
+        Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), grid), "tooltip covers the grid when shown");
+        Check(!Overlaps(DesignTable.UiRect("inventory", "tooltip"), DesignTable.UiRect("inventory", "sort")), "tooltip clears the sort row");
+        Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "close")), "grid and close sit in the bag");
+
+        string asset = FeelAsset();
+        Check(asset != null, "FeelProfile.asset is on disk");
+        if (asset != null)
+        {
+            foreach (var heading in new[] { "### T.motion", "### T.pet", "### T.qa" })
+            {
+                foreach (var row in SpecRows(heading))
+                    Check(YamlField(asset, row[0]) == row[1], "FeelProfile " + row[0] + " is " + YamlField(asset, row[0]));
+            }
         }
 
         Check(DesignTable.GlobeNormalChance == 0.08m && DesignTable.GlobeHealFraction == 0.25m, "globe rates");

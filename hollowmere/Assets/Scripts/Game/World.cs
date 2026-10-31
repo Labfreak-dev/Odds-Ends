@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Hollowmere.Core;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Hollowmere
 {
@@ -151,6 +152,7 @@ namespace Hollowmere
             sun.color = map.theme == Theme.Town ? new Color(1f, 0.95f, 0.85f) : lightC;
             if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 
+            FloorNav.Build(map);
             if (map.theme != Theme.Town)
             {
                 // Torches in a few rooms (vertex-lit beyond the pixel light budget, which is fine).
@@ -203,6 +205,61 @@ namespace Hollowmere
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = m;
             return go;
+        }
+    }
+
+    /// <summary>Runtime navmesh over the walkable floor tiles. Rebuilt with each level.</summary>
+    public static class FloorNav
+    {
+        static NavMeshDataInstance inst;
+        public static bool Ready { get; private set; }
+
+        public static void Clear()
+        {
+            if (inst.valid) NavMesh.RemoveNavMeshData(inst);
+            inst = default;
+            Ready = false;
+        }
+
+        public static void Build(DungeonMap map)
+        {
+            Clear();
+            if (map == null) return;
+            var sources = new List<NavMeshBuildSource>();
+            float t = World.T;
+            for (int y = 0; y < map.height; y++)
+                for (int x = 0; x < map.width; x++)
+                {
+                    if (!map.Walkable(x, y)) continue;
+                    sources.Add(new NavMeshBuildSource
+                    {
+                        shape = NavMeshBuildSourceShape.Box,
+                        // A hair of overlap so neighbouring tiles voxelize as one surface.
+                        size = new Vector3(t + 0.08f, 0.25f, t + 0.08f),
+                        transform = Matrix4x4.TRS(new Vector3(x * t, -0.12f, y * t), Quaternion.identity, Vector3.one),
+                        area = 0,
+                    });
+                }
+            if (sources.Count == 0) return;
+            var settings = NavMesh.GetSettingsByID(0);
+            settings.agentRadius = 0.28f;
+            settings.agentHeight = 1.2f;
+            settings.agentSlope = 15f;
+            settings.agentClimb = 0.2f;
+            var bounds = new Bounds(
+                new Vector3(map.width * t * 0.5f, 0f, map.height * t * 0.5f),
+                new Vector3(map.width * t + 4f, 6f, map.height * t + 4f));
+            var data = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
+            if (data == null)
+            {
+                Debug.LogWarning("Hollowmere navmesh: build returned nothing");
+                return;
+            }
+            inst = NavMesh.AddNavMeshData(data);
+            var tri = NavMesh.CalculateTriangulation();
+            int n = tri.indices != null ? tri.indices.Length / 3 : 0;
+            Ready = inst.valid && n > 0;
+            Debug.Log("Hollowmere navmesh: tiles " + sources.Count + " tris " + n + " ready " + Ready);
         }
     }
 }

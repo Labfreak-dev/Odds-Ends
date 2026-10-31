@@ -39,6 +39,37 @@ namespace Hollowmere.Core
         public const decimal LegendarySplit = 0.70m;
         public const decimal SetSplit = 0.30m;
 
+        public const decimal Accel = 28m;
+        public const decimal Decel = 36m;
+        public const decimal Turn = 540m;
+        public const decimal AttackTurn = 900m;
+        public const decimal IdleSpeed = 0.15m;
+        public const decimal WalkRun = 3.2m;
+        public const decimal ClipWalk = 2.2m;
+        public const decimal LocoBlend = 0.18m;
+        public const decimal AttackBlend = 0.12m;
+        public const decimal AttackSeconds = 0.35m;
+
+        public const decimal TrailBack = 1.75m;
+        public const decimal TrailSide = 0.55m;
+        public const decimal Arrive = 0.45m;
+        public const decimal Cruise = 6.2m;
+        public const decimal Catchup = 1.1m;
+        public const decimal MaxSpeed = 14m;
+        public const decimal WarpDistance = 18m;
+        public const decimal StuckSeconds = 1.25m;
+        public const decimal SampleRadius = 2m;
+
+        public const int QaFrames = 30;
+        public const int QaFps = 10;
+        public const int QaWidth = 2340;
+        public const int QaHeight = 1080;
+
+        public const int BagColumns = 6;
+        public const int BagRows = 7;
+        public const int BagGap = 12;
+        public const int BagCapacity = 40;
+
         public static readonly decimal[] EliteGlobeThresholds = { EliteGlobeFirst, EliteGlobeSecond, EliteGlobeThird };
 
         public readonly struct Rect
@@ -70,13 +101,22 @@ namespace Hollowmere.Core
             new Rect("hud", "skill3", 2148, 808, 72, 72),
             new Rect("hud", "skill4", 2244, 848, 72, 72),
             new Rect("hud", "potion", 1980, 984, 64, 64),
-            new Rect("inventory", "panel", 48, 48, 2244, 984),
-            new Rect("inventory", "doll", 72, 120, 640, 860),
-            new Rect("inventory", "model", 248, 200, 280, 520),
-            new Rect("inventory", "stats", 760, 120, 480, 860),
-            new Rect("inventory", "grid", 1500, 160, 472, 552),
-            new Rect("inventory", "gridCell", 0, 0, 72, 72),
-            new Rect("inventory", "tooltip", 1040, 200, 440, 560),
+            new Rect("inventory", "screen", 0, 0, 2340, 1080),
+            new Rect("inventory", "name", 40, 36, 480, 44),
+            new Rect("inventory", "level", 40, 84, 240, 32),
+            new Rect("inventory", "stats", 540, 36, 450, 72),
+            new Rect("inventory", "model", 168, 120, 720, 880),
+            new Rect("inventory", "leftColumn", 40, 140, 104, 708),
+            new Rect("inventory", "rightColumn", 912, 140, 104, 688),
+            new Rect("inventory", "tabs", 168, 1012, 720, 48),
+            new Rect("inventory", "bag", 1088, 36, 1216, 1008),
+            new Rect("inventory", "currency", 1148, 52, 520, 40),
+            new Rect("inventory", "close", 2216, 48, 64, 64),
+            new Rect("inventory", "grid", 1148, 148, 636, 744),
+            new Rect("inventory", "gridCell", 0, 0, 96, 96),
+            new Rect("inventory", "sort", 1148, 920, 200, 64),
+            new Rect("inventory", "actions", 1368, 920, 416, 64),
+            new Rect("inventory", "tooltip", 1148, 160, 480, 640),
             new Rect("vendor", "panel", 48, 48, 2244, 984),
             new Rect("vendor", "goods", 72, 120, 900, 760),
             new Rect("vendor", "actions", 72, 900, 900, 80),
@@ -89,20 +129,74 @@ namespace Hollowmere.Core
 
         public static readonly Rect[] Doll =
         {
-            new Rect("doll", "head", 284, 24, 72, 72),
-            new Rect("doll", "shoulders", 120, 160, 72, 72),
-            new Rect("doll", "amulet", 448, 160, 72, 72),
-            new Rect("doll", "chest", 284, 200, 72, 72),
-            new Rect("doll", "hands", 40, 300, 72, 72),
-            new Rect("doll", "wrists", 40, 390, 72, 72),
-            new Rect("doll", "waist", 284, 400, 72, 72),
-            new Rect("doll", "legs", 284, 490, 72, 72),
-            new Rect("doll", "feet", 284, 620, 72, 72),
-            new Rect("doll", "weapon", 40, 520, 72, 120),
-            new Rect("doll", "offhand", 528, 520, 72, 120),
-            new Rect("doll", "ring1", 40, 660, 72, 72),
-            new Rect("doll", "ring2", 528, 660, 72, 72),
+            new Rect("doll", "amulet", 40, 140, 104, 88),
+            new Rect("doll", "ring1", 40, 240, 104, 88),
+            new Rect("doll", "ring2", 40, 340, 104, 88),
+            new Rect("doll", "weapon", 40, 440, 104, 148),
+            new Rect("doll", "offhand", 40, 600, 104, 148),
+            new Rect("doll", "wrists", 40, 760, 104, 88),
+            new Rect("doll", "head", 912, 140, 104, 88),
+            new Rect("doll", "shoulders", 912, 240, 104, 88),
+            new Rect("doll", "chest", 912, 340, 104, 88),
+            new Rect("doll", "hands", 912, 440, 104, 88),
+            new Rect("doll", "waist", 912, 540, 104, 88),
+            new Rect("doll", "legs", 912, 640, 104, 88),
+            new Rect("doll", "feet", 912, 740, 104, 88),
         };
+
+        public static Rect UiRect(string screen, string id)
+        {
+            for (int i = 0; i < Ui.Length; i++)
+                if (Ui[i].Screen == screen && Ui[i].Id == id) return Ui[i];
+            return new Rect(screen, id, 0, 0, 0, 0);
+        }
+
+        public static Rect DollRect(string id)
+        {
+            for (int i = 0; i < Doll.Length; i++)
+                if (Doll[i].Id == id) return Doll[i];
+            return new Rect("doll", id, 0, 0, 0, 0);
+        }
+
+        public static decimal Tune(string id) => id switch
+        {
+            "accel" => Accel,
+            "decel" => Decel,
+            "turn" => Turn,
+            "attackTurn" => AttackTurn,
+            "idle" => IdleSpeed,
+            "walkRun" => WalkRun,
+            "clipWalk" => ClipWalk,
+            "locoBlend" => LocoBlend,
+            "attackBlend" => AttackBlend,
+            "attackSeconds" => AttackSeconds,
+            "trailBack" => TrailBack,
+            "trailSide" => TrailSide,
+            "arrive" => Arrive,
+            "cruise" => Cruise,
+            "catchup" => Catchup,
+            "maxSpeed" => MaxSpeed,
+            "warp" => WarpDistance,
+            "stuck" => StuckSeconds,
+            "sample" => SampleRadius,
+            "frames" => QaFrames,
+            "fps" => QaFps,
+            "width" => QaWidth,
+            "height" => QaHeight,
+            "columns" => BagColumns,
+            "rows" => BagRows,
+            "gap" => BagGap,
+            "capacity" => BagCapacity,
+            _ => 0m,
+        };
+
+        /// <summary>Pet follow speed from the distance to the trailing slot, before a form multiplier.</summary>
+        public static decimal FollowSpeed(decimal distanceToSlot)
+        {
+            if (distanceToSlot < Arrive) return 0m;
+            decimal s = Cruise + Catchup * (distanceToSlot - Arrive);
+            return s > MaxSpeed ? MaxSpeed : s;
+        }
 
         static decimal Intercept => decimal.Parse(UnitInterceptText, CultureInfo.InvariantCulture);
         static decimal Slope => decimal.Parse(UnitSlopeText, CultureInfo.InvariantCulture);

@@ -25,9 +25,10 @@ namespace Hollowmere
         readonly Rng rng = new Rng();
         Transform hand, figure;
         ModelAnim modelAnim;
-        float nextAttack, potionUntil, potionHeal, potionCd, swing, combatTimer, spinUntil, spinTick;
+        float nextAttack, potionUntil, potionHeal, potionCd, combatTimer, spinUntil, spinTick;
         SkillCast spinCast;
-        float regenAcc, castPose;
+        float regenAcc;
+        readonly Locomotion loco = new Locomotion();
 
         public static HeroActor Spawn(Vector3 at)
         {
@@ -121,7 +122,8 @@ namespace Hollowmere
             potionCd -= dt;
 
             // ---- spin (Whirling Steel) ticks while moving
-            if (spinUntil > Time.time)
+            bool spinning = spinUntil > Time.time;
+            if (spinning && figure != null)
             {
                 figure.Rotate(0, 1080 * dt, 0, Space.Self);
                 if ((spinTick -= dt) <= 0)
@@ -132,40 +134,45 @@ namespace Hollowmere
                     SkillRunner.OnHits(this, spinCast, hits.Count);
                 }
             }
-            else if (castPose > 0 && figure != null)
-            {
-                castPose -= dt * 2.6f;
-                float k = Mathf.Sin(Mathf.Clamp01(castPose) * Mathf.PI);
-                figure.localRotation = Quaternion.Euler(-24f * k, 32f * k, 0);
-                figure.localPosition = new Vector3(0, 0.04f * k, -0.12f * k);
-            }
-            else if (figure != null)
-            {
-                figure.localRotation = Quaternion.Slerp(figure.localRotation, Quaternion.identity, dt * 12);
-                if (swing <= 0) figure.localPosition = Vector3.Lerp(figure.localPosition, Vector3.zero, dt * 10);
-            }
 
-            // ---- movement
-            var before = transform.position;
-            var inputHeld = false;
+            // ---- movement: accelerate into the stick, turn toward it, report real ground speed
+            Vector3 wishDir = Vector3.zero;
+            float wish = 0f;
             if (!busy && !Stunned)
             {
                 var input = new Vector3(moveInput.x, 0, moveInput.y);
-                // Camera looks along +Z rotated; map joystick to camera-relative directions.
-                var cam = CameraRig.Yaw;
-                input = Quaternion.Euler(0, cam, 0) * input;
-                inputHeld = input.sqrMagnitude > 0.02f;
-                if (inputHeld)
+                input = Quaternion.Euler(0, CameraRig.Yaw, 0) * input;
+                if (input.sqrMagnitude > 0.02f)
                 {
-                    Move(input * MoveSpeed * dt);
-                    if (spinUntil <= Time.time) Face(input);
-                    aim = input.normalized;
+                    wishDir = input.normalized;
+                    wish = MoveSpeed * Mathf.Clamp01(input.magnitude);
+                    aim = wishDir;
                 }
             }
-            float spd = dt > 0.0001f ? (transform.position - before).magnitude / dt : 0f;
-            // Idle the moment the stick is released, or when a held stick produces almost no speed (wall).
-            bool walking = spinUntil > Time.time || (inputHeld && spd > 0.35f);
-            modelAnim?.SetMoving(walking);
+            bool attacking = modelAnim != null && modelAnim.Attacking;
+            var face = attacking ? aim : wishDir;
+            loco.Step(this, wishDir, wish, dt, face, attacking, false, spinning);
+            modelAnim?.Tick(loco.groundSpeed, dt);
+
+            // A missing attack clip eases a lean in and out. A real clip owns the body instead.
+            if (!spinning && figure != null)
+            {
+                float k = 0f;
+                bool cast = false;
+                if (modelAnim != null && modelAnim.Attacking && !modelAnim.HasAttackClip)
+                {
+                    k = Mathf.Sin(modelAnim.AttackUnit * Mathf.PI);
+                    cast = modelAnim.Casting;
+                }
+                var pos = cast ? new Vector3(0f, 0.04f * k, -0.12f * k) : new Vector3(0f, 0f, k * 0.35f);
+                var rot = cast ? Quaternion.Euler(-24f * k, 32f * k, 0f) : Quaternion.identity;
+                float blend = Mathf.Max(0.05f, Feel.Active.attackBlend);
+                float t = 1f - Mathf.Exp(-dt / blend);
+                figure.localPosition = Vector3.Lerp(figure.localPosition, pos, t);
+                figure.localRotation = Quaternion.Slerp(figure.localRotation, rot, t);
+                if (hand != null)
+                    hand.localRotation = Quaternion.Slerp(hand.localRotation, Quaternion.Euler(k * -110f, 0f, 0f), t);
+            }
 
             // ---- auto-target and primary attack
             target = PickTarget();
@@ -173,15 +180,6 @@ namespace Hollowmere
             {
                 var primary = SkillDb.Get(Hero.skills.bar[0]);
                 if (primary != null) UseSkill(primary);
-            }
-
-            // ---- swing animation
-            if (swing > 0)
-            {
-                swing -= dt * 4;
-                float k = Mathf.Sin(Mathf.Clamp01(swing) * Mathf.PI);
-                if (hand != null) hand.localRotation = Quaternion.Euler(k * -110, 0, 0);
-                else if (figure != null && spinUntil <= Time.time) figure.localPosition = new Vector3(0, 0, k * 0.35f);  // lunge
             }
 
             // ---- pickups
@@ -221,9 +219,10 @@ namespace Hollowmere
 
             Vector3 dir = aim;
             if (target != null && s.shape != SkillShape.Dash) dir = (target.Pos - Pos).normalized;
-            if (s.shape != SkillShape.Dash || dir.sqrMagnitude > 0) Face(dir);
-            if (s.id == "hx_bolt") { castPose = 1f; swing = 0f; }
-            else { swing = 1; castPose = 0f; }
+            if (dir.sqrMagnitude > 0.0001f) aim = dir.normalized;
+            // A dash leaves on this heading. Everything else turns through the motor.
+            if (s.shape == SkillShape.Dash) { if (dir.sqrMagnitude > 0.0001f) Face(dir); }
+            else modelAnim?.BeginAttack(s.id == "hx_bolt");
             combatTimer = 4;
             SkillRunner.Execute(this, cast, dir, target);
             return true;
@@ -232,6 +231,7 @@ namespace Hollowmere
         public void StartSpin(SkillCast c)
         {
             spinCast = c;
+            modelAnim?.CancelAttack();
             spinUntil = Time.time + Mathf.Max(0.5f, c.duration);
             spinTick = 0;
         }

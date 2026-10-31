@@ -65,3 +65,11 @@ MonoBehaviour:
     walk: 0.59
     run: 3.4
     longPunch: 1
+  - model: pet_hound
+    walk: 0.8
+    run: 2.2
+    longPunch: 0
+  - model: pet_lynx
+    walk: 0.85
+    run: 2.3
+    longPunch: 0

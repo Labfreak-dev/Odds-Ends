@@ -229,7 +229,11 @@ namespace Hollowmere
                     string npc = kind switch
                     {
                         InteractKind.Merchant => "npc_merchant", InteractKind.Blacksmith => "npc_smith",
-                        InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher", _ => null,
+                        InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher",
+                        // No dedicated meshes yet. A vendor and a robed figure stand in
+                        // for the yellow jeweler blob and the green dealer capsule.
+                        InteractKind.Jeweler => "npc_merchant", InteractKind.Gambler => "npc_mystic",
+                        _ => null,
                     };
                     var model = npc != null ? Art.Animated(npc, 1.75f, t) : null;
                     if (model == null && kind == InteractKind.QuestBoard)
@@ -303,7 +307,7 @@ namespace Hollowmere
     {
         public static float Yaw = 0f;
         public Transform follow;
-        public float distance = 15f, pitch = 55f;
+        public float distance = 10.5f, pitch = 55f;
         Camera cam;
         readonly List<Renderer> hidden = new List<Renderer>();
         bool locked;

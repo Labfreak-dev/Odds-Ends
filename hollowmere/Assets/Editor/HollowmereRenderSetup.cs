@@ -24,6 +24,7 @@ namespace Hollowmere.Editor
             "Hollowmere/Text",
             "Hollowmere/Glow",
             "Hollowmere/Sheet",
+            "Hollowmere/Lit",
         };
 
         public void OnPreprocessBuild(BuildReport report)

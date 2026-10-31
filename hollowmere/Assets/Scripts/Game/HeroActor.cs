@@ -66,6 +66,15 @@ namespace Hollowmere
             rim.range = 5.5f;
             rim.intensity = 2.6f;
             rim.color = new Color(0.82f, 0.72f, 1f);
+            // A warm rim from behind the shoulders. Hollowmere/Lit and URP Lit sample it;
+            // the diffuse color shader did not, so the hero read as a flat dark mass.
+            var edge = new GameObject("heroRim").AddComponent<Light>();
+            edge.transform.SetParent(transform, false);
+            edge.transform.localPosition = new Vector3(-0.5f, 1.65f, 1.2f);
+            edge.type = LightType.Point;
+            edge.range = 4.2f;
+            edge.intensity = 1.4f;
+            edge.color = new Color(1f, 0.78f, 0.55f);
             RefreshWeapon();
             // A torch-light that follows the hero keeps dark floors readable on small screens.
             var l = new GameObject("heroLight").AddComponent<Light>();

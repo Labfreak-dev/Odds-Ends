@@ -71,13 +71,13 @@ namespace Hollowmere
             g.AddComponent<FxLife>().Init(seconds, g.transform.localScale, new Vector3(0.01f, 0.01f, len));
         }
 
-        public static void Text(Vector3 at, string text, Color c, float size = 1f, float seconds = 0.9f)
+        public static void Text(Vector3 at, string text, Color c, float size = 1f, float seconds = 0.9f, float rise = 1.6f)
         {
             var g = new GameObject("ftext");
             g.transform.position = at + new Vector3(Random.Range(-0.3f, 0.3f), 2.2f, 0);
             StyleWorldText(g.AddComponent<TextMesh>(), text, c, 64, 0.05f * size);
             g.AddComponent<FaceCamera>();
-            g.AddComponent<FxLife>().Init(seconds, Vector3.one, Vector3.one, rise: 1.6f);
+            g.AddComponent<FxLife>().Init(seconds, Vector3.one, Vector3.one, rise: rise);
         }
 
         /// <summary>World-space name. TextMesh faces along its -Z, so matching the camera's rotation
@@ -117,8 +117,25 @@ namespace Hollowmere
 
         public static void Damage(Vector3 at, Hit h, bool onHero)
         {
-            var c = onHero ? new Color(1f, 0.3f, 0.3f) : h.crit ? new Color(1f, 0.85f, 0.2f) : Art.Element(h.element);
-            Text(at, (h.crit ? "!" : "") + Short(h.amount), c, h.crit ? 1.5f : 1f);
+            var style = DesignTable.NumberStyle(onHero ? "hurt" : h.crit ? "crit" : "normal");
+            var c = SkillVfx.Hex(style.Hex);
+            if (!onHero && !h.crit) c = Art.Element(h.element);
+            float life = style.Life / 1000f;
+            float rise = life > 0.01f ? (style.Rise / 1000f) / life : 0f;
+            Text(at, (h.crit && !onHero ? "!" : "") + Short(h.amount), c, style.Size / 50f, life, rise);
+        }
+
+        public static void Sparks(Vector3 at, Color c, string kind)
+        {
+            var row = DesignTable.Spark(kind);
+            for (int i = 0; i < row.Count; i++)
+            {
+                float ang = i * Mathf.PI * 2f / Mathf.Max(1, row.Count);
+                var dir = new Vector3(Mathf.Cos(ang), 0.45f, Mathf.Sin(ang));
+                var g = Art.Sphere(null, at, Vector3.one * (row.Size / 1000f), Art.Mat(c, 2f));
+                g.AddComponent<FxLife>().Init(row.Life / 1000f, g.transform.localScale, g.transform.localScale * 0.2f);
+                g.AddComponent<SparkMote>().velocity = dir * (row.Speed / 1000f);
+            }
         }
 
         public static string Short(float v)
@@ -127,6 +144,16 @@ namespace Hollowmere
             if (v >= 1e6f) return (v / 1e6f).ToString("0.0") + "M";
             if (v >= 1e4f) return (v / 1e3f).ToString("0") + "K";
             return Mathf.RoundToInt(v).ToString();
+        }
+    }
+
+    public sealed class SparkMote : MonoBehaviour
+    {
+        public Vector3 velocity;
+        void Update()
+        {
+            velocity.y -= 9f * Time.deltaTime;
+            transform.position += velocity * Time.deltaTime;
         }
     }
 

@@ -24,6 +24,9 @@ namespace Hollowmere
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
     ///   Hollowmere -qaShot weapon-magic
+    ///   Hollowmere -qaShot inventory
+    ///   Hollowmere -qaShot menus
+    ///   Hollowmere -qaShot hud
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
     /// Weapon shots equip one sword, bow, or staff on the classless hero and log the family.
@@ -71,6 +74,9 @@ namespace Hollowmere
                 case "magic":
                 case "inventory":
                 case "bag":
+                case "menus":
+                case "menu":
+                case "hud":
                 case "loot":
                 case "gear":
                 case "gearclose":
@@ -118,6 +124,8 @@ namespace Hollowmere
             bool weaponMagic = scene == "weapon-magic" || scene == "magic";
             bool weapon = weaponMelee || weaponRanged || weaponMagic;
             bool inventory = scene == "inventory" || scene == "bag";
+            bool menus = scene == "menus" || scene == "menu";
+            bool hud = scene == "hud";
             bool loot = scene == "loot";
             bool gear = scene == "gear";
             bool gearClose = scene == "gearclose" || scene == "gear-close";
@@ -232,7 +240,21 @@ namespace Hollowmere
                 else if (inventory)
                 {
                     InventoryScreen.Show(UiRoot.I);
-                    yield return new WaitForSecondsRealtime(0.4f);
+                    yield return new WaitForSecondsRealtime(0.6f);
+                }
+                else if (menus)
+                {
+                    MenuScreen.Show(UiRoot.I);
+                    yield return new WaitForSecondsRealtime(0.45f);
+                }
+                else if (hud)
+                {
+                    int buttons = 0;
+                    if (UiRoot.I != null && UiRoot.I.Hud != null)
+                        buttons = UiRoot.I.Hud.GetComponentsInChildren<UnityEngine.UI.Button>(true).Length;
+                    Debug.Log("Hollowmere QA hud buttons " + buttons);
+                    if (buttons < 4) Debug.LogError("Hollowmere QA hud FAIL missing menu buttons");
+                    yield return new WaitForSeconds(0.35f);
                 }
                 else if (dungeon && HeroActor.I != null)
                 {

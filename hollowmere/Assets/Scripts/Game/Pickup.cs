@@ -98,7 +98,8 @@ namespace Hollowmere
                 else if (p.item != null && (p.item.kind == ItemKind.Tome || p.item.kind == ItemKind.Rune))
                 {
                     GameManager.I.GrantSkillItem(p.item);
-                    Sfx.Bag("item_pickup");
+                    Sfx.Bag(UiFeelProfile.LootCue);
+                    Haptics.Light();
                 }
                 else if (p.item != null)
                 {
@@ -111,7 +112,8 @@ namespace Hollowmere
                         }
                         continue;
                     }
-                    Sfx.Bag("item_pickup");
+                    Sfx.Bag(UiFeelProfile.LootCue);
+                    Haptics.Light();
                     if (p.item.kind == ItemKind.Potion) AudioHub.Vary("pickup_potion", 0.8f);
                     GameManager.I.OnPickedUp(p.item);
                 }

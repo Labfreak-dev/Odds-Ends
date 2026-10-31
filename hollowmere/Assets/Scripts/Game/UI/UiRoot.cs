@@ -100,7 +100,7 @@ namespace Hollowmere
                 UiArt.ApplySlice(frameImg, UiArt.FrameSprite());
                 frameImg.raycastTarget = false;
             }
-            root.gameObject.AddComponent<UiMenuMotion>().Arm(panel, new Vector2(0, -22f), 0.9f);
+            root.gameObject.AddComponent<UiMenuMotion>().Arm(panel, new Vector2(0f, -UiFeelProfile.Slide), 0.9f);
             var head = Ui.Rect(panel, "title", new Vector2(0, 1), new Vector2(1, 1), new Vector2(48, -108), new Vector2(-120, -16));
             if (UiArt.PanelHeader != null)
             {

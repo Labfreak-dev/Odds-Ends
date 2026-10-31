@@ -17,7 +17,6 @@ namespace Hollowmere
         Color shownSkin, shownCloth, shownHair, shownArmour;
         bool shownPlate;
         bool built;
-        float spin;
         int framed;
 
         public static HeroStage Create(RawImage target)
@@ -39,13 +38,13 @@ namespace Hollowmere
             cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.07f, 0.06f, 0.08f, 1f);
-            cam.fieldOfView = 32f;
+            cam.fieldOfView = 28f;
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 24f;
             cam.cullingMask = 1 << StageLayer;
             cam.targetTexture = rt;
-            camGo.transform.localPosition = new Vector3(0.15f, 1.15f, -4.1f);
-            camGo.transform.LookAt(transform.TransformPoint(new Vector3(0.05f, 0.95f, 0.2f)));
+            camGo.transform.localPosition = new Vector3(0.1f, 1.2f, 6.2f);
+            camGo.transform.LookAt(transform.TransformPoint(new Vector3(0.05f, 0.9f, 0.1f)));
             if (Camera.main != null) Camera.main.cullingMask &= ~(1 << StageLayer);
 
             var sun = new GameObject("stageKey").AddComponent<Light>();
@@ -136,9 +135,8 @@ namespace Hollowmere
 
         void LateUpdate()
         {
-            spin += 28f * Time.unscaledDeltaTime;
-            if (heroPivot != null) heroPivot.localRotation = Quaternion.Euler(0f, spin, 0f);
-            if (petPivot != null) petPivot.localRotation = Quaternion.Euler(0f, spin * 0.8f + 40f, 0f);
+            if (heroPivot != null) heroPivot.localRotation = Quaternion.identity;
+            if (petPivot != null) petPivot.localRotation = Quaternion.Euler(0f, 20f, 0f);
             if (built && framed < 6)
             {
                 framed++;
@@ -169,10 +167,9 @@ namespace Hollowmere
                 else b.Encapsulate(piece);
             }
             if (!any) return;
-            float dist = Mathf.Clamp(Mathf.Max(b.size.y * 2.1f, b.size.x * 2.1f), 4.2f, 7.2f);
-            var look = b.center;
-            cam.transform.position = look + new Vector3(0f, b.size.y * 0.08f, -dist);
-            cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);
+            float dist = PortraitCam.FrameFront(cam, b, 0.72f);
+            Debug.Log("Hollowmere QA portrait creator front dist=" + dist.ToString("0.00")
+                + " size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
         }
 
         static void Clear(Transform t)

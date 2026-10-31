@@ -69,6 +69,7 @@ namespace Hollowmere
             Ui.Size(Ui.Button(rl, "Save", () => { gm.Save(); ui.Toast("Saved."); }), 70);
             Ui.Size(Ui.Button(rl, $"Sound: {(AudioHub.I.sfxVolume > 0 ? "on" : "off")}", () => { AudioHub.SetVolumes(AudioHub.I.sfxVolume > 0 ? 0 : 0.8f, AudioHub.I.musicVolume); Show(ui); }), 70);
             Ui.Size(Ui.Button(rl, $"Music: {(AudioHub.I.musicVolume > 0 ? "on" : "off")}", () => { AudioHub.SetVolumes(AudioHub.I.sfxVolume, AudioHub.I.musicVolume > 0 ? 0 : 0.45f); Show(ui); }), 70);
+            Ui.Size(Ui.Button(rl, $"Haptics: {(Haptics.Enabled ? "on" : "off")}", () => { Haptics.Enabled = !Haptics.Enabled; if (Haptics.Enabled) Haptics.Light(); Show(ui); }), 70);
             Ui.Size(Ui.Button(rl, "Credits", () => CreditsScreen.Show(ui)), 70);
             Ui.Size(Ui.Button(rl, "Save and quit to title", () => { gm.Save(); ui.CloseAll(); ui.ShowTitle(); }, new Color(0.4f, 0.15f, 0.12f)), 70);
         }

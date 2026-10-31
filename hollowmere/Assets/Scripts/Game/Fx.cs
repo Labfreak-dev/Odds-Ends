@@ -28,7 +28,8 @@ namespace Hollowmere
 
         public static void Impact(Vector3 at, Color c, Actor target)
         {
-            Burst(at + Vector3.up * 0.6f, c, 1.5f, 0.28f);
+            Flip(at + Vector3.up * 0.8f, c, "explosion_flipbook_3x3", 3, 3, 9, 1.8f);
+            Burst(at + Vector3.up * 0.6f, c, 1.5f, 0.28f, "slash_01");
             Ring(at, 1.5f, c, 0.32f);
             for (int i = 0; i < 5; i++)
             {
@@ -44,7 +45,7 @@ namespace Hollowmere
             var host = new GameObject("hexImpact");
             host.transform.position = at + Vector3.up * 1.05f;
             // The bolt sheet is a violet hexagram. The impact is a soft round glow only.
-            var sprite = Art.GlowSprite(host.transform, 1.5f, c);
+            var sprite = Art.VfxSprite(host.transform, 1.8f, c, "magic_01");
             var mr = sprite.GetComponent<MeshRenderer>();
             if (mr != null && mr.sharedMaterial != null)
             {
@@ -65,10 +66,28 @@ namespace Hollowmere
             if (target != null) target.PunchFlash(c);
         }
 
-        public static void Burst(Vector3 at, Color c, float size = 0.6f, float seconds = 0.25f)
+        public static void Burst(Vector3 at, Color c, float size = 0.6f, float seconds = 0.25f, string tex = "spark_04")
         {
-            var g = Art.Sphere(null, at, Vector3.one * size * 0.3f, Art.Mat(c, 2f));
-            g.AddComponent<FxLife>().Init(seconds, Vector3.one * size * 0.3f, Vector3.one * size);
+            var g = Art.VfxSprite(null, size, c, tex);
+            g.transform.position = at;
+            g.AddComponent<FxLife>().Init(seconds, Vector3.one * size * 0.6f, Vector3.one * size * 1.4f);
+        }
+
+        /// <summary>Kenney flipbook. Columns and rows match the sheet (3x3 explosion and flash, 5x5 smoke).</summary>
+        public static void Flip(Vector3 at, Color c, string texName, int columns, int rows, int count, float size)
+        {
+            var tex = Art.VfxTex(texName);
+            if (tex == null) return;
+            var go = Art.VfxSprite(null, size, c, texName);
+            go.transform.position = at;
+            var mr = go.GetComponent<MeshRenderer>();
+            var play = go.AddComponent<SheetPlay>();
+            play.mat = mr != null ? mr.material : null;
+            play.columns = columns;
+            play.rows = rows;
+            play.count = count;
+            play.fps = 16;
+            play.life = count / 16f + 0.05f;
         }
 
         public static void Beam(Vector3 a, Vector3 b, Color c, float width = 0.12f, float seconds = 0.15f)

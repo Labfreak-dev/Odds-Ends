@@ -20,6 +20,7 @@ namespace Hollowmere
                             skip.Add(new Int2(p.x + dx, p.y + dy));
             skip.Add(map.entry);
             skip.Add(map.exit);
+            var clear = ClearOf(skip, map.entry);
             bool town = map.theme == Theme.Town;
             var rng = new System.Random(seed == 0 ? 1 : seed);
             int placed = 0;
@@ -28,20 +29,26 @@ namespace Hollowmere
                 {
                     if (map.Get(x, y) != Tile.Floor) continue;
                     var p = new Int2(x, y);
-                    if (skip.Contains(p)) continue;
+                    if (clear.Contains(p)) continue;
                     // Keep the ground in front of the spawn camera empty.
                     if (p.y < map.entry.y - 1 && System.Math.Abs(p.x - map.entry.x) < 6) continue;
-                    int open = 0, walls = 0;
+                    int walls = 0;
                     foreach (var d in Pathfinder.Dirs4)
-                    {
-                        var t = map.Get(x + d.x, y + d.y);
-                        if (t == Tile.Floor) open++;
-                        else if (t == Tile.Wall) walls++;
-                    }
-                    if (open <= 2) continue;
+                        if (map.Get(x + d.x, y + d.y) == Tile.Wall) walls++;
                     int roll = rng.Next(10);
                     var at = World.ToWorld(p);
-                    if (walls > 0 && roll < 4)
+                    // Open floor is a path. Props sit in corners, then along a wall.
+                    if (walls < 1)
+                    {
+                        if (town && roll == 9)
+                        {
+                            Grass(root, at, rng);
+                            placed++;
+                        }
+                        continue;
+                    }
+                    bool corner = walls >= 2;
+                    if ((corner && roll < 7) || (!corner && roll < 3))
                     {
                         Prop(root, at, rng, town);
                         placed++;
@@ -51,14 +58,183 @@ namespace Hollowmere
                         Decal(root, at, rng, town);
                         placed++;
                     }
-                    else if (town && walls == 0 && roll == 9)
-                    {
-                        Grass(root, at, rng);
-                        placed++;
-                    }
                 }
             Debug.Log("Hollowmere dressing: " + placed + " pieces on " + map.theme);
+            SetPieces(map, root, clear, rng);
             if (town) TownTorches(map, root, skip);
+        }
+
+        static readonly string[] TownKit = { "cc0_cabinet", "cc0_bookshelf", "cc0_statue", "cc0_rack", "cc0_candle", "cc0_chest" };
+        static readonly string[] DungeonKit = { "cc0_cabinet", "cc0_bookshelf", "cc0_rack", "cc0_boulder", "cc0_roots", "cc0_candle", "cc0_chest" };
+
+        static void Prop(Transform root, Vector3 at, System.Random rng, bool town)
+        {
+            float yaw = (float)rng.NextDouble() * 360f;
+            var rot = Quaternion.Euler(0f, yaw, 0f);
+            string[] pbr = town
+                ? new[] { "wine_barrel_01", "wooden_crate_01", "wooden_crate_02", "tree_stump_01", "rock_09", "wooden_table_02", "wooden_lantern_01", "wooden_bucket_01" }
+                : new[] { "wine_barrel_01", "wooden_crate_02", "rock_07", "rock_09", "lantern_01" };
+            if (rng.Next(2) == 0)
+            {
+                string kitName = pbr[rng.Next(pbr.Length)];
+                var spawned = PbrKit.Prop(kitName, root);
+                if (spawned != null)
+                {
+                    spawned.transform.SetPositionAndRotation(at, rot);
+                    if (kitName.Contains("lantern"))
+                    {
+                        var l = new GameObject("torch").AddComponent<Light>();
+                        l.transform.SetParent(spawned.transform, false);
+                        l.transform.localPosition = Vector3.up * 0.4f;
+                        l.type = LightType.Point;
+                        l.color = new Color(1f, 0.72f, 0.4f);
+                        l.range = 7f;
+                        l.intensity = 1.8f;
+                    }
+                    return;
+                }
+            }
+            var pool = town ? TownKit : DungeonKit;
+            if (rng.Next(3) != 0 && Place(root, pool[rng.Next(pool.Length)], at, rot, 0f, false, default, 0f, 0f))
+                return;
+            var names = town ? TownProps : DungeonProps;
+            if (Stand(root, at, names[rng.Next(names.Length)], rot, 1.45f)) return;
+            switch (rng.Next(town ? 4 : 5))
+            {
+                case 0: Barrel(root, at, rot); break;
+                case 1: Crate(root, at, rot, rng); break;
+                case 2: Rock(root, at, rng, town); break;
+                default: Rubble(root, at, rng); break;
+            }
+        }
+
+        /// <summary>NPC tiles, plus a wider ring around the hero spawn, stay empty.</summary>
+        static HashSet<Int2> ClearOf(HashSet<Int2> skip, Int2 entry)
+        {
+            var clear = new HashSet<Int2>();
+            foreach (var s in skip)
+                for (int dy = -2; dy <= 2; dy++)
+                    for (int dx = -2; dx <= 2; dx++)
+                        clear.Add(new Int2(s.x + dx, s.y + dy));
+            for (int dy = -5; dy <= 5; dy++)
+                for (int dx = -5; dx <= 5; dx++)
+                    clear.Add(new Int2(entry.x + dx, entry.y + dy));
+            return clear;
+        }
+
+        /// <summary>Corners first, then tiles that touch one wall. Open floor is left as a path.</summary>
+        static List<Int2> WallSpots(DungeonMap map, HashSet<Int2> clear)
+        {
+            var corners = new List<Int2>();
+            var edges = new List<Int2>();
+            for (int y = 1; y < map.height - 1; y++)
+                for (int x = 1; x < map.width - 1; x++)
+                {
+                    if (map.Get(x, y) != Tile.Floor) continue;
+                    var p = new Int2(x, y);
+                    if (clear.Contains(p)) continue;
+                    int walls = 0;
+                    foreach (var d in Pathfinder.Dirs4)
+                        if (map.Get(x + d.x, y + d.y) == Tile.Wall) walls++;
+                    if (walls >= 2) corners.Add(p);
+                    else if (walls == 1) edges.Add(p);
+                }
+            corners.AddRange(edges);
+            return corners;
+        }
+
+        static Quaternion FaceIn(DungeonMap map, Int2 p)
+        {
+            foreach (var d in Pathfinder.Dirs4)
+            {
+                if (map.Get(p.x + d.x, p.y + d.y) != Tile.Wall) continue;
+                var away = new Vector3(-d.x, 0f, -d.y);
+                if (away.sqrMagnitude > 0.1f) return Quaternion.LookRotation(away, Vector3.up);
+            }
+            return Quaternion.identity;
+        }
+
+        static void SetPieces(DungeonMap map, Transform root, HashSet<Int2> clear, System.Random rng)
+        {
+            var spots = WallSpots(map, clear);
+            int n = 0;
+            bool Take(out Int2 p)
+            {
+                if (n >= spots.Count) { p = default; return false; }
+                p = spots[n++];
+                return true;
+            }
+            void Put(string key, float lift, bool light, Color color, float range, float intensity)
+            {
+                if (!Take(out var p)) return;
+                Place(root, key, World.ToWorld(p), FaceIn(map, p), lift, light, color, range, intensity);
+            }
+            bool town = map.theme == Theme.Town;
+            var warm = new Color(1f, 0.72f, 0.38f);
+            if (town)
+            {
+                Put("cc0_firepit", 0f, true, new Color(1f, 0.45f, 0.16f), 7f, 2.2f);
+                Put("cc0_chandelier", 2.5f, true, warm, 8f, 2f);
+                Put("cc0_caged", 2.3f, true, warm, 7f, 1.8f);
+                Put("cc0_candles", 0f, true, warm, 4.5f, 1.3f);
+                Put("cc0_candle", 0f, true, warm, 3.5f, 1.1f);
+                Put("cc0_cabinet", 0f, false, default, 0f, 0f);
+                Put("cc0_bookshelf", 0f, false, default, 0f, 0f);
+                Put("cc0_statue", 0f, false, default, 0f, 0f);
+                Put("cc0_rack", 0f, false, default, 0f, 0f);
+                Put("cc0_chest", 0f, false, default, 0f, 0f);
+                Put("cc0_boulder", 0f, false, default, 0f, 0f);
+                Put("cc0_deadtree", 0f, false, default, 0f, 0f);
+                Put("cc0_roots", 0f, false, default, 0f, 0f);
+                Put("cc0_door", 0f, false, default, 0f, 0f);
+                Put("cc0_gate", 0f, false, default, 0f, 0f);
+            }
+            else
+            {
+                Put("cc0_chandelier", 2.4f, true, warm, 8f, 1.6f);
+                Put("cc0_caged", 2.2f, true, warm, 6f, 1.5f);
+                Put("cc0_candles", 0f, true, warm, 4f, 1.1f);
+                Put("cc0_cabinet", 0f, false, default, 0f, 0f);
+                Put("cc0_bookshelf", 0f, false, default, 0f, 0f);
+                Put("cc0_statue", 0f, false, default, 0f, 0f);
+                Put("cc0_rack", 0f, false, default, 0f, 0f);
+                Put("cc0_firepit", 0f, true, new Color(1f, 0.4f, 0.15f), 6f, 1.8f);
+                Put("cc0_boulder", 0f, false, default, 0f, 0f);
+                Put("cc0_roots", 0f, false, default, 0f, 0f);
+                Put("cc0_deadtree", 0f, false, default, 0f, 0f);
+                Put("cc0_door", 0f, false, default, 0f, 0f);
+                Put("cc0_gate", 0f, false, default, 0f, 0f);
+            }
+            // The cliff is scenery past the far wall, opposite the spawn, not a floor block.
+            var cliff = Art.Model("cc0_cliff", 0f, root);
+            if (cliff != null)
+            {
+                bool north = map.entry.y < map.height / 2;
+                float z = north ? map.height * World.T + 2f : -2f;
+                float x = map.entry.x < map.width / 2 ? map.width * World.T - 4f : 4f;
+                cliff.transform.position = new Vector3(x, 0f, z);
+                cliff.transform.rotation = Quaternion.Euler(0f, rng.Next(360), 0f);
+            }
+        }
+
+        static bool Place(Transform root, string key, Vector3 at, Quaternion rot, float lift, bool light, Color color, float range, float intensity)
+        {
+            var go = Art.Model(key, 0f, root);
+            if (go == null) return false;
+            go.transform.SetPositionAndRotation(at + Vector3.up * lift, rot);
+            if (light)
+            {
+                var l = new GameObject("torch").AddComponent<Light>();
+                l.transform.SetParent(go.transform, false);
+                l.transform.localPosition = Vector3.up * 0.45f;
+                l.type = LightType.Point;
+                l.color = color;
+                l.range = range;
+                l.intensity = intensity;
+                l.shadows = LightShadows.None;
+                l.gameObject.AddComponent<TorchFlicker>();
+            }
+            return true;
         }
 
         static void TownTorches(DungeonMap map, Transform root, HashSet<Int2> skip)
@@ -125,41 +301,6 @@ namespace Hollowmere
 
         static Mesh standMesh, flatMesh;
         static readonly Dictionary<int, Material> propMats = new Dictionary<int, Material>();
-
-        static void Prop(Transform root, Vector3 at, System.Random rng, bool town)
-        {
-            float yaw = (float)rng.NextDouble() * 360f;
-            var rot = Quaternion.Euler(0f, yaw, 0f);
-            string[] kit = town
-                ? new[] { "wine_barrel_01", "wooden_crate_01", "wooden_crate_02", "tree_stump_01", "rock_09", "wooden_table_02", "wooden_lantern_01", "wooden_bucket_01" }
-                : new[] { "wine_barrel_01", "wooden_crate_02", "rock_07", "rock_09", "lantern_01" };
-            string kitName = kit[rng.Next(kit.Length)];
-            var spawned = PbrKit.Prop(kitName, root);
-            if (spawned != null)
-            {
-                spawned.transform.SetPositionAndRotation(at, rot);
-                if (kitName.Contains("lantern"))
-                {
-                    var l = new GameObject("torch").AddComponent<Light>();
-                    l.transform.SetParent(spawned.transform, false);
-                    l.transform.localPosition = Vector3.up * 0.4f;
-                    l.type = LightType.Point;
-                    l.color = new Color(1f, 0.72f, 0.4f);
-                    l.range = 7f;
-                    l.intensity = 1.8f;
-                }
-                return;
-            }
-            var pool = town ? TownProps : DungeonProps;
-            if (Stand(root, at, pool[rng.Next(pool.Length)], rot, 1.45f)) return;
-            switch (rng.Next(town ? 4 : 5))
-            {
-                case 0: Barrel(root, at, rot); break;
-                case 1: Crate(root, at, rot, rng); break;
-                case 2: Rock(root, at, rng, town); break;
-                default: Rubble(root, at, rng); break;
-            }
-        }
 
         static bool Stand(Transform root, Vector3 at, string name, Quaternion rot, float height)
         {
@@ -337,6 +478,30 @@ namespace Hollowmere
             transform.localPosition = origin + new Vector3(Mathf.Sin(t * 3f) * 0.06f, k * 0.55f, Mathf.Cos(t * 2.2f) * 0.06f);
             float s = 0.05f * (1f - k);
             transform.localScale = new Vector3(s, s, s);
+        }
+    }
+
+    /// <summary>Equirect HDR sky. Town at night is moonlit. The title and any daytime outdoor use the overcast HDR.</summary>
+    public static class Cc0Sky
+    {
+        static Material mat;
+        static string current;
+
+        public static void Use(string key, float exposure)
+        {
+            if (string.IsNullOrEmpty(key) || (current == key && RenderSettings.skybox == mat)) return;
+            var tex = Resources.Load<Texture>("Sky/" + key);
+            if (tex == null) return;
+            var shader = Shader.Find("Hollowmere/Sky");
+            if (shader == null) shader = Shader.Find("Skybox/Panoramic");
+            if (shader == null) return;
+            if (mat == null) mat = new Material(shader);
+            mat.mainTexture = tex;
+            if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
+            if (mat.HasProperty("_Exposure")) mat.SetFloat("_Exposure", exposure);
+            if (mat.HasProperty("_Mapping")) mat.SetFloat("_Mapping", 1f);
+            RenderSettings.skybox = mat;
+            current = key;
         }
     }
 }

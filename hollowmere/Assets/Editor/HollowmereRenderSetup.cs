@@ -28,6 +28,7 @@ namespace Hollowmere.Editor
             "Hollowmere/Portal",
             "Hollowmere/Pbr",
             "Hollowmere/Water",
+            "Hollowmere/Sky",
         };
 
         public void OnPreprocessBuild(BuildReport report)

@@ -176,10 +176,12 @@ namespace Hollowmere
 
         static void Weapon(Transform body, string key, string name, Item it, bool main)
         {
-            var hand = main ? Hand(body) : Art.Bone(body, "LeftHand");
-            if (hand != null && Grip(hand, key, name, main)) return;
-            if (hand != null)
-                Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
+            var hand = main ? Hand(body) : (Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm"));
+            if (hand == null) return;
+            string cc0 = Art.Cc0Gear(it.baseId);
+            if (cc0 != null && Grip(hand, cc0, name, main)) return;
+            if (Grip(hand, key, name, main)) return;
+            Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
         }
 
         /// <summary>Point the skinned overlay at the hero's bones and drop the copied armature.</summary>
@@ -240,6 +242,7 @@ namespace Hollowmere
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
+            if (key.StartsWith("cc0_")) Art.AuditCc0(go, key);
             return true;
         }
 
@@ -265,10 +268,11 @@ namespace Hollowmere
                 case "drop_quiver": palm = 0.020f; break;
                 default: palm = main ? 0.040f : 0.030f; break;
             }
-            bool shield = key == "drop_shield";
+            bool shield = key == "drop_shield" || key == "cc0_shield";
             bool orb = key == "drop_orb";
-            rot = shield ? Quaternion.Euler(90f, 0f, 0f)
-                : orb ? Quaternion.identity
+            bool upright = key.StartsWith("cc0_") && !shield;
+            rot = shield ? Quaternion.Euler(0f, 90f, 0f)
+                : orb || upright ? Quaternion.identity
                 : Quaternion.Euler(-90f, 0f, 0f);
             pos = new Vector3(0f, palm, 0f);
         }

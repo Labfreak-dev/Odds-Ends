@@ -33,6 +33,7 @@ static class Program
         ModelAlbedo();
         PostVolumeLevel();
         HeroFitLevel();
+        Cc0PropFiles();
         SpecTables();
         P2P5();
         Console.WriteLine($"{passed} passed, {failed} failed");
@@ -768,6 +769,129 @@ static class Program
             Check(!HeroFit.IconCard(false, 684, false, null), mode + " accepts a steel pauldron mesh");
             Check(!HeroFit.IconCard(false, 3500, false, "Image_0"), mode + " accepts a weapon albedo");
         }
+    }
+
+    /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh
+    /// stays within 20 percent of the manifest. A corrupt resize used to leave red-black blocks.</summary>
+    static void Cc0PropFiles()
+    {
+        Check(Cc0Kit.SizeOk(2.965f, 3.5f), "a door within 20 percent of the manifest passes");
+        Check(!Cc0Kit.SizeOk(2.965f, 4f), "a door more than 20 percent over the manifest fails");
+        int keys = 0;
+        foreach (var key in Cc0Kit.Keys)
+        {
+            keys++;
+            string path = Cc0Glb(key);
+            Check(path != null, key + " glb is on disk");
+            if (path == null) continue;
+            bool maps = Cc0Maps(path, out float meshMax, out string why);
+            Check(maps, key + " base, normal, and roughness load" + (why == null ? "" : " (" + why + ")"));
+            bool sized = Cc0Kit.TryMax(key, out float manifest) && meshMax >= manifest * 0.8f && Cc0Kit.SizeOk(manifest, meshMax);
+            Check(sized, key + " mesh " + meshMax.ToString("0.00") + "m stays within 20 percent of " + manifest.ToString("0.00") + "m");
+        }
+        Check(keys == 22, "every CC0 prop is listed");
+    }
+
+    static string Cc0Glb(string key)
+    {
+        foreach (var c in new[]
+        {
+            Path.Combine("Assets", "Resources", "Models", key + ".glb"),
+            Path.Combine("hollowmere", "Assets", "Resources", "Models", key + ".glb"),
+        })
+            if (File.Exists(c)) return c;
+        return null;
+    }
+
+    static bool Cc0Maps(string path, out float meshMax, out string why)
+    {
+        meshMax = 0f;
+        why = null;
+        var data = File.ReadAllBytes(path);
+        if (data.Length < 20 || data[0] != 'g') { why = "not a glb"; return false; }
+        int jlen = BitConverter.ToInt32(data, 12);
+        var js = JsonDocument.Parse(Encoding.UTF8.GetString(data, 20, jlen));
+        int bin = 20 + jlen;
+        if (bin + 8 > data.Length) { why = "no binary chunk"; return false; }
+        var root = js.RootElement;
+        var views = root.GetProperty("bufferViews");
+        var images = root.GetProperty("images");
+        var textures = root.GetProperty("textures");
+        bool any = false;
+        foreach (var mat in root.GetProperty("materials").EnumerateArray())
+        {
+            any = true;
+            var pbr = mat.GetProperty("pbrMetallicRoughness");
+            if (!MapImage(data, bin, views, images, textures, pbr, "baseColorTexture", out why)) return false;
+            if (!MapImage(data, bin, views, images, textures, mat, "normalTexture", out why)) return false;
+            if (!MapImage(data, bin, views, images, textures, pbr, "metallicRoughnessTexture", out why)) return false;
+        }
+        if (!any) { why = "no material"; return false; }
+        foreach (var mesh in root.GetProperty("meshes").EnumerateArray())
+        {
+            foreach (var prim in mesh.GetProperty("primitives").EnumerateArray())
+            {
+                int acc = prim.GetProperty("attributes").GetProperty("POSITION").GetInt32();
+                var a = root.GetProperty("accessors")[acc];
+                var mn = a.GetProperty("min");
+                var mx = a.GetProperty("max");
+                for (int i = 0; i < 3; i++)
+                {
+                    float span = mx[i].GetSingle() - mn[i].GetSingle();
+                    if (span > meshMax) meshMax = span;
+                }
+            }
+        }
+        if (meshMax <= 0f) { why = "no mesh"; return false; }
+        return true;
+    }
+
+    static bool MapImage(byte[] data, int bin, JsonElement views, JsonElement images, JsonElement textures, JsonElement owner, string prop, out string why)
+    {
+        why = null;
+        if (!owner.TryGetProperty(prop, out var slot)) { why = "missing " + prop; return false; }
+        int tex = slot.GetProperty("index").GetInt32();
+        int src = textures[tex].GetProperty("source").GetInt32();
+        int view = images[src].GetProperty("bufferView").GetInt32();
+        var v = views[view];
+        int off = v.TryGetProperty("byteOffset", out var o) ? o.GetInt32() : 0;
+        int len = v.GetProperty("byteLength").GetInt32();
+        int start = bin + 8 + off;
+        if (start < 0 || len < 16 || start + len > data.Length) { why = prop + " is outside the file"; return false; }
+        if (!ImageHeader(data, start, len, out int w, out int h)) { why = prop + " is not a readable image"; return false; }
+        if (w > 512 || h > 512) { why = prop + " is " + w + "x" + h; return false; }
+        return true;
+    }
+
+    static bool ImageHeader(byte[] data, int start, int len, out int w, out int h)
+    {
+        w = h = 0;
+        if (len >= 24 && data[start] == 0x89 && data[start + 1] == 0x50)
+        {
+            w = (data[start + 16] << 24) | (data[start + 17] << 16) | (data[start + 18] << 8) | data[start + 19];
+            h = (data[start + 20] << 24) | (data[start + 21] << 16) | (data[start + 22] << 8) | data[start + 23];
+            return w > 0 && h > 0;
+        }
+        if (data[start] != 0xFF || data[start + 1] != 0xD8) return false;
+        int i = start + 2;
+        int end = start + len;
+        while (i + 8 < end)
+        {
+            if (data[i] != 0xFF) { i++; continue; }
+            byte marker = data[i + 1];
+            if (marker == 0xD8 || marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7)) { i += 2; continue; }
+            if (marker == 0xD9) return false;
+            int seg = (data[i + 2] << 8) | data[i + 3];
+            if (seg < 2 || i + 2 + seg > end) return false;
+            if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2)
+            {
+                h = (data[i + 5] << 8) | data[i + 6];
+                w = (data[i + 7] << 8) | data[i + 8];
+                return w > 0 && h > 0;
+            }
+            i += 2 + seg;
+        }
+        return false;
     }
 
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto

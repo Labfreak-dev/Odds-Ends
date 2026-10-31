@@ -110,6 +110,27 @@ namespace Hollowmere
             return g;
         }
 
+        public static Texture2D VfxTex(string name) => string.IsNullOrEmpty(name) ? null : Resources.Load<Texture2D>("Vfx/" + name);
+
+        /// <summary>Additive camera-facing quad using a Kenney particle when that texture is present.</summary>
+        public static GameObject VfxSprite(Transform parent, float size, Color c, string texName)
+        {
+            var g = GlowSprite(parent, size, c);
+            var tex = VfxTex(texName);
+            var mr = g.GetComponent<MeshRenderer>();
+            if (tex != null && mr != null && mr.sharedMaterial != null)
+            {
+                var mat = new Material(mr.sharedMaterial);
+                mat.mainTexture = tex;
+                if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
+                if (mat.HasProperty("_HasMap")) mat.SetFloat("_HasMap", 1f);
+                if (mat.HasProperty("_Soft")) mat.SetFloat("_Soft", 0f);
+                if (mat.HasProperty("_MainTex_ST")) mat.SetVector("_MainTex_ST", new Vector4(1f, 1f, 0f, 0f));
+                mr.sharedMaterial = mat;
+            }
+            return g;
+        }
+
         /// <summary>Vertical additive arch. Scrolls in the shader so it is not a flat colour card.</summary>
         public static GameObject Portal(Transform parent, Vector3 pos, Vector3 scale, Color c)
         {
@@ -129,6 +150,7 @@ namespace Hollowmere
             mr.sharedMaterial = m;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             mr.receiveShadows = false;
+            VfxSprite(g.transform, 0.7f, c, "twirl_01");
             return g;
         }
 
@@ -290,7 +312,8 @@ namespace Hollowmere
             fit.biped = false;
             // v5 meshes are already in metres. A stale skinned box reads as 1 cm or as a
             // giant, and fitting from that either hides the hero or blows a prop up.
-            fit.freeze = v5 || key.StartsWith("npc_");
+            // CC0 props are already in metres. Fitting them from a bad box turned doors into giant slabs.
+            fit.freeze = v5 || key.StartsWith("npc_") || key.StartsWith("cc0_");
             if (v5) ReadySkin(go);
             if (key.StartsWith("npc_"))
             {
@@ -323,6 +346,7 @@ namespace Hollowmere
                 CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
             }
             if (v5) DressNpc(bodyKey, go.transform);
+            if (key.StartsWith("cc0_")) AuditCc0(holder, key);
             return holder;
         }
 
@@ -399,6 +423,43 @@ namespace Hollowmere
             Debug.Log("Hollowmere prop " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
             if (max > HeroFit.GearMaxAxis)
                 Debug.LogError("Hollowmere prop " + key + " FAIL " + max.ToString("0.00") + "m");
+        }
+
+        /// <summary>
+        /// Log a CC0 prop's world size. Fail when it is more than 20 percent over the manifest,
+        /// or when base, normal, or roughness did not survive import.
+        /// </summary>
+        public static void AuditCc0(GameObject go, string key)
+        {
+            if (go == null || string.IsNullOrEmpty(key) || !key.StartsWith("cc0_")) return;
+            if (!MeshWorldBounds(go.transform, out var b))
+            {
+                Debug.LogError("Hollowmere cc0 " + key + " has no bounds");
+                return;
+            }
+            float max = MaxAxis(b.size);
+            Debug.Log("Hollowmere cc0 " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
+            if (Cc0Kit.TryMax(key, out float expect) && !Cc0Kit.SizeOk(expect, max))
+                Debug.LogError("Hollowmere cc0 " + key + " FAIL size " + max.ToString("0.00") + "m over manifest " + expect.ToString("0.00") + "m");
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                bool baseMap = false, normal = false, rough = false;
+                var mats = r.sharedMaterials;
+                if (mats != null)
+                {
+                    for (int i = 0; i < mats.Length; i++)
+                    {
+                        if (FirstTex(mats[i], AlbedoNames) != null) baseMap = true;
+                        if (FirstTex(mats[i], NormalNames) != null) normal = true;
+                        if (FirstTex(mats[i], MetalNames) != null) rough = true;
+                    }
+                }
+                if (!baseMap)
+                    Debug.LogError("Hollowmere cc0 " + key + " FAIL missing base map on " + r.name);
+                if (!normal || !rough)
+                    Debug.LogError("Hollowmere cc0 " + key + " FAIL missing normal or roughness on " + r.name);
+            }
         }
 
         static void ReadySkin(GameObject go)
@@ -598,6 +659,22 @@ namespace Hollowmere
             : body >= 2 ? new Color(0.34f, 0.30f, 0.28f) : new Color(0.55f, 0.40f, 0.28f);
 
         public static string HeroMesh(Hero h) => h != null && h.plate > 0 ? "hero_plate" : "hero";
+
+        /// <summary>CC0 world mesh for a weapon or shield. Null keeps the older class mesh.</summary>
+        public static string Cc0Gear(string baseId)
+        {
+            switch (baseId)
+            {
+                case "sword": return "cc0_estoc";
+                case "dagger": return "cc0_dagger";
+                case "mace": return "cc0_mace";
+                case "warhammer": return "cc0_warhammer";
+                case "axe":
+                case "greataxe": return "cc0_axe";
+                case "shield": return "cc0_shield";
+            }
+            return null;
+        }
 
         /// <summary>Mask channels multiply the base colour: R armour, G cloth, B hair. Skin is what the mask leaves.</summary>
         public static void PaintHero(GameObject go, Color skin, Color cloth, Color hair, Color armour)
@@ -814,6 +891,7 @@ namespace Hollowmere
             return name == "Hollowmere/Color" || name == "Hollowmere/Text" || name == "Hollowmere/Glow"
                 || name == "Hollowmere/Sheet" || name == "Hollowmere/Lit"
                 || name == "Hollowmere/Pbr" || name == "Hollowmere/Water" || name == "Hollowmere/Portal"
+                || name == "Hollowmere/Sky"
                 || name == "Universal Render Pipeline/Lit";
         }
 
@@ -1327,7 +1405,13 @@ namespace Hollowmere
         {
             float h = def.role switch { MonsterRole.Swarm => 0.8f, MonsterRole.Brute => 2.6f, _ => 1.8f } * scale;
             var m = Animated(def.model, h, parent);
-            if (m != null) return m;
+            if (m != null)
+            {
+                // KayKit skeletons are already about 1.75 m. Scale is the elite and boss multiplier.
+                if (def.model != null && def.model.StartsWith("kk_"))
+                    m.transform.localScale *= scale;
+                return m;
+            }
             var c = Hex(def.color);
             switch (def.model)
             {

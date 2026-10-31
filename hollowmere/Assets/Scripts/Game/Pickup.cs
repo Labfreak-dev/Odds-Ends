@@ -214,7 +214,7 @@ namespace Hollowmere
                     Glow(col);
                     break;
                 case InteractKind.Chest:
-                    if (Art.Model("prop_chest", 0.7f, t) == null)
+                    if (Art.Model("cc0_chest", 0f, t) == null && Art.Model("prop_chest", 0.7f, t) == null)
                     {
                         Art.Cube(t, new Vector3(0, 0.3f, 0), new Vector3(1f, 0.6f, 0.65f), Art.Mat(new Color(0.45f, 0.3f, 0.15f)));
                         Art.Cube(t, new Vector3(0, 0.62f, 0), new Vector3(1.04f, 0.1f, 0.69f), Art.Mat(new Color(0.8f, 0.65f, 0.2f), 0.5f));

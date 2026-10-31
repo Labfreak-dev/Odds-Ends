@@ -40,8 +40,8 @@ namespace Hollowmere.Core
         public static readonly List<MonsterDef> All = new List<MonsterDef>
         {
             // Crypts (1-10)
-            new MonsterDef { id = "bonewalker", name = "Bonewalker", model = "mon_bonewalker", family = "Undead", role = MonsterRole.Melee, life = 1f, damage = 1f, minDepth = 1, maxDepth = 14, color = "#d8d0b8" },
-            new MonsterDef { id = "boneslinger", name = "Boneslinger", model = "mon_bonewalker", family = "Undead", role = MonsterRole.Ranged, life = 0.7f, damage = 0.8f, attackRange = 9f, attackCooldown = 2f, minDepth = 2, maxDepth = 14, color = "#c8c0a0" },
+            new MonsterDef { id = "bonewalker", name = "Bonewalker", model = "kk_skeleton_warrior", family = "Undead", role = MonsterRole.Melee, life = 1f, damage = 1f, minDepth = 1, maxDepth = 14, color = "#d8d0b8" },
+            new MonsterDef { id = "boneslinger", name = "Boneslinger", model = "kk_skeleton_mage", family = "Undead", role = MonsterRole.Ranged, life = 0.7f, damage = 0.8f, attackRange = 9f, attackCooldown = 2f, minDepth = 2, maxDepth = 14, color = "#c8c0a0" },
             new MonsterDef { id = "gloomspider", name = "Gloomspider", model = "mon_gloomspider", family = "Beast", role = MonsterRole.Swarm, life = 0.35f, damage = 0.45f, speed = 4.6f, attackCooldown = 0.9f, minDepth = 1, maxDepth = 24, scale = 0.7f, element = Element.Poison, xp = 0.4f, color = "#3a2b4a" },
             // Caverns (8-22)
             new MonsterDef { id = "bogfiend", name = "Bogfiend", model = "mon_bogfiend", family = "Fiend", role = MonsterRole.Melee, life = 0.8f, damage = 0.9f, speed = 3.8f, minDepth = 6, maxDepth = 30, color = "#5f7a3a" },
@@ -57,7 +57,7 @@ namespace Hollowmere.Core
             // Bosses (every 5th floor), in rotation
             new MonsterDef { id = "boss_abbot", name = "The Drowned Abbot", model = "boss_abbot", family = "Boss", role = MonsterRole.Brute, life = 1, damage = 1.4f, speed = 2.6f, attackRange = 3.2f, attackCooldown = 1.8f, element = Element.Frost, scale = 2f, boss = true, xp = 1, color = "#3c6a7a" },
             new MonsterDef { id = "boss_matriarch", name = "Gloom Matriarch", model = "mon_gloomspider", family = "Boss", role = MonsterRole.Melee, life = 1, damage = 1.2f, speed = 3.6f, attackRange = 3f, attackCooldown = 1.4f, element = Element.Poison, scale = 2.6f, boss = true, color = "#4a2a5a" },
-            new MonsterDef { id = "boss_ossuary", name = "Ossuary King", model = "mon_bonewalker", family = "Boss", role = MonsterRole.Melee, life = 1, damage = 1.5f, speed = 3f, attackRange = 3f, attackCooldown = 1.6f, scale = 2.2f, boss = true, color = "#e6dcc0" },
+            new MonsterDef { id = "boss_ossuary", name = "Ossuary King", model = "kk_skeleton_warrior", family = "Boss", role = MonsterRole.Melee, life = 1, damage = 1.5f, speed = 3f, attackRange = 3f, attackCooldown = 1.6f, scale = 2.2f, boss = true, color = "#e6dcc0" },
             new MonsterDef { id = "boss_furnace", name = "Furnace Heart", model = "mon_stonehulk", family = "Boss", role = MonsterRole.Brute, life = 1, damage = 1.7f, speed = 2.2f, attackRange = 3.4f, attackCooldown = 2f, element = Element.Fire, scale = 2.4f, boss = true, color = "#b0401a" },
         };
 

@@ -19,6 +19,9 @@ namespace Hollowmere.Core
 
     public enum HeroClass { Ironclad, Stalker, Hexweaver }
 
+    /// <summary>What a weapon (and a skill) is for. One- and two-handed melee share Melee.</summary>
+    public enum WeaponFamily { Melee, Ranged, Magic }
+
     public static class StatInfo
     {
         // {0} = value. Percent stats are stored as percentages (5 = 5%).
@@ -68,6 +71,20 @@ namespace Hollowmere.Core
             HeroClass.Ironclad => "Fury",
             HeroClass.Stalker => "Focus",
             _ => "Arcana",
+        };
+
+        public static Stat ForFamily(WeaponFamily f) => f switch
+        {
+            WeaponFamily.Ranged => Stat.Dexterity,
+            WeaponFamily.Magic => Stat.Intelligence,
+            _ => Stat.Strength,
+        };
+
+        public static string ResourceFor(WeaponFamily f) => f switch
+        {
+            WeaponFamily.Ranged => "Focus",
+            WeaponFamily.Magic => "Arcana",
+            _ => "Fury",
         };
 
         public static bool IsMainStat(Stat s) => s == Stat.Strength || s == Stat.Dexterity || s == Stat.Intelligence;

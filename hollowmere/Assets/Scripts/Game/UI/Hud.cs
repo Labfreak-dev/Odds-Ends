@@ -19,7 +19,7 @@ namespace Hollowmere
         float lifeTrail = 1f;
         Text lifeText, resText, xpText, levelText, goldText, locText, targetText, bossText, buffText, petText, potionText, portalText;
         HoldButton primary, potion, portal, action;
-        readonly HoldButton[] skills = new HoldButton[4];
+        readonly HoldButton[] skills = new HoldButton[5];
         Button skillsBtn;
         Interactable near;
         MonsterActor boss;
@@ -71,11 +71,12 @@ namespace Hollowmere
             primary = HoldButton.Create(r, "primary", br, new Vector2(-60, 60), 230, new Color(0.65f, 0.2f, 0.15f, 0.9f), "Attack", 34);
             primary.onDown.AddListener(() => { if (hero != null) hero.attackHeld = true; });
             primary.onUp.AddListener(() => { if (hero != null) hero.attackHeld = false; });
-            Vector2[] spots = { new Vector2(-310, 50), new Vector2(-300, 210), new Vector2(-190, 330), new Vector2(-40, 330) };
-            for (int i = 0; i < 4; i++)
+            Vector2[] spots = { new Vector2(-310, 50), new Vector2(-300, 210), new Vector2(-190, 330), new Vector2(-40, 330), new Vector2(-430, 330) };
+            float[] sizes = { 140, 140, 140, 140, 120 };
+            for (int i = 0; i < 5; i++)
             {
                 int slot = i + 1;
-                skills[i] = HoldButton.Create(r, "skill" + slot, br, spots[i], 140, new Color(0.2f, 0.18f, 0.3f, 0.9f), "", 22);
+                skills[i] = HoldButton.Create(r, "skill" + slot, br, spots[i], sizes[i], new Color(0.2f, 0.18f, 0.3f, 0.9f), "", 22);
                 skills[i].onDown.AddListener(() => hero?.UseSkillSlot(slot));
             }
             potion = HoldButton.Create(r, "potion", br, new Vector2(-470, 40), 110, new Color(0.6f, 0.1f, 0.15f, 0.9f), "", 22);
@@ -124,10 +125,10 @@ namespace Hollowmere
         {
             hero = h;
             gameObject.SetActive(true);
-            var cls = h.Hero.heroClass;
+            var fam = h.Hero.classless ? h.Hero.AttackFamily() : h.Hero.heroClass == HeroClass.Ironclad ? WeaponFamily.Melee : h.Hero.heroClass == HeroClass.Stalker ? WeaponFamily.Ranged : WeaponFamily.Magic;
             var resImg = resFill.GetComponent<Image>();
             if (resImg != null && resImg.sprite == null)
-                resImg.color = cls == HeroClass.Ironclad ? new Color(0.8f, 0.35f, 0.1f) : cls == HeroClass.Stalker ? new Color(0.25f, 0.7f, 0.4f) : new Color(0.45f, 0.35f, 0.95f);
+                resImg.color = fam == WeaponFamily.Melee ? new Color(0.8f, 0.35f, 0.1f) : fam == WeaponFamily.Ranged ? new Color(0.25f, 0.7f, 0.4f) : new Color(0.45f, 0.35f, 0.95f);
         }
 
         public void SetLocation(string s) { if (locText != null) locText.text = s; }
@@ -160,7 +161,7 @@ namespace Hollowmere
             }
             lifeText.text = $"{Fx.Short(hero.life)} / {Fx.Short(hero.maxLife)}";
             Ui.SetBar(resFill, hero.maxResource > 0 ? hero.resource / hero.maxResource : 0);
-            resText.text = $"{StatInfo.ResourceName(h.heroClass)} {Mathf.FloorToInt(hero.resource)}";
+            resText.text = $"{h.ResourceLabel()} {Mathf.FloorToInt(hero.resource)}";
             long need = Balance.XpToNext(h.level);
             Ui.SetBar(xpFill, h.level >= Balance.MaxLevel ? 1 : h.xp / (float)need);
             goldText.text = st.depth <= 0 ? $"{h.gold:N0} gold" : $"{h.gold:N0} gold   <color=#bbbbbb>Floor {st.depth}</color>";
@@ -194,9 +195,9 @@ namespace Hollowmere
             }
 
             // skills
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < skills.Length; i++)
             {
-                var id = h.skills.bar[i + 1];
+                var id = i + 1 < h.skills.bar.Length ? h.skills.bar[i + 1] : null;
                 var def = SkillDb.Get(id);
                 skills[i].gameObject.SetActive(def != null);
                 if (def == null) continue;
@@ -206,7 +207,7 @@ namespace Hollowmere
                 skills[i].SetCooldown(cast > 0 ? cd / cast : 0);
                 skills[i].image.color = hero.resource >= SkillDb.Resolve(def, h, hero.stats).cost ? new Color(0.22f, 0.2f, 0.36f, 0.92f) : new Color(0.12f, 0.12f, 0.16f, 0.92f);
             }
-            var prim = SkillDb.Get(h.skills.bar[0]);
+            var prim = h.classless ? h.BasicAttack() : SkillDb.Get(h.skills.bar[0]);
             primary.label.text = prim != null ? prim.name : "Attack";
             potion.label.text = $"Potion\n{h.Count(ItemKind.Potion)}";
             potion.SetCooldown(hero.PotionCooldown / (float)DesignTable.PotionCooldownSeconds);
@@ -254,6 +255,7 @@ namespace Hollowmere
             if (k.digit2Key.wasPressedThisFrame) hero.UseSkillSlot(2);
             if (k.digit3Key.wasPressedThisFrame) hero.UseSkillSlot(3);
             if (k.digit4Key.wasPressedThisFrame) hero.UseSkillSlot(4);
+            if (k.digit5Key.wasPressedThisFrame) hero.UseSkillSlot(5);
             if (k.qKey.wasPressedThisFrame) hero.DrinkPotion();
             if (k.eKey.wasPressedThisFrame && near != null) GameManager.I.Interact(near);
             if (k.iKey.wasPressedThisFrame) UiRoot.I.OpenInventory();
@@ -262,7 +264,7 @@ namespace Hollowmere
             if (k.tKey.wasPressedThisFrame) GameManager.I.UseTownPortal();
 #elif ENABLE_LEGACY_INPUT_MANAGER
             if (!primary.Held) hero.attackHeld = Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.J);
-            for (int i = 1; i <= 4; i++) if (Input.GetKeyDown(KeyCode.Alpha0 + i)) hero.UseSkillSlot(i);
+            for (int i = 1; i <= 5; i++) if (Input.GetKeyDown(KeyCode.Alpha0 + i)) hero.UseSkillSlot(i);
             if (Input.GetKeyDown(KeyCode.Q)) hero.DrinkPotion();
             if (Input.GetKeyDown(KeyCode.E) && near != null) GameManager.I.Interact(near);
             if (Input.GetKeyDown(KeyCode.I)) UiRoot.I.OpenInventory();

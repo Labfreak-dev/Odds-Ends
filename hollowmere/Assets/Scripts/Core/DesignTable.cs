@@ -795,6 +795,41 @@ namespace Hollowmere.Core
             }
         }
 
+        /// <summary>One row per weapon family. The weapon in hand picks the basic attack, the animation set, and which attribute scales the hit.</summary>
+        public readonly struct FamilyAttack
+        {
+            public readonly string Id, BasicSkill, AnimSet;
+            public readonly Stat Scale;
+            public FamilyAttack(string id, string basic, string anim, Stat scale)
+            {
+                Id = id; BasicSkill = basic; AnimSet = anim; Scale = scale;
+            }
+        }
+
+        public static readonly FamilyAttack[] Attacks =
+        {
+            new FamilyAttack("melee", "ic_cleave", "melee", Stat.Strength),
+            new FamilyAttack("melee2", "ic_slam", "melee2", Stat.Strength),
+            new FamilyAttack("ranged", "st_twinshot", "ranged", Stat.Dexterity),
+            new FamilyAttack("magic", "hx_bolt", "magic", Stat.Intelligence),
+        };
+
+        public static FamilyAttack AttackFor(string mainBaseId, string offBaseId)
+        {
+            string id = string.IsNullOrEmpty(mainBaseId) && offBaseId == "orb" ? "orb" : mainBaseId;
+            switch (id)
+            {
+                case "bow":
+                case "crossbow": return Attacks[2];
+                case "staff":
+                case "wand":
+                case "orb": return Attacks[3];
+                case "greataxe":
+                case "warhammer": return Attacks[1];
+                default: return Attacks[0];
+            }
+        }
+
         public static string WeaponKey(HeroClass cls, string baseId)
         {
             switch (baseId)

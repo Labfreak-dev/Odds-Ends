@@ -21,7 +21,7 @@ namespace Hollowmere
             Clear(body);
             var weapon = hero.Equipped(EquipSlot.MainHand);
             if (!Item.IsNone(weapon))
-                Weapon(body, DesignTable.WeaponKey(hero.heroClass, weapon.baseId), "gear_weapon", weapon);
+                Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon);
             Armor(body, hero, EquipSlot.Head, "helm");
             Armor(body, hero, EquipSlot.Chest, "chest");
         }
@@ -44,7 +44,7 @@ namespace Hollowmere
         {
             var it = hero.Equipped(slot);
             if (Item.IsNone(it)) return;
-            string key = DesignTable.ArmorKey(hero.heroClass, part, it.rarity);
+            string key = DesignTable.ArmorKey(hero.PresentationClass, part, it.rarity);
             if (!Skin(body, key, "gear_" + part))
                 Primitive(body, part, it);
         }

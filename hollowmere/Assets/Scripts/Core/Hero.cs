@@ -9,6 +9,10 @@ namespace Hollowmere.Core
     {
         public string name = "Wanderer";
         public HeroClass heroClass;
+        /// <summary>One hero. The old class is kept so a save still knows which skills were granted.</summary>
+        public bool classless;
+        public int body, skin, hair, face;
+        public float armourR = 1f, armourG = 1f, armourB = 1f;
         public int level = 1;
         public long xp;
         public long gold;
@@ -53,7 +57,134 @@ namespace Hollowmere.Core
             }
             for (int i = 0; i < equipment.Length; i++) if (Item.IsNone(equipment[i])) equipment[i] = null;
             inventory.RemoveAll(Item.IsNone);
-            if (skills.bar == null || skills.bar.Length != 5) skills.bar = new string[5];
+            if (skills.bar == null || skills.bar.Length != 6)
+            {
+                var bar = new string[6];
+                if (skills.bar != null) Array.Copy(skills.bar, bar, Math.Min(skills.bar.Length, 6));
+                skills.bar = bar;
+            }
+        }
+
+        /// <summary>The mesh on screen. Classless heroes keep the current model until a custom body replaces it.</summary>
+        public HeroClass PresentationClass => classless ? HeroClass.Hexweaver : heroClass;
+
+        public WeaponFamily AttackFamily()
+        {
+            var row = DesignTable.AttackFor(Equipped(EquipSlot.MainHand)?.baseId, Equipped(EquipSlot.OffHand)?.baseId);
+            if (row.Scale == Stat.Dexterity) return WeaponFamily.Ranged;
+            if (row.Scale == Stat.Intelligence) return WeaponFamily.Magic;
+            return WeaponFamily.Melee;
+        }
+
+        public string AnimSet() => DesignTable.AttackFor(Equipped(EquipSlot.MainHand)?.baseId, Equipped(EquipSlot.OffHand)?.baseId).AnimSet;
+
+        /// <summary>Class heroes still scale off their class stat. A classless hero scales off the weapon's row.</summary>
+        public Stat DamageStat() => classless ? StatInfo.ForFamily(AttackFamily()) : StatInfo.MainStat(heroClass);
+
+        public string ResourceLabel() => classless ? StatInfo.ResourceFor(AttackFamily()) : StatInfo.ResourceName(heroClass);
+
+        public bool FuryStyle() => classless ? AttackFamily() == WeaponFamily.Melee : heroClass == HeroClass.Ironclad;
+
+        public static WeaponFamily FamilyOf(string baseId)
+        {
+            switch (baseId)
+            {
+                case "bow":
+                case "crossbow":
+                    return WeaponFamily.Ranged;
+                case "staff":
+                case "wand":
+                case "orb":
+                    return WeaponFamily.Magic;
+                default:
+                    return WeaponFamily.Melee;
+            }
+        }
+
+        public bool TwoHanded()
+        {
+            var id = Equipped(EquipSlot.MainHand)?.baseId;
+            return id == "greataxe" || id == "warhammer" || id == "staff" || id == "bow" || id == "crossbow";
+        }
+
+        /// <summary>The basic attack for the weapon in hand. One-hand and two-hand melee differ.</summary>
+        public SkillDef BasicAttack()
+            => SkillDb.Get(DesignTable.AttackFor(Equipped(EquipSlot.MainHand)?.baseId, Equipped(EquipSlot.OffHand)?.baseId).BasicSkill);
+
+        public bool Knows(SkillDef s)
+        {
+            if (s == null) return false;
+            if (!classless) return s.cls == heroClass;
+            if (s.primary && s.family == AttackFamily()) return true;
+            return skills.Rank(s.id) > 0;
+        }
+
+        /// <summary>A tome grants the skill at rank 1 without spending a point.</summary>
+        public bool Learn(string skillId)
+        {
+            var s = SkillDb.Get(skillId);
+            if (s == null || skills.Rank(skillId) > 0) return false;
+            skills.ranks.Add(new SkillRank { id = skillId, rank = 1, rune = "" });
+            if (s.shape != SkillShape.Passive && !skills.bar.Contains(s.id))
+            {
+                int slot = Array.FindIndex(skills.bar, 1, b => string.IsNullOrEmpty(b));
+                if (slot > 0) skills.bar[slot] = s.id;
+            }
+            return true;
+        }
+
+        /// <summary>Old save: one hero, same gear, the skills that class had already learned.</summary>
+        public void GrantFormerClass()
+        {
+            classless = true;
+            foreach (var s in SkillDb.ForClass(heroClass))
+            {
+                if (skills.Rank(s.id) > 0) continue;
+                if (!s.primary) continue;
+                skills.ranks.Add(new SkillRank { id = s.id, rank = 1, rune = "" });
+                if (string.IsNullOrEmpty(skills.bar[0])) skills.bar[0] = s.id;
+            }
+        }
+
+        /// <summary>Town respec. A classless hero keeps every skill a tome already granted, at rank 1, and gets the points back.</summary>
+        public void Respec()
+        {
+            if (!classless)
+            {
+                skills.Reset(level);
+                var primary = SkillDb.ForClass(heroClass).First(s => s.primary);
+                skills.RankUp(primary, level);
+                return;
+            }
+            var known = skills.ranks.Where(r => r.rank > 0).Select(r => r.id).ToList();
+            skills.Reset(level);
+            foreach (var id in known) Learn(id);
+            var basic = BasicAttack();
+            if (basic != null)
+            {
+                Learn(basic.id);
+                skills.bar[0] = basic.id;
+            }
+        }
+
+        public static Hero CreateCustom(string name, int body, int skin, int hair, int face, float r, float g, float b, Rng rng)
+        {
+            var called = string.IsNullOrWhiteSpace(name) ? "Wanderer" : name.Trim();
+            var h = Create(HeroClass.Ironclad, called, rng);
+            h.classless = true;
+            h.body = body;
+            h.skin = skin;
+            h.hair = hair;
+            h.face = face;
+            h.armourR = r;
+            h.armourG = g;
+            h.armourB = b;
+            // Sword in hand, cleave already ranked by the ironclad start. Other families come from the weapon you equip.
+            var sword = Loot.Generate(rng, 1, Rarity.Common, HeroClass.Ironclad, forceBase: "sword");
+            sword.name = "Worn " + sword.Base.name;
+            h.equipment[(int)EquipSlot.MainHand] = sword;
+            h.skills.bar[0] = "ic_cleave";
+            return h;
         }
 
         // ---------------- level & xp ----------------
@@ -109,6 +240,7 @@ namespace Hollowmere.Core
         {
             if (it == null || it.kind != ItemKind.Equipment) return false;
             var b = it.Base;
+            if (classless) return true;
             return b.classOnly == null || b.classOnly == heroClass;
         }
 
@@ -184,14 +316,25 @@ namespace Hollowmere.Core
         public StatBlock ComputeStats()
         {
             var s = new StatBlock();
-            var main = StatInfo.MainStat(heroClass);
-            foreach (var st in new[] { Stat.Strength, Stat.Dexterity, Stat.Intelligence })
-                s[st] = st == main ? Balance.BaseMainStat(level) : Balance.BaseOffStat(level);
+            if (classless)
+            {
+                float off = Balance.BaseOffStat(level);
+                s[Stat.Strength] = s[Stat.Dexterity] = s[Stat.Intelligence] = off;
+                var fam = AttackFamily();
+                s[Stat.MaxResource] = fam == WeaponFamily.Ranged ? 80 : 100;
+                s[Stat.ResourceRegen] = fam == WeaponFamily.Magic ? 6 : fam == WeaponFamily.Ranged ? 4 : 0;
+            }
+            else
+            {
+                var main = StatInfo.MainStat(heroClass);
+                foreach (var st in new[] { Stat.Strength, Stat.Dexterity, Stat.Intelligence })
+                    s[st] = st == main ? Balance.BaseMainStat(level) : Balance.BaseOffStat(level);
+                s[Stat.MaxResource] = heroClass == HeroClass.Hexweaver ? 100 : heroClass == HeroClass.Stalker ? 80 : 100;
+                s[Stat.ResourceRegen] = heroClass == HeroClass.Hexweaver ? 6 : heroClass == HeroClass.Stalker ? 4 : 0;
+            }
             s[Stat.Vitality] = Balance.BaseVitality(level);
             s[Stat.CritChance] = 5;
             s[Stat.CritDamage] = 50;
-            s[Stat.MaxResource] = heroClass == HeroClass.Hexweaver ? 100 : heroClass == HeroClass.Stalker ? 80 : 100;
-            s[Stat.ResourceRegen] = heroClass == HeroClass.Hexweaver ? 6 : heroClass == HeroClass.Stalker ? 4 : 0;
             s[Stat.PickupRadius] = 2;
 
             float itemArmor = 0;
@@ -213,7 +356,8 @@ namespace Hollowmere.Core
             foreach (var r in skills.ranks)
             {
                 var sk = SkillDb.Get(r.id);
-                if (sk == null || sk.shape != SkillShape.Passive || sk.cls != heroClass) continue;
+                if (sk == null || sk.shape != SkillShape.Passive) continue;
+                if (!classless && sk.cls != heroClass) continue;
                 if (sk.id == "ic_p_hide") continue; // percentage of armor, applied below
                 if (sk.id == "ic_p_bloodlust") { s.Add(Stat.LifeOnHit, s[Stat.Strength] * 0.01f * r.rank); continue; }
                 s.Add(sk.passiveStat, sk.passiveValue * r.rank);
@@ -223,9 +367,9 @@ namespace Hollowmere.Core
             s[Stat.Armor] += s[Stat.Strength];
             s[Stat.AllResist] += s[Stat.Intelligence] / 10f;
             int hide = skills.Rank("ic_p_hide");
-            if (hide > 0 && heroClass == HeroClass.Ironclad) s[Stat.Armor] *= 1 + 0.06f * hide;
+            if (hide > 0 && (classless || heroClass == HeroClass.Ironclad)) s[Stat.Armor] *= 1 + 0.06f * hide;
             int glass = skills.Rank("hx_p_glass");
-            if (glass > 0 && heroClass == HeroClass.Hexweaver) s[Stat.Armor] *= 1 - 0.05f * glass;
+            if (glass > 0 && (classless || heroClass == HeroClass.Hexweaver)) s[Stat.Armor] *= 1 - 0.05f * glass;
 
             Gems.Contribute(this, s);
             s[Stat.PetDamage] += LegendaryTotal(LegendaryEffect.PetDamage);
@@ -250,7 +394,7 @@ namespace Hollowmere.Core
         public float SheetDps(StatBlock s)
         {
             var (lo, hi, aps) = WeaponDamage(s);
-            float main = s[StatInfo.MainStat(heroClass)];
+            float main = s[DamageStat()];
             float crit = 1 + Math.Min(1, s[Stat.CritChance] / 100f) * s[Stat.CritDamage] / 100f;
             return (lo + hi) * 0.5f * aps * (1 + main / 100f) * (1 + s[Stat.DamagePercent] / 100f) * crit;
         }

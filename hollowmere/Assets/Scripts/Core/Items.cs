@@ -10,7 +10,7 @@ namespace Hollowmere.Core
 
     public enum Rarity { Common, Magic, Rare, Legendary, Set }
 
-    public enum ItemKind { Equipment, Fish, Potion, TownPortal, Gem }
+    public enum ItemKind { Equipment, Fish, Potion, TownPortal, Gem, Tome, Rune }
 
     [Serializable]
     public sealed class AffixRoll
@@ -30,6 +30,8 @@ namespace Hollowmere.Core
         public string uid;
         public ItemKind kind;
         public string baseId;
+        /// <summary>Set when kind is Tome: the skill this book grants.</summary>
+        public string skillId;
         public string name;
         public Rarity rarity;
         public int itemLevel;

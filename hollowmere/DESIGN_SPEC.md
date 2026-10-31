@@ -82,7 +82,18 @@ The bag is 5 columns by 6 rows of 112 dp cells and no gap, so the cells are 560 
 | mainhand | 1454 | 734 | 112 | 112 |
 | offhand | 1454 | 854 | 112 | 112 |
 
-The new-hero screen uses the hero rows above. Its centre is a 3D turntable of the class and the pet, not a portrait.
+The new-hero screen is a creator for one hero: name, body, skin, hair, face, and armour tint, on the lit stage beside the pet. The mesh on that stage is the current hero model. A later pass swaps the body. The chosen body index is stored on the save.
+
+The weapon in hand picks a row below. Strength, Dexterity, and Intelligence come from gear affixes and scale that row. There is one hero, six skill slots, and a hybrid bar is allowed: a skill fires only while a weapon of its family is equipped. Tomes, runes, and legendaries grant skills. An old save's class becomes this hero. Gear stays. Skills already learned stay, and that class's primary is granted if it was missing.
+
+### T.attack
+
+| Id | Weapon | Basic | Anim | Stat |
+| --- | --- | --- | --- | --- |
+| melee | sword, axe, mace, dagger | ic_cleave | melee | Strength |
+| melee2 | greataxe, warhammer | ic_slam | melee2 | Strength |
+| ranged | bow, crossbow | st_twinshot | ranged | Dexterity |
+| magic | staff, wand, orb | hx_bolt | magic | Intelligence |
 
 ## P0. Movement and pets
 
@@ -271,7 +282,7 @@ A drop hops `hopMm` millimetres over `hopMs`, then settles for `settleMs`. Motes
 
 ## P3. Visible gear
 
-The class mesh is the body. Helms and chests are skinned to that skeleton: `bones[]` is remapped by name, `rootBone` is Hips, and the copy of the skeleton in the gear file is dropped. A chest is pauldrons plus a tabard, cape, or front plate. The tabard is centred on the class hips (its mesh centre is within 2 mm of that bone on X) and is not given a further sideways offset. A weapon's origin is the grip. It is parented to `RightHand` with local position and rotation zero and world scale 1, so the local scale is about 100 on a rig that imports at 0.01. Length runs along that grip axis. If the mesh length is not the T.grip length, it is scaled uniformly onto it. Above and below are the reach on either side of the grip. Staffs are 950 mm so the top stays clear of the Hexweaver's head. Other slots do not change the mesh.
+The current hero mesh is the body. A classless hero stores a body index for the mesh that replaces it later. Helms and chests are skinned to that skeleton: `bones[]` is remapped by name, `rootBone` is Hips, and the copy of the skeleton in the gear file is dropped. A chest is pauldrons plus a tabard, cape, or front plate. The tabard is centred on the class hips (its mesh centre is within 2 mm of that bone on X) and is not given a further sideways offset. A weapon's origin is the grip. It is parented to `RightHand` with local position and rotation zero and world scale 1, so the local scale is about 100 on a rig that imports at 0.01. Length runs along that grip axis. If the mesh length is not the T.grip length, it is scaled uniformly onto it. Above and below are the reach on either side of the grip. Staffs are 950 mm so the top stays clear of the Hexweaver's head. Other slots do not change the mesh.
 
 ### T.grip
 

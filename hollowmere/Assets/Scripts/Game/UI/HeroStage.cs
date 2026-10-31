@@ -14,6 +14,7 @@ namespace Hollowmere
         Transform heroPivot, petPivot;
         HeroClass shownClass;
         PetSpecies shownPet;
+        Color shownTint;
         bool built;
         float spin;
         int framed;
@@ -83,6 +84,24 @@ namespace Hollowmere
             if (target != null) target.texture = rt;
         }
 
+        /// <summary>Creator turntable. One mesh for now; body, skin, hair, and armour tint are stored on the hero and the tint is what the stage shows.</summary>
+        public void SetLook(Color tint, PetSpecies pet)
+        {
+            if (!built || shownTint != tint)
+            {
+                Clear(heroPivot);
+                var model = Art.Animated("hero_hexweaver", 1.7f, heroPivot);
+                if (model != null) Art.Tint(model, tint);
+                else Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(tint));
+                shownTint = tint;
+                shownClass = HeroClass.Hexweaver;
+            }
+            ShowPet(pet);
+            built = true;
+            framed = 0;
+            AssignLayer(gameObject);
+        }
+
         public void Set(HeroClass cls, PetSpecies pet)
         {
             if (!built || cls != shownClass)
@@ -93,18 +112,21 @@ namespace Hollowmere
                     Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(Art.ClassColor(cls)));
                 shownClass = cls;
             }
-            if (!built || pet != shownPet)
-            {
-                Clear(petPivot);
-                string key = pet == PetSpecies.Hound ? "pet_hound" : "pet_lynx";
-                var model = Art.Animated(key, 0.7f, petPivot);
-                if (model == null)
-                    Art.Quadruped(petPivot, pet == PetSpecies.Hound ? new Color(0.35f, 0.28f, 0.22f) : new Color(0.55f, 0.42f, 0.18f), 0.7f);
-                shownPet = pet;
-            }
+            ShowPet(pet);
             built = true;
             framed = 0;
             AssignLayer(gameObject);
+        }
+
+        void ShowPet(PetSpecies pet)
+        {
+            if (built && pet == shownPet) return;
+            Clear(petPivot);
+            string key = pet == PetSpecies.Hound ? "pet_hound" : "pet_lynx";
+            var model = Art.Animated(key, 0.7f, petPivot);
+            if (model == null)
+                Art.Quadruped(petPivot, pet == PetSpecies.Hound ? new Color(0.35f, 0.28f, 0.22f) : new Color(0.55f, 0.42f, 0.18f), 0.7f);
+            shownPet = pet;
         }
 
         void LateUpdate()

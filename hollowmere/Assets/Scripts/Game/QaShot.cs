@@ -14,8 +14,13 @@ namespace Hollowmere
     ///   Hollowmere -qaShot fishing
     ///   Hollowmere -qaShot gearclose
     ///   Hollowmere -qaShot npcs
+    ///   Hollowmere -qaShot creator
+    ///   Hollowmere -qaShot weapon-melee
+    ///   Hollowmere -qaShot weapon-ranged
+    ///   Hollowmere -qaShot weapon-magic
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
+    /// Weapon shots equip one sword, bow, or staff on the classless hero and log the family.
     /// </summary>
     public static class QaShot
     {
@@ -41,7 +46,11 @@ namespace Hollowmere
         static IEnumerator Run(GameManager gm, string scene)
         {
             bool title = scene == "title";
-            bool newHero = scene == "newhero" || scene == "new-hero" || scene == "create";
+            bool newHero = scene == "newhero" || scene == "new-hero" || scene == "create" || scene == "creator";
+            bool weaponMelee = scene == "weapon-melee" || scene == "melee";
+            bool weaponRanged = scene == "weapon-ranged" || scene == "ranged";
+            bool weaponMagic = scene == "weapon-magic" || scene == "magic";
+            bool weapon = weaponMelee || weaponRanged || weaponMagic;
             bool inventory = scene == "inventory" || scene == "bag";
             bool loot = scene == "loot";
             bool gear = scene == "gear";
@@ -55,6 +64,24 @@ namespace Hollowmere
                 UiRoot.I.ShowTitle();
                 if (newHero) TitleScreen.ShowNewHero();
                 yield return new WaitForSecondsRealtime(1.2f);
+            }
+            else if (weapon)
+            {
+                gm.State = GameState.NewCustom("Qa", 1, 2, 1, 0, 0.85f, 0.7f, 0.45f, PetSpecies.Hound, "Moss", 1);
+                gm.EnterTown(false);
+                yield return new WaitForSeconds(0.8f);
+                string id = weaponRanged ? "bow" : weaponMagic ? "staff" : "sword";
+                var it = Loot.Generate(new Rng(4), 8, Rarity.Rare, null, ItemSlot.MainHand, forceBase: id, floor: 6);
+                gm.State.hero.inventory.Add(it);
+                gm.State.hero.Equip(it);
+                gm.OnEquipmentChanged();
+                var worn = gm.State.hero;
+                var basic = worn.BasicAttack();
+                string held = worn.Equipped(EquipSlot.MainHand) != null ? worn.Equipped(EquipSlot.MainHand).baseId : "";
+                Debug.Log("Hollowmere QA weapon family=" + worn.AttackFamily() + " anim=" + worn.AnimSet()
+                    + " skill=" + (basic != null ? basic.id : "") + " base=" + held);
+                if (HeroActor.I != null) FrameGear(HeroActor.I);
+                yield return new WaitForSeconds(0.35f);
             }
             else
             {

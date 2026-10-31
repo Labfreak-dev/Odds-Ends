@@ -62,7 +62,7 @@ namespace Hollowmere
             var c = s.counters;
             var st = HeroActor.I != null ? HeroActor.I.stats : s.Stats();
             Ui.Size(Ui.Label(Ui.Rect(rl, "stats", Vector2.zero, Vector2.one),
-                $"<b>{s.hero.name}</b>, level {s.hero.level} {s.hero.heroClass}\n" +
+                $"<b>{s.hero.name}</b>, level {s.hero.level}{(s.hero.classless ? "" : " " + s.hero.heroClass)}\n" +
                 $"Damage {Fx.Short(s.hero.SheetDps(st))}   Toughness {Fx.Short(s.hero.Toughness(st))}\n" +
                 $"Kills {c.kills}   Elites {c.elites}   Guardians {c.bosses}\nFish caught {c.fishCaught}   Species {s.fishLog.Count}/{FishDb.All.Count}\n" +
                 $"Legendaries {c.legendaries}   Deaths {c.deaths}\nGold earned {c.goldEarned:N0}", 26, TextAnchor.UpperLeft), 280);
@@ -84,8 +84,9 @@ namespace Hollowmere
             var body = ui.Modal("skills", $"Skills — {h.skills.unspent} point{(h.skills.unspent == 1 ? "" : "s")} to spend", new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.96f), onClose: gm.OnEquipmentChanged);
             var left = Ui.Rect(body, "tree", Vector2.zero, new Vector2(0.58f, 1), Vector2.zero, new Vector2(-10, 0));
             var list = Ui.Scroll(left, 6);
-            var defs = SkillDb.ForClass(h.heroClass).OrderBy(s => s.shape == SkillShape.Passive).ThenBy(s => s.reqLevel).ToList();
-            if (selected == null || SkillDb.Get(selected)?.cls != h.heroClass) selected = defs[0].id;
+            var defs = (h.classless ? SkillDb.All.AsEnumerable() : SkillDb.ForClass(h.heroClass))
+                .OrderBy(s => s.family).ThenBy(s => s.shape == SkillShape.Passive).ThenBy(s => s.reqLevel).ToList();
+            if (selected == null || SkillDb.Get(selected) == null || (!h.classless && SkillDb.Get(selected).cls != h.heroClass)) selected = defs[0].id;
 
             foreach (var s in defs)
             {
@@ -94,16 +95,18 @@ namespace Hollowmere
                 bool can = h.skills.CanRankUp(s, h.level);
                 var row = Ui.Row(list, 78, 8);
                 string kind = s.primary ? "Primary" : s.ultimate ? "Ultimate" : s.shape == SkillShape.Passive ? "Passive" : "Skill";
-                string lockText = h.level < s.reqLevel ? $"  <color=#ff7070>lvl {s.reqLevel}</color>" : s.prereq != null && h.skills.Rank(s.prereq) == 0 ? $"  <color=#ff7070>needs {SkillDb.Get(s.prereq).name}</color>" : "";
+                if (h.classless) kind = s.family + " · " + kind;
+                string lockText = h.classless && rank == 0 ? "  <color=#c9a14a>tome</color>" : h.level < s.reqLevel ? $"  <color=#ff7070>lvl {s.reqLevel}</color>" : s.prereq != null && h.skills.Rank(s.prereq) == 0 ? $"  <color=#ff7070>needs {SkillDb.Get(s.prereq).name}</color>" : "";
                 var b = Ui.Button(row, $"<b>{s.name}</b>  <color=#999999>{kind}</color>  {rank}/{s.maxRank}{lockText}", () => { selected = sd.id; Show(ui); }, s.id == selected ? Ui.ButtonHot : Ui.ButtonC, 26);
                 b.GetComponentInChildren<Text>().alignment = TextAnchor.MiddleLeft;
                 Ui.Size(b, -1, -1, 1);
-                var plus = Ui.Button(row, "+", () => { if (h.skills.RankUp(sd, h.level)) { selected = sd.id; gm.OnEquipmentChanged(); } Show(ui); }, can ? new Color(0.25f, 0.5f, 0.2f) : new Color(0.2f, 0.2f, 0.2f), 40);
-                plus.interactable = can;
+                bool spend = can && (!h.classless || rank > 0);
+                var plus = Ui.Button(row, h.classless && rank == 0 ? "Tome" : "+", () => { if (h.skills.RankUp(sd, h.level)) { selected = sd.id; gm.OnEquipmentChanged(); } Show(ui); }, spend ? new Color(0.25f, 0.5f, 0.2f) : new Color(0.2f, 0.2f, 0.2f), 28);
+                plus.interactable = spend;
                 Ui.Size(plus, -1, 90, 0);
             }
             if (gm.InTown)
-                Ui.Size(Ui.Button(list, "Reset all points (free in town)", () => { h.skills.Reset(h.level); var p = SkillDb.ForClass(h.heroClass).First(x => x.primary); h.skills.RankUp(p, h.level); gm.OnEquipmentChanged(); Show(ui); }, new Color(0.4f, 0.15f, 0.12f), 24), 64);
+                Ui.Size(Ui.Button(list, "Reset all points (free in town)", () => { h.Respec(); gm.OnEquipmentChanged(); Show(ui); }, new Color(0.4f, 0.15f, 0.12f), 24), 64);
 
             // ---- detail: description, runes, bar slots
             var right = Ui.Rect(body, "detail", new Vector2(0.58f, 0), Vector2.one, new Vector2(10, 0), Vector2.zero);
@@ -119,7 +122,7 @@ namespace Hollowmere
                 var c = SkillDb.Resolve(sel, h, hero != null ? hero.stats : gm.State.Stats());
                 nums = $"{sel.text}\n";
                 if (c.weaponDamage > 0) nums += $"<color=#ffe25a>{c.weaponDamage * 100:0}% weapon damage</color> as {c.element}\n";
-                if (c.cost > 0) nums += $"Cost {c.cost:0} {StatInfo.ResourceName(h.heroClass)}   ";
+                if (c.cost > 0) nums += $"Cost {c.cost:0} {h.ResourceLabel()}   ";
                 if (sel.generate > 0) nums += $"Generates {sel.generate:0}   ";
                 if (c.cooldown > 0) nums += $"Cooldown {c.cooldown:0.0}s";
                 if (r < sel.maxRank) nums += $"\n<color=#999999>Next rank: +{sel.perRank * 100:0}% weapon damage (needs level {sel.reqLevel + r * 4})</color>";
@@ -144,7 +147,7 @@ namespace Hollowmere
             {
                 Ui.Size(Ui.Label(Ui.Rect(dl, "bh", Vector2.zero, Vector2.one), "<b>Put on button</b>", 24, TextAnchor.MiddleLeft, Ui.Gold), 44);
                 var row = Ui.Row(dl, 80);
-                for (int i = 1; i <= 4; i++)
+                for (int i = 1; i <= 5; i++)
                 {
                     int slot = i;
                     var cur = SkillDb.Get(h.skills.bar[slot]);

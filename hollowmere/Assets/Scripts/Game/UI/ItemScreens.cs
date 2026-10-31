@@ -124,7 +124,7 @@ namespace Hollowmere
             rawRt.offsetMin = new Vector2(8, 8); rawRt.offsetMax = new Vector2(-8, -8);
             var raw = rawGo.AddComponent<RawImage>();
             raw.raycastTarget = false;
-            link.extra = InventoryStage.Build(h.heroClass, raw).gameObject;
+            link.extra = InventoryStage.Build(h.PresentationClass, raw).gameObject;
 
             foreach (var d in DesignTable.Doll)
             {

@@ -95,6 +95,11 @@ namespace Hollowmere
                     Fx.Text(p.transform.position, "Globe", new Color(1f, 0.35f, 0.3f), 0.8f);
                     AudioHub.Play("sfx_gold", 0.35f);
                 }
+                else if (p.item != null && (p.item.kind == ItemKind.Tome || p.item.kind == ItemKind.Rune))
+                {
+                    GameManager.I.GrantSkillItem(p.item);
+                    Sfx.Bag("item_pickup");
+                }
                 else if (p.item != null)
                 {
                     if (!state.hero.AddItem(p.item))

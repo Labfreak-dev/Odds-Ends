@@ -32,6 +32,7 @@ static class Program
         Progression();
         ModelAlbedo();
         PostVolumeLevel();
+        HeroFitLevel();
         SpecTables();
         P2P5();
         Console.WriteLine($"{passed} passed, {failed} failed");
@@ -741,6 +742,34 @@ static class Program
         Check(DesignTable.BossPhase(1f) == 1 && DesignTable.BossPhase(0.66f) == 2 && DesignTable.BossPhase(0.33f) == 3, "guardian phases");
     }
 
+    /// <summary>Gear must leave the v5 hero about 1.8 m tall in town, in the dungeon, and on the gear screen.
+    /// 0.06 m is the collapsed body. 84.9 m is the old chest overlay.</summary>
+    static void HeroFitLevel()
+    {
+        foreach (var mode in HeroFit.Modes)
+        {
+            Check(HeroFit.AfterGear(mode, HeroFit.Height), mode + " hero stays about 1.8 m after gear");
+            Check(HeroFit.AfterGear(mode, 1.80f), mode + " accepts a 1.80 m body");
+            Check(!HeroFit.AfterGear(mode, 0.06f), mode + " rejects a collapsed 0.06 m hero");
+            Check(!HeroFit.HeightOk(0.06f), mode + " height 0.06 m is not about 1.8 m");
+            Check(!HeroFit.SkinnedGear(true), mode + " v5 hero does not wear skinned gear");
+        }
+        Check(HeroFit.SkinnedGear(false), "pre-v5 rigs can still skin gear");
+        Check(HeroFit.PreserveBoneScale, "hero bone scale is left alone");
+        Check(!HeroFit.GearSizeOk(84.90f), "an 84.9 m chest is rejected");
+        Check(HeroFit.GearSizeOk(0.34f), "a body-sized piece is accepted");
+        Check(!HeroFit.AfterGear("town", 84.90f), "town rejects an 85 m hero");
+        Check(!HeroFit.AfterGear("", 1.8f), "a gear check names its mode");
+        foreach (var mode in HeroFit.Modes)
+        {
+            Check(HeroFit.IconCard(true, 684, false, null), mode + " rejects a sprite renderer on the hero");
+            Check(HeroFit.IconCard(false, 4, true, null), mode + " rejects a white-backed quad");
+            Check(HeroFit.IconCard(false, 726, false, "icon_pauldrons"), mode + " rejects the pauldron icon card");
+            Check(!HeroFit.IconCard(false, 684, false, null), mode + " accepts a steel pauldron mesh");
+            Check(!HeroFit.IconCard(false, 3500, false, "Image_0"), mode + " accepts a weapon albedo");
+        }
+    }
+
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto
     /// Hollowmere/Color; a model with no embedded texture cannot show anything but flat white.</summary>
     static void PostVolumeLevel()
@@ -794,7 +823,7 @@ static class Program
         int tex = json.IndexOf("baseColorTexture", StringComparison.Ordinal);
         Check(tex >= 0, "npc_smith material references baseColorTexture");
         int images = json.IndexOf("\"images\"", StringComparison.Ordinal);
-        Check(images >= 0 && images < tex, "npc_smith.glb embeds an image before the material uses it");
+        Check(images >= 0 && json.IndexOf("\"bufferView\"", images, StringComparison.Ordinal) >= 0, "npc_smith.glb embeds an image");
     }
 
     static string GlbJson(string path)

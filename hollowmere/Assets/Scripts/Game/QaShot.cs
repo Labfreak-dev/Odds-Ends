@@ -14,6 +14,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot fishing
     ///   Hollowmere -qaShot gearclose
     ///   Hollowmere -qaShot npcs
+    ///   Hollowmere -qaShot npcs-close
     ///   Hollowmere -qaShot creator
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
@@ -57,7 +58,8 @@ namespace Hollowmere
             bool gearClose = scene == "gearclose" || scene == "gear-close";
             bool gems = scene == "gems" || scene == "jeweler";
             bool fishing = scene == "fishing" || scene == "fish";
-            bool npcs = scene == "npcs" || scene == "npc";
+            bool npcs = scene == "npcs" || scene == "npc" || scene == "npcs-close" || scene == "npcclose";
+            bool npcsClose = scene == "npcs-close" || scene == "npcclose";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
@@ -89,6 +91,12 @@ namespace Hollowmere
                 if (dungeon) gm.EnterFloor(1);
                 else gm.EnterTown(false);
                 yield return new WaitForSeconds(0.8f);
+                if (npcsClose)
+                {
+                    yield return CloseUps();
+                    Application.Quit();
+                    yield break;
+                }
                 if (npcs) FrameNpcs();
                 Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
@@ -97,8 +105,12 @@ namespace Hollowmere
                 else
                     Debug.Log("Hollowmere QA: hero albedo " + albedo.name + " " + albedo.width + "x" + albedo.height
                         + (albedo is Texture2D t && t.isReadable ? " readable" : ""));
-                if (HeroActor.I != null && Art.UnionBounds(HeroActor.I.gameObject, out var hb))
-                    Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
+                if (HeroActor.I != null)
+                {
+                    Art.LogHeroBounds(HeroActor.I.gameObject, dungeon ? "dungeon" : "town");
+                    if (Art.UnionBounds(HeroActor.I.gameObject, out var hb))
+                        Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
+                }
                 if (loot && HeroActor.I != null)
                 {
                     var rng = new Rng(9);
@@ -112,6 +124,7 @@ namespace Hollowmere
                 else if (gear || gearClose)
                 {
                     EquipShowcase(gm);
+                    if (HeroActor.I != null) Art.LogHeroBounds(HeroActor.I.gameObject, "gear");
                     if (gearClose && HeroActor.I != null)
                         FrameGear(HeroActor.I);
                     yield return new WaitForSeconds(0.35f);
@@ -230,6 +243,111 @@ namespace Hollowmere
             var cam = Camera.main;
             if (cam == null) return;
             cam.fieldOfView = 42f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        /// <summary>One close-up of each service NPC, then one of the hero.</summary>
+        static IEnumerator CloseUps()
+        {
+            var row = new System.Collections.Generic.List<Interactable>();
+            foreach (var it in Interactable.All)
+            {
+                if (it == null) continue;
+                switch (it.kind)
+                {
+                    case InteractKind.Merchant:
+                    case InteractKind.Blacksmith:
+                    case InteractKind.Mystic:
+                    case InteractKind.Fisherman:
+                    case InteractKind.Jeweler:
+                    case InteractKind.Gambler:
+                        row.Add(it);
+                        break;
+                }
+            }
+            if (row.Count == 0) Debug.LogError("Hollowmere QA npcclose found no NPCs");
+            foreach (var it in row)
+            {
+                FrameClose(it.transform.position, it.transform.forward, 1.15f, 2.3f);
+                yield return new WaitForEndOfFrame();
+                SaveShot("npcclose-" + it.kind.ToString().ToLowerInvariant());
+            }
+            if (HeroActor.I != null)
+            {
+                Art.LogHeroBounds(HeroActor.I.gameObject, "town");
+                FrameClose(HeroActor.I.transform.position, HeroActor.I.transform.forward, 1.2f, 2.5f);
+                yield return new WaitForEndOfFrame();
+                SaveShot("npcclose-hero");
+            }
+            else Debug.LogError("Hollowmere QA npcclose found no hero");
+        }
+
+        static void FrameClose(Vector3 feet, Vector3 forward, float lookHeight, float distance)
+        {
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
+            forward.Normalize();
+            var look = feet + Vector3.up * lookHeight;
+            var camPos = look + forward * distance + Vector3.up * 0.15f;
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 32f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static void SaveShot(string name)
+        {
+            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + name + ".png");
+            try
+            {
+                File.WriteAllBytes(path, tex.EncodeToPNG());
+                Debug.Log("Hollowmere QA shot saved: " + path);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Hollowmere QA shot failed: " + e.Message);
+            }
+            UnityEngine.Object.Destroy(tex);
+        }
+
+        /// <summary>Line the service NPCs up and frame them from a few metres, so props and faces read.</summary>
+        static void FrameNpcsClose()
+        {
+            var row = new System.Collections.Generic.List<Interactable>();
+            foreach (var it in Interactable.All)
+            {
+                if (it == null) continue;
+                switch (it.kind)
+                {
+                    case InteractKind.Merchant:
+                    case InteractKind.Blacksmith:
+                    case InteractKind.Mystic:
+                    case InteractKind.Fisherman:
+                    case InteractKind.Jeweler:
+                    case InteractKind.Gambler:
+                        row.Add(it);
+                        break;
+                }
+            }
+            Vector3 origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            for (int i = 0; i < row.Count; i++)
+            {
+                var it = row[i];
+                it.transform.position = origin + new Vector3((i - (row.Count - 1) * 0.5f) * 1.65f, 0f, 3.4f);
+                it.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                Debug.Log("Hollowmere QA npc close " + it.kind + " at " + it.transform.position.ToString("0.0"));
+            }
+            var look = origin + new Vector3(0f, 1.2f, 3.4f);
+            var camPos = look + new Vector3(0f, 0.35f, -8.2f);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 40f;
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));

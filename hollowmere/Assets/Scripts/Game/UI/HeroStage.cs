@@ -14,7 +14,8 @@ namespace Hollowmere
         Transform heroPivot, petPivot;
         HeroClass shownClass;
         PetSpecies shownPet;
-        Color shownTint;
+        Color shownSkin, shownCloth, shownHair, shownArmour;
+        bool shownPlate;
         bool built;
         float spin;
         int framed;
@@ -84,16 +85,20 @@ namespace Hollowmere
             if (target != null) target.texture = rt;
         }
 
-        /// <summary>Creator turntable. One mesh for now; body, skin, hair, and armour tint are stored on the hero and the tint is what the stage shows.</summary>
-        public void SetLook(Color tint, PetSpecies pet)
+        /// <summary>Creator turntable. Cloth uses hero.glb. Plate uses hero_plate.glb. The mask tints armour, cloth, hair and skin.</summary>
+        public void SetLook(bool plate, Color skin, Color cloth, Color hair, Color armour, PetSpecies pet)
         {
-            if (!built || shownTint != tint)
+            if (!built || shownPlate != plate || shownSkin != skin || shownCloth != cloth || shownHair != hair || shownArmour != armour)
             {
                 Clear(heroPivot);
-                var model = Art.Animated("hero_hexweaver", 1.7f, heroPivot);
-                if (model != null) Art.Tint(model, tint);
-                else Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(tint));
-                shownTint = tint;
+                var model = Art.Animated(plate ? "hero_plate" : "hero", 1.7f, heroPivot);
+                if (model != null) Art.PaintHero(model, skin, cloth, hair, armour);
+                else Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(armour));
+                shownPlate = plate;
+                shownSkin = skin;
+                shownCloth = cloth;
+                shownHair = hair;
+                shownArmour = armour;
                 shownClass = HeroClass.Hexweaver;
             }
             ShowPet(pet);

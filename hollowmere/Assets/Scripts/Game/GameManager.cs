@@ -49,9 +49,9 @@ namespace Hollowmere
             EnterTown(false);
         }
 
-        public void NewGameCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName)
+        public void NewGameCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, int plate = 0)
         {
-            State = GameState.NewCustom(heroName, body, skin, hair, face, r, g, b, pet, petName, (ulong)DateTime.UtcNow.Ticks);
+            State = GameState.NewCustom(heroName, body, skin, hair, face, r, g, b, pet, petName, (ulong)DateTime.UtcNow.Ticks, plate);
             Save();
             EnterTown(false);
         }
@@ -152,6 +152,8 @@ namespace Hollowmere
             SpawnHeroAndPet(spawn);
             Town.RefreshQuests(State, rng);
             AudioHub.Music("mus_town");
+            AudioHub.Ambience("amb_town_murmur", 0.32f);
+            AudioHub.Bed("amb_water_stream", 0.18f);
             UiRoot.I.Hud.SetLocation("Hollowmere");
             Save();
         }
@@ -213,6 +215,8 @@ namespace Hollowmere
             foreach (var s in map.spawns) floorBlocked.Add(s.pos);
             Dressing.Scatter(map, root, floorBlocked, (int)State.seed ^ (depth * 997));
             AudioHub.Music(map.bossFloor ? "mus_boss" : "mus_dungeon");
+            AudioHub.Ambience(map.bossFloor ? "amb_wind" : "amb_cave_drips", map.bossFloor ? 0.22f : 0.34f);
+            AudioHub.Bed(null);
             AudioHub.Play("sfx_stairs", 0.6f);
             string where = map.theme switch { Theme.Crypt => "Crypts", Theme.Caverns => "Caverns", Theme.SunkenHalls => "Sunken Halls", _ => "Ember Depths" };
             UiRoot.I.Hud.SetLocation($"Floor {depth} · {where}");

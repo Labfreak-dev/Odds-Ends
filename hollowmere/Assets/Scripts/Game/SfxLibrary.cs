@@ -52,7 +52,10 @@ namespace Hollowmere
 
         public static void Cast(HeroActor hero, string skillId)
         {
+            var def = SkillDb.Get(skillId);
+            if (def != null && def.shape == SkillShape.Buff) One("spell_buff_attack", 0.5f);
             if (Play(CastCue(skillId), 0.8f)) return;
+            if (def != null && def.family == WeaponFamily.Magic && One(SpellHit(def.element), 0.75f)) return;
             Swing(WeaponId(hero));
         }
 
@@ -64,6 +67,8 @@ namespace Hollowmere
                 return;
             }
             if (Play(ImpactCue(skillId), 0.8f)) return;
+            var def = SkillDb.Get(skillId);
+            if (def != null && def.family == WeaponFamily.Magic && One(SpellHit(def.element), 0.8f)) return;
             string family = WeaponId(hero);
             bool armor = target is MonsterActor m && (m.stats.def.role == MonsterRole.Brute || m.stats.IsEliteish);
             AudioHub.Vary(armor ? "hit_armor" : "hit_" + family, 0.8f);
@@ -122,6 +127,23 @@ namespace Hollowmere
                 default: return "sword";
             }
         }
+
+        static bool One(string key, float volume)
+        {
+            if (string.IsNullOrEmpty(key) || !AudioHub.Has(key)) return false;
+            AudioHub.Play(key, volume);
+            return true;
+        }
+
+        static string SpellHit(Element el) => el switch
+        {
+            Element.Fire => "spell_fire_explosion",
+            Element.Frost => "spell_ice_impact",
+            Element.Lightning => "spell_lightning",
+            Element.Poison => "spell_poison",
+            Element.Arcane => "spell_arcane_01",
+            _ => "spell_earth",
+        };
 
         static bool Play(string cue, float volume)
         {

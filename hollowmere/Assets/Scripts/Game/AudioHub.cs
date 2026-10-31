@@ -14,7 +14,7 @@ namespace Hollowmere
         public static AudioHub I;
         readonly Dictionary<string, AudioClip> cache = new Dictionary<string, AudioClip>();
         readonly Dictionary<string, float> lastPlayed = new Dictionary<string, float>();
-        AudioSource sfx, music, loopSrc;
+        AudioSource sfx, music, loopSrc, ambienceSrc, bedSrc;
         AudioSource[] shots;
         int shotCursor;
         string musicKey;
@@ -250,11 +250,53 @@ namespace Hollowmere
             Play(key, volume);
         }
 
+        public static AudioClip FindClip(string key) => I == null || string.IsNullOrEmpty(key) ? null : I.Clip(key);
+
+        /// <summary>Zone bed. Town uses the murmur, not the raw crowd take.</summary>
+        public static void Ambience(string key, float volume = 0.3f)
+        {
+            if (I == null) return;
+            PlayBed(ref I.ambienceSrc, key, volume);
+        }
+
+        /// <summary>A second loop, used for the lake under the town murmur.</summary>
+        public static void Bed(string key, float volume = 0.18f)
+        {
+            if (I == null) return;
+            PlayBed(ref I.bedSrc, key, volume);
+        }
+
+        static void PlayBed(ref AudioSource src, string key, float volume)
+        {
+            if (src == null)
+            {
+                src = I.gameObject.AddComponent<AudioSource>();
+                src.spatialBlend = 0f;
+                src.playOnAwake = false;
+                src.loop = true;
+            }
+            if (string.IsNullOrEmpty(key))
+            {
+                if (src.isPlaying) src.Stop();
+                src.clip = null;
+                return;
+            }
+            var c = I.Clip(key);
+            if (c == null) return;
+            if (src.clip == c && src.isPlaying) return;
+            src.clip = c;
+            src.volume = volume * I.musicVolume;
+            src.loop = true;
+            src.Play();
+        }
+
         public static void SetVolumes(float sfxV, float musicV)
         {
             if (I == null) return;
             I.sfxVolume = sfxV; I.musicVolume = musicV;
             I.music.volume = musicV;
+            if (I.ambienceSrc != null) I.ambienceSrc.volume = 0.32f * musicV;
+            if (I.bedSrc != null) I.bedSrc.volume = 0.18f * musicV;
             PlayerPrefs.SetFloat("sfx", sfxV);
             PlayerPrefs.SetFloat("music", musicV);
         }

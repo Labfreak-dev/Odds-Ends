@@ -71,14 +71,14 @@ namespace Hollowmere.Core
             return s;
         }
 
-        public static GameState NewCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, ulong seed)
+        public static GameState NewCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, ulong seed, int plate = 0)
         {
             var rng = new Rng(seed);
             var s = new GameState
             {
                 version = 3,
                 seed = (long)seed,
-                hero = Hero.CreateCustom(heroName, body, skin, hair, face, r, g, b, rng),
+                hero = Hero.CreateCustom(heroName, body, skin, hair, face, r, g, b, rng, plate),
             };
             s.pet.species = pet;
             s.pet.name = petName;

@@ -237,22 +237,10 @@ namespace Hollowmere
                     {
                         InteractKind.Merchant => "npc_merchant", InteractKind.Blacksmith => "npc_smith",
                         InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher",
-                        // No dedicated meshes yet. A vendor and a robed figure stand in
-                        // for the yellow jeweler blob and the green dealer capsule.
-                        InteractKind.Jeweler => "npc_merchant", InteractKind.Gambler => "npc_mystic",
+                        InteractKind.Jeweler => "npc_jeweler", InteractKind.Gambler => "npc_curio",
                         _ => null,
                     };
                     var model = npc != null ? Art.Animated(npc, 1.75f, t) : null;
-                    if (model != null && kind == InteractKind.Jeweler)
-                    {
-                        Art.Tint(model, new Color(1.15f, 0.78f, 0.42f));
-                        Art.Sphere(model.transform, new Vector3(0.28f, 1.15f, 0.35f), Vector3.one * 0.16f, Art.Mat(new Color(0.95f, 0.45f, 0.2f), 1.4f));
-                    }
-                    else if (model != null && kind == InteractKind.Gambler)
-                    {
-                        Art.Tint(model, new Color(0.45f, 0.95f, 0.62f));
-                        Art.Cube(model.transform, new Vector3(-0.22f, 1.05f, 0.32f), new Vector3(0.22f, 0.04f, 0.16f), Art.Mat(new Color(0.15f, 0.45f, 0.28f), 0.4f));
-                    }
                     if (model == null && kind == InteractKind.QuestBoard)
                     {
                         Art.Cube(t, new Vector3(0, 1.2f, 0), new Vector3(1.8f, 1.2f, 0.12f), Art.Mat(new Color(0.55f, 0.4f, 0.25f)));

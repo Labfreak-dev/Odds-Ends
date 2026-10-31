@@ -20,6 +20,12 @@ Shader "Hollowmere/Lit"
         _Metallic ("Metallic", Range(0,1)) = 0
         _Smoothness ("Smoothness", Range(0,1)) = 0.35
         _EmissionColor ("Emission", Color) = (0,0,0,1)
+        _TintMask ("Tint Mask", 2D) = "black" {}
+        _HasTint ("Has Tint", Float) = 0
+        _TintArmour ("Armour Tint", Color) = (1,1,1,1)
+        _TintCloth ("Cloth Tint", Color) = (1,1,1,1)
+        _TintHair ("Hair Tint", Color) = (1,1,1,1)
+        _TintSkin ("Skin Tint", Color) = (1,1,1,1)
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
     SubShader
@@ -50,17 +56,24 @@ Shader "Hollowmere/Lit"
             SAMPLER(sampler_BumpMap);
             TEXTURE2D(_MetallicGlossMap);
             SAMPLER(sampler_MetallicGlossMap);
+            TEXTURE2D(_TintMask);
+            SAMPLER(sampler_TintMask);
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
                 half4 _Color;
                 half4 _EmissionColor;
+                half4 _TintArmour;
+                half4 _TintCloth;
+                half4 _TintHair;
+                half4 _TintSkin;
                 half _Smoothness;
                 half _Metallic;
                 half _HasMap;
                 half _HasNormal;
                 half _HasMetal;
                 half _GltfPack;
+                half _HasTint;
             CBUFFER_END
 
             struct Attributes
@@ -98,6 +111,17 @@ Shader "Hollowmere/Lit"
                 half3 albedo = _BaseColor.rgb;
                 if (_HasMap > 0.5)
                     albedo *= SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
+                // R armour, G cloth, B hair. Each multiplies the base colour. Skin is the uncovered rest.
+                if (_HasTint > 0.5)
+                {
+                    half3 tex = albedo;
+                    half3 mk = SAMPLE_TEXTURE2D(_TintMask, sampler_TintMask, i.uv).rgb;
+                    half sum = mk.r + mk.g + mk.b;
+                    half3 acc = tex * _TintArmour.rgb * mk.r + tex * _TintCloth.rgb * mk.g + tex * _TintHair.rgb * mk.b;
+                    if (sum > 1.0) acc /= sum;
+                    half remain = saturate(1.0 - min(sum, 1.0));
+                    albedo = acc + tex * _TintSkin.rgb * remain;
+                }
 
                 half3 n = normalize(i.normalWS);
                 half3 view = normalize(GetCameraPositionWS() - i.positionWS);

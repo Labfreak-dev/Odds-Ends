@@ -52,14 +52,14 @@ namespace Hollowmere
             var b = new GameObject("body").transform;
             b.SetParent(transform, false);
             body = b;
-            var model = Art.Animated(Art.HeroModelKey(Hero.PresentationClass), 1.8f, b);
+            var model = Art.Animated(Art.HeroMesh(Hero), 1.8f, b);
             // A generated hero carries its own weapon, so no primitive weapon is attached (hand stays null).
             if (model != null)
             {
                 figure = model.transform;
                 modelAnim = model.GetComponent<ModelAnim>();
-                if (Hero.classless)
-                    Art.Tint(model, new Color(Mathf.Clamp01(Hero.armourR), Mathf.Clamp01(Hero.armourG), Mathf.Clamp01(Hero.armourB)));
+                if (Hero.classless) Art.PaintHero(model, Hero);
+                Art.LogHeroBounds(model, Art.PlayMode());
             }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.PresentationClass), Art.ClassColor(Hero.PresentationClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
             var ring = Hero.classless
@@ -72,7 +72,8 @@ namespace Hollowmere
             rim.transform.localPosition = new Vector3(0.35f, 1.45f, -1.35f);
             rim.type = LightType.Point;
             rim.range = 6.5f;
-            rim.intensity = 6f;
+            bool town = Art.PlayMode() == "town";
+            rim.intensity = town ? 8f : 6f;
             rim.color = new Color(0.9f, 0.82f, 1f);
             // Warm rim from behind the shoulders so the silhouette reads against the ground.
             var edge = new GameObject("heroRim").AddComponent<Light>();
@@ -80,8 +81,8 @@ namespace Hollowmere
             edge.transform.localPosition = new Vector3(-0.45f, 1.7f, 1.15f);
             edge.type = LightType.Point;
             edge.range = 5.5f;
-            edge.intensity = 5f;
-            edge.color = new Color(1f, 0.72f, 0.45f);
+            edge.intensity = town ? 8.5f : 5f;
+            edge.color = town ? new Color(1f, 0.84f, 0.62f) : new Color(1f, 0.72f, 0.45f);
             RefreshWeapon();
             // Key light just above the hero. The town sun alone left the body in shade.
             var l = new GameObject("heroLight").AddComponent<Light>();
@@ -92,7 +93,12 @@ namespace Hollowmere
 
         public void RefreshWeapon()
         {
-            if (figure != null) GearAttach.Apply(figure, Hero);
+            if (figure == null) return;
+            if (Hero != null && Hero.classless) Art.PaintHero(figure.gameObject, Hero);
+            GearAttach.Apply(figure, Hero);
+            // Equipment changes are checked again as the gear mode. Town and dungeon
+            // are checked inside Apply from the current floor.
+            Art.LogHeroBounds(figure.gameObject, "gear");
         }
 
         public void BeginFishing()
@@ -111,7 +117,7 @@ namespace Hollowmere
         public void EndFishing()
         {
             if (modelAnim != null) modelAnim.CancelAttack();
-            if (figure != null) GearAttach.Apply(figure, Hero);
+            RefreshWeapon();
         }
 
         public void RefreshStats(bool fill = false)

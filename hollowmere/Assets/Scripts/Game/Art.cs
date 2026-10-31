@@ -259,19 +259,18 @@ namespace Hollowmere
             // Fitting those to a short target height blew a flat mesh into the giant plane
             // that covered the corner of the town and the dungeon.
             string bodyKey = ClipFeet.Strip(key);
+            bool v5 = V5Body(bodyKey);
             bool smith = bodyKey == "npc_smith";
             if (bodyKey == "pet_hound") HideBellySlab(go);
             if (bodyKey == "pet_lynx") FaceLynx(go);
             if (IsCharacter(key))
             {
-                if (smith)
+                if (smith && !v5)
                 {
-                    // npc_smith.glb is Z-up (1.89 m deep, 1.39 m tall). A long-axis
-                    // search stands the hammer and leaves the head floating.
-                    // The walk rig is already Y-up, so it keeps identity.
+                    // The old npc_smith.glb is Z-up. The v5 rig is already Y-up.
                     go.transform.localRotation = go.transform.localRotation * SmithCorrection(key);
                 }
-                else if (IsBiped(key) && !key.StartsWith("npc_"))
+                else if (!v5 && IsBiped(key) && !key.StartsWith("npc_"))
                     StandUp(go.transform);
                 // NPCs are scaled by NpcMeasure from renderer bounds after the skin
                 // updates. Fitting here reads the 0.01 armature and leaves a 1 cm body.
@@ -289,7 +288,10 @@ namespace Hollowmere
             // Heroes keep the fit from b75410d. NPC height is NpcMeasure, after the
             // renderer bounds exist. ModelFit's long-axis turn floats the smith's head.
             fit.biped = false;
-            fit.freeze = key.StartsWith("npc_");
+            // v5 meshes are already in metres. A stale skinned box reads as 1 cm or as a
+            // giant, and fitting from that either hides the hero or blows a prop up.
+            fit.freeze = v5 || key.StartsWith("npc_");
+            if (v5) ReadySkin(go);
             if (key.StartsWith("npc_"))
             {
                 var measure = holder.AddComponent<NpcMeasure>();
@@ -307,23 +309,338 @@ namespace Hollowmere
             var foot = ClipFeet.For(key);
             ma.walkFoot = foot.walk;
             ma.runFoot = foot.run;
+            // v5 clips are in place. A run foot of 0 would keep the walk take forever.
+            if (v5) { ma.walkFoot = 1.4f; ma.runFoot = 3.6f; }
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
             // Smith is oriented by SmithCorrection. The generic stand-up pitches the
             // hammer up and never logs the holder, which is why the head had no line.
-            if (key.StartsWith("npc_") && !smith)
+            if (key.StartsWith("npc_") && !v5 && !smith)
                 holder.AddComponent<NpcStand>();
-            if (key.StartsWith("hero_"))
+            if (key.StartsWith("hero_") && !v5)
             {
                 CombatClipPlayer.Attach(ma, key);
                 CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
             }
+            if (v5) DressNpc(bodyKey, go.transform);
             return holder;
         }
 
-        /// <summary>The v2 rig if it has landed, else the older walk cycle, else the static mesh.</summary>
+        /// <summary>Mixamo v5 bodies win over the older walk rigs. Those files already contain idle, walk and run.</summary>
+        public static bool V5Body(string key)
+        {
+            switch (key)
+            {
+                case "hero":
+                case "hero_plate":
+                case "npc_smith":
+                case "npc_merchant":
+                case "npc_jeweler":
+                case "npc_mystic":
+                case "npc_curio":
+                case "npc_fisher":
+                    return true;
+            }
+            return false;
+        }
+
         public static GameObject Animated(string key, float height, Transform parent)
-            => Model(key + "_walk_v2", height, parent) ?? Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+        {
+            if (V5Body(key))
+            {
+                var fresh = Model(key, height, parent);
+                if (fresh != null) return fresh;
+            }
+            return Model(key + "_walk_v2", height, parent) ?? Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+        }
+
+        /// <summary>Town props from the character manifest. Offsets are glTFast local space. Loupe and trinkets are scaled so they read at the game camera.</summary>
+        static void DressNpc(string key, Transform rig)
+        {
+            if (key == "npc_mystic")
+                Pin(rig, "prop_mystic_staff", "RightHand", new Vector3(-0.01262f, 0.12937f, -0.01487f), new Quaternion(-0.042606f, -0.253599f, -0.920963f, -0.292746f), 1f);
+            else if (key == "npc_merchant")
+                Pin(rig, "prop_merchant_backpack", "Spine2", new Vector3(-0.00388f, -0.07094f, -0.12992f), new Quaternion(0.038513f, 0f, 0f, 0.999258f), 1f);
+            else if (key == "npc_jeweler")
+            {
+                Pin(rig, "prop_jeweler_loupe", "Head", new Vector3(0.03048f, 0.12205f, 0.11704f), new Quaternion(-0.066777f, -0.039748f, -0.039748f, 0.996183f), 1.5f);
+                Pin(rig, "prop_jeweler_tools", "Hips", new Vector3(0.14134f, -0.07676f, 0.123f), new Quaternion(0.012581f, -0.002466f, -0.002466f, 0.999915f), 1f);
+            }
+            else if (key == "npc_curio")
+                Pin(rig, "prop_curio_trinkets", "Hips", new Vector3(-0.20224f, -0.03001f, 0.07934f), new Quaternion(-0.002467f, -0.005265f, -0.005265f, 0.999969f), 1.5f);
+        }
+
+        static void Pin(Transform rig, string propKey, string bone, Vector3 pos, Quaternion rot, float scale)
+        {
+            var joint = Bone(rig, bone);
+            if (joint == null)
+            {
+                Debug.LogWarning("Hollowmere prop " + propKey + " missing " + bone);
+                return;
+            }
+            var prop = Model(propKey, 0f, joint);
+            if (prop == null) return;
+            prop.transform.localPosition = pos;
+            prop.transform.localRotation = rot;
+            prop.transform.localScale = Vector3.one * scale;
+            AuditProp(prop, propKey);
+        }
+
+        /// <summary>World size of a prop after it is parented. Anything over 2.5 m is a bad scale or a missed bone.</summary>
+        public static void AuditProp(GameObject prop, string key)
+        {
+            if (prop == null) return;
+            if (!MeshWorldBounds(prop.transform, out var b))
+            {
+                Debug.LogError("Hollowmere prop " + key + " has no bounds");
+                return;
+            }
+            float max = MaxAxis(b.size);
+            Debug.Log("Hollowmere prop " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
+            if (max > HeroFit.GearMaxAxis)
+                Debug.LogError("Hollowmere prop " + key + " FAIL " + max.ToString("0.00") + "m");
+        }
+
+        static void ReadySkin(GameObject go)
+        {
+            foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                smr.updateWhenOffscreen = true;
+                if (smr.sharedMesh == null) continue;
+                smr.sharedMesh.RecalculateBounds();
+                smr.localBounds = smr.sharedMesh.bounds;
+            }
+        }
+
+        /// <summary>Town when the save is in town, dungeon on a floor. Gear is a separate check after equipment changes.</summary>
+        public static string PlayMode()
+        {
+            var gm = GameManager.I;
+            if (gm != null && gm.State != null && gm.State.depth > 0) return "dungeon";
+            return "town";
+        }
+
+        /// <summary>
+        /// Body mesh only: attached gear is measured on its own. The v5 body is about 1.8 m.
+        /// 0.06 m is a collapsed rig. A piece over 2.5 m is the inflated chest.
+        /// </summary>
+        public static void LogHeroBounds(GameObject go, string mode = "town")
+        {
+            if (go == null) return;
+            ReadySkin(go);
+            if (!WorldMeshBounds(go.transform, out var b, true))
+            {
+                Debug.LogError("Hollowmere hero has no world bounds");
+                return;
+            }
+            Debug.Log("Hollowmere hero bounds " + mode + " size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
+            if (!HeroFit.AfterGear(mode, b.size.y))
+                Debug.LogError("Hollowmere hero bounds FAIL height " + b.size.y.ToString("0.00") + "m");
+            AuditGearPieces(go.transform);
+            AuditHeroCards(go);
+        }
+
+        /// <summary>Sprite cards and icon quads with a white backdrop do not belong on the hero.</summary>
+        public static void AuditHeroCards(GameObject go)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || !r.enabled) continue;
+                if (!IsIconCard(r)) continue;
+                Debug.LogError("Hollowmere hero icon card " + PathOf(r.transform));
+            }
+        }
+
+        public static bool IsIconCard(GameObject go)
+        {
+            if (go == null) return false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                if (r != null && r.enabled && IsIconCard(r)) return true;
+            return false;
+        }
+
+        static bool IsIconCard(Renderer r)
+        {
+            bool sprite = r is SpriteRenderer;
+            Mesh mesh = null;
+            var skin = r as SkinnedMeshRenderer;
+            if (skin != null) mesh = skin.sharedMesh;
+            else
+            {
+                var mf = r.GetComponent<MeshFilter>();
+                if (mf != null) mesh = mf.sharedMesh;
+            }
+            int verts = mesh != null ? mesh.vertexCount : 0;
+            Texture tex = null;
+            var mats = r.sharedMaterials;
+            if (mats != null)
+            {
+                for (int i = 0; i < mats.Length && tex == null; i++)
+                    tex = FirstAlbedo(mats[i]);
+            }
+            return HeroFit.IconCard(sprite, verts, WhiteBackdrop(tex), tex != null ? tex.name : null);
+        }
+
+        static bool WhiteBackdrop(Texture tex)
+        {
+            if (tex == null) return false;
+            string n = tex.name ?? "";
+            if (n == "White" || n == "UnityWhite") return true;
+            var t2 = tex as Texture2D;
+            if (t2 == null || !t2.isReadable || t2.width < 4 || t2.height < 4) return false;
+            int w = t2.width, h = t2.height;
+            int pale = 0;
+            Color[] corners =
+            {
+                t2.GetPixel(1, 1), t2.GetPixel(w - 2, 1), t2.GetPixel(1, h - 2), t2.GetPixel(w - 2, h - 2),
+            };
+            for (int i = 0; i < corners.Length; i++)
+            {
+                var c = corners[i];
+                if (c.a < 0.2f) pale++;
+                else if (c.r > 0.85f && c.g > 0.85f && c.b > 0.85f) pale++;
+            }
+            var mid = t2.GetPixel(w / 2, h / 2);
+            bool dark = mid.r < 0.45f && mid.g < 0.45f && mid.b < 0.45f;
+            return pale >= 3 && dark;
+        }
+
+        /// <summary>URP Lit steel. No albedo map, so a missing or icon texture cannot turn the piece into a white card.</summary>
+        public static void PaintSteel(GameObject go)
+        {
+            if (go == null) return;
+            var steel = new Color(0.62f, 0.66f, 0.72f);
+            var urp = Shader.Find("Universal Render Pipeline/Lit");
+            var shader = urp != null ? urp : LitShader();
+            if (shader == null) shader = BaseMaterial().shader;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var m = new Material(shader);
+                m.color = steel;
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", steel);
+                if (m.HasProperty("_Color")) m.SetColor("_Color", steel);
+                if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0.82f);
+                if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.58f);
+                if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 0f);
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", null);
+                if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", null);
+                m.mainTexture = null;
+                r.sharedMaterial = m;
+            }
+        }
+
+        static void AuditGearPieces(Transform root)
+        {
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("gear_")) continue;
+                if (t.parent != null && UnderGear(t.parent)) continue;
+                bool live = false;
+                foreach (var r in t.GetComponentsInChildren<Renderer>(true))
+                    if (r.enabled) live = true;
+                if (!live) continue;
+                if (!WorldMeshBounds(t, out var b)) continue;
+                float max = MaxAxis(b.size);
+                Debug.Log("Hollowmere gear bounds " + t.name + " size=" + b.size.ToString("0.00"));
+                if (!HeroFit.GearSizeOk(max))
+                    Debug.LogError("Hollowmere gear bounds FAIL " + t.name + " " + max.ToString("0.00") + "m");
+            }
+        }
+
+        static bool UnderGear(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("gear_") || t.name == "weapon") return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        public static Transform Bone(Transform root, string name)
+        {
+            if (root == null || string.IsNullOrEmpty(name)) return null;
+            if (BoneName(root.name, name)) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var hit = Bone(root.GetChild(i), name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
+
+        static bool BoneName(string node, string name)
+        {
+            if (node == name) return true;
+            int cut = node.LastIndexOf(':');
+            return cut >= 0 && node.Substring(cut + 1) == name;
+        }
+
+        public static readonly Color[] SkinTints =
+        {
+            new Color(0.93f, 0.76f, 0.62f), new Color(0.72f, 0.5f, 0.36f), new Color(0.45f, 0.3f, 0.22f),
+            new Color(0.96f, 0.84f, 0.7f), new Color(0.55f, 0.42f, 0.34f),
+        };
+        public static readonly Color[] HairTints =
+        {
+            new Color(0.15f, 0.1f, 0.08f), new Color(0.55f, 0.32f, 0.16f), new Color(0.85f, 0.72f, 0.35f),
+            new Color(0.35f, 0.35f, 0.4f), new Color(0.7f, 0.15f, 0.12f),
+        };
+        public static readonly Color[] ArmourTints =
+        {
+            new Color(0.72f, 0.74f, 0.78f), new Color(0.45f, 0.32f, 0.22f), new Color(0.25f, 0.38f, 0.62f),
+            new Color(0.55f, 0.18f, 0.16f), new Color(0.28f, 0.42f, 0.28f),
+        };
+
+        public static Color ClothTint(int body) => body == 0
+            ? new Color(0.82f, 0.74f, 0.62f)
+            : body >= 2 ? new Color(0.34f, 0.30f, 0.28f) : new Color(0.55f, 0.40f, 0.28f);
+
+        public static string HeroMesh(Hero h) => h != null && h.plate > 0 ? "hero_plate" : "hero";
+
+        /// <summary>Mask channels multiply the base colour: R armour, G cloth, B hair. Skin is what the mask leaves.</summary>
+        public static void PaintHero(GameObject go, Color skin, Color cloth, Color hair, Color armour)
+        {
+            if (go == null) return;
+            var mask = Resources.Load<Texture2D>("Models/hero_tint_mask");
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || UnderProp(r.transform)) continue;
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null || !m.HasProperty("_TintMask")) continue;
+                    if (mask != null) m.SetTexture("_TintMask", mask);
+                    if (m.HasProperty("_HasTint")) m.SetFloat("_HasTint", mask != null ? 1f : 0f);
+                    if (m.HasProperty("_TintArmour")) m.SetColor("_TintArmour", armour);
+                    if (m.HasProperty("_TintCloth")) m.SetColor("_TintCloth", cloth);
+                    if (m.HasProperty("_TintHair")) m.SetColor("_TintHair", hair);
+                    if (m.HasProperty("_TintSkin")) m.SetColor("_TintSkin", skin);
+                }
+                r.materials = mats;
+            }
+        }
+
+        static bool UnderProp(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("prop_")) return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        public static void PaintHero(GameObject go, Hero h)
+        {
+            if (h == null) return;
+            int skin = Mathf.Clamp(h.skin, 0, SkinTints.Length - 1);
+            int hair = Mathf.Clamp(h.hair, 0, HairTints.Length - 1);
+            PaintHero(go, SkinTints[skin], ClothTint(h.body), HairTints[hair],
+                new Color(Mathf.Clamp01(h.armourR), Mathf.Clamp01(h.armourG), Mathf.Clamp01(h.armourB)));
+        }
 
         /// <summary>The older hound mesh has a ground slab under the belly. Collapse those triangles when the mesh can be edited.</summary>
         static void HideBellySlab(GameObject go)
@@ -380,13 +697,15 @@ namespace Hollowmere
 
         static bool IsCharacter(string key)
         {
-            return key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("pet_")
+            string body = ClipFeet.Strip(key);
+            return V5Body(body) || key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("pet_")
                 || key.StartsWith("mon_") || key.StartsWith("boss_");
         }
 
         static bool IsBiped(string key)
         {
-            return key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("mon_") || key.StartsWith("boss_");
+            string body = ClipFeet.Strip(key);
+            return V5Body(body) || key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("mon_") || key.StartsWith("boss_");
         }
 
         /// <summary>Meshy sometimes leaves a figure lying on Z. Try quarter-turns and keep the one
@@ -435,12 +754,13 @@ namespace Hollowmere
 
         public static bool MeshWorldBounds(Transform root, out Bounds world) => WorldMeshBounds(root, out world);
 
-        static bool WorldMeshBounds(Transform root, out Bounds world)
+        static bool WorldMeshBounds(Transform root, out Bounds world, bool bodyOnly = false)
         {
             world = new Bounds(root.position, Vector3.zero);
             bool any = false;
             foreach (var r in root.GetComponentsInChildren<Renderer>())
             {
+                if (bodyOnly && UnderGear(r.transform)) continue;
                 Mesh mesh = null;
                 var skin = r as SkinnedMeshRenderer;
                 if (skin != null) mesh = skin.sharedMesh;
@@ -800,6 +1120,11 @@ namespace Hollowmere
                 if (max > 10f || near)
                     Debug.LogWarning("Hollowmere bounds: " + PathOf(r.transform) + " size=" + b.size + " center=" + b.center + (near ? " near-camera" : "") + (level ? " level" : ""));
                 if (level || max <= 10f) continue;
+                if (OnAuthoredRig(r.transform))
+                {
+                    Debug.LogError("Hollowmere bounds: refused to scale " + PathOf(r.transform) + " (" + max.ToString("0.00") + "m)");
+                    continue;
+                }
                 var root = ScalableRoot(r.transform);
                 if (root == null || !seen.Add(root)) continue;
                 var fit = root.GetComponent<ModelFit>();
@@ -808,6 +1133,19 @@ namespace Hollowmere
                 root.localScale *= factor;
                 Debug.LogWarning("Hollowmere: shrunk " + root.name + " x" + factor.ToString("0.###") + " (was " + max.ToString("0.#") + " m)");
             }
+        }
+
+        /// <summary>v5 characters stay at the size they were authored. A bad gear mesh must not scale the rig.</summary>
+        public static bool OnAuthoredRig(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name == "hero_rig" || V5Body(t.name)) return true;
+                var fit = t.GetComponent<ModelFit>();
+                if (fit != null && fit.freeze) return true;
+                t = t.parent;
+            }
+            return false;
         }
 
         public static bool IsLevelMesh(Transform t)
@@ -1011,7 +1349,7 @@ namespace Hollowmere
             _ => new Color(0.38f, 0.22f, 0.55f),
         };
 
-        public static string HeroModelKey(HeroClass c) => "hero_" + c.ToString().ToLowerInvariant();
+        public static string HeroModelKey(HeroClass c) => "hero";
 
         public static (Color floorA, Color floorB, Color wall, Color ambient, Color light) ThemeColors(Theme t) => t switch
         {
@@ -1397,7 +1735,7 @@ namespace Hollowmere
             if (step == 3)
             {
                 step = 4;
-                if (Art.UnionBounds(gameObject, out var b) && b.size.y > 0.001f)
+                if (Art.UnionBounds(gameObject, out var b) && b.size.y > 0.4f && b.size.y < 4f)
                 {
                     float factor = target / b.size.y;
                     if (factor < 0.85f || factor > 1.15f)
@@ -1409,6 +1747,8 @@ namespace Hollowmere
                         transform.position += new Vector3(anchor.x - b.center.x, ground - b.min.y, anchor.z - b.center.z);
                     }
                 }
+                else
+                    Debug.LogError("Hollowmere NPC bounds not ready " + (Art.UnionBounds(gameObject, out b) ? b.size.ToString("0.00") : "none"));
                 return;
             }
             enabled = false;
@@ -1418,6 +1758,11 @@ namespace Hollowmere
             Debug.Log("Hollowmere NPC " + label + " object=" + name
                 + " rot=" + transform.eulerAngles.ToString("0")
                 + " size=" + done.size.ToString("0.00"));
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("prop_")) continue;
+                Art.AuditProp(t.gameObject, t.name);
+            }
         }
     }
 

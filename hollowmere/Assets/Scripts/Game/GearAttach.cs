@@ -83,19 +83,53 @@ namespace Hollowmere
             return Art.Bone(body, "hero_rig") != null;
         }
 
-        /// <summary>Helm on the head, pauldrons on the upper arms. Scale lives on the piece, never on the bone.</summary>
+        /// <summary>Helm on the head. Pauldrons are the king's meshes, steel, sized for this body. A missing mesh stays hidden.</summary>
         static void RigidArmor(Transform body, Hero hero, string part, Item it)
         {
-            var tint = new Color(Mathf.Clamp01(hero.armourR), Mathf.Clamp01(hero.armourG), Mathf.Clamp01(hero.armourB));
-            var col = Color.Lerp(Art.Rarity(it.rarity), tint, 0.45f);
-            var mat = Art.Mat(col, 0.85f);
             if (part == "helm")
-                PinRigid(body, "Head", "gear_helm", true, new Vector3(0f, 0.11f, 0.02f), new Vector3(0.28f, 0.24f, 0.30f), mat);
-            else
             {
-                PinRigid(body, "LeftArm", "gear_pauldron_l", false, new Vector3(-0.06f, 0.02f, 0f), new Vector3(0.22f, 0.14f, 0.20f), mat);
-                PinRigid(body, "RightArm", "gear_pauldron_r", false, new Vector3(0.06f, 0.02f, 0f), new Vector3(0.22f, 0.14f, 0.20f), mat);
+                var steel = new Color(0.62f, 0.66f, 0.72f);
+                PinRigid(body, "Head", "gear_helm", true, new Vector3(0f, 0.11f, 0.02f), new Vector3(0.28f, 0.24f, 0.30f), Art.Mat(steel, 0.2f));
+                return;
             }
+            // Same mixamo arm pose as the ossuary king. Scale is fitted to the hero afterwards.
+            PinPauldron(body, "LeftArm", "gear_pauldron_l", "hm_king_pauldron_left",
+                new Vector3(-0.00007f, -0.00003f, 0.00017f),
+                new Quaternion(0.312039f, -0.035651f, -0.92486f, 0.214464f));
+            PinPauldron(body, "RightArm", "gear_pauldron_r", "hm_king_pauldron_right",
+                new Vector3(0.00048f, 0.00014f, -0.00016f),
+                new Quaternion(-0.285569f, -0.039112f, -0.926962f, -0.240129f));
+        }
+
+        /// <summary>Real pauldron mesh on the arm bone. World size about 26 cm. The bone's own scale is not written.</summary>
+        static bool PinPauldron(Transform body, string bone, string name, string key, Vector3 localPos, Quaternion localRot)
+        {
+            var parent = Art.Bone(body, bone);
+            if (parent == null) return false;
+            var prefab = Art.LoadModel(key);
+            if (prefab == null) return false;
+            var go = Object.Instantiate(prefab, parent);
+            go.name = name;
+            go.transform.localRotation = localRot;
+            go.transform.localPosition = localPos;
+            var s = parent.lossyScale;
+            go.transform.localScale = new Vector3(
+                1f / Mathf.Max(0.0001f, Mathf.Abs(s.x)),
+                1f / Mathf.Max(0.0001f, Mathf.Abs(s.y)),
+                1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
+            if (Art.MeshWorldBounds(go.transform, out var b))
+            {
+                float max = Art.MaxAxis(b.size);
+                if (max > 0.01f) go.transform.localScale *= 0.26f / max;
+            }
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            if (Art.IsIconCard(go))
+            {
+                Object.Destroy(go);
+                return false;
+            }
+            Art.PaintSteel(go);
+            return true;
         }
 
         static void PinRigid(Transform body, string bone, string name, bool sphere, Vector3 localPos, Vector3 worldSize, Material mat)
@@ -191,6 +225,11 @@ namespace Hollowmere
             if (prefab == null) return false;
             var go = Object.Instantiate(prefab, hand);
             go.name = name;
+            if (Art.IsIconCard(go))
+            {
+                Object.Destroy(go);
+                return false;
+            }
             Pose(key, main, out var pos, out var rot);
             go.transform.localRotation = rot;
             go.transform.localPosition = pos;

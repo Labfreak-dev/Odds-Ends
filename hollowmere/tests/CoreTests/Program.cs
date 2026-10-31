@@ -760,6 +760,14 @@ static class Program
         Check(HeroFit.GearSizeOk(0.34f), "a body-sized piece is accepted");
         Check(!HeroFit.AfterGear("town", 84.90f), "town rejects an 85 m hero");
         Check(!HeroFit.AfterGear("", 1.8f), "a gear check names its mode");
+        foreach (var mode in HeroFit.Modes)
+        {
+            Check(HeroFit.IconCard(true, 684, false, null), mode + " rejects a sprite renderer on the hero");
+            Check(HeroFit.IconCard(false, 4, true, null), mode + " rejects a white-backed quad");
+            Check(HeroFit.IconCard(false, 726, false, "icon_pauldrons"), mode + " rejects the pauldron icon card");
+            Check(!HeroFit.IconCard(false, 684, false, null), mode + " accepts a steel pauldron mesh");
+            Check(!HeroFit.IconCard(false, 3500, false, "Image_0"), mode + " accepts a weapon albedo");
+        }
     }
 
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto

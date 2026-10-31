@@ -72,7 +72,8 @@ namespace Hollowmere
             rim.transform.localPosition = new Vector3(0.35f, 1.45f, -1.35f);
             rim.type = LightType.Point;
             rim.range = 6.5f;
-            rim.intensity = 6f;
+            bool town = Art.PlayMode() == "town";
+            rim.intensity = town ? 8f : 6f;
             rim.color = new Color(0.9f, 0.82f, 1f);
             // Warm rim from behind the shoulders so the silhouette reads against the ground.
             var edge = new GameObject("heroRim").AddComponent<Light>();
@@ -80,8 +81,8 @@ namespace Hollowmere
             edge.transform.localPosition = new Vector3(-0.45f, 1.7f, 1.15f);
             edge.type = LightType.Point;
             edge.range = 5.5f;
-            edge.intensity = 5f;
-            edge.color = new Color(1f, 0.72f, 0.45f);
+            edge.intensity = town ? 8.5f : 5f;
+            edge.color = town ? new Color(1f, 0.84f, 0.62f) : new Color(1f, 0.72f, 0.45f);
             RefreshWeapon();
             // Key light just above the hero. The town sun alone left the body in shade.
             var l = new GameObject("heroLight").AddComponent<Light>();

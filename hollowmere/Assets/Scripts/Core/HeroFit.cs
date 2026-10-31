@@ -34,5 +34,24 @@ namespace Hollowmere.Core
 
         /// <summary>Skinned overlays are for the pre-v5 rigs only.</summary>
         public static bool SkinnedGear(bool v5Body) => !v5Body;
+
+        /// <summary>
+        /// A sprite, an icon texture, or a quad whose albedo is a white card.
+        /// The flat pauldron icon is named icon_pauldrons and paints a dark shape on a white square
+        /// when the alpha is dropped.
+        /// </summary>
+        public static bool IconCard(bool spriteRenderer, int vertexCount, bool whiteBackdrop, string textureName)
+        {
+            if (spriteRenderer) return true;
+            if (IsIconTexture(textureName)) return true;
+            return vertexCount > 0 && vertexCount <= 4 && whiteBackdrop;
+        }
+
+        public static bool IsIconTexture(string textureName)
+        {
+            if (string.IsNullOrEmpty(textureName)) return false;
+            if (textureName.StartsWith("icon_")) return true;
+            return textureName.IndexOf("sprite", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
     }
 }

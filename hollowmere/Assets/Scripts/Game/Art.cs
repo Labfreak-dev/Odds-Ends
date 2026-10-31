@@ -437,6 +437,97 @@ namespace Hollowmere
             if (!HeroFit.AfterGear(mode, b.size.y))
                 Debug.LogError("Hollowmere hero bounds FAIL height " + b.size.y.ToString("0.00") + "m");
             AuditGearPieces(go.transform);
+            AuditHeroCards(go);
+        }
+
+        /// <summary>Sprite cards and icon quads with a white backdrop do not belong on the hero.</summary>
+        public static void AuditHeroCards(GameObject go)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || !r.enabled) continue;
+                if (!IsIconCard(r)) continue;
+                Debug.LogError("Hollowmere hero icon card " + PathOf(r.transform));
+            }
+        }
+
+        public static bool IsIconCard(GameObject go)
+        {
+            if (go == null) return false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                if (r != null && r.enabled && IsIconCard(r)) return true;
+            return false;
+        }
+
+        static bool IsIconCard(Renderer r)
+        {
+            bool sprite = r is SpriteRenderer;
+            Mesh mesh = null;
+            var skin = r as SkinnedMeshRenderer;
+            if (skin != null) mesh = skin.sharedMesh;
+            else
+            {
+                var mf = r.GetComponent<MeshFilter>();
+                if (mf != null) mesh = mf.sharedMesh;
+            }
+            int verts = mesh != null ? mesh.vertexCount : 0;
+            Texture tex = null;
+            var mats = r.sharedMaterials;
+            if (mats != null)
+            {
+                for (int i = 0; i < mats.Length && tex == null; i++)
+                    tex = FirstAlbedo(mats[i]);
+            }
+            return HeroFit.IconCard(sprite, verts, WhiteBackdrop(tex), tex != null ? tex.name : null);
+        }
+
+        static bool WhiteBackdrop(Texture tex)
+        {
+            if (tex == null) return false;
+            string n = tex.name ?? "";
+            if (n == "White" || n == "UnityWhite") return true;
+            var t2 = tex as Texture2D;
+            if (t2 == null || !t2.isReadable || t2.width < 4 || t2.height < 4) return false;
+            int w = t2.width, h = t2.height;
+            int pale = 0;
+            Color[] corners =
+            {
+                t2.GetPixel(1, 1), t2.GetPixel(w - 2, 1), t2.GetPixel(1, h - 2), t2.GetPixel(w - 2, h - 2),
+            };
+            for (int i = 0; i < corners.Length; i++)
+            {
+                var c = corners[i];
+                if (c.a < 0.2f) pale++;
+                else if (c.r > 0.85f && c.g > 0.85f && c.b > 0.85f) pale++;
+            }
+            var mid = t2.GetPixel(w / 2, h / 2);
+            bool dark = mid.r < 0.45f && mid.g < 0.45f && mid.b < 0.45f;
+            return pale >= 3 && dark;
+        }
+
+        /// <summary>URP Lit steel. No albedo map, so a missing or icon texture cannot turn the piece into a white card.</summary>
+        public static void PaintSteel(GameObject go)
+        {
+            if (go == null) return;
+            var steel = new Color(0.62f, 0.66f, 0.72f);
+            var urp = Shader.Find("Universal Render Pipeline/Lit");
+            var shader = urp != null ? urp : LitShader();
+            if (shader == null) shader = BaseMaterial().shader;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var m = new Material(shader);
+                m.color = steel;
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", steel);
+                if (m.HasProperty("_Color")) m.SetColor("_Color", steel);
+                if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0.82f);
+                if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.58f);
+                if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 0f);
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", null);
+                if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", null);
+                m.mainTexture = null;
+                r.sharedMaterial = m;
+            }
         }
 
         static void AuditGearPieces(Transform root)

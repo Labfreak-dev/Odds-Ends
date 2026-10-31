@@ -36,7 +36,7 @@ namespace Hollowmere
 
         static IEnumerator Run(GameManager gm, string mode)
         {
-            if (mode != "move" && mode != "pet" && mode != "combat" && mode != "loot" && mode != "gear")
+            if (mode != "move" && mode != "pet" && mode != "combat" && mode != "loot" && mode != "gear" && mode != "fishing")
             {
                 Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
                 Application.Quit();
@@ -69,6 +69,13 @@ namespace Hollowmere
                 var def = MonsterDb.Get("bonewalker");
                 var ms = MonsterDb.Create(def, 1, MonsterRank.Normal, new Rng(3), 1);
                 MonsterActor.Spawn(ms, World.ClampToFloor(hero.Pos + drive.forward * 2.4f), 9);
+            }
+            FishingSession fish = null;
+            if (mode == "fishing")
+            {
+                fish = new FishingSession(new Rng(11), true, 1, 0f, 0f, 1, HeroClass.Hexweaver);
+                UiRoot.I.OpenFishing(fish, hero.Pos + drive.forward * 3f, () => { });
+                drive.fish = fish;
             }
             if (mode == "gear" && hero.Hero != null)
             {
@@ -163,6 +170,7 @@ namespace Hollowmere
         public Vector3 forward = Vector3.forward;
         public Vector3 right = Vector3.right;
         public float elapsed;
+        public FishingSession fish;
         bool marked;
 
         void Update()
@@ -175,6 +183,19 @@ namespace Hollowmere
             {
                 mag = 1f;
                 dir = forward;
+            }
+            else if (mode == "fishing" && fish != null)
+            {
+                mag = 0f;
+                dir = forward;
+                if (!marked && elapsed >= 0.15f) { marked = true; fish.Tap(); }
+                if (elapsed >= 0.9f && (fish.phase == FishingPhase.Waiting || fish.phase == FishingPhase.Nibble || fish.phase == FishingPhase.Casting))
+                {
+                    fish.phase = FishingPhase.Bite;
+                    fish.biteWindow = fish.timer = 0.8f;
+                }
+                if (elapsed >= 1.25f && fish.phase == FishingPhase.Bite) fish.Tap();
+                fish.Hold(elapsed >= 1.3f && elapsed < 2.4f);
             }
             else if (mode == "gear")
             {

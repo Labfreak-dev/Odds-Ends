@@ -224,7 +224,7 @@ namespace Hollowmere
         Text status, hint;
         RectTransform tensionFill, progressFill, staminaFill;
         HoldButton big;
-        Transform bobber;
+        Transform bobber, rod;
         Vector3 bobberAt;
         float doneTimer;
         bool closed;
@@ -264,6 +264,12 @@ namespace Hollowmere
 
             bobber = Art.Sphere(null, bobberAt + Vector3.up * 0.1f, Vector3.one * 0.35f, Art.Mat(new Color(1f, 0.2f, 0.15f), 0.8f)).transform;
             bobber.gameObject.SetActive(false);
+            var hero = HeroActor.I;
+            if (hero != null)
+            {
+                rod = Art.Cube(hero.transform, new Vector3(0.25f, 1.35f, 0.45f), new Vector3(0.04f, 0.04f, 1.1f), Art.Mat(new Color(0.45f, 0.3f, 0.16f))).transform;
+                rod.name = "fishrod";
+            }
         }
 
         void Update()
@@ -279,6 +285,7 @@ namespace Hollowmere
             }
             if (s.phase == FishingPhase.Reeling && s.holding && Time.frameCount % 20 == 0) AudioHub.Play("sfx_reel", 0.4f);
 
+            PoseBobber();
             bool showBars = s.phase == FishingPhase.Reeling;
             tensionFill.parent.gameObject.SetActive(showBars);
             progressFill.parent.gameObject.SetActive(showBars);
@@ -324,15 +331,43 @@ namespace Hollowmere
             _ => $"<color={ItemText.RarityColor(r.item.rarity)}>{r.item.name}</color>",
         };
 
+        void PoseBobber()
+        {
+            if (bobber == null) return;
+            var p = Present.Active;
+            float y = 0.1f;
+            bool show = s.phase != FishingPhase.Ready;
+            bobber.gameObject.SetActive(show);
+            if (s.phase == FishingPhase.Nibble)
+                y += Mathf.Sin(Time.time * p.bobHz * Mathf.PI * 2f) * (p.bobMm / 1000f);
+            else if (s.phase == FishingPhase.Bite)
+                y -= p.biteDipMm / 1000f;
+            else if (s.phase == FishingPhase.Reeling)
+                y += Mathf.Sin(Time.time * 8f) * 0.04f;
+            bobber.position = bobberAt + Vector3.up * y;
+            if (rod != null)
+            {
+                float pump = s.phase == FishingPhase.Reeling && s.holding
+                    ? Mathf.Sin(Time.time * (1000f / Mathf.Max(1, p.reelPumpMs)) * Mathf.PI * 2f) * p.reelDeg
+                    : 0f;
+                rod.localRotation = Quaternion.Euler(pump, 0f, -18f);
+            }
+        }
+
         void Finish()
         {
             if (closed) return;
             closed = true;
             if (bobber != null) Destroy(bobber.gameObject);
+            if (rod != null) Destroy(rod.gameObject);
             UiRoot.I.Close(gameObject);
             onDone?.Invoke();
         }
 
-        void OnDestroy() { if (bobber != null) Destroy(bobber.gameObject); }
+        void OnDestroy()
+        {
+            if (bobber != null) Destroy(bobber.gameObject);
+            if (rod != null) Destroy(rod.gameObject);
+        }
     }
 }

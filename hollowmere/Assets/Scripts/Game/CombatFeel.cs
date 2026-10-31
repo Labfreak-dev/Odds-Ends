@@ -258,7 +258,10 @@ namespace Hollowmere
     {
         public static void Arm(HeroActor h, SkillCast c)
         {
-            if (h == null) return;
+            if (h == null || c == null || c.skill == null) return;
+            // A short wide ribbon with cap vertices draws as a lavender hexagon
+            // beside the Hex Bolt glow. The bolt is the soft round sprite only.
+            if (c.skill.id == "hx_bolt") return;
             // World-space follower. Parenting the ribbon to the hand inherits the 0.01 armature
             // and the swing disappears.
             var go = new GameObject("weaponTrail");

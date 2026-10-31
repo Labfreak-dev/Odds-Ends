@@ -110,6 +110,49 @@ namespace Hollowmere
             return g;
         }
 
+        /// <summary>Vertical additive arch. Scrolls in the shader so it is not a flat colour card.</summary>
+        public static GameObject Portal(Transform parent, Vector3 pos, Vector3 scale, Color c)
+        {
+            var g = new GameObject("portal");
+            g.transform.SetParent(parent, false);
+            g.transform.localPosition = pos;
+            g.transform.localScale = scale;
+            var mf = g.AddComponent<MeshFilter>();
+            mf.sharedMesh = GlowQuadMesh();
+            var mr = g.AddComponent<MeshRenderer>();
+            var shader = Shader.Find("Hollowmere/Portal");
+            var m = shader != null ? new Material(shader) : GlowMat(c, false);
+            m.color = c;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+            if (m.HasProperty("_Speed")) m.SetFloat("_Speed", 0.4f);
+            mr.sharedMaterial = m;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            return g;
+        }
+
+        /// <summary>Multiply a model's albedo so a reused mesh reads as a different person.</summary>
+        public static void Tint(GameObject go, Color mul)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    Color c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.color;
+                    c = new Color(Mathf.Clamp01(c.r * mul.r), Mathf.Clamp01(c.g * mul.g), Mathf.Clamp01(c.b * mul.b), c.a);
+                    m.color = c;
+                    if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+                    if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+                }
+                r.materials = mats;
+            }
+        }
+
         static Mesh GlowQuadMesh()
         {
             if (glowQuad != null) return glowQuad;

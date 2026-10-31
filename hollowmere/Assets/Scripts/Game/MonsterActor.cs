@@ -192,7 +192,7 @@ namespace Hollowmere
                 return;
             }
             if (dist <= range + 0.6f) Deal(f, stats.damage, true);
-            AudioHub.Play("sfx_hit", 0.4f);
+            AudioHub.Vary("swing_mace", 0.45f);
         }
 
         float PhaseCooldownScale() => stats.rank == MonsterRank.Boss && bossPhase >= 2 ? (float)DesignTable.PhaseTwoCooldownScale : 1f;
@@ -310,6 +310,7 @@ namespace Hollowmere
             float before = LifeFraction;
             Aggro();
             base.TakeDamage(h, source);
+            if (!Dead) AudioHub.Vary("monster_hurt", 0.7f);
             if (stats.IsEliteish)
             {
                 float after = LifeFraction;
@@ -342,7 +343,7 @@ namespace Hollowmere
             if (stats.affixes.Contains(EliteAffix.Molten))
                 GroundEffect.Monster(this, Pos, 3f, stats.damage * 1.5f, Element.Fire, 0.01f, 1.2f);
             GameManager.I.OnMonsterKilled(this);
-            AudioHub.Play("sfx_death", 0.5f);
+            AudioHub.Vary("monster_death", 0.8f);
             Fx.Burst(Pos + Vector3.up, Art.Hex(stats.def.color), 1.6f, 0.3f);
             enabled = false;
             if (body != null) body.localRotation = Quaternion.Euler(-85, 0, 0);

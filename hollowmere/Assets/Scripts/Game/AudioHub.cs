@@ -160,6 +160,8 @@ namespace Hollowmere
             src.PlayOneShot(pick, volume * I.sfxVolume);
         }
 
+        public static bool Has(string key) => I != null && I.Clip(key) != null;
+
         public static void Play(string key, float volume = 1f)
         {
             if (I == null) return;

@@ -159,6 +159,7 @@ namespace Hollowmere
             if (a == null || !a.Targetable) return;
             var hit = Combat.HeroHit(h.Ctx, c, a.IsElite, h.Rng, mult);
             a.TakeDamage(hit, h);
+            Sfx.Strike(h, c.skill.id, a, hit.crit);
             string punch = a.Dead ? "kill" : hit.crit ? "crit" : c.skill.primary ? "normal" : "skill";
             CombatClock.Punch(punch);
             CombatSparks.Burst(a.Pos + Vector3.up * 0.8f, Art.Element(c.element), hit.crit ? "crit" : c.skill.primary ? "normal" : "skill");
@@ -191,15 +192,8 @@ namespace Hollowmere
 
         static void Sound(SkillCast c)
         {
-            if (c.skill.id == "hx_bolt") { AudioHub.Play("hexbolt_cast", 0.9f); return; }
-            switch (c.element)
-            {
-                case Element.Fire: AudioHub.Play("sfx_fire", 0.6f); return;
-                case Element.Frost: AudioHub.Play("sfx_frost", 0.6f); return;
-                case Element.Lightning: AudioHub.Play("sfx_zap", 0.6f); return;
-                case Element.Arcane: case Element.Poison: AudioHub.Play("sfx_spell", 0.6f); return;
-            }
-            AudioHub.Play(c.skill.shape == SkillShape.Projectile || c.skill.shape == SkillShape.Cone ? "sfx_arrow" : "sfx_swing", 0.6f);
+            // The cast cue already played when the button went down. A skill with no take still needs a swing.
+            if (c == null || c.skill == null) return;
         }
     }
 
@@ -293,7 +287,7 @@ namespace Hollowmere
                 if (hexBolt)
                 {
                     Fx.HexImpact(transform.position, tint, null);
-                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.55f);
+                    Sfx.ImpactOnly("hx_bolt");
                 }
                 Destroy(gameObject);
                 return;
@@ -315,10 +309,7 @@ namespace Hollowmere
                     if (slow > 0) a.Slow(slow, 2);
                 }
                 if (hexBolt)
-                {
                     Fx.HexImpact(transform.position, tint, a);
-                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.85f);
-                }
                 else Fx.Burst(transform.position, GetComponent<Renderer>() != null ? GetComponent<Renderer>().sharedMaterial.color : tint, 0.7f, 0.15f);
                 if (pierce-- <= 0) { Destroy(gameObject); return; }
             }

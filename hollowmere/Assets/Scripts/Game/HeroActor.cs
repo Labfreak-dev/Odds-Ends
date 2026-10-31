@@ -251,6 +251,7 @@ namespace Hollowmere
             if (!string.IsNullOrEmpty(clip) && DesignTable.TryTrim(clip, out int frameA, out int frameB, out _))
                 seconds = (frameB - frameA) / 24f;
             modelAnim?.BeginAttack(s.shape != SkillShape.MeleeArc, seconds, clip);
+            Sfx.Cast(this, s.id);
             pendingCast = cast;
             pendingDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
             pendingTarget = target;
@@ -322,7 +323,11 @@ namespace Hollowmere
             float extra = HasBuff("rn_warcry_iron") ? 0.3f : 0;
             var h = Combat.MonsterHit(raw, el, stats, from != null ? from.Level : Hero.level, rng, extra);
             if (h.blocked) Fx.Text(Pos, "Block", Color.white, 0.8f);
-            else CombatClock.Punch("hurt");
+            else
+            {
+                CombatClock.Punch("hurt");
+                AudioHub.Vary("player_hurt", 0.8f);
+            }
             TakeDamage(h, from);
             combatTimer = 4;
             if (melee && from != null && stats[Stat.Thorns] > 0)

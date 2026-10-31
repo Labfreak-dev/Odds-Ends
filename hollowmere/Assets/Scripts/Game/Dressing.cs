@@ -263,6 +263,7 @@ namespace Hollowmere
         {
             if (map == null) return;
             var (_, _, _, ambient, lightC) = Art.ThemeColors(map.theme);
+            var biome = map.theme == Theme.Town ? null : BiomeCatalog.ForTheme(map.theme);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             if (map.theme == Theme.Town)
@@ -270,6 +271,14 @@ namespace Hollowmere
                 RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.78f, 0.84f, 0.8f), 0.35f);
                 RenderSettings.fogStartDistance = 24f;
                 RenderSettings.fogEndDistance = 78f;
+            }
+            else if (biome != null && biome.id == "caverns")
+            {
+                // Theme.Caverns ambient is a dark green. Leaving it here undid the biome's lights.
+                RenderSettings.ambientLight = biome.ambient * 1.65f;
+                RenderSettings.fogColor = Color.Lerp(biome.fogColor, Color.white, 0.08f);
+                RenderSettings.fogStartDistance = biome.fogStart + 4f;
+                RenderSettings.fogEndDistance = biome.fogEnd + 6f;
             }
             else
             {

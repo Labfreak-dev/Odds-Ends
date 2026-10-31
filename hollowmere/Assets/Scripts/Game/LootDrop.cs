@@ -131,19 +131,49 @@ namespace Hollowmere
     public static class ItemIcon
     {
         static readonly System.Collections.Generic.Dictionary<string, Sprite> cache = new System.Collections.Generic.Dictionary<string, Sprite>();
+        static readonly System.Collections.Generic.HashSet<int> fallbacks = new System.Collections.Generic.HashSet<int>();
+
+        /// <summary>True when this sprite is the generated checker, not a painted icon.</summary>
+        public static bool IsFallback(Sprite sprite)
+        {
+            if (sprite == null) return true;
+            if (fallbacks.Contains(sprite.GetInstanceID())) return true;
+            var tex = sprite.texture;
+            if (tex == null) return true;
+            string n = tex.name ?? "";
+            return n.StartsWith("fallback") || n.Contains("Checker") || n == "UnityWhite" || n == "Default-Particle";
+        }
 
         public static Sprite For(Item it)
         {
             if (Item.IsNone(it)) return null;
-            if (it.kind == ItemKind.Fish) return Get("fish_" + it.fishId);
-            if (it.kind == ItemKind.Gem) return Get(DesignTable.GemArt(it.baseId) ?? it.baseId);
-            return Get(it.baseId);
+            // The starting bag is potion x3 and portal x2. Those have no icon_<baseId>.
+            // health_orb is the HUD ring (a frame, and not a Sprite import). There is no
+            // spell_set3_runes-sky-1 file. The painted heal and rune sheets are the icons.
+            if (it.kind == ItemKind.Potion) return Real("spell_set1_heal-jade-1");
+            if (it.kind == ItemKind.TownPortal) return Real("spell_set3_runes-royal-1");
+            if (it.kind == ItemKind.Fish) return Real("fish_" + it.fishId, "spell_set1_heal-sky-1");
+            if (it.kind == ItemKind.Gem) return Real(DesignTable.GemArt(it.baseId), it.baseId);
+            return Real("icon_" + it.baseId, it.baseId);
+        }
+
+        static Sprite Real(params string[] names)
+        {
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (string.IsNullOrEmpty(names[i])) continue;
+                var direct = ArtDrop.ItemIcon(names[i]);
+                if (direct != null && direct.texture != null) return direct;
+                var prefixed = ArtDrop.ItemIcon("icon_" + names[i]);
+                if (prefixed != null && prefixed.texture != null) return prefixed;
+            }
+            return Get(string.IsNullOrEmpty(names[0]) ? "item" : names[0]);
         }
 
         public static Sprite Get(string id)
         {
             if (string.IsNullOrEmpty(id)) id = "item";
-            var painted = ArtDrop.Sprite("icon_" + id) ?? ArtDrop.Sprite(id);
+            var painted = ArtDrop.ItemIcon("icon_" + id) ?? ArtDrop.ItemIcon(id);
             if (painted != null) return painted;
             if (cache.TryGetValue(id, out var have)) return have;
             int n = Mathf.Max(8, DesignTable.IconPx);
@@ -158,9 +188,13 @@ namespace Hollowmere
                     bool mark = ((x + (int)(h % 7)) / 3) % 2 == ((y + (int)(h % 5)) / 3) % 2;
                     img.SetPixel(x, y, border ? new Color(0.15f, 0.12f, 0.1f, 1f) : mark ? tint : tint * 0.55f);
                 }
+            img.name = "fallback_" + id;
             img.Apply();
             var sprite = Sprite.Create(img, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+            sprite.name = "fallback_" + id;
+            fallbacks.Add(sprite.GetInstanceID());
             cache[id] = sprite;
+            Debug.LogWarning("Hollowmere item icon fallback " + id);
             return sprite;
         }
     }

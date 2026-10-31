@@ -36,16 +36,12 @@ namespace Hollowmere
         static void Dungeon(DungeonMap map, Transform root)
         {
             var at = map.entry;
-            Place("kit_dun_arch_4m", root, new Int2(at.x, at.y + 2), Quaternion.identity, "crypt_wall", false);
-            Place("kit_dun_pillar_stone_4m", root, new Int2(at.x + 2, at.y + 2), Quaternion.identity, "cave_rock", false);
-            string floor = map.theme == Theme.EmberDepths ? "kit_dun_floor_lava_4m"
-                : map.theme == Theme.SunkenHalls ? "kit_dun_floor_marble_4m"
-                : map.theme == Theme.Caverns ? "kit_dun_floor_grate_2m"
-                : "kit_dun_floor_blood_4m";
-            string surf = map.theme == Theme.EmberDepths ? "lava"
-                : map.theme == Theme.SunkenHalls ? "marble_floor"
-                : map.theme == Theme.Caverns ? "iron_grate"
-                : "blood_stained_stone";
+            var band = BiomeCatalog.ForTheme(map.theme);
+            string wall = band != null ? band.wallMaterial : "crypt_wall";
+            Place("kit_dun_arch_4m", root, new Int2(at.x, at.y + 2), Quaternion.identity, wall, false);
+            Place("kit_dun_pillar_stone_4m", root, new Int2(at.x + 2, at.y + 2), Quaternion.identity, wall, false);
+            string floor = band != null ? band.kitFloor : "kit_dun_floor_blood_4m";
+            string surf = band != null ? band.floorMaterial : "blood_stained_stone";
             Place(floor, root, new Int2(at.x, at.y + 3), Quaternion.identity, surf, surf == "lava");
         }
 
@@ -57,7 +53,9 @@ namespace Hollowmere
             var fit = go.GetComponent<ModelFit>();
             if (fit != null) fit.freeze = true;
             go.transform.SetPositionAndRotation(World.ToWorld(tile) + Vector3.up * 0.02f, rot);
-            var mat = Material(surface, emit);
+            var mat = surface == "iron_plates"
+                ? PbrKit.UrpLit(surface, 1.5f, new Color(0.78f, 0.74f, 0.7f), 0.4f, 0.38f)
+                : Material(surface, emit);
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;

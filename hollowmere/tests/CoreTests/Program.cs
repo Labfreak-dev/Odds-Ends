@@ -262,6 +262,15 @@ static class Program
             var path = Pathfinder.Find(m, m.entry, m.exit, 20000);
             Check(path != null && path.Last() == m.exit, $"depth {depth}: A* finds entry->exit");
         }
+        Check(DungeonMap.ThemeFor(1) == Theme.Crypt && DungeonMap.ThemeFor(5) == Theme.Crypt, "crypt is floors 1-5");
+        Check(DungeonMap.ThemeFor(6) == Theme.Caverns && DungeonMap.ThemeFor(10) == Theme.Caverns, "flooded caverns are floors 6-10");
+        Check(DungeonMap.ThemeFor(11) == Theme.SunkenHalls && DungeonMap.ThemeFor(15) == Theme.SunkenHalls, "bone forge is floors 11-15");
+        Check(DungeonMap.ThemeFor(16) == Theme.EmberDepths && DungeonMap.ThemeFor(40) == Theme.EmberDepths, "infernal is floor 16 and below");
+        var shapes = new HashSet<string>();
+        for (int s = 1; s <= 6; s++)
+            foreach (var room in DungeonGenerator.Generate(3, (ulong)s).rooms)
+                if (!string.IsNullOrEmpty(room.shape)) shapes.Add(room.shape);
+        Check(shapes.Count >= 3, $"crypt draws several room shapes ({shapes.Count})");
         var a = DungeonGenerator.Generate(7, 99); var b = DungeonGenerator.Generate(7, 99);
         Check(a.tiles.SequenceEqual(b.tiles) && a.spawns.Count == b.spawns.Count, "same seed, same floor");
         int pools = Enumerable.Range(1, 30).Count(d => DungeonGenerator.Generate(d, 777).pools.Count > 0);

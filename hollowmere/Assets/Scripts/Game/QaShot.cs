@@ -27,6 +27,10 @@ namespace Hollowmere
     ///   Hollowmere -qaShot inventory
     ///   Hollowmere -qaShot menus
     ///   Hollowmere -qaShot hud
+    ///   Hollowmere -qaShot biome-crypt
+    ///   Hollowmere -qaShot biome-caverns
+    ///   Hollowmere -qaShot biome-forge
+    ///   Hollowmere -qaShot biome-infernal
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
     /// Weapon shots equip one sword, bow, or staff on the classless hero and log the family.
@@ -77,6 +81,10 @@ namespace Hollowmere
                 case "menus":
                 case "menu":
                 case "hud":
+                case "biome-crypt":
+                case "biome-caverns":
+                case "biome-forge":
+                case "biome-infernal":
                 case "loot":
                 case "gear":
                 case "gearclose":
@@ -126,6 +134,7 @@ namespace Hollowmere
             bool inventory = scene == "inventory" || scene == "bag";
             bool menus = scene == "menus" || scene == "menu";
             bool hud = scene == "hud";
+            int biomeDepth = scene == "biome-crypt" ? 3 : scene == "biome-caverns" ? 8 : scene == "biome-forge" ? 13 : scene == "biome-infernal" ? 18 : 0;
             bool loot = scene == "loot";
             bool gear = scene == "gear";
             bool gearClose = scene == "gearclose" || scene == "gear-close";
@@ -162,7 +171,8 @@ namespace Hollowmere
             else
             {
                 gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
-                if (dungeon) gm.EnterFloor(1);
+                if (biomeDepth > 0) gm.EnterFloor(biomeDepth);
+                else if (dungeon) gm.EnterFloor(1);
                 else gm.EnterTown(false);
                 yield return new WaitForSeconds(0.8f);
                 if (npcsClose)
@@ -241,6 +251,8 @@ namespace Hollowmere
                 {
                     InventoryScreen.Show(UiRoot.I);
                     yield return new WaitForSecondsRealtime(0.6f);
+                    AuditBagIcons();
+                    AuditFrames("inventory");
                 }
                 else if (menus)
                 {
@@ -254,6 +266,19 @@ namespace Hollowmere
                         buttons = UiRoot.I.Hud.GetComponentsInChildren<UnityEngine.UI.Button>(true).Length;
                     Debug.Log("Hollowmere QA hud buttons " + buttons);
                     if (buttons < 4) Debug.LogError("Hollowmere QA hud FAIL missing menu buttons");
+                    AuditFrames("hud");
+                    yield return new WaitForSeconds(0.35f);
+                }
+                else if (biomeDepth > 0)
+                {
+                    var band = BiomeCatalog.ForDepth(biomeDepth);
+                    var theme = World.Map != null ? World.Map.theme.ToString() : "none";
+                    int rooms = World.Map != null ? World.Map.rooms.Count : 0;
+                    Debug.Log("Hollowmere QA biome " + (band != null ? band.id : "missing")
+                        + " depth=" + biomeDepth + " theme=" + theme + " rooms=" + rooms);
+                    if (band == null || World.Map == null || World.Map.theme != band.theme)
+                        Debug.LogError("Hollowmere QA biome FAIL " + scene);
+                    FrameBiome();
                     yield return new WaitForSeconds(0.35f);
                 }
                 else if (dungeon && HeroActor.I != null)
@@ -388,6 +413,127 @@ namespace Hollowmere
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
         }
 
+        /// <summary>Bag grid only. Equip slots are named for the doll, not cellN.</summary>
+        static void AuditBagIcons()
+        {
+            int icons = 0;
+            int fail = 0;
+            foreach (var img in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Image>(FindObjectsSortMode.None))
+            {
+                if (img == null || img.gameObject.name != "icon") continue;
+                if (!InBagCell(img.transform)) continue;
+                icons++;
+                var sp = img.sprite;
+                string why = null;
+                if (sp == null) why = "null sprite";
+                else if (ItemIcon.IsFallback(sp)) why = "fallback " + (sp.texture != null ? sp.texture.name : sp.name);
+                else if (sp.texture == null) why = "null texture";
+                if (why != null)
+                {
+                    fail++;
+                    Debug.LogError("Hollowmere QA bag icon FAIL " + CellName(img.transform) + " " + why);
+                }
+                else
+                    Debug.Log("Hollowmere QA bag icon " + CellName(img.transform) + " sprite=" + sp.name + " tex=" + sp.texture.name + " " + sp.texture.width + "x" + sp.texture.height);
+            }
+            if (icons == 0)
+                Debug.LogError("Hollowmere QA bag icon FAIL no item icons in the bag grid");
+            else if (fail == 0)
+                Debug.Log("Hollowmere QA bag icons " + icons + " ok");
+        }
+
+        /// <summary>
+        /// Buttons, panels, and slots that should wear an iron or teal/gold frame.
+        /// Empty cells and fill bars are not frames. A horizontal-only border is a bar, not a failure.
+        /// </summary>
+        static void AuditFrames(string where)
+        {
+            int frames = 0;
+            int bad = 0;
+            foreach (var img in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Image>(FindObjectsSortMode.None))
+            {
+                if (img == null) continue;
+                var sp = img.sprite;
+                string n = sp != null ? sp.name : "";
+                if (n == "panel_iron")
+                {
+                    bad++;
+                    Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name + " used panel_iron");
+                    continue;
+                }
+                if (string.IsNullOrEmpty(n) || IsFillBar(n)) continue;
+                bool button = img.GetComponent<UnityEngine.UI.Button>() != null || img.GetComponent<HoldButton>() != null;
+                if (!button && !IsIronFrame(n)) continue;
+                if (sp == null || !IsIronFrame(n))
+                {
+                    bad++;
+                    Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name + " missing frame sprite=" + n);
+                    continue;
+                }
+                frames++;
+                Debug.Log("Hollowmere QA frame " + where + " " + n);
+            }
+            if (frames == 0)
+                Debug.LogError("Hollowmere QA frame FAIL " + where + " no iron frames");
+            else if (bad == 0)
+                Debug.Log("Hollowmere QA frames " + where + " " + frames + " ok");
+        }
+
+        static bool IsFillBar(string name)
+        {
+            return name.StartsWith("hud_fill") || name.StartsWith("slider_");
+        }
+
+        static bool IsIronFrame(string name)
+        {
+            switch (name)
+            {
+                case "button_normal":
+                case "button_pressed":
+                case "button_disabled":
+                case "button_dark":
+                case "button_red":
+                case "icon_button":
+                case "icon_button_pressed":
+                case "hud_frame":
+                case "frame_gold":
+                case "panel":
+                case "panel_bg":
+                case "panel_header":
+                case "bag_panel":
+                case "inventory_frame":
+                case "inv_screen_frame":
+                case "slot_column":
+                case "stats_panel":
+                case "tooltip_frame":
+                case "tooltip_header":
+                case "tab_active":
+                case "tab_inactive":
+                    return true;
+            }
+            return name.StartsWith("slot_") || name.StartsWith("rarity_");
+        }
+
+        static bool InBagCell(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("cell")) return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        static string CellName(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("cell")) return t.name;
+                t = t.parent;
+            }
+            return "cell";
+        }
+
         static void SaveShot(string name)
         {
             var tex = ScreenCapture.CaptureScreenshotAsTexture();
@@ -472,6 +618,18 @@ namespace Hollowmere
             var cam = Camera.main;
             if (cam == null) return;
             cam.fieldOfView = 40f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static void FrameBiome()
+        {
+            if (HeroActor.I == null || Camera.main == null) return;
+            var look = HeroActor.I.Pos + Vector3.up * 1.4f;
+            var camPos = look + new Vector3(0f, 7.5f, -14f);
+            var cam = Camera.main;
+            cam.fieldOfView = 42f;
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));

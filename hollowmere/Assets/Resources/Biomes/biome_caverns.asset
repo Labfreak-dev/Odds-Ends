@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a91c4e70d2b84f6a8c3e5d1b7f09a642, type: 3}
+  m_Name: biome_caverns
+  m_EditorClassIdentifier: 
+  id: caverns
+  displayName: Flooded Caverns
+  theme: 1
+  minDepth: 6
+  maxDepth: 10
+  floorMaterial: cave_rock
+  wallMaterial: cave_rock
+  kitFloor: kit_dun_floor_grate_2m
+  lightColor: {r: 0.9, g: 0.95, b: 1, a: 1}
+  lightIntensity: 2.75
+  fogColor: {r: 0.64, g: 0.74, b: 0.8, a: 1}
+  fogStart: 34
+  fogEnd: 90
+  ambient: {r: 0.58, g: 0.64, b: 0.7, a: 1}
+  props:
+- cc0_roots
+- cc0_boulder
+- cc0_caged
+- cc0_candle
+- cc0_chest
+  propDensity: 0.45
+  maxProps: 16
+  rooms:
+- name: pool
+  minW: 10
+  maxW: 14
+  minH: 10
+  maxH: 14
+  weight: 1.2
+- name: tunnel
+  minW: 6
+  maxW: 8
+  minH: 12
+  maxH: 16
+  weight: 1.1
+- name: grotto
+  minW: 7
+  maxW: 10
+  minH: 7
+  maxH: 10
+  weight: 1
+- name: alcove
+  minW: 4
+  maxW: 6
+  minH: 5
+  maxH: 8
+  weight: 0.8
+  minRooms: 6
+  sideRooms: 4
+  wideCorridor: 0.35

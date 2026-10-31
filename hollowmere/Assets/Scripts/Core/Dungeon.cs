@@ -26,6 +26,7 @@ namespace Hollowmere.Core
     public sealed class Room
     {
         public int x, y, w, h;
+        public string shape;
         public Int2 Center => new Int2(x + w / 2, y + h / 2);
         public bool Contains(Int2 p) => p.x >= x && p.x < x + w && p.y >= y && p.y < y + h;
         public bool Overlaps(Room o, int margin) =>
@@ -115,10 +116,73 @@ namespace Hollowmere.Core
             return dist;
         }
 
-        public static Theme ThemeFor(int depth) => ((depth - 1) / 10 % 4) switch
+        /// <summary>Crypt 1-5, flooded caverns 6-10, bone forge 11-15, infernal 16+.</summary>
+        public static Theme ThemeFor(int depth)
         {
-            0 => Theme.Crypt, 1 => Theme.Caverns, 2 => Theme.SunkenHalls, _ => Theme.EmberDepths,
-        };
+            if (depth <= 5) return Theme.Crypt;
+            if (depth <= 10) return Theme.Caverns;
+            if (depth <= 15) return Theme.SunkenHalls;
+            return Theme.EmberDepths;
+        }
+    }
+
+    public sealed class RoomTemplate
+    {
+        public string name;
+        public int minW, maxW, minH, maxH;
+        public float weight = 1f;
+    }
+
+    /// <summary>Plain layout data. The Game assembly fills this from BiomeDef assets.</summary>
+    public sealed class BiomePlan
+    {
+        public Theme theme;
+        public string id;
+        public RoomTemplate[] rooms;
+        public int minRooms = 6;
+        public int sideRooms = 3;
+        public float wideCorridor = 0.28f;
+    }
+
+    public static class BiomePlans
+    {
+        public static BiomePlan Override;
+
+        public static BiomePlan For(Theme theme)
+        {
+            if (Override != null && Override.theme == theme && Override.rooms != null && Override.rooms.Length > 0)
+                return Override;
+            return Builtin(theme);
+        }
+
+        public static BiomePlan Builtin(Theme theme)
+        {
+            switch (theme)
+            {
+                case Theme.Caverns:
+                    return Plan(theme, "caverns", 6, 4, 0.35f,
+                        T("pool", 10, 14, 10, 14, 1.2f), T("tunnel", 6, 8, 12, 16, 1.1f),
+                        T("grotto", 7, 10, 7, 10, 1f), T("alcove", 4, 6, 5, 8, 0.8f));
+                case Theme.SunkenHalls:
+                    return Plan(theme, "forge", 6, 3, 0.22f,
+                        T("foundry", 11, 15, 8, 12, 1.1f), T("gallery", 14, 18, 5, 7, 1f),
+                        T("kiln", 6, 9, 6, 9, 1f), T("store", 5, 8, 4, 6, 0.7f));
+                case Theme.EmberDepths:
+                    return Plan(theme, "infernal", 5, 3, 0.2f,
+                        T("caldera", 12, 16, 12, 16, 1.2f), T("bridge", 16, 20, 4, 6, 1f),
+                        T("pit", 8, 11, 8, 11, 1f), T("niche", 4, 6, 4, 7, 0.7f));
+                default:
+                    return Plan(theme, "crypt", 7, 3, 0.25f,
+                        T("chapel", 8, 11, 8, 11, 1.2f), T("nave", 12, 16, 5, 7, 1f),
+                        T("cell", 5, 7, 5, 7, 1f), T("ossuary", 9, 13, 6, 9, 0.9f));
+            }
+        }
+
+        static RoomTemplate T(string name, int minW, int maxW, int minH, int maxH, float weight)
+            => new RoomTemplate { name = name, minW = minW, maxW = maxW, minH = minH, maxH = maxH, weight = weight };
+
+        static BiomePlan Plan(Theme theme, string id, int minRooms, int side, float wide, params RoomTemplate[] rooms)
+            => new BiomePlan { theme = theme, id = id, minRooms = minRooms, sideRooms = side, wideCorridor = wide, rooms = rooms };
     }
 
     public static class DungeonGenerator
@@ -130,15 +194,21 @@ namespace Hollowmere.Core
             int size = 44 + Math.Min(depth, 24);
             var map = new DungeonMap(size, size) { depth = depth, seed = seed, theme = DungeonMap.ThemeFor(depth), bossFloor = depth % Balance.BossEvery == 0 };
 
-            // Rooms
-            int target = 7 + Math.Min(depth / 3, 6);
-            for (int tries = 0; tries < 400 && map.rooms.Count < target; tries++)
+            var plan = BiomePlans.For(map.theme);
+            int target = plan.minRooms + Math.Min(depth / 4, 5);
+            for (int tries = 0; tries < 500 && map.rooms.Count < target; tries++)
             {
-                int w = rng.Range(6, 12), h = rng.Range(6, 12);
-                var r = new Room { x = rng.Range(2, size - w - 2), y = rng.Range(2, size - h - 2), w = w, h = h };
+                var shape = PickTemplate(plan.rooms, rng);
+                int w = rng.Range(shape.minW, shape.maxW + 1);
+                int h = rng.Range(shape.minH, shape.maxH + 1);
+                if (w + 4 >= size || h + 4 >= size) continue;
+                var r = new Room { x = rng.Range(2, size - w - 2), y = rng.Range(2, size - h - 2), w = w, h = h, shape = shape.name };
                 if (map.rooms.Any(o => o.Overlaps(r, 2))) continue;
                 map.rooms.Add(r);
             }
+            for (int i = 0; i < plan.sideRooms; i++)
+                TrySideRoom(map, plan, rng);
+            EnsureSecondRoom(map, size);
             if (map.bossFloor)
             {
                 // A big arena for the boss, replacing the most distant small room if needed.
@@ -157,11 +227,13 @@ namespace Hollowmere.Core
 
             // Corridors: a chain through rooms sorted by position, plus a few loops.
             var order = map.rooms.OrderBy(r => r.Center.x + r.Center.y * 0.3f).ToList();
-            for (int i = 1; i < order.Count; i++) Corridor(map, order[i - 1].Center, order[i].Center, rng);
-            for (int i = 0; i < order.Count / 3; i++) Corridor(map, rng.Pick(order).Center, rng.Pick(order).Center, rng);
+            for (int i = 1; i < order.Count; i++) Corridor(map, order[i - 1].Center, order[i].Center, rng, plan.wideCorridor);
+            for (int i = 0; i < order.Count / 3; i++) Corridor(map, rng.Pick(order).Center, rng.Pick(order).Center, rng, plan.wideCorridor);
 
             // Entry is the first room; exit is the floor tile farthest from it (inside a room).
             var entryRoom = order[0];
+            var bossRoom = map.bossFloor ? map.rooms[map.rooms.Count - 1] : null;
+            if (bossRoom != null && entryRoom == bossRoom && order.Count > 1) entryRoom = order[1];
             map.entry = entryRoom.Center;
             var dist = map.DistanceField(map.entry);
             Room exitRoom = map.bossFloor ? map.rooms.Last() : map.rooms.Where(r => r != entryRoom).OrderByDescending(r => dist[r.Center.y * size + r.Center.x]).First();
@@ -231,23 +303,80 @@ namespace Hollowmere.Core
             return map;
         }
 
-        static void Corridor(DungeonMap map, Int2 a, Int2 b, Rng rng)
+        static RoomTemplate PickTemplate(RoomTemplate[] rooms, Rng rng)
+        {
+            if (rooms == null || rooms.Length == 0)
+                return new RoomTemplate { name = "room", minW = 6, maxW = 11, minH = 6, maxH = 11, weight = 1f };
+            float sum = 0f;
+            for (int i = 0; i < rooms.Length; i++) sum += Math.Max(0.05f, rooms[i].weight);
+            float roll = rng.Value() * sum;
+            for (int i = 0; i < rooms.Length; i++)
+            {
+                roll -= Math.Max(0.05f, rooms[i].weight);
+                if (roll <= 0f) return rooms[i];
+            }
+            return rooms[rooms.Length - 1];
+        }
+
+        static void EnsureSecondRoom(DungeonMap map, int size)
+        {
+            if (map.rooms.Count >= 2) return;
+            var extra = new Room { w = 8, h = 8, shape = "antechamber" };
+            for (int i = 0; i < 48; i++)
+            {
+                extra.x = 2 + (i % 8) * 4;
+                extra.y = 2 + (i / 8) * 5;
+                if (extra.x + extra.w >= size - 1 || extra.y + extra.h >= size - 1) continue;
+                if (!map.rooms.Any(o => o.Overlaps(extra, 1)))
+                {
+                    map.rooms.Add(extra);
+                    return;
+                }
+            }
+            extra.x = 2;
+            extra.y = 2;
+            map.rooms.RemoveAll(o => o.Overlaps(extra, 0));
+            map.rooms.Add(extra);
+        }
+
+        static void TrySideRoom(DungeonMap map, BiomePlan plan, Rng rng)
+        {
+            if (map.rooms.Count == 0) return;
+            var host = rng.Pick(map.rooms);
+            var shape = plan.rooms[rng.Range(0, plan.rooms.Length)];
+            int w = rng.Range(Math.Min(shape.minW, 5), Math.Min(shape.maxW, 8) + 1);
+            int h = rng.Range(Math.Min(shape.minH, 5), Math.Min(shape.maxH, 8) + 1);
+            int gap = 1;
+            int side = rng.Range(0, 4);
+            int x = side == 0 ? host.x + host.w + gap : side == 1 ? host.x - w - gap : host.x + rng.Range(0, Math.Max(1, host.w - w));
+            int y = side == 2 ? host.y + host.h + gap : side == 3 ? host.y - h - gap : host.y + rng.Range(0, Math.Max(1, host.h - h));
+            if (side < 2) y = host.y + Math.Max(0, (host.h - h) / 2);
+            else x = host.x + Math.Max(0, (host.w - w) / 2);
+            var r = new Room { x = x, y = y, w = w, h = h, shape = shape.name + "-side" };
+            if (r.x < 2 || r.y < 2 || r.x + r.w >= map.width - 2 || r.y + r.h >= map.height - 2) return;
+            if (map.rooms.Any(o => o.Overlaps(r, 1))) return;
+            map.rooms.Add(r);
+        }
+
+        static void Corridor(DungeonMap map, Int2 a, Int2 b, Rng rng, float wide)
         {
             bool horizFirst = rng.Chance(0.5f);
             var corner = horizFirst ? new Int2(b.x, a.y) : new Int2(a.x, b.y);
-            Carve(map, a, corner);
-            Carve(map, corner, b);
+            bool fat = rng.Chance(wide);
+            Carve(map, a, corner, fat);
+            Carve(map, corner, b, fat);
         }
 
-        static void Carve(DungeonMap map, Int2 a, Int2 b)
+        static void Carve(DungeonMap map, Int2 a, Int2 b, bool wide)
         {
             int dx = Math.Sign(b.x - a.x), dy = Math.Sign(b.y - a.y);
             var p = a;
             while (true)
             {
-                // two tiles wide so touch movement never snags
+                // two tiles wide so touch movement never snags; some halls are three
                 map.Set(p.x, p.y, Tile.Floor);
                 map.Set(p.x + (dy != 0 ? 1 : 0), p.y + (dx != 0 ? 1 : 0), Tile.Floor);
+                if (wide) map.Set(p.x + (dy != 0 ? -1 : 0), p.y + (dx != 0 ? -1 : 0), Tile.Floor);
                 if (p == b) break;
                 p = new Int2(p.x + dx, p.y + dy);
             }

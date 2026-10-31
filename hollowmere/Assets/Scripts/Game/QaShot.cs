@@ -251,6 +251,7 @@ namespace Hollowmere
                 {
                     InventoryScreen.Show(UiRoot.I);
                     yield return new WaitForSecondsRealtime(0.6f);
+                    AuditBagIcons();
                 }
                 else if (menus)
                 {
@@ -408,6 +409,55 @@ namespace Hollowmere
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        /// <summary>Bag grid only. Equip slots are named for the doll, not cellN.</summary>
+        static void AuditBagIcons()
+        {
+            int icons = 0;
+            int fail = 0;
+            foreach (var img in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Image>(FindObjectsSortMode.None))
+            {
+                if (img == null || img.gameObject.name != "icon") continue;
+                if (!InBagCell(img.transform)) continue;
+                icons++;
+                var sp = img.sprite;
+                string why = null;
+                if (sp == null) why = "null sprite";
+                else if (ItemIcon.IsFallback(sp)) why = "fallback " + (sp.texture != null ? sp.texture.name : sp.name);
+                else if (sp.texture == null) why = "null texture";
+                if (why != null)
+                {
+                    fail++;
+                    Debug.LogError("Hollowmere QA bag icon FAIL " + CellName(img.transform) + " " + why);
+                }
+                else
+                    Debug.Log("Hollowmere QA bag icon " + CellName(img.transform) + " sprite=" + sp.name + " tex=" + sp.texture.name + " " + sp.texture.width + "x" + sp.texture.height);
+            }
+            if (icons == 0)
+                Debug.LogError("Hollowmere QA bag icon FAIL no item icons in the bag grid");
+            else if (fail == 0)
+                Debug.Log("Hollowmere QA bag icons " + icons + " ok");
+        }
+
+        static bool InBagCell(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("cell")) return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        static string CellName(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("cell")) return t.name;
+                t = t.parent;
+            }
+            return "cell";
         }
 
         static void SaveShot(string name)

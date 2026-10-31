@@ -112,7 +112,7 @@ namespace Hollowmere
         /// URP Lit with the surface maps. Metal maps that are nearly white zero the diffuse
         /// term and read as unlit black without a reflection probe, so metallic stays a scalar.
         /// </summary>
-        public static Material UrpLit(string name, float tileMetres, Color tint, float metallic, float smoothness)
+        public static Material UrpLit(string name, float tileMetres, Color tint, float metallic, float smoothness, float bump = 0.6f)
         {
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null) shader = Shader.Find("Hollowmere/Pbr");
@@ -134,7 +134,7 @@ namespace Hollowmere
             {
                 m.SetTexture("_BumpMap", normal);
                 m.EnableKeyword("_NORMALMAP");
-                if (m.HasProperty("_BumpScale")) m.SetFloat("_BumpScale", 0.6f);
+                if (m.HasProperty("_BumpScale")) m.SetFloat("_BumpScale", bump);
             }
             if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", metallic);
             if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", smoothness);

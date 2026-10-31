@@ -23,10 +23,21 @@ namespace Hollowmere
         {
             Ensure();
             if (string.IsNullOrEmpty(name)) return null;
-            if (byName != null && byName.TryGetValue(name, out var s) && s != null) return s;
+            if (byName != null && byName.TryGetValue(name, out var s) && s != null && s.texture != null) return s;
             var loaded = Resources.Load<Sprite>("Art/Icons/" + name);
-            if (loaded != null && byName != null) byName[name] = loaded;
-            return loaded;
+            if (loaded != null && loaded.texture != null)
+            {
+                if (byName != null) byName[name] = loaded;
+                return loaded;
+            }
+            // Spell sheets were imported as Default textures (textureType 0). Load<Sprite>
+            // returns null for those, which is how the bag drew a checker instead of the PNG.
+            var tex = Resources.Load<Texture2D>("Art/Icons/" + name);
+            if (tex == null) return null;
+            var made = UnityEngine.Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            made.name = name;
+            if (byName != null) byName[name] = made;
+            return made;
         }
 
         public static Texture2D Tex(string name)

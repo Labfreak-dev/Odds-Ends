@@ -147,7 +147,7 @@ namespace Hollowmere
             var wallSide = town
                 ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.56f, 0.54f, 0.50f))
                 : biome != null && biome.id == "forge"
-                    ? PbrKit.UrpLit(biome.wallMaterial, 2f, new Color(0.72f, 0.7f, 0.68f), 0.45f, 0.42f)
+                    ? PbrKit.UrpLit(biome.wallMaterial, 2f, new Color(0.78f, 0.74f, 0.68f), 0.22f, 0.16f, 1.85f)
                     : biome != null
                         ? PbrKit.Surface(biome.wallMaterial, 3f, Color.white)
                         : PbrKit.Surface("crypt_wall", 3f, Color.white);

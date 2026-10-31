@@ -1,0 +1,459 @@
+{
+ "title": "Hollowmere CC0 PBR kit",
+ "created": "2026-10-31",
+ "license_summary": "All third-party files are CC0 1.0 (ambientCG, Poly Haven). Procedural props and the water normal are original work, made in code, released CC0.",
+ "meshy_credits_spent": 0,
+ "materials": [
+  {
+   "name": "dungeon_floor",
+   "files": [
+    "materials/dungeon_floor/dungeon_floor_ao.jpg",
+    "materials/dungeon_floor/dungeon_floor_basecolor.jpg",
+    "materials/dungeon_floor/dungeon_floor_metallic_smoothness.png",
+    "materials/dungeon_floor/dungeon_floor_normal_gl.jpg",
+    "materials/dungeon_floor/dungeon_floor_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=Bricks113A",
+   "asset": "Bricks113A",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 2.5,
+   "use": "Dungeon floor flagstones"
+  },
+  {
+   "name": "dungeon_wall",
+   "files": [
+    "materials/dungeon_wall/dungeon_wall_ao.jpg",
+    "materials/dungeon_wall/dungeon_wall_basecolor.jpg",
+    "materials/dungeon_wall/dungeon_wall_metallic_smoothness.png",
+    "materials/dungeon_wall/dungeon_wall_normal_gl.jpg",
+    "materials/dungeon_wall/dungeon_wall_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=Bricks076C",
+   "asset": "Bricks076C",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 3.0,
+   "use": "Dungeon walls (source is 2.0 m; 3.0 m makes the bricks larger so they read at the game camera)"
+  },
+  {
+   "name": "town_cobble",
+   "files": [
+    "materials/town_cobble/town_cobble_ao.jpg",
+    "materials/town_cobble/town_cobble_basecolor.jpg",
+    "materials/town_cobble/town_cobble_metallic_smoothness.png",
+    "materials/town_cobble/town_cobble_normal_gl.jpg",
+    "materials/town_cobble/town_cobble_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=PavingStones131",
+   "asset": "PavingStones131",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 2.0,
+   "use": "Town square cobble"
+  },
+  {
+   "name": "town_plaster_wall",
+   "files": [
+    "materials/town_plaster_wall/town_plaster_wall_ao.jpg",
+    "materials/town_plaster_wall/town_plaster_wall_basecolor.jpg",
+    "materials/town_plaster_wall/town_plaster_wall_metallic_smoothness.png",
+    "materials/town_plaster_wall/town_plaster_wall_normal_gl.jpg",
+    "materials/town_plaster_wall/town_plaster_wall_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=Plaster001",
+   "asset": "Plaster001",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 3.0,
+   "use": "Town house walls (tint in material colour)"
+  },
+  {
+   "name": "wood_planks",
+   "files": [
+    "materials/wood_planks/wood_planks_ao.jpg",
+    "materials/wood_planks/wood_planks_basecolor.jpg",
+    "materials/wood_planks/wood_planks_metallic_smoothness.png",
+    "materials/wood_planks/wood_planks_normal_gl.jpg",
+    "materials/wood_planks/wood_planks_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=Planks037A",
+   "asset": "Planks037A",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 2.0,
+   "use": "Floors, docks, fences, stall and chest wood"
+  },
+  {
+   "name": "dirt_path",
+   "files": [
+    "materials/dirt_path/dirt_path_ao.jpg",
+    "materials/dirt_path/dirt_path_basecolor.jpg",
+    "materials/dirt_path/dirt_path_metallic_smoothness.png",
+    "materials/dirt_path/dirt_path_normal_gl.jpg",
+    "materials/dirt_path/dirt_path_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=Ground103",
+   "asset": "Ground103",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 4.0,
+   "use": "Paths and dirt ground"
+  },
+  {
+   "name": "mossy_rock",
+   "files": [
+    "materials/mossy_rock/mossy_rock_ao.jpg",
+    "materials/mossy_rock/mossy_rock_basecolor.jpg",
+    "materials/mossy_rock/mossy_rock_metallic_smoothness.png",
+    "materials/mossy_rock/mossy_rock_normal_gl.jpg",
+    "materials/mossy_rock/mossy_rock_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=Rock064",
+   "asset": "Rock064",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 3.0,
+   "use": "Cliffs, rocky ground, mossy dungeon rubble"
+  },
+  {
+   "name": "roof_tiles",
+   "files": [
+    "materials/roof_tiles/roof_tiles_ao.jpg",
+    "materials/roof_tiles/roof_tiles_basecolor.jpg",
+    "materials/roof_tiles/roof_tiles_metallic_smoothness.png",
+    "materials/roof_tiles/roof_tiles_normal_gl.jpg",
+    "materials/roof_tiles/roof_tiles_roughness.jpg"
+   ],
+   "source_url": "https://ambientcg.com/view?id=RoofingTiles014A",
+   "asset": "RoofingTiles014A",
+   "author": "ambientCG (Lennart Demes)",
+   "license": "CC0 1.0",
+   "resolution": "1024",
+   "maps": {
+    "basecolor": "sRGB JPG",
+    "normal_gl": "OpenGL (Y+) JPG, use as-is in Unity",
+    "roughness": "linear JPG",
+    "ao": "linear JPG",
+    "metallic_smoothness": "URP Lit metallic map PNG: R=metallic 0, A=smoothness (1-roughness)"
+   },
+   "tiling_m": 2.9,
+   "use": "Roofs"
+  }
+ ],
+ "props": [
+  {
+   "file": "props/lantern_01.glb",
+   "size_m_xyz": [
+    0.122,
+    0.097,
+    0.294
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/Lantern_01",
+   "asset": "Lantern 01",
+   "author": "Rajil Jose Macatangay",
+   "use": "Brass lantern (dungeon, light source)"
+  },
+  {
+   "file": "props/market_stall.glb",
+   "size_m_xyz": [
+    2.6,
+    1.72,
+    2.298
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": null,
+   "asset": "market_stall",
+   "author": "Hollowmere (procedural, made in code with kit materials)",
+   "use": "Market stall; wood_planks plus flat red canvas"
+  },
+  {
+   "file": "props/rock_07.glb",
+   "size_m_xyz": [
+    0.76,
+    1.441,
+    0.647
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/rock_07",
+   "asset": "Rock 07",
+   "author": "Jenelle van Heerden",
+   "use": "Boulder (scaled 4.5x from source)"
+  },
+  {
+   "file": "props/rock_09.glb",
+   "size_m_xyz": [
+    0.296,
+    0.578,
+    0.131
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/rock_09",
+   "asset": "Rock 09",
+   "author": "Jenelle van Heerden",
+   "use": "Flat stone (scaled 4x from source)"
+  },
+  {
+   "file": "props/rock_moss_set_01.glb",
+   "size_m_xyz": [
+    8.005,
+    6.949,
+    1.768
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/rock_moss_set_01",
+   "asset": "Rock Moss Set 01",
+   "author": "Kless Gyzen",
+   "use": "Mossy rock cluster / cliff scatter"
+  },
+  {
+   "file": "props/stash_chest.glb",
+   "size_m_xyz": [
+    1.0,
+    0.64,
+    0.8
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": null,
+   "asset": "stash_chest",
+   "author": "Hollowmere (procedural, made in code with kit materials)",
+   "use": "Stash chest (replaces the grey box); wood_planks plus flat iron bands"
+  },
+  {
+   "file": "props/town_well.glb",
+   "size_m_xyz": [
+    2.3,
+    2.0,
+    2.754
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": null,
+   "asset": "town_well",
+   "author": "Hollowmere (procedural, made in code with kit materials)",
+   "use": "Town well; dungeon_wall stone ring, wood_planks posts, roof_tiles roof"
+  },
+  {
+   "file": "props/tree_stump_01.glb",
+   "size_m_xyz": [
+    1.426,
+    1.59,
+    0.573
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/tree_stump_01",
+   "asset": "Tree Stump 01",
+   "author": "Rob Tuytel",
+   "use": "Tree stump"
+  },
+  {
+   "file": "props/wine_barrel_01.glb",
+   "size_m_xyz": [
+    0.742,
+    0.756,
+    0.871
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/wine_barrel_01",
+   "asset": "Wine Barrel 01",
+   "author": "James Ray Cock",
+   "use": "Barrel"
+  },
+  {
+   "file": "props/wooden_bucket_01.glb",
+   "size_m_xyz": [
+    0.367,
+    0.342,
+    0.55
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/wooden_bucket_01",
+   "asset": "Wooden Bucket 01",
+   "author": "James Ray Cock",
+   "use": "Bucket (well, docks)"
+  },
+  {
+   "file": "props/wooden_crate_01.glb",
+   "size_m_xyz": [
+    0.825,
+    0.409,
+    0.35
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/wooden_crate_01",
+   "asset": "Wooden Crate 01",
+   "author": "James Ray Cock",
+   "use": "Crate (long)"
+  },
+  {
+   "file": "props/wooden_crate_02.glb",
+   "size_m_xyz": [
+    0.529,
+    1.166,
+    0.464
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/wooden_crate_02",
+   "asset": "Wooden Crate 02",
+   "author": "James Ray Cock, Jurita Burger",
+   "use": "Crate"
+  },
+  {
+   "file": "props/wooden_lantern_01.glb",
+   "size_m_xyz": [
+    0.221,
+    0.235,
+    0.53
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/wooden_lantern_01",
+   "asset": "Wooden Lantern 01",
+   "author": "James Ray Cock",
+   "use": "Wooden lantern (town)"
+  },
+  {
+   "file": "props/wooden_table_02.glb",
+   "size_m_xyz": [
+    1.134,
+    0.706,
+    0.8
+   ],
+   "origin": "base centre",
+   "up": "+Y (glTF)",
+   "forward": "+Z (glTF, Unity +Z after import)",
+   "textures": "embedded 1k JPG basecolor, normal, metallicRoughness (glTF ORM)",
+   "license": "CC0 1.0",
+   "source_url": "https://polyhaven.com/a/wooden_table_02",
+   "asset": "Wooden Table 02",
+   "author": "Serhii Khromov",
+   "use": "Table (stall, tavern, smith)"
+  }
+ ],
+ "water": [
+  {
+   "file": "water/water_normal_gl.png",
+   "source_url": null,
+   "author": "Hollowmere (procedural, made in code: FFT wave spectrum)",
+   "license": "CC0 1.0",
+   "resolution": "1024, seamless",
+   "maps": {
+    "normal_gl": "OpenGL (Y+)"
+   },
+   "tiling_m": 6.0,
+   "use": "Lake and pool surface; scroll two copies at different speeds and directions"
+  }
+ ],
+ "previews": [
+  "preview/contact_sheet.jpg",
+  "preview/scene_dungeon_gamecam.jpg",
+  "preview/scene_town_gamecam.jpg"
+ ]
+}

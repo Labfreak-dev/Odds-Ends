@@ -257,8 +257,11 @@ namespace Hollowmere
                     }
                     else if (model == null && kind == InteractKind.Stash)
                     {
-                        Art.Cube(t, new Vector3(0, 0.45f, 0), new Vector3(1.4f, 0.9f, 0.8f), Art.Mat(new Color(0.35f, 0.25f, 0.15f)));
-                        Art.Cube(t, new Vector3(0, 0.92f, 0), new Vector3(1.44f, 0.08f, 0.84f), Art.Mat(new Color(0.6f, 0.6f, 0.65f), 0.3f));
+                        if (PbrKit.Prop("stash_chest", t) == null)
+                        {
+                            Art.Cube(t, new Vector3(0, 0.45f, 0), new Vector3(1.4f, 0.9f, 0.8f), Art.Mat(new Color(0.35f, 0.25f, 0.15f)));
+                            Art.Cube(t, new Vector3(0, 0.92f, 0), new Vector3(1.44f, 0.08f, 0.84f), Art.Mat(new Color(0.6f, 0.6f, 0.65f), 0.3f));
+                        }
                     }
                     else if (model == null && kind == InteractKind.Gambler)
                     {

@@ -130,6 +130,26 @@ namespace Hollowmere
         {
             float yaw = (float)rng.NextDouble() * 360f;
             var rot = Quaternion.Euler(0f, yaw, 0f);
+            string[] kit = town
+                ? new[] { "wine_barrel_01", "wooden_crate_01", "wooden_crate_02", "tree_stump_01", "rock_09", "wooden_table_02", "wooden_lantern_01", "wooden_bucket_01" }
+                : new[] { "wine_barrel_01", "wooden_crate_02", "rock_07", "rock_09", "lantern_01" };
+            string kitName = kit[rng.Next(kit.Length)];
+            var spawned = PbrKit.Prop(kitName, root);
+            if (spawned != null)
+            {
+                spawned.transform.SetPositionAndRotation(at, rot);
+                if (kitName.Contains("lantern"))
+                {
+                    var l = new GameObject("torch").AddComponent<Light>();
+                    l.transform.SetParent(spawned.transform, false);
+                    l.transform.localPosition = Vector3.up * 0.4f;
+                    l.type = LightType.Point;
+                    l.color = new Color(1f, 0.72f, 0.4f);
+                    l.range = 7f;
+                    l.intensity = 1.8f;
+                }
+                return;
+            }
             var pool = town ? TownProps : DungeonProps;
             if (Stand(root, at, pool[rng.Next(pool.Length)], rot, 1.45f)) return;
             switch (rng.Next(town ? 4 : 5))

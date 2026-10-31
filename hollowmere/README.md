@@ -62,6 +62,7 @@ The picture runs edge to edge; every control sits inside `Screen.safeArea`.
 
 Drop replacements into these folders and rebuild. Missing files use a procedural stand-in.
 The pictures already in the repo are original and released under CC0.
+The town and dungeon surfaces and props in `Assets/Art/PBR/` are CC0 from ambientCG and Poly Haven, plus a few procedural pieces. Authors and links are in `Assets/Art/PBR/CREDITS.md`.
 
 - `Assets/Art/UI/keyart_bg_*.png` parallax layers, `keyart_bg_fog.png`, `logo.png`
 - `Assets/Art/UI/button_normal.png`, `button_pressed.png`, `button_primary.png` (24 px 9-slice border)

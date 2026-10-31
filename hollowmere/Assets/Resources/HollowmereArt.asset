@@ -158,6 +158,15 @@ sprites:
 - {fileID: 21300000, guid: 7f333b9f460b8ba355e80f81daf14c8b, type: 3}
 - {fileID: 21300000, guid: 3c134ed58464f5a29dc145950dcee0c5, type: 3}
 - {fileID: 21300000, guid: a40a2fff5222a0ae1626ac34b12a8cde, type: 3}
+- {fileID: 21300000, guid: 847d0054be134e8180f57193732d4a26, type: 3}
+- {fileID: 21300000, guid: 87befd1936764c63b07b7ad85bf7ecc7, type: 3}
+- {fileID: 21300000, guid: a25ce5bc9acb4749b2b36e2a552220ad, type: 3}
+- {fileID: 21300000, guid: b8b3003902784ff19278955ba28f0eb2, type: 3}
+- {fileID: 21300000, guid: 138af70badb7434587f91a5f236faaed, type: 3}
+- {fileID: 21300000, guid: afbe26b1edd346e2ad1bed249c378756, type: 3}
+- {fileID: 21300000, guid: b2144618ed8344429883e3f126305968, type: 3}
+- {fileID: 21300000, guid: 1e8bd8316609485dbb018e9d5c5289a8, type: 3}
+- {fileID: 21300000, guid: 9109dcba18d14518b52e4a4daa7d9e74, type: 3}
 grounds:
 - {fileID: 2800000, guid: 7c187ee7be58180ea87e3b88b9c99ae7, type: 3}
 - {fileID: 2800000, guid: 1379c374ddcec2e24f4e02d273e880a0, type: 3}

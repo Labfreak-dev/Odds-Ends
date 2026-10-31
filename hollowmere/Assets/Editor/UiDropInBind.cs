@@ -100,7 +100,9 @@ namespace Hollowmere.Editor
         /// <summary>ui_slices.json stores left, right, top, bottom. Unity's sprite border is L, B, R, T.</summary>
         static void ApplyListedSlices()
         {
-            var jsonPath = "Assets/Art/UI/ui_slices.json";
+            var jsonPath = File.Exists("Assets/Art/UI/ui_slices_v2.json")
+                ? "Assets/Art/UI/ui_slices_v2.json"
+                : "Assets/Art/UI/ui_slices.json";
             if (!File.Exists(jsonPath)) return;
             var text = File.ReadAllText(jsonPath);
             foreach (Match m in Regex.Matches(text, "\"([^\"]+\\.png)\"\\s*:\\s*\\{([^}]*)\\}"))

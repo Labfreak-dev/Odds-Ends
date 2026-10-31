@@ -146,6 +146,49 @@ namespace Hollowmere
         public static Color Rarity(Rarity r) => Hex(ItemText.RarityColor(r));
         public static Color Element(Element e) => Hex(ItemText.ElementColor(e));
 
+        /// <summary>A ground drop or prop at its authored scale. No character fit.</summary>
+        public static GameObject DropIn(string key, Transform parent)
+        {
+            var prefab = LoadModel(key);
+            if (prefab == null) return null;
+            var go = Object.Instantiate(prefab, parent);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one;
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            AdoptShaders(go);
+            return go;
+        }
+
+        /// <summary>Fishing-spot ripple. 4×2 frames, 10 fps, additive, flat on the water.</summary>
+        public static bool Ripple(Transform parent)
+        {
+            var tex = ArtDrop.Tex("fishing_spot_ripples");
+            if (tex == null || parent == null) return false;
+            var g = new GameObject("ripple");
+            g.transform.SetParent(parent, false);
+            g.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+            g.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            g.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
+            var mf = g.AddComponent<MeshFilter>();
+            mf.sharedMesh = GlowQuadMesh();
+            var mr = g.AddComponent<MeshRenderer>();
+            var tint = new Color(0.65f, 0.85f, 1f, 1f);
+            mr.sharedMaterial = GlowMat(tint, false, tex);
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            var play = g.AddComponent<SheetPlay>();
+            play.mat = mr.sharedMaterial;
+            play.columns = 4;
+            play.rows = 2;
+            play.count = 8;
+            play.fps = 10;
+            play.loop = true;
+            play.flat = true;
+            play.life = 100000f;
+            return true;
+        }
+
         public static GameObject LoadModel(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
@@ -205,7 +248,11 @@ namespace Hollowmere
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
             if (key.StartsWith("npc_")) holder.AddComponent<PoseUpright>();
-            if (key.StartsWith("hero_")) CombatClipPlayer.Attach(ma, key);
+            if (key.StartsWith("hero_"))
+            {
+                CombatClipPlayer.Attach(ma, key);
+                CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+            }
             return holder;
         }
 
@@ -1131,6 +1178,11 @@ namespace Hollowmere
                 }
             }
             transform.rotation = best;
+            bool above = bestRise > 0.25f;
+            Debug.Log("Hollowmere NPC " + name + " rot=" + transform.eulerAngles.ToString("0")
+                + " headAboveHips=" + above + " rise=" + bestRise.ToString("0.00"));
+            if (!above)
+                Debug.LogError("Hollowmere NPC " + name + " failed the head-above-hips check.");
         }
 
         static Transform FindBone(Transform root, string name)

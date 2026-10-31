@@ -767,6 +767,114 @@ namespace Hollowmere.Core
             return baseWeight * grown;
         }
 
+        /// <summary>Grip length along the weapon's local Z, in millimetres. Above and below are the reach either side of the grip. Width is the cross-section.</summary>
+        public readonly struct Grip
+        {
+            public readonly int LengthMm, AboveMm, BelowMm, WidthMm;
+            public Grip(int length, int above, int below, int width)
+            {
+                LengthMm = length; AboveMm = above; BelowMm = below; WidthMm = width;
+            }
+        }
+
+        public static bool TryGrip(string key, out Grip grip)
+        {
+            switch (key)
+            {
+                case "ironclad_weapon_1": grip = new Grip(800, 704, 96, 380); return true;
+                case "ironclad_weapon_2": grip = new Grip(1250, 1062, 188, 601); return true;
+                case "ironclad_weapon_3": grip = new Grip(1300, 1105, 195, 562); return true;
+                case "stalker_weapon_1": grip = new Grip(1200, 600, 600, 200); return true;
+                case "stalker_weapon_2": grip = new Grip(800, 560, 240, 576); return true;
+                case "stalker_weapon_3": grip = new Grip(380, 323, 57, 61); return true;
+                case "hexweaver_weapon_1": grip = new Grip(950, 808, 142, 222); return true;
+                case "hexweaver_weapon_2": grip = new Grip(400, 340, 60, 37); return true;
+                case "hexweaver_weapon_3": grip = new Grip(950, 808, 143, 217); return true;
+                case "fishing_rod": grip = new Grip(1800, 1620, 180, 423); return true;
+                default: grip = default; return false;
+            }
+        }
+
+        public static string WeaponKey(HeroClass cls, string baseId)
+        {
+            switch (baseId)
+            {
+                case "sword":
+                case "axe":
+                case "mace": return "ironclad_weapon_1";
+                case "greataxe": return "ironclad_weapon_2";
+                case "warhammer": return "ironclad_weapon_3";
+                case "bow": return "stalker_weapon_1";
+                case "crossbow": return "stalker_weapon_2";
+                case "dagger": return "stalker_weapon_3";
+                case "staff": return "hexweaver_weapon_1";
+                case "wand": return "hexweaver_weapon_2";
+                case "rod": return "fishing_rod";
+                case "orb": return "hexweaver_weapon_3";
+            }
+            if (cls == HeroClass.Ironclad) return "ironclad_weapon_1";
+            if (cls == HeroClass.Stalker) return "stalker_weapon_1";
+            return "hexweaver_weapon_2";
+        }
+
+        public static int GearTier(Rarity rarity)
+        {
+            if (rarity == Rarity.Rare) return 2;
+            if (rarity == Rarity.Legendary || rarity == Rarity.Set) return 3;
+            return 1;
+        }
+
+        public static string ArmorKey(HeroClass cls, string part, Rarity rarity)
+        {
+            string who = cls == HeroClass.Ironclad ? "ironclad" : cls == HeroClass.Stalker ? "stalker" : "hexweaver";
+            return who + "_" + part + "_" + GearTier(rarity);
+        }
+
+        /// <summary>Painted gem: cinder ruby, thorn emerald, marrow amethyst, salt sapphire. Rank 1–5 is chipped through royal.</summary>
+        public static string GemArt(string gemId)
+        {
+            if (!Gems.Parse(gemId, out var name, out int rank)) return null;
+            string stone = name == "cinder" ? "ruby" : name == "thorn" ? "emerald" : name == "marrow" ? "amethyst" : name == "salt" ? "sapphire" : null;
+            string cut = rank == 1 ? "chipped" : rank == 2 ? "flawed" : rank == 3 ? "regular" : rank == 4 ? "flawless" : rank == 5 ? "royal" : null;
+            if (stone == null || cut == null) return null;
+            return "gem_" + stone + "_" + cut;
+        }
+
+        public static string GemTint(string gemId)
+        {
+            if (!Gems.Parse(gemId, out var name, out _)) return "#FFFFFF";
+            if (name == "cinder") return "#E04040";
+            if (name == "thorn") return "#30C070";
+            if (name == "marrow") return "#A060D0";
+            if (name == "salt") return "#4080E0";
+            return "#FFFFFF";
+        }
+
+        /// <summary>White beam and ground tint, and the beam height as thousandths of BeamHeight.</summary>
+        public static string BeamHex(string rarity)
+        {
+            switch ((rarity ?? "").ToLowerInvariant())
+            {
+                case "magic": return "#6969FF";
+                case "rare": return "#FFFF00";
+                case "legendary": return "#BF642F";
+                case "set": return "#00FF00";
+                default: return "#FFFFFF";
+            }
+        }
+
+        public static int BeamRelMilli(string rarity)
+        {
+            switch ((rarity ?? "").ToLowerInvariant())
+            {
+                case "magic": return 550;
+                case "rare": return 750;
+                case "legendary":
+                case "set": return 1000;
+                default: return 350;
+            }
+        }
+
         static decimal Clamp01(decimal t) => t < 0m ? 0m : t > 1m ? 1m : t;
 
         public static int BossPhase(float lifeFraction)

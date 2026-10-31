@@ -22,8 +22,6 @@ namespace Hollowmere
             LootDrop.Dress(p, it);
             if (it.kind == ItemKind.Equipment)
             {
-                float beam = (float)DesignTable.BeamHeight;
-                Art.Cylinder(p.transform, new Vector3(0, beam * 0.5f, 0), new Vector3(0.22f, beam * 0.5f, 0.22f), Art.Mat(c, 2.5f));
                 var l = new GameObject("glow").AddComponent<Light>();
                 l.transform.SetParent(p.transform, false);
                 l.transform.localPosition = Vector3.up;
@@ -224,8 +222,8 @@ namespace Hollowmere
                     Glow(new Color(0.3f, 0.7f, 1f));
                     break;
                 case InteractKind.Fishing:
-                    // A bobbing marker over the water so pools read as fishable.
-                    Art.Sphere(t, new Vector3(0, 0.2f, 0), new Vector3(0.25f, 0.25f, 0.25f), Art.Mat(new Color(1f, 0.25f, 0.2f), 0.8f));
+                    if (!Art.Ripple(t))
+                        Art.Sphere(t, new Vector3(0, 0.2f, 0), new Vector3(0.25f, 0.25f, 0.25f), Art.Mat(new Color(1f, 0.25f, 0.2f), 0.8f));
                     break;
                 default:
                     string npc = kind switch
@@ -245,6 +243,27 @@ namespace Hollowmere
                     {
                         Art.Cube(t, new Vector3(0, 0.45f, 0), new Vector3(1.4f, 0.9f, 0.8f), Art.Mat(new Color(0.35f, 0.25f, 0.15f)));
                         Art.Cube(t, new Vector3(0, 0.92f, 0), new Vector3(1.44f, 0.08f, 0.84f), Art.Mat(new Color(0.6f, 0.6f, 0.65f), 0.3f));
+                    }
+                    else if (model == null && kind == InteractKind.Gambler)
+                    {
+                        // The top-right green dealer. Built with Head and Hips so the upright
+                        // check has something to measure. A generic humanoid was landing on its side.
+                        var fig = new GameObject("npc_gambler").transform;
+                        fig.SetParent(t, false);
+                        fig.localRotation = Quaternion.identity;
+                        var hips = new GameObject("Hips").transform;
+                        hips.SetParent(fig, false);
+                        hips.localPosition = new Vector3(0f, 0.95f, 0f);
+                        var head = new GameObject("Head").transform;
+                        head.SetParent(fig, false);
+                        head.localPosition = new Vector3(0f, 1.62f, 0f);
+                        var green = new Color(0.2f, 0.55f, 0.32f);
+                        var trim = new Color(0.85f, 0.75f, 0.4f);
+                        Art.Capsule(fig, new Vector3(0f, 0.95f, 0f), new Vector3(0.42f, 0.55f, 0.32f), Art.Mat(green));
+                        Art.Capsule(fig, new Vector3(-0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
+                        Art.Capsule(fig, new Vector3(0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
+                        Art.Sphere(head, Vector3.zero, Vector3.one * 0.36f, Art.Mat(new Color(0.93f, 0.8f, 0.68f)));
+                        fig.gameObject.AddComponent<PoseUpright>();
                     }
                     else if (model == null)
                     {

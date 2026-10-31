@@ -80,6 +80,8 @@ namespace Hollowmere
                 {
                     var rng = new Rng(4);
                     var hero = gm.State.hero;
+                    string weapon = hero.heroClass == HeroClass.Stalker ? "bow" : hero.heroClass == HeroClass.Ironclad ? "axe" : "wand";
+                    hero.Equip(Loot.Generate(rng, 8, Rarity.Legendary, hero.heroClass, ItemSlot.MainHand, forceBase: weapon, floor: 6));
                     hero.Equip(Loot.Generate(rng, 8, Rarity.Rare, hero.heroClass, ItemSlot.Head, floor: 6));
                     hero.Equip(Loot.Generate(rng, 8, Rarity.Magic, hero.heroClass, ItemSlot.Chest, floor: 6));
                     gm.OnEquipmentChanged();

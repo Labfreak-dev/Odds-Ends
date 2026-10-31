@@ -260,17 +260,18 @@ namespace Hollowmere
             string texName = TrailFor(h);
             var tex = CombatDrop.Tex(texName);
             var hand = Find(h.transform, "RightHand");
+            // World-space follower. Parenting the ribbon to the hand inherits the 0.01 armature
+            // and the swing disappears.
             var go = new GameObject("weaponTrail");
-            go.transform.SetParent(hand != null ? hand : h.transform, false);
-            go.transform.localPosition = hand != null ? new Vector3(0f, 0f, 0.15f) : new Vector3(0.35f, 1.15f, 0.45f);
+            go.transform.position = hand != null ? hand.position : h.Pos + Vector3.up * 1.15f;
+            var follow = go.AddComponent<TrailFollow>();
+            follow.target = hand != null ? hand : h.transform;
             var tr = go.AddComponent<TrailRenderer>();
-            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.45f);
-            tr.time = DesignTable.TrailLife / 1000f;
-            // 60 mm is a few pixels at the isometric camera. Keep the spec as the minimum
-            // and draw a ribbon wide enough to read in the combat frames.
-            float width = Mathf.Max(0.72f, DesignTable.TrailWidth / 1000f);
+            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.55f);
+            tr.time = Mathf.Max(0.45f, DesignTable.TrailLife / 1000f);
+            float width = 1.15f;
             tr.startWidth = width;
-            tr.endWidth = width * 0.35f;
+            tr.endWidth = width * 0.4f;
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
@@ -287,6 +288,9 @@ namespace Hollowmere
             }
             tr.material = ribbon;
             tr.emitting = true;
+            var burst = Art.GlowSprite(null, 1.8f, col);
+            burst.transform.position = go.transform.position;
+            burst.AddComponent<FxLife>().Init(0.35f, Vector3.one * 1.4f, Vector3.one * 2.6f);
             var hold = go.AddComponent<TrailStop>();
             hold.trail = tr;
             hold.until = Time.time + DesignTable.TrailHold / 1000f;
@@ -321,6 +325,17 @@ namespace Hollowmere
                 if (f != null) return f;
             }
             return null;
+        }
+    }
+
+    /// <summary>Keeps a world-space trail on the hand without inheriting the 0.01 armature scale.</summary>
+    public sealed class TrailFollow : MonoBehaviour
+    {
+        public Transform target;
+
+        void LateUpdate()
+        {
+            if (target != null) transform.position = target.position;
         }
     }
 
@@ -507,6 +522,21 @@ namespace Hollowmere
                 if (DesignTable.TryTrim(src.Name, out int a, out int b, out _))
                     src = CombatClipPack.Slice(src, a, b);
                 var clip = Build(src, ma.anim.transform);
+                if (clip != null) ma.anim.AddClip(clip, clip.name);
+            }
+            ma.Forget();
+        }
+
+        /// <summary>Retarget a baked clip pack onto the hero rig. Fishing uses Combat/hero_fishing.</summary>
+        public static void AddPack(ModelAnim ma, string resource)
+        {
+            if (ma == null || ma.anim == null || string.IsNullOrEmpty(resource)) return;
+            var text = Resources.Load<TextAsset>(resource);
+            if (text == null) return;
+            var clips = CombatClipPack.Load(text.bytes);
+            for (int i = 0; i < clips.Length; i++)
+            {
+                var clip = Build(clips[i], ma.anim.transform);
                 if (clip != null) ma.anim.AddClip(clip, clip.name);
             }
             ma.Forget();

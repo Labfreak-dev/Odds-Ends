@@ -266,8 +266,12 @@ namespace Hollowmere
             var lr = (RectTransform)leave.transform;
             lr.anchorMin = lr.anchorMax = new Vector2(0, 0); lr.pivot = Vector2.zero; lr.sizeDelta = new Vector2(180, 64); lr.anchoredPosition = new Vector2(30, 20);
 
-            bobber = Art.Sphere(null, bobberAt + Vector3.up * 0.1f, Vector3.one * 0.35f, Art.Mat(new Color(1f, 0.2f, 0.15f), 0.8f)).transform;
+            var bob = Art.DropIn("bobber", null);
+            if (bob == null)
+                bob = Art.Sphere(null, Vector3.zero, Vector3.one * 0.12f, Art.Mat(new Color(1f, 0.2f, 0.15f), 0.8f));
+            bobber = bob.transform;
             bobber.gameObject.SetActive(false);
+            if (HeroActor.I != null) HeroActor.I.BeginFishing();
         }
 
         void Update()
@@ -277,6 +281,16 @@ namespace Hollowmere
             s.Tick(Time.deltaTime);
             if (prev != s.phase)
             {
+                var hero = HeroActor.I;
+                if (hero != null)
+                {
+                    if (s.phase == FishingPhase.Casting) hero.PlayFishing("fish_cast", false);
+                    else if (s.phase == FishingPhase.Waiting || s.phase == FishingPhase.Nibble || s.phase == FishingPhase.Bite)
+                        hero.PlayFishing("fish_idle", true);
+                    else if (s.phase == FishingPhase.Reeling) hero.PlayFishing("fish_reel", true);
+                }
+                if (s.phase == FishingPhase.Caught && s.result != null && s.result.fish != null && bobber != null)
+                    Art.DropIn("fish_" + s.result.fish.id, bobber);
                 if (s.phase == FishingPhase.Waiting && prev == FishingPhase.Casting) AudioHub.Vary("fish_splash", 0.8f);
                 if (s.phase == FishingPhase.Bite) { AudioHub.Vary("fish_bite", 0.8f); AudioHub.Play("sfx_bite"); }
                 if (s.phase == FishingPhase.Caught) { AudioHub.Loop("fish_reel_loop_01", false); AudioHub.Vary("fish_catch", 0.8f); AudioHub.Play("sfx_catch"); }
@@ -335,11 +349,16 @@ namespace Hollowmere
             if (closed) return;
             closed = true;
             AudioHub.Loop("fish_reel_loop_01", false);
+            if (HeroActor.I != null) HeroActor.I.EndFishing();
             if (bobber != null) Destroy(bobber.gameObject);
             UiRoot.I.Close(gameObject);
             onDone?.Invoke();
         }
 
-        void OnDestroy() { if (bobber != null) Destroy(bobber.gameObject); }
+        void OnDestroy()
+        {
+            if (!closed && HeroActor.I != null) HeroActor.I.EndFishing();
+            if (bobber != null) Destroy(bobber.gameObject);
+        }
     }
 }

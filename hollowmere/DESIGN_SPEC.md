@@ -271,7 +271,22 @@ A drop hops `hopMm` millimetres over `hopMs`, then settles for `settleMs`. Motes
 
 ## P3. Visible gear
 
-The class mesh is the body. Weapon, helm, then chest attach, in that order. A bone named `RightHand`, `Head`, or `Spine2` is used when its scale is human. Otherwise the offset below, in millimetres, is on the body. Other slots do not change the mesh. `Models/gear_{baseId}.glb` replaces the primitive.
+The class mesh is the body. Helms and chests are skinned to that skeleton: `bones[]` is remapped by name, `rootBone` is Hips, and the copy of the skeleton in the gear file is dropped. A chest is pauldrons plus a tabard, cape, or front plate. The tabard is centred on the class hips (its mesh centre is within 2 mm of that bone on X) and is not given a further sideways offset. A weapon's origin is the grip. It is parented to `RightHand` with local position and rotation zero and world scale 1, so the local scale is about 100 on a rig that imports at 0.01. Length runs along that grip axis. If the mesh length is not the T.grip length, it is scaled uniformly onto it. Above and below are the reach on either side of the grip. Staffs are 950 mm so the top stays clear of the Hexweaver's head. Other slots do not change the mesh.
+
+### T.grip
+
+| Id | Length | Above | Below | Width |
+| --- | --- | --- | --- | --- |
+| ironclad_weapon_1 | 800 | 704 | 96 | 380 |
+| ironclad_weapon_2 | 1250 | 1062 | 188 | 601 |
+| ironclad_weapon_3 | 1300 | 1105 | 195 | 562 |
+| stalker_weapon_1 | 1200 | 600 | 600 | 200 |
+| stalker_weapon_2 | 800 | 560 | 240 | 576 |
+| stalker_weapon_3 | 380 | 323 | 57 | 61 |
+| hexweaver_weapon_1 | 950 | 808 | 142 | 222 |
+| hexweaver_weapon_2 | 400 | 340 | 60 | 37 |
+| hexweaver_weapon_3 | 950 | 808 | 143 | 217 |
+| fishing_rod | 1800 | 1620 | 180 | 423 |
 
 ### T.sockets
 
@@ -285,7 +300,7 @@ The class mesh is the body. Weapon, helm, then chest attach, in that order. A bo
 
 Gem ids are `{name}_{rank}` for cinder, thorn, marrow, and salt, ranks 1 through 5. Three of one id plus `100 * rank * rank` gold become one gem of the next rank. Rank 5 does not combine. Socketing writes the id into `Item.gemId` and removes the gem from the bag. A filled socket returns the previous gem first. Sockets roll only on weapons, helms, chests, and legs, one each. Chances: rare 0.25, legendary 1, set 1, otherwise 0.
 
-Cinder in a weapon adds the min and max columns to weapon damage. Cinder in a helm adds `rank` percent kill XP. Thorn adds critical damage. Marrow adds flat life after vitality. Salt adds all resist. Any other slot does nothing. The jeweler stands on town tile `J`.
+Cinder in a weapon adds the min and max columns to weapon damage. Cinder in a helm adds `rank` percent kill XP. Thorn adds critical damage. Marrow adds flat life after vitality. Salt adds all resist. Any other slot does nothing. The jeweler stands on town tile `J`. Painted gems follow the same ids: cinder is ruby, thorn is emerald, marrow is amethyst, salt is sapphire, and ranks 1 through 5 are chipped, flawed, regular, flawless, and royal.
 
 ### T.gems
 

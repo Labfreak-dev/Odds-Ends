@@ -579,6 +579,17 @@ static class Program
         Check(System.Math.Abs(DesignTable.FishWeight(10f, 1, 11) - 14f) < 0.02f, "minnow weight at floor 11");
         Check(DesignTable.FishWeight(0.5f, 20, 10) == 0f, "abyssal has no weight below its depth");
         Check(DesignTable.HopMm == 550 && DesignTable.CastMs == 700, "presentation anchors");
+        Check(DesignTable.GemArt("cinder_1") == "gem_ruby_chipped" && DesignTable.GemArt("salt_5") == "gem_sapphire_royal", "gem art names");
+        Check(DesignTable.WeaponKey(HeroClass.Hexweaver, "staff") == "hexweaver_weapon_1", "staff model");
+        Check(DesignTable.BeamHex("legendary") == "#BF642F" && DesignTable.BeamRelMilli("common") == 350, "beam tint and height");
+        foreach (var row in SpecRows("### T.grip"))
+        {
+            Check(DesignTable.TryGrip(row[0], out var grip)
+                && grip.LengthMm == int.Parse(row[1])
+                && grip.AboveMm == int.Parse(row[2])
+                && grip.BelowMm == int.Parse(row[3])
+                && grip.WidthMm == int.Parse(row[4]), "grip " + row[0]);
+        }
         var h = Hero.Create(HeroClass.Hexweaver, "Gem", new Rng(2));
         h.AddItem(Gems.Make("cinder", 1, 3));
         Check(Gems.Combine(h, "cinder", 1) && Gems.Count(h, "cinder_2") == 1 && Gems.Count(h, "cinder_1") == 0, "three rank-1 cinders combine");

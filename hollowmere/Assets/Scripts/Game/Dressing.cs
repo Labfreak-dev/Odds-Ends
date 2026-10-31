@@ -20,6 +20,7 @@ namespace Hollowmere
                             skip.Add(new Int2(p.x + dx, p.y + dy));
             skip.Add(map.entry);
             skip.Add(map.exit);
+            var clear = ClearOf(skip, map.entry);
             bool town = map.theme == Theme.Town;
             var rng = new System.Random(seed == 0 ? 1 : seed);
             int placed = 0;
@@ -28,20 +29,26 @@ namespace Hollowmere
                 {
                     if (map.Get(x, y) != Tile.Floor) continue;
                     var p = new Int2(x, y);
-                    if (skip.Contains(p)) continue;
+                    if (clear.Contains(p)) continue;
                     // Keep the ground in front of the spawn camera empty.
                     if (p.y < map.entry.y - 1 && System.Math.Abs(p.x - map.entry.x) < 6) continue;
-                    int open = 0, walls = 0;
+                    int walls = 0;
                     foreach (var d in Pathfinder.Dirs4)
-                    {
-                        var t = map.Get(x + d.x, y + d.y);
-                        if (t == Tile.Floor) open++;
-                        else if (t == Tile.Wall) walls++;
-                    }
-                    if (open <= 2) continue;
+                        if (map.Get(x + d.x, y + d.y) == Tile.Wall) walls++;
                     int roll = rng.Next(10);
                     var at = World.ToWorld(p);
-                    if (walls > 0 && roll < 4)
+                    // Open floor is a path. Props sit in corners, then along a wall.
+                    if (walls < 1)
+                    {
+                        if (town && roll == 9)
+                        {
+                            Grass(root, at, rng);
+                            placed++;
+                        }
+                        continue;
+                    }
+                    bool corner = walls >= 2;
+                    if ((corner && roll < 7) || (!corner && roll < 3))
                     {
                         Prop(root, at, rng, town);
                         placed++;
@@ -51,14 +58,9 @@ namespace Hollowmere
                         Decal(root, at, rng, town);
                         placed++;
                     }
-                    else if (town && walls == 0 && roll == 9)
-                    {
-                        Grass(root, at, rng);
-                        placed++;
-                    }
                 }
             Debug.Log("Hollowmere dressing: " + placed + " pieces on " + map.theme);
-            SetPieces(map, root, skip, rng);
+            SetPieces(map, root, clear, rng);
             if (town) TownTorches(map, root, skip);
         }
 
@@ -106,65 +108,112 @@ namespace Hollowmere
             }
         }
 
-        static void SetPieces(DungeonMap map, Transform root, HashSet<Int2> skip, System.Random rng)
+        /// <summary>NPC tiles, plus a wider ring around the hero spawn, stay empty.</summary>
+        static HashSet<Int2> ClearOf(HashSet<Int2> skip, Int2 entry)
         {
-            var spots = new List<Int2>();
-            for (int y = 2; y < map.height - 2; y++)
-                for (int x = 2; x < map.width - 2; x++)
+            var clear = new HashSet<Int2>();
+            foreach (var s in skip)
+                for (int dy = -2; dy <= 2; dy++)
+                    for (int dx = -2; dx <= 2; dx++)
+                        clear.Add(new Int2(s.x + dx, s.y + dy));
+            for (int dy = -5; dy <= 5; dy++)
+                for (int dx = -5; dx <= 5; dx++)
+                    clear.Add(new Int2(entry.x + dx, entry.y + dy));
+            return clear;
+        }
+
+        /// <summary>Corners first, then tiles that touch one wall. Open floor is left as a path.</summary>
+        static List<Int2> WallSpots(DungeonMap map, HashSet<Int2> clear)
+        {
+            var corners = new List<Int2>();
+            var edges = new List<Int2>();
+            for (int y = 1; y < map.height - 1; y++)
+                for (int x = 1; x < map.width - 1; x++)
                 {
+                    if (map.Get(x, y) != Tile.Floor) continue;
                     var p = new Int2(x, y);
-                    if (map.Get(x, y) != Tile.Floor || skip.Contains(p)) continue;
-                    spots.Add(p);
+                    if (clear.Contains(p)) continue;
+                    int walls = 0;
+                    foreach (var d in Pathfinder.Dirs4)
+                        if (map.Get(x + d.x, y + d.y) == Tile.Wall) walls++;
+                    if (walls >= 2) corners.Add(p);
+                    else if (walls == 1) edges.Add(p);
                 }
-            if (spots.Count == 0) return;
+            corners.AddRange(edges);
+            return corners;
+        }
+
+        static Quaternion FaceIn(DungeonMap map, Int2 p)
+        {
+            foreach (var d in Pathfinder.Dirs4)
+            {
+                if (map.Get(p.x + d.x, p.y + d.y) != Tile.Wall) continue;
+                var away = new Vector3(-d.x, 0f, -d.y);
+                if (away.sqrMagnitude > 0.1f) return Quaternion.LookRotation(away, Vector3.up);
+            }
+            return Quaternion.identity;
+        }
+
+        static void SetPieces(DungeonMap map, Transform root, HashSet<Int2> clear, System.Random rng)
+        {
+            var spots = WallSpots(map, clear);
             int n = 0;
-            Int2 Next() => spots[n++ % spots.Count];
+            bool Take(out Int2 p)
+            {
+                if (n >= spots.Count) { p = default; return false; }
+                p = spots[n++];
+                return true;
+            }
+            void Put(string key, float lift, bool light, Color color, float range, float intensity)
+            {
+                if (!Take(out var p)) return;
+                Place(root, key, World.ToWorld(p), FaceIn(map, p), lift, light, color, range, intensity);
+            }
             bool town = map.theme == Theme.Town;
             var warm = new Color(1f, 0.72f, 0.38f);
             if (town)
             {
-                Place(root, "cc0_firepit", World.ToWorld(Next()), Quaternion.identity, 0f, true, new Color(1f, 0.45f, 0.16f), 7f, 2.2f);
-                Place(root, "cc0_chandelier", World.ToWorld(Next()), Quaternion.identity, 2.5f, true, warm, 8f, 2f);
-                Place(root, "cc0_caged", World.ToWorld(Next()), Quaternion.identity, 2.3f, true, warm, 7f, 1.8f);
-                Place(root, "cc0_candles", World.ToWorld(Next()), Quaternion.Euler(0f, 30f, 0f), 0f, true, warm, 4.5f, 1.3f);
-                Place(root, "cc0_candle", World.ToWorld(Next()), Quaternion.identity, 0f, true, warm, 3.5f, 1.1f);
-                Place(root, "cc0_cabinet", World.ToWorld(Next()), Quaternion.Euler(0f, 180f, 0f), 0f, false, default, 0f, 0f);
-                Place(root, "cc0_bookshelf", World.ToWorld(Next()), Quaternion.Euler(0f, 90f, 0f), 0f, false, default, 0f, 0f);
-                Place(root, "cc0_statue", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_rack", World.ToWorld(Next()), Quaternion.Euler(0f, 40f, 0f), 0f, false, default, 0f, 0f);
-                Place(root, "cc0_chest", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_boulder", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_deadtree", World.ToWorld(Next()), Quaternion.Euler(0f, rng.Next(360), 0f), 0f, false, default, 0f, 0f);
-                Place(root, "cc0_roots", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                var cliff = Art.Model("cc0_cliff", 0f, root);
-                if (cliff != null)
-                    cliff.transform.position = new Vector3(map.width * World.T * 0.5f, 0f, map.height * World.T + 3f);
-                var door = Art.Model("cc0_door", 0f, root);
-                if (door != null)
-                    door.transform.SetPositionAndRotation(World.ToWorld(map.entry) + new Vector3(3.4f, 0f, 0.4f), Quaternion.Euler(0f, 90f, 0f));
-                var gate = Art.Model("cc0_gate", 0f, root);
-                if (gate != null)
-                    gate.transform.SetPositionAndRotation(World.ToWorld(map.entry) + new Vector3(-3.6f, 0f, 1.2f), Quaternion.Euler(0f, 80f, 0f));
+                Put("cc0_firepit", 0f, true, new Color(1f, 0.45f, 0.16f), 7f, 2.2f);
+                Put("cc0_chandelier", 2.5f, true, warm, 8f, 2f);
+                Put("cc0_caged", 2.3f, true, warm, 7f, 1.8f);
+                Put("cc0_candles", 0f, true, warm, 4.5f, 1.3f);
+                Put("cc0_candle", 0f, true, warm, 3.5f, 1.1f);
+                Put("cc0_cabinet", 0f, false, default, 0f, 0f);
+                Put("cc0_bookshelf", 0f, false, default, 0f, 0f);
+                Put("cc0_statue", 0f, false, default, 0f, 0f);
+                Put("cc0_rack", 0f, false, default, 0f, 0f);
+                Put("cc0_chest", 0f, false, default, 0f, 0f);
+                Put("cc0_boulder", 0f, false, default, 0f, 0f);
+                Put("cc0_deadtree", 0f, false, default, 0f, 0f);
+                Put("cc0_roots", 0f, false, default, 0f, 0f);
+                Put("cc0_door", 0f, false, default, 0f, 0f);
+                Put("cc0_gate", 0f, false, default, 0f, 0f);
             }
             else
             {
-                Place(root, "cc0_chandelier", World.ToWorld(Next()), Quaternion.identity, 2.4f, true, warm, 8f, 1.6f);
-                Place(root, "cc0_caged", World.ToWorld(Next()), Quaternion.identity, 2.2f, true, warm, 6f, 1.5f);
-                Place(root, "cc0_candles", World.ToWorld(Next()), Quaternion.identity, 0f, true, warm, 4f, 1.1f);
-                Place(root, "cc0_cabinet", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_bookshelf", World.ToWorld(Next()), Quaternion.Euler(0f, 15f, 0f), 0f, false, default, 0f, 0f);
-                Place(root, "cc0_statue", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_rack", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_firepit", World.ToWorld(Next()), Quaternion.identity, 0f, true, new Color(1f, 0.4f, 0.15f), 6f, 1.8f);
-                Place(root, "cc0_boulder", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_roots", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
-                Place(root, "cc0_deadtree", World.ToWorld(Next()), Quaternion.Euler(0f, 40f, 0f), 0f, false, default, 0f, 0f);
-                var door = Art.Model("cc0_door", 0f, root);
-                if (door != null)
-                    door.transform.SetPositionAndRotation(World.ToWorld(map.entry) + new Vector3(2.2f, 0f, 0f), Quaternion.Euler(0f, 90f, 0f));
-                var gate = Art.Model("cc0_gate", 0f, root);
-                if (gate != null)
-                    gate.transform.SetPositionAndRotation(World.ToWorld(map.exit) + new Vector3(-2.2f, 0f, 0f), Quaternion.Euler(0f, -90f, 0f));
+                Put("cc0_chandelier", 2.4f, true, warm, 8f, 1.6f);
+                Put("cc0_caged", 2.2f, true, warm, 6f, 1.5f);
+                Put("cc0_candles", 0f, true, warm, 4f, 1.1f);
+                Put("cc0_cabinet", 0f, false, default, 0f, 0f);
+                Put("cc0_bookshelf", 0f, false, default, 0f, 0f);
+                Put("cc0_statue", 0f, false, default, 0f, 0f);
+                Put("cc0_rack", 0f, false, default, 0f, 0f);
+                Put("cc0_firepit", 0f, true, new Color(1f, 0.4f, 0.15f), 6f, 1.8f);
+                Put("cc0_boulder", 0f, false, default, 0f, 0f);
+                Put("cc0_roots", 0f, false, default, 0f, 0f);
+                Put("cc0_deadtree", 0f, false, default, 0f, 0f);
+                Put("cc0_door", 0f, false, default, 0f, 0f);
+                Put("cc0_gate", 0f, false, default, 0f, 0f);
+            }
+            // The cliff is scenery past the far wall, opposite the spawn, not a floor block.
+            var cliff = Art.Model("cc0_cliff", 0f, root);
+            if (cliff != null)
+            {
+                bool north = map.entry.y < map.height / 2;
+                float z = north ? map.height * World.T + 2f : -2f;
+                float x = map.entry.x < map.width / 2 ? map.width * World.T - 4f : 4f;
+                cliff.transform.position = new Vector3(x, 0f, z);
+                cliff.transform.rotation = Quaternion.Euler(0f, rng.Next(360), 0f);
             }
         }
 

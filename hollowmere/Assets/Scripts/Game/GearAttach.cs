@@ -242,6 +242,7 @@ namespace Hollowmere
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
+            if (key.StartsWith("cc0_")) Art.AuditCc0(go, key);
             return true;
         }
 

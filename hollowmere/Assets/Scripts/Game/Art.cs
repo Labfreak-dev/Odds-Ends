@@ -312,7 +312,8 @@ namespace Hollowmere
             fit.biped = false;
             // v5 meshes are already in metres. A stale skinned box reads as 1 cm or as a
             // giant, and fitting from that either hides the hero or blows a prop up.
-            fit.freeze = v5 || key.StartsWith("npc_");
+            // CC0 props are already in metres. Fitting them from a bad box turned doors into giant slabs.
+            fit.freeze = v5 || key.StartsWith("npc_") || key.StartsWith("cc0_");
             if (v5) ReadySkin(go);
             if (key.StartsWith("npc_"))
             {
@@ -345,6 +346,7 @@ namespace Hollowmere
                 CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
             }
             if (v5) DressNpc(bodyKey, go.transform);
+            if (key.StartsWith("cc0_")) AuditCc0(holder, key);
             return holder;
         }
 
@@ -421,6 +423,43 @@ namespace Hollowmere
             Debug.Log("Hollowmere prop " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
             if (max > HeroFit.GearMaxAxis)
                 Debug.LogError("Hollowmere prop " + key + " FAIL " + max.ToString("0.00") + "m");
+        }
+
+        /// <summary>
+        /// Log a CC0 prop's world size. Fail when it is more than 20 percent over the manifest,
+        /// or when base, normal, or roughness did not survive import.
+        /// </summary>
+        public static void AuditCc0(GameObject go, string key)
+        {
+            if (go == null || string.IsNullOrEmpty(key) || !key.StartsWith("cc0_")) return;
+            if (!MeshWorldBounds(go.transform, out var b))
+            {
+                Debug.LogError("Hollowmere cc0 " + key + " has no bounds");
+                return;
+            }
+            float max = MaxAxis(b.size);
+            Debug.Log("Hollowmere cc0 " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
+            if (Cc0Kit.TryMax(key, out float expect) && !Cc0Kit.SizeOk(expect, max))
+                Debug.LogError("Hollowmere cc0 " + key + " FAIL size " + max.ToString("0.00") + "m over manifest " + expect.ToString("0.00") + "m");
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                bool baseMap = false, normal = false, rough = false;
+                var mats = r.sharedMaterials;
+                if (mats != null)
+                {
+                    for (int i = 0; i < mats.Length; i++)
+                    {
+                        if (FirstTex(mats[i], AlbedoNames) != null) baseMap = true;
+                        if (FirstTex(mats[i], NormalNames) != null) normal = true;
+                        if (FirstTex(mats[i], MetalNames) != null) rough = true;
+                    }
+                }
+                if (!baseMap)
+                    Debug.LogError("Hollowmere cc0 " + key + " FAIL missing base map on " + r.name);
+                if (!normal || !rough)
+                    Debug.LogError("Hollowmere cc0 " + key + " FAIL missing normal or roughness on " + r.name);
+            }
         }
 
         static void ReadySkin(GameObject go)

@@ -130,6 +130,11 @@ namespace Hollowmere.Editor
                 target = BuildTarget.Android,
                 options = BuildOptions.None,
             };
+            // Bind and any GLB reimport happen before BuildPlayer. Nothing here calls
+            // AssetDatabase.Refresh, and a GLB that did not import is skipped.
+            UiDropInBind.Bind();
+            HollowmereRenderSetup.PrepareBeforePlayerBuild();
+
             Debug.Log("Hollowmere: building Android player at " + location);
             var report = BuildPipeline.BuildPlayer(options);
             var summary = report.summary;

@@ -70,6 +70,37 @@ namespace Hollowmere
         }
 
         public static void Swing(string family) => AudioHub.Vary("swing_" + family, 0.75f);
+        public static void Drop(Rarity rarity)
+        {
+            string cue = rarity switch
+            {
+                Rarity.Magic => "drop_magic",
+                Rarity.Rare => "drop_rare",
+                Rarity.Legendary => "drop_legendary",
+                Rarity.Set => "drop_set",
+                _ => "drop_common",
+            };
+            AudioHub.Vary(cue, 0.8f);
+        }
+
+        public static void PlayEquip(ItemSlot slot)
+        {
+            string cue = slot switch
+            {
+                ItemSlot.Head => "equip_helm",
+                ItemSlot.Amulet => "equip_amulet",
+                ItemSlot.Chest => "equip_chest",
+                ItemSlot.Hands => "equip_gloves",
+                ItemSlot.Feet => "equip_boots",
+                ItemSlot.Ring => "equip_ring",
+                ItemSlot.MainHand => "equip_weapon",
+                ItemSlot.OffHand => "equip_offhand",
+                ItemSlot.Waist => "equip_belt",
+                ItemSlot.Legs => "equip_legs",
+                _ => "equip",
+            };
+            AudioHub.Vary(cue, 0.8f);
+        }
         public static void ImpactOnly(string skillId) => Play(ImpactCue(skillId), 0.8f);
 
         public static string WeaponId(HeroActor hero)

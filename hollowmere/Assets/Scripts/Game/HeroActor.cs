@@ -76,8 +76,26 @@ namespace Hollowmere
 
         public void RefreshWeapon()
         {
-            var w = Hero.Equipped(EquipSlot.MainHand);
-            if (hand != null) Art.Weapon(hand, w?.baseId ?? "sword", w != null ? Art.Rarity(w.rarity) : Color.gray);
+            if (figure != null) GearAttach.Apply(figure, Hero);
+        }
+
+        public void BeginFishing()
+        {
+            if (figure != null) GearAttach.Rod(figure, true);
+            PlayFishing("fish_idle", true);
+        }
+
+        public void PlayFishing(string clip, bool loop)
+        {
+            if (modelAnim == null) return;
+            modelAnim.BeginAttack(true, loop ? 3600f : 2.4f, clip);
+            if (loop) modelAnim.LoopSkill(3600f);
+        }
+
+        public void EndFishing()
+        {
+            if (modelAnim != null) modelAnim.CancelAttack();
+            if (figure != null) GearAttach.Apply(figure, Hero);
         }
 
         public void RefreshStats(bool fill = false)

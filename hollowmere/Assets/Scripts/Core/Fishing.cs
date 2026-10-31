@@ -99,7 +99,7 @@ namespace Hollowmere.Core
         {
             if (phase != FishingPhase.Ready) return;
             phase = FishingPhase.Casting;
-            timer = 0.7f;
+            timer = DesignTable.CastMs / 1000f;
             result = RollCatch();
         }
 
@@ -112,7 +112,7 @@ namespace Hollowmere.Core
                 case FishingPhase.Waiting: break; // nothing there yet, harmless
                 case FishingPhase.Bite:
                     phase = FishingPhase.Reeling;
-                    tension = 0.3f; progress = 0.15f;
+                    tension = DesignTable.HookTension / 1000f; progress = DesignTable.HookProgress / 1000f;
                     fishMaxStamina = fishStamina = result.fish?.stamina ?? 2f;
                     runTimer = 0;
                     break;
@@ -126,17 +126,17 @@ namespace Hollowmere.Core
             switch (phase)
             {
                 case FishingPhase.Casting:
-                    if ((timer -= dt) <= 0) { phase = FishingPhase.Waiting; timer = rng.Range(1.5f, 4.5f); nibblesLeft = rng.Range(0, 3); }
+                    if ((timer -= dt) <= 0) { phase = FishingPhase.Waiting; timer = rng.Range(DesignTable.WaitMinMs / 1000f, DesignTable.WaitMaxMs / 1000f); nibblesLeft = rng.Range(0, DesignTable.NibbleMax); }
                     break;
                 case FishingPhase.Waiting:
                     if ((timer -= dt) <= 0)
                     {
-                        if (nibblesLeft > 0) { nibblesLeft--; phase = FishingPhase.Nibble; timer = 0.45f; }
-                        else { phase = FishingPhase.Bite; biteWindow = timer = 0.75f + bonusWindow + luck * 0.002f; }
+                        if (nibblesLeft > 0) { nibblesLeft--; phase = FishingPhase.Nibble; timer = DesignTable.NibbleMs / 1000f; }
+                        else { phase = FishingPhase.Bite; biteWindow = timer = DesignTable.BiteMs / 1000f + bonusWindow + luck * (DesignTable.BiteLuckMs / 1000f); }
                     }
                     break;
                 case FishingPhase.Nibble:
-                    if ((timer -= dt) <= 0) { phase = FishingPhase.Waiting; timer = rng.Range(0.6f, 1.6f); }
+                    if ((timer -= dt) <= 0) { phase = FishingPhase.Waiting; timer = rng.Range(DesignTable.GapMinMs / 1000f, DesignTable.GapMaxMs / 1000f); }
                     break;
                 case FishingPhase.Bite:
                     if ((timer -= dt) <= 0) phase = FishingPhase.Escaped;
@@ -161,13 +161,13 @@ namespace Hollowmere.Core
             float run = runStrength * pull * tired;
             if (holding)
             {
-                tension += (0.35f + run * 1.1f) * dt;
-                progress += (0.20f - run * 0.10f) * dt;
+                tension += (DesignTable.ReelHold / 1000f + run * (DesignTable.ReelRun / 1000f)) * dt;
+                progress += (DesignTable.ReelGain / 1000f - run * (DesignTable.ReelRunCut / 1000f)) * dt;
                 fishStamina = Math.Max(0, fishStamina - dt * (1 + run));
             }
             else
             {
-                tension -= 0.55f * dt;
+                tension -= (DesignTable.ReelRelease / 1000f) * dt;
                 progress -= run * 0.12f * dt;
                 fishStamina = Math.Max(0, fishStamina - dt * 0.35f);
             }
@@ -181,7 +181,7 @@ namespace Hollowmere.Core
         CatchResult RollCatch()
         {
             // 15% of casts reel up something that is not a fish (more with luck), as in the old games.
-            float other = 0.15f + Math.Min(0.1f, luck * 0.001f);
+            float other = DesignTable.OtherMilli / 1000f + Math.Min(0.1f, luck * 0.001f);
             if (rng.Chance(other))
             {
                 float r = rng.Value();
@@ -190,7 +190,7 @@ namespace Hollowmere.Core
                 return new CatchResult { kind = CatchKind.Item, item = Loot.Generate(rng, Balance.ItemLevelFor(monsterLevel, false), Loot.RollRarity(rng, luck, LootSource.Fishing, depth), cls, floor: depth) };
             }
             var pool = FishDb.Available(town, depth);
-            var weights = pool.Select(f => f.weight * (f.rarity >= Rarity.Rare ? 1 + luck / 50f : f.rarity == Rarity.Magic ? 1 + luck / 100f : 1f)).ToList();
+            var weights = pool.Select(f => DesignTable.FishWeight(f.weight, f.minDepth, town ? 1 : depth) * (f.rarity >= Rarity.Rare ? 1 + luck / 50f : f.rarity == Rarity.Magic ? 1 + luck / 100f : 1f)).ToList();
             return new CatchResult { kind = CatchKind.Fish, fish = pool[rng.Weighted(weights)] };
         }
 

@@ -4,19 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
-using UnityEditor.Build;
-using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace Hollowmere.Editor
 {
-    /// <summary>Points Resources/UiDropIn at whatever was dropped in Assets/Art/UI and Assets/Audio/UI.</summary>
-    public sealed class UiDropInBind : IPreprocessBuildWithReport
+    /// <summary>Points Resources/UiDropIn at whatever was dropped in Assets/Art/UI and Assets/Audio/UI.
+    /// Called from the player build before BuildPlayer. Saving the catalog during
+    /// OnPreprocessBuild refreshes the asset database inside the player build.</summary>
+    public static class UiDropInBind
     {
-        public int callbackOrder => -20;
-
-        public void OnPreprocessBuild(BuildReport report) => Bind();
-
         [MenuItem("Hollowmere/Bind UI drop-in art")]
         public static void Bind()
         {

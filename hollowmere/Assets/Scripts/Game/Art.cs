@@ -146,6 +146,49 @@ namespace Hollowmere
         public static Color Rarity(Rarity r) => Hex(ItemText.RarityColor(r));
         public static Color Element(Element e) => Hex(ItemText.ElementColor(e));
 
+        /// <summary>A ground drop or prop at its authored scale. No character fit.</summary>
+        public static GameObject DropIn(string key, Transform parent)
+        {
+            var prefab = LoadModel(key);
+            if (prefab == null) return null;
+            var go = Object.Instantiate(prefab, parent);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one;
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            AdoptShaders(go);
+            return go;
+        }
+
+        /// <summary>Fishing-spot ripple. 4×2 frames, 10 fps, additive, flat on the water.</summary>
+        public static bool Ripple(Transform parent)
+        {
+            var tex = ArtDrop.Tex("fishing_spot_ripples");
+            if (tex == null || parent == null) return false;
+            var g = new GameObject("ripple");
+            g.transform.SetParent(parent, false);
+            g.transform.localPosition = new Vector3(0f, 0.12f, 0f);
+            g.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            g.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
+            var mf = g.AddComponent<MeshFilter>();
+            mf.sharedMesh = GlowQuadMesh();
+            var mr = g.AddComponent<MeshRenderer>();
+            var tint = new Color(0.65f, 0.85f, 1f, 1f);
+            mr.sharedMaterial = GlowMat(tint, false, tex);
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            var play = g.AddComponent<SheetPlay>();
+            play.mat = mr.sharedMaterial;
+            play.columns = 4;
+            play.rows = 2;
+            play.count = 8;
+            play.fps = 10;
+            play.loop = true;
+            play.flat = true;
+            play.life = 100000f;
+            return true;
+        }
+
         public static GameObject LoadModel(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
@@ -204,8 +247,16 @@ namespace Hollowmere
             ma.runFoot = foot.run;
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
-            if (key.StartsWith("npc_")) holder.AddComponent<PoseUpright>();
-            if (key.StartsWith("hero_")) CombatClipPlayer.Attach(ma, key);
+            if (key.StartsWith("npc_"))
+            {
+                holder.AddComponent<PoseUpright>();
+                holder.AddComponent<NpcStand>();
+            }
+            if (key.StartsWith("hero_"))
+            {
+                CombatClipPlayer.Attach(ma, key);
+                CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+            }
             return holder;
         }
 
@@ -384,6 +435,14 @@ namespace Hollowmere
                         if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", tex);
                         dst.mainTexture = tex;
                         if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
+                        // Chest overlays ship a tiny embedded palette. Bilinear filtering
+                        // smears the swatches; the glTF sampler is nearest.
+                        if (tex.name.IndexOf("palette", System.StringComparison.OrdinalIgnoreCase) >= 0
+                            || (tex.width > 0 && tex.width <= 32 && tex.height <= 32))
+                        {
+                            tex.filterMode = FilterMode.Point;
+                            tex.anisoLevel = 0;
+                        }
                         if (dst.GetTexture("_BaseMap") == null && dst.mainTexture == null)
                             Debug.LogError("Hollowmere: albedo texture did not stick on " + go.name);
                     }
@@ -1095,16 +1154,15 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>After the idle pose is playing, stand a person whose skeleton is lying down
-    /// and lock their height. Mesh bounds miss a pose that only exists in the bones.</summary>
+    /// <summary>Stand an NPC whose head is not above the hips. Bone positions update
+    /// immediately, so this does not depend on a stale skinned box, and it does not rescale.</summary>
     [DefaultExecutionOrder(50)]
     public sealed class PoseUpright : MonoBehaviour
     {
-        int phase;
-        Quaternion bestRot;
-        float bestH;
+        int waited;
         static readonly Vector3[] Turns =
         {
+            Vector3.zero,
             new Vector3(-90f, 0f, 0f),
             new Vector3(90f, 0f, 0f),
             new Vector3(0f, 0f, -90f),
@@ -1113,74 +1171,31 @@ namespace Hollowmere
 
         void LateUpdate()
         {
-            phase++;
-            if (phase < 3) return;
-            if (phase == 3)
-            {
-                var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
-                if (hips != null && hips.up.y < 0.4f)
-                    transform.rotation = Quaternion.FromToRotation(hips.up, Vector3.up) * transform.rotation;
-                return;
-            }
-            if (!Sane(out var b))
-            {
-                if (phase > 4) transform.rotation = bestRot;
-                Finish();
-                return;
-            }
-            if (phase == 4)
-            {
-                bestRot = transform.rotation;
-                bestH = b.size.y;
-                if (Upright(b)) { Finish(); return; }
-                transform.rotation = bestRot * Quaternion.Euler(Turns[0]);
-                return;
-            }
-            int tried = phase - 5;
-            if (b.size.y > bestH)
-            {
-                bestH = b.size.y;
-                bestRot = transform.rotation;
-            }
-            else transform.rotation = bestRot;
-            if (Upright(b) || tried >= Turns.Length - 1)
-            {
-                transform.rotation = bestRot;
-                Finish();
-                return;
-            }
-            transform.rotation = bestRot * Quaternion.Euler(Turns[tried + 1]);
-        }
-
-        void Finish()
-        {
-            var fit = GetComponent<ModelFit>();
-            float target = fit != null && fit.targetHeight > 0.2f ? fit.targetHeight : 1.75f;
-            if (Art.MeshWorldBounds(transform, out var b) && b.size.y > 0.35f && b.size.y < 6f)
-            {
-                float factor = target / b.size.y;
-                if (factor < 0.8f || factor > 1.25f)
-                    transform.localScale *= Mathf.Clamp(factor, 0.5f, 2f);
-            }
-            if (Art.MeshWorldBounds(transform, out var grounded))
-            {
-                var p = transform.position;
-                var shift = new Vector3(p.x - grounded.center.x, p.y - grounded.min.y, p.z - grounded.center.z);
-                if (shift.sqrMagnitude > 0.0004f)
-                    foreach (Transform c in transform) c.position += shift;
-            }
+            if (waited++ < 2) return;
             enabled = false;
+            var head = FindBone(transform, "Head") ?? FindBone(transform, "head");
+            var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
+            if (head == null || hips == null) return;
+            var origin = transform.rotation;
+            var best = origin;
+            float bestRise = head.position.y - hips.position.y;
+            foreach (var e in Turns)
+            {
+                transform.rotation = origin * Quaternion.Euler(e);
+                float rise = head.position.y - hips.position.y;
+                if (rise > bestRise)
+                {
+                    bestRise = rise;
+                    best = transform.rotation;
+                }
+            }
+            transform.rotation = best;
+            bool above = bestRise > 0.25f;
+            Debug.Log("Hollowmere NPC " + name + " rot=" + transform.eulerAngles.ToString("0")
+                + " headAboveHips=" + above + " rise=" + bestRise.ToString("0.00"));
+            if (!above)
+                Debug.LogError("Hollowmere NPC " + name + " failed the head-above-hips check.");
         }
-
-        bool Sane(out Bounds b)
-        {
-            b = default;
-            if (!Art.UnionBounds(gameObject, out b)) return false;
-            float m = Art.MaxAxis(b.size);
-            return m > 0.35f && m < 4.5f;
-        }
-
-        static bool Upright(Bounds b) => b.size.y >= Mathf.Max(b.size.x, b.size.z) * 0.85f;
 
         static Transform FindBone(Transform root, string name)
         {
@@ -1191,6 +1206,58 @@ namespace Hollowmere
                 if (f != null) return f;
             }
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Stands every town NPC by rotating its model root, and logs each one.
+    /// Pitch and roll are tried once. The pose with the tallest mesh is kept,
+    /// so a figure that is already upright is not rolled onto its side.
+    /// </summary>
+    [DefaultExecutionOrder(120)]
+    public sealed class NpcStand : MonoBehaviour
+    {
+        int waited;
+
+        void LateUpdate()
+        {
+            if (waited++ < 4) return;
+            enabled = false;
+            var who = GetComponentInParent<Interactable>();
+            string label = who != null ? who.kind.ToString() : name;
+            // mesh.bounds through the world matrix, not Renderer.bounds: the skinned
+            // box stays stale, so a same-frame turn would see no change and a standing
+            // primitive would get rolled onto its side.
+            if (!Art.MeshWorldBounds(transform, out var b))
+            {
+                Debug.Log("Hollowmere NPC " + label + " object=" + name
+                    + " rot=" + transform.eulerAngles.ToString("0") + " size=none");
+                return;
+            }
+            float upright = b.size.y;
+            var bestRot = transform.rotation;
+            Quaternion[] turns =
+            {
+                Quaternion.identity,
+                Quaternion.Euler(-90f, 0f, 0f),
+                Quaternion.Euler(0f, 0f, 90f),
+            };
+            var origin = transform.rotation;
+            for (int i = 0; i < turns.Length; i++)
+            {
+                transform.rotation = origin * turns[i];
+                if (!Art.MeshWorldBounds(transform, out var nb)) continue;
+                if (nb.size.y > upright + 0.02f)
+                {
+                    upright = nb.size.y;
+                    bestRot = transform.rotation;
+                }
+            }
+            transform.rotation = bestRot;
+            Art.MeshWorldBounds(transform, out b);
+            Debug.Log("Hollowmere NPC " + label + " object=" + name
+                + " rot=" + transform.eulerAngles.ToString("0")
+                + " size=" + b.size.ToString("0.00"));
         }
     }
 

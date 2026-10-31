@@ -687,6 +687,194 @@ namespace Hollowmere.Core
             return true;
         }
 
+        public const int HopMm = 550;
+        public const int HopMs = 280;
+        public const int SettleMs = 120;
+        public const int Pip = 14;
+        public const int PipInset = 6;
+        public const int IconPx = 64;
+        public const int TwoHandMm = 1050;
+        public const int CastMs = 700;
+        public const int WaitMinMs = 1500;
+        public const int WaitMaxMs = 4500;
+        public const int NibbleMs = 450;
+        public const int NibbleMax = 3;
+        public const int GapMinMs = 600;
+        public const int GapMaxMs = 1600;
+        public const int BiteMs = 750;
+        public const int BiteLuckMs = 2;
+        public const int HookTension = 300;
+        public const int HookProgress = 150;
+        public const int ReelHold = 350;
+        public const int ReelRun = 1100;
+        public const int ReelGain = 200;
+        public const int ReelRunCut = 100;
+        public const int ReelRelease = 550;
+        public const int DepthStep = 40;
+        public const int DepthCap = 2000;
+        public const int OtherMilli = 150;
+
+        public readonly struct MoteStyle
+        {
+            public readonly int Motes, Ring;
+            public MoteStyle(int motes, int ring) { Motes = motes; Ring = ring; }
+        }
+
+        public static MoteStyle Mote(string rarity) => rarity switch
+        {
+            "Magic" => new MoteStyle(4, 0),
+            "Rare" => new MoteStyle(8, 1),
+            "Legendary" or "Set" => new MoteStyle(12, 1),
+            _ => new MoteStyle(0, 0),
+        };
+
+        public readonly struct GroundShape
+        {
+            public readonly string Shape;
+            public readonly int X, Y, Z;
+            public GroundShape(string shape, int x, int y, int z) { Shape = shape; X = x; Y = y; Z = z; }
+        }
+
+        public static GroundShape GroundFor(string slot) => slot switch
+        {
+            "offhand" => new GroundShape("box", 280, 360, 60),
+            "head" => new GroundShape("sphere", 320, 320, 320),
+            "shoulders" => new GroundShape("box", 420, 80, 180),
+            "chest" => new GroundShape("box", 420, 380, 220),
+            "hands" => new GroundShape("box", 140, 80, 140),
+            "wrists" => new GroundShape("box", 120, 60, 120),
+            "waist" => new GroundShape("box", 280, 60, 80),
+            "legs" => new GroundShape("box", 220, 400, 160),
+            "feet" => new GroundShape("box", 180, 80, 260),
+            "amulet" => new GroundShape("sphere", 160, 160, 160),
+            "ring" => new GroundShape("sphere", 100, 100, 100),
+            _ => new GroundShape("box", 80, 700, 80),
+        };
+
+        public static GroundShape Socket(string id) => id switch
+        {
+            "helm" => new GroundShape("point", 0, 1720, 0),
+            "chest" => new GroundShape("point", 0, 1150, 80),
+            _ => new GroundShape("point", 150, 1050, 350),
+        };
+
+        /// <summary>Weight at floor F. Zero below the fish's minimum depth. Grows 4% per floor and caps at double.</summary>
+        public static float FishWeight(float baseWeight, int minDepth, int floor)
+        {
+            if (floor < minDepth) return 0f;
+            float grown = 1f + (DepthStep / 1000f) * (floor - minDepth);
+            if (grown > DepthCap / 1000f) grown = DepthCap / 1000f;
+            return baseWeight * grown;
+        }
+
+        /// <summary>Grip length along the weapon's local Z, in millimetres. Above and below are the reach either side of the grip. Width is the cross-section.</summary>
+        public readonly struct Grip
+        {
+            public readonly int LengthMm, AboveMm, BelowMm, WidthMm;
+            public Grip(int length, int above, int below, int width)
+            {
+                LengthMm = length; AboveMm = above; BelowMm = below; WidthMm = width;
+            }
+        }
+
+        public static bool TryGrip(string key, out Grip grip)
+        {
+            switch (key)
+            {
+                case "ironclad_weapon_1": grip = new Grip(800, 704, 96, 380); return true;
+                case "ironclad_weapon_2": grip = new Grip(1250, 1062, 188, 601); return true;
+                case "ironclad_weapon_3": grip = new Grip(1300, 1105, 195, 562); return true;
+                case "stalker_weapon_1": grip = new Grip(1200, 600, 600, 200); return true;
+                case "stalker_weapon_2": grip = new Grip(800, 560, 240, 576); return true;
+                case "stalker_weapon_3": grip = new Grip(380, 323, 57, 61); return true;
+                case "hexweaver_weapon_1": grip = new Grip(950, 808, 142, 222); return true;
+                case "hexweaver_weapon_2": grip = new Grip(400, 340, 60, 37); return true;
+                case "hexweaver_weapon_3": grip = new Grip(950, 808, 143, 217); return true;
+                case "fishing_rod": grip = new Grip(1800, 1620, 180, 423); return true;
+                default: grip = default; return false;
+            }
+        }
+
+        public static string WeaponKey(HeroClass cls, string baseId)
+        {
+            switch (baseId)
+            {
+                case "sword":
+                case "axe":
+                case "mace": return "ironclad_weapon_1";
+                case "greataxe": return "ironclad_weapon_2";
+                case "warhammer": return "ironclad_weapon_3";
+                case "bow": return "stalker_weapon_1";
+                case "crossbow": return "stalker_weapon_2";
+                case "dagger": return "stalker_weapon_3";
+                case "staff": return "hexweaver_weapon_1";
+                case "wand": return "hexweaver_weapon_2";
+                case "rod": return "fishing_rod";
+                case "orb": return "hexweaver_weapon_3";
+            }
+            if (cls == HeroClass.Ironclad) return "ironclad_weapon_1";
+            if (cls == HeroClass.Stalker) return "stalker_weapon_1";
+            return "hexweaver_weapon_2";
+        }
+
+        public static int GearTier(Rarity rarity)
+        {
+            if (rarity == Rarity.Rare) return 2;
+            if (rarity == Rarity.Legendary || rarity == Rarity.Set) return 3;
+            return 1;
+        }
+
+        public static string ArmorKey(HeroClass cls, string part, Rarity rarity)
+        {
+            string who = cls == HeroClass.Ironclad ? "ironclad" : cls == HeroClass.Stalker ? "stalker" : "hexweaver";
+            return who + "_" + part + "_" + GearTier(rarity);
+        }
+
+        /// <summary>Painted gem: cinder ruby, thorn emerald, marrow amethyst, salt sapphire. Rank 1–5 is chipped through royal.</summary>
+        public static string GemArt(string gemId)
+        {
+            if (!Gems.Parse(gemId, out var name, out int rank)) return null;
+            string stone = name == "cinder" ? "ruby" : name == "thorn" ? "emerald" : name == "marrow" ? "amethyst" : name == "salt" ? "sapphire" : null;
+            string cut = rank == 1 ? "chipped" : rank == 2 ? "flawed" : rank == 3 ? "regular" : rank == 4 ? "flawless" : rank == 5 ? "royal" : null;
+            if (stone == null || cut == null) return null;
+            return "gem_" + stone + "_" + cut;
+        }
+
+        public static string GemTint(string gemId)
+        {
+            if (!Gems.Parse(gemId, out var name, out _)) return "#FFFFFF";
+            if (name == "cinder") return "#E04040";
+            if (name == "thorn") return "#30C070";
+            if (name == "marrow") return "#A060D0";
+            if (name == "salt") return "#4080E0";
+            return "#FFFFFF";
+        }
+
+        /// <summary>White beam and ground tint, and the beam height as thousandths of BeamHeight.</summary>
+        public static string BeamHex(string rarity)
+        {
+            switch ((rarity ?? "").ToLowerInvariant())
+            {
+                case "magic": return "#6969FF";
+                case "rare": return "#FFFF00";
+                case "legendary": return "#BF642F";
+                case "set": return "#00FF00";
+                default: return "#FFFFFF";
+            }
+        }
+
+        public static int BeamRelMilli(string rarity)
+        {
+            switch ((rarity ?? "").ToLowerInvariant())
+            {
+                case "magic": return 550;
+                case "rare": return 750;
+                case "legendary":
+                case "set": return 1000;
+                default: return 350;
+            }
+        }
+
         static decimal Clamp01(decimal t) => t < 0m ? 0m : t > 1m ? 1m : t;
 
         public static int BossPhase(float lifeFraction)

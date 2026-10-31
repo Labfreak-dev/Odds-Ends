@@ -22,9 +22,18 @@ namespace Hollowmere
         public static Sprite Sprite(string name)
         {
             Ensure();
-            if (byName == null || string.IsNullOrEmpty(name)) return null;
-            byName.TryGetValue(name, out var s);
-            return s;
+            if (string.IsNullOrEmpty(name)) return null;
+            if (byName != null && byName.TryGetValue(name, out var s) && s != null) return s;
+            var loaded = Resources.Load<Sprite>("Art/Icons/" + name);
+            if (loaded != null && byName != null) byName[name] = loaded;
+            return loaded;
+        }
+
+        public static Texture2D Tex(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            return Resources.Load<Texture2D>("Art/Beams/" + name)
+                ?? Resources.Load<Texture2D>("Art/" + name);
         }
 
         public static Texture2D Ground(string name)

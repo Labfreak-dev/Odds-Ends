@@ -257,39 +257,47 @@ namespace Hollowmere
         public static void Arm(HeroActor h, SkillCast c)
         {
             if (h == null) return;
-            string texName = TrailFor(h);
-            var tex = CombatDrop.Tex(texName);
-            var hand = Find(h.transform, "RightHand");
+            // World-space follower. Parenting the ribbon to the hand inherits the 0.01 armature
+            // and the swing disappears.
             var go = new GameObject("weaponTrail");
-            go.transform.SetParent(hand != null ? hand : h.transform, false);
-            go.transform.localPosition = hand != null ? new Vector3(0f, 0f, 0.15f) : new Vector3(0.35f, 1.15f, 0.45f);
+            var origin = h.Pos;
+            var forward = h.transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
+            forward.Normalize();
+            var right = Vector3.Cross(Vector3.up, forward);
+            // The hand bone barely moves in world space, so a trail stuck to it
+            // draws no ribbon. Sweep an arc in front of the hero instead.
+            go.transform.position = origin + forward * 1.35f + Vector3.up * 1.15f;
+            var follow = go.AddComponent<TrailFollow>();
+            follow.origin = origin;
+            follow.forward = forward;
+            follow.right = right;
+            follow.life = 0.45f;
             var tr = go.AddComponent<TrailRenderer>();
-            var col = Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex);
-            tr.time = DesignTable.TrailLife / 1000f;
-            // 60 mm is a few pixels at the isometric camera. Keep the spec as the minimum
-            // and draw a ribbon wide enough to read in the combat frames.
-            float width = Mathf.Max(0.28f, DesignTable.TrailWidth / 1000f);
+            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.45f);
+            col.a = 0.9f;
+            tr.time = Mathf.Max(0.45f, DesignTable.TrailLife / 1000f);
+            float width = 1.6f;
             tr.startWidth = width;
-            tr.endWidth = width * 0.25f;
+            tr.endWidth = width * 0.85f;
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
             tr.numCapVertices = 2;
             tr.startColor = col;
-            tr.endColor = new Color(col.r, col.g, col.b, 0f);
-            // Additive glow. Vertex colour carries the swing tint and the fade.
-            // The alpha sheet kept the dark cell and the swing disappeared.
-            var ribbon = Art.GlowMat(Color.white, true, tex);
-            if (tex != null)
-            {
-                ribbon.mainTextureScale = new Vector2(-1f, 1f);
-                ribbon.mainTextureOffset = new Vector2(1f, 0f);
-            }
+            tr.endColor = new Color(col.r, col.g, col.b, 0.85f);
+            // No trail texture: a dark cell multiplied the ribbon down to nothing.
+            // Vertex colour is the emissive tint, alpha kept at 0.85 or above.
+            var ribbon = Art.GlowMat(Color.white, true, null);
             tr.material = ribbon;
             tr.emitting = true;
+            var burst = Art.GlowSprite(null, 1.6f, new Color(1f, 0.95f, 0.75f, 1f));
+            burst.transform.position = go.transform.position;
+            burst.AddComponent<FxLife>().Init(0.22f, Vector3.one * 1.2f, Vector3.one * 2.4f);
             var hold = go.AddComponent<TrailStop>();
             hold.trail = tr;
-            hold.until = Time.time + DesignTable.TrailHold / 1000f;
+            hold.until = Time.time + Mathf.Max(0.45f, DesignTable.TrailHold / 1000f);
         }
 
         public static string TrailFor(HeroActor h)
@@ -312,15 +320,23 @@ namespace Hollowmere
             }
         }
 
-        static Transform Find(Transform root, string name)
+    }
+
+    /// <summary>Sweeps the ribbon through a world-space arc so the swing is visible.</summary>
+    public sealed class TrailFollow : MonoBehaviour
+    {
+        public Vector3 origin = Vector3.zero;
+        public Vector3 forward = Vector3.forward;
+        public Vector3 right = Vector3.right;
+        public float life = 0.45f;
+        float t;
+
+        void LateUpdate()
         {
-            if (root.name == name) return root;
-            for (int i = 0; i < root.childCount; i++)
-            {
-                var f = Find(root.GetChild(i), name);
-                if (f != null) return f;
-            }
-            return null;
+            t += Time.deltaTime;
+            float u = Mathf.Clamp01(t / Mathf.Max(0.05f, life));
+            float ang = Mathf.Lerp(-1.15f, 1.15f, u);
+            transform.position = origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.35f + Vector3.up * 1.15f;
         }
     }
 
@@ -345,8 +361,8 @@ namespace Hollowmere
             var s = DesignTable.Sparks(kind);
             float life = s.Life / 1000f;
             float speed = s.Speed / 1000f;
-            float size = Mathf.Max(0.42f, s.Size / 1000f * 4f);
-            var flash = Art.GlowSprite(null, size * 3.2f, col);
+            float size = Mathf.Max(0.9f, s.Size / 1000f * 8f);
+            var flash = Art.GlowSprite(null, size * 4.5f, Color.Lerp(col, Color.white, 0.35f));
             flash.transform.position = at;
             flash.AddComponent<FxLife>().Init(Mathf.Max(0.18f, life), Vector3.one * size * 2.2f, Vector3.one * size * 4.5f);
             for (int i = 0; i < s.Count; i++)
@@ -507,6 +523,21 @@ namespace Hollowmere
                 if (DesignTable.TryTrim(src.Name, out int a, out int b, out _))
                     src = CombatClipPack.Slice(src, a, b);
                 var clip = Build(src, ma.anim.transform);
+                if (clip != null) ma.anim.AddClip(clip, clip.name);
+            }
+            ma.Forget();
+        }
+
+        /// <summary>Retarget a baked clip pack onto the hero rig. Fishing uses Combat/hero_fishing.</summary>
+        public static void AddPack(ModelAnim ma, string resource)
+        {
+            if (ma == null || ma.anim == null || string.IsNullOrEmpty(resource)) return;
+            var text = Resources.Load<TextAsset>(resource);
+            if (text == null) return;
+            var clips = CombatClipPack.Load(text.bytes);
+            for (int i = 0; i < clips.Length; i++)
+            {
+                var clip = Build(clips[i], ma.anim.transform);
                 if (clip != null) ma.anim.AddClip(clip, clip.name);
             }
             ma.Forget();

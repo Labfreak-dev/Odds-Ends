@@ -14,7 +14,7 @@ namespace Hollowmere
         public static AudioHub I;
         readonly Dictionary<string, AudioClip> cache = new Dictionary<string, AudioClip>();
         readonly Dictionary<string, float> lastPlayed = new Dictionary<string, float>();
-        AudioSource sfx, music;
+        AudioSource sfx, music, loopSrc;
         AudioSource[] shots;
         int shotCursor;
         string musicKey;
@@ -161,6 +161,31 @@ namespace Hollowmere
         }
 
         public static bool Has(string key) => I != null && I.Clip(key) != null;
+
+        /// <summary>A looping clip, used for the reel. Passing false stops it.</summary>
+        public static void Loop(string key, bool on, float volume = 0.8f)
+        {
+            if (I == null) return;
+            if (I.loopSrc == null)
+            {
+                I.loopSrc = I.gameObject.AddComponent<AudioSource>();
+                I.loopSrc.spatialBlend = 0f;
+                I.loopSrc.playOnAwake = false;
+                I.loopSrc.loop = true;
+            }
+            if (!on)
+            {
+                if (I.loopSrc.isPlaying) I.loopSrc.Stop();
+                return;
+            }
+            var c = I.Clip(key);
+            if (c == null) return;
+            if (I.loopSrc.clip == c && I.loopSrc.isPlaying) return;
+            I.loopSrc.clip = c;
+            I.loopSrc.volume = volume * I.sfxVolume;
+            I.loopSrc.loop = true;
+            I.loopSrc.Play();
+        }
 
         public static void Play(string key, float volume = 1f)
         {

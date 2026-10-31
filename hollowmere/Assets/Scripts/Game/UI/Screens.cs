@@ -255,15 +255,28 @@ namespace Hollowmere
             {
                 if (s.Done) { Finish(); return; }
                 if (s.phase == FishingPhase.Reeling) s.Hold(true);
-                else { s.Tap(); if (s.phase == FishingPhase.Casting) AudioHub.Play("sfx_cast_line"); }
+                else
+                {
+                    s.Tap();
+                    if (s.phase == FishingPhase.Casting) { AudioHub.Vary("fish_cast", 0.8f); AudioHub.Play("sfx_cast_line"); }
+                }
             });
             big.onUp.AddListener(() => s.Hold(false));
             var leave = Ui.Button(panel, "Leave", Finish, new Color(0.4f, 0.15f, 0.12f), 28);
             var lr = (RectTransform)leave.transform;
             lr.anchorMin = lr.anchorMax = new Vector2(0, 0); lr.pivot = Vector2.zero; lr.sizeDelta = new Vector2(180, 64); lr.anchoredPosition = new Vector2(30, 20);
 
-            bobber = Art.Sphere(null, bobberAt + Vector3.up * 0.1f, Vector3.one * 0.35f, Art.Mat(new Color(1f, 0.2f, 0.15f), 0.8f)).transform;
+            var bob = Art.DropIn("bobber", null);
+            if (bob == null)
+                bob = Art.Sphere(null, Vector3.zero, Vector3.one * 0.12f, Art.Mat(new Color(1f, 0.2f, 0.15f), 0.8f));
+            bobber = bob.transform;
             bobber.gameObject.SetActive(false);
+            var line = new GameObject("castLine");
+            line.transform.SetParent(bobber, false);
+            var cast = line.AddComponent<CastLine>();
+            cast.bobber = bobber;
+            cast.bar = Art.Cube(line.transform, Vector3.zero, Vector3.one, Art.Mat(new Color(0.92f, 0.9f, 0.82f))).transform;
+            if (HeroActor.I != null) HeroActor.I.BeginFishing();
         }
 
         void Update()
@@ -273,11 +286,23 @@ namespace Hollowmere
             s.Tick(Time.deltaTime);
             if (prev != s.phase)
             {
-                if (s.phase == FishingPhase.Bite) AudioHub.Play("sfx_bite");
-                if (s.phase == FishingPhase.Caught) AudioHub.Play("sfx_catch");
-                if (s.phase == FishingPhase.Snapped) AudioHub.Play("sfx_snap");
+                var hero = HeroActor.I;
+                if (hero != null)
+                {
+                    if (s.phase == FishingPhase.Casting) hero.PlayFishing("fish_cast", false);
+                    else if (s.phase == FishingPhase.Waiting || s.phase == FishingPhase.Nibble || s.phase == FishingPhase.Bite)
+                        hero.PlayFishing("fish_idle", true);
+                    else if (s.phase == FishingPhase.Reeling) hero.PlayFishing("fish_reel", true);
+                }
+                if (s.phase == FishingPhase.Caught && s.result != null && s.result.fish != null && bobber != null)
+                    Art.DropIn("fish_" + s.result.fish.id, bobber);
+                if (s.phase == FishingPhase.Waiting && prev == FishingPhase.Casting) AudioHub.Vary("fish_splash", 0.8f);
+                if (s.phase == FishingPhase.Bite) { AudioHub.Vary("fish_bite", 0.8f); AudioHub.Play("sfx_bite"); }
+                if (s.phase == FishingPhase.Caught) { AudioHub.Loop("fish_reel_loop_01", false); AudioHub.Vary("fish_catch", 0.8f); AudioHub.Play("sfx_catch"); }
+                if (s.phase == FishingPhase.Snapped || s.phase == FishingPhase.Escaped) { AudioHub.Loop("fish_reel_loop_01", false); AudioHub.Vary("fish_lost_line", 0.8f); if (s.phase == FishingPhase.Snapped) AudioHub.Play("sfx_snap"); }
             }
-            if (s.phase == FishingPhase.Reeling && s.holding && Time.frameCount % 20 == 0) AudioHub.Play("sfx_reel", 0.4f);
+            AudioHub.Loop("fish_reel_loop_01", s.phase == FishingPhase.Reeling && s.holding, 0.8f);
+            if (s.phase == FishingPhase.Reeling && s.holding && Time.frameCount % 20 == 0) AudioHub.Play("sfx_reel", 0.25f);
 
             bool showBars = s.phase == FishingPhase.Reeling;
             tensionFill.parent.gameObject.SetActive(showBars);
@@ -288,12 +313,19 @@ namespace Hollowmere
             Ui.SetBar(staminaFill, s.fishMaxStamina > 0 ? s.fishStamina / s.fishMaxStamina : 0);
             ((Image)tensionFill.GetComponent<Image>()).color = s.tension > 0.75f ? new Color(1f, 0.15f, 0.1f) : new Color(0.9f, 0.55f, 0.2f);
 
-            bobber.gameObject.SetActive(s.phase != FishingPhase.Ready && !s.Done);
+            bool showBobber = s.phase != FishingPhase.Ready && !s.Done;
+            bobber.gameObject.SetActive(showBobber);
             float y = 0.1f + Mathf.Sin(Time.time * 3) * 0.04f;
             if (s.phase == FishingPhase.Nibble) y = 0.02f + Mathf.Sin(Time.time * 40) * 0.05f;
             if (s.phase == FishingPhase.Bite) y = -0.2f;
             if (s.phase == FishingPhase.Reeling) y = -0.1f + Mathf.Sin(Time.time * 18) * 0.08f;
             bobber.position = bobberAt + new Vector3(0, y, 0);
+            var castLine = bobber.GetComponentInChildren<CastLine>(true);
+            if (castLine != null)
+            {
+                castLine.gameObject.SetActive(showBobber);
+                if (showBobber) castLine.Pull();
+            }
 
             switch (s.phase)
             {
@@ -328,11 +360,53 @@ namespace Hollowmere
         {
             if (closed) return;
             closed = true;
+            AudioHub.Loop("fish_reel_loop_01", false);
+            if (HeroActor.I != null) HeroActor.I.EndFishing();
             if (bobber != null) Destroy(bobber.gameObject);
             UiRoot.I.Close(gameObject);
             onDone?.Invoke();
         }
 
-        void OnDestroy() { if (bobber != null) Destroy(bobber.gameObject); }
+        void OnDestroy()
+        {
+            if (!closed && HeroActor.I != null) HeroActor.I.EndFishing();
+            if (bobber != null) Destroy(bobber.gameObject);
+        }
+    }
+
+    /// <summary>A thin line from the hero's hand to the bobber.</summary>
+    public sealed class CastLine : MonoBehaviour
+    {
+        public Transform bobber;
+        public Transform bar;
+
+        public void Pull()
+        {
+            if (bar == null || bobber == null) return;
+            var hero = HeroActor.I;
+            Vector3 from = hero != null ? hero.transform.position + Vector3.up * 1.25f + hero.transform.forward * 0.35f : bobber.position;
+            if (hero != null)
+            {
+                var hand = Find(hero.transform, "RightHand");
+                if (hand != null) from = hand.position;
+            }
+            Vector3 to = bobber.position;
+            var delta = to - from;
+            float len = delta.magnitude;
+            bar.position = (from + to) * 0.5f;
+            if (len > 0.05f) bar.rotation = Quaternion.LookRotation(delta);
+            bar.localScale = new Vector3(0.02f, 0.02f, Mathf.Max(0.05f, len));
+        }
+
+        static Transform Find(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var hit = Find(root.GetChild(i), name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
     }
 }

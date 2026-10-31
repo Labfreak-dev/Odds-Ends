@@ -224,12 +224,19 @@ namespace Hollowmere
             if (mode == "combat")
             {
                 hero.moveInput = Vector2.zero;
-                hero.attackHeld = elapsed >= 0.45f && elapsed <= 2.6f;
-                if (!stamped && elapsed >= 1.15f)
+                // Swing from the first frames so the capture is not the idle before the attack.
+                hero.attackHeld = elapsed >= 0.05f && elapsed <= 2.8f;
+                hero.Face(forward);
+                if (!stamped && elapsed >= 0.35f)
                 {
                     stamped = true;
-                    Fx.Damage(hero.Pos + forward * 2.2f + Vector3.up, new Hit { amount = 128f, crit = true, element = Element.Physical }, false);
+                    var at = hero.Pos + forward * 1.6f + Vector3.up * 1.1f;
+                    Fx.Damage(at, new Hit { amount = 128f, crit = true, element = Element.Physical }, false);
+                    var flash = Art.GlowSprite(null, 1.6f, new Color(1f, 0.95f, 0.7f, 1f));
+                    flash.transform.position = at;
+                    flash.AddComponent<FxLife>().Init(0.22f, Vector3.one * 1.2f, Vector3.one * 2.4f);
                     CombatClock.Punch("crit");
+                    Debug.Log("Hollowmere QA combat flash at " + elapsed.ToString("0.00") + "s");
                 }
                 return;
             }

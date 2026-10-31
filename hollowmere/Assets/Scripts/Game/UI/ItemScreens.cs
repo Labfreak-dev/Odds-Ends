@@ -19,6 +19,42 @@ namespace Hollowmere
             if (Item.IsNone(it)) { txt.text = $"<color=#666666>{emptyLabel}</color>"; return b; }
             string stack = it.stack > 1 ? $"\nx{it.stack}" : "";
             txt.text = $"<color={ItemText.RarityColor(it.rarity)}><b>{ItemText.SlotLabel(it)}</b></color>{stack}" + (it.ancient ? "\n<color=#ff8a1e>A</color>" : "");
+            var icon = ItemIcon.For(it);
+            if (icon != null)
+            {
+                var slot = Ui.At(b.transform, "icon", new Vector2(0.5f, 0.62f), Vector2.zero, new Vector2(62f, 62f));
+                var ii = slot.gameObject.AddComponent<Image>();
+                ii.sprite = icon;
+                ii.preserveAspect = true;
+                ii.raycastTarget = false;
+                txt.alignment = TextAnchor.LowerCenter;
+                txt.fontSize = 16;
+            }
+            if (it.sockets > 0)
+            {
+                var sock = ArtDrop.Sprite(string.IsNullOrEmpty(it.gemId) ? "socket_empty" : "socket_rim");
+                if (sock != null)
+                {
+                    var pip = Ui.At(b.transform, "socket", new Vector2(1f, 0f), new Vector2(-4f, 4f), new Vector2(28f, 28f));
+                    var pi = pip.gameObject.AddComponent<Image>();
+                    pi.sprite = sock;
+                    pi.preserveAspect = true;
+                    pi.raycastTarget = false;
+                }
+                if (!string.IsNullOrEmpty(it.gemId))
+                {
+                    var glow = ArtDrop.Sprite("socket_filled_glow");
+                    if (glow != null)
+                    {
+                        var g = Ui.At(b.transform, "socketGlow", new Vector2(1f, 0f), new Vector2(-4f, 4f), new Vector2(28f, 28f));
+                        var gi = g.gameObject.AddComponent<Image>();
+                        gi.sprite = glow;
+                        gi.color = Art.Hex(DesignTable.GemTint(it.gemId));
+                        gi.preserveAspect = true;
+                        gi.raycastTarget = false;
+                    }
+                }
+            }
             // Rarity edge
             var edge = Ui.Rect(b.transform, "edge", new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 8));
             Ui.Box(edge, Art.Rarity(it.rarity), false).raycastTarget = false;
@@ -361,7 +397,7 @@ namespace Hollowmere
         static void Equip(Hero h, Item it, EquipSlot? slot, UiRoot ui)
         {
             if (!h.Equip(it, slot)) { ui.Toast("No room in your bag for what comes off."); Sfx.Bag("error_bag_full"); }
-            else { Sfx.Bag("equip"); selected = null; }
+            else { Sfx.Bag("equip"); if (it.Base != null) Sfx.PlayEquip(it.Base.slot); selected = null; }
             GameManager.I.OnEquipmentChanged();
             Show(ui);
         }

@@ -278,6 +278,7 @@ namespace Hollowmere
                         };
                         var fig = Art.Humanoid(t, c, c * 0.6f, 1.75f, out var hand);
                         fig.transform.localRotation = Quaternion.identity;
+                        fig.AddComponent<NpcStand>();
                         if (kind == InteractKind.Fisherman) Art.Weapon(hand, "rod", new Color(0.6f, 0.45f, 0.3f));
                         if (kind == InteractKind.Blacksmith) Art.Weapon(hand, "mace", Color.gray);
                     }

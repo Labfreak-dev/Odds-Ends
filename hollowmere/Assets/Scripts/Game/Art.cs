@@ -167,7 +167,7 @@ namespace Hollowmere
             if (tex == null || parent == null) return false;
             var g = new GameObject("ripple");
             g.transform.SetParent(parent, false);
-            g.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+            g.transform.localPosition = new Vector3(0f, 0.12f, 0f);
             g.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             g.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
             var mf = g.AddComponent<MeshFilter>();
@@ -1210,11 +1210,9 @@ namespace Hollowmere
     }
 
     /// <summary>
-    /// Stands one NPC by rotating its model root, and logs the object name.
-    /// The green figure at the north-east of town (the Curio Dealer, object
-    /// npc_gambler) stayed on its side through the head-above-hips search.
-    /// If the render bounds are longer than they are tall, the long axis is
-    /// pitched up in one step. No search.
+    /// Stands every town NPC by rotating its model root, and logs each one.
+    /// Pitch and roll are tried once. The pose with the tallest mesh is kept,
+    /// so a figure that is already upright is not rolled onto its side.
     /// </summary>
     [DefaultExecutionOrder(120)]
     public sealed class NpcStand : MonoBehaviour
@@ -1227,25 +1225,39 @@ namespace Hollowmere
             enabled = false;
             var who = GetComponentInParent<Interactable>();
             string label = who != null ? who.kind.ToString() : name;
-            if (!Art.UnionBounds(gameObject, out var b))
+            // mesh.bounds through the world matrix, not Renderer.bounds: the skinned
+            // box stays stale, so a same-frame turn would see no change and a standing
+            // primitive would get rolled onto its side.
+            if (!Art.MeshWorldBounds(transform, out var b))
             {
                 Debug.Log("Hollowmere NPC " + label + " object=" + name
                     + " rot=" + transform.eulerAngles.ToString("0") + " size=none");
                 return;
             }
-            bool lying = b.size.y < Mathf.Max(b.size.x, b.size.z) * 0.92f;
+            float upright = b.size.y;
+            var bestRot = transform.rotation;
+            Quaternion[] turns =
+            {
+                Quaternion.identity,
+                Quaternion.Euler(-90f, 0f, 0f),
+                Quaternion.Euler(0f, 0f, 90f),
+            };
+            var origin = transform.rotation;
+            for (int i = 0; i < turns.Length; i++)
+            {
+                transform.rotation = origin * turns[i];
+                if (!Art.MeshWorldBounds(transform, out var nb)) continue;
+                if (nb.size.y > upright + 0.02f)
+                {
+                    upright = nb.size.y;
+                    bestRot = transform.rotation;
+                }
+            }
+            transform.rotation = bestRot;
+            Art.MeshWorldBounds(transform, out b);
             Debug.Log("Hollowmere NPC " + label + " object=" + name
                 + " rot=" + transform.eulerAngles.ToString("0")
-                + " size=" + b.size.ToString("0.00")
-                + (lying ? " lying" : " upright"));
-            if (!lying) return;
-            // One direct turn of this root. Z-long pitches up; X-long rolls up.
-            if (b.size.z >= b.size.x)
-                transform.Rotate(-90f, 0f, 0f, Space.Self);
-            else
-                transform.Rotate(0f, 0f, 90f, Space.Self);
-            Debug.Log("Hollowmere NPC " + label + " object=" + name
-                + " forced rot=" + transform.eulerAngles.ToString("0"));
+                + " size=" + b.size.ToString("0.00"));
         }
     }
 

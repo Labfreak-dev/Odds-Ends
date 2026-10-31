@@ -101,9 +101,10 @@ namespace Hollowmere
                     {
                         // A solid bed in the included shader, then the water sheet on top. A hole
                         // here used to show the black skirt (and a pink edge where a stripped
-                        // material failed).
+                        // material failed). The sheet has to sit above the bed or the grass
+                        // checker covers the lake and the bobber reads as sitting on the lawn.
                         Quad(fv, fn, (x + y) % 2 == 0 ? ta : tb, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
-                        float wy = -0.08f;
+                        float wy = 0.07f;
                         Quad(av, an, at, c + new Vector3(-half, wy, -half), c + new Vector3(-half, wy, half), c + new Vector3(half, wy, half), c + new Vector3(half, wy, -half), Vector3.up);
                         Box(bv, bt, c, half, 1.5f);
                     }
@@ -153,7 +154,7 @@ namespace Hollowmere
             walls.AddComponent<MeshCollider>().sharedMesh = walls.GetComponent<MeshFilter>().sharedMesh;
             if (av.Count > 0)
             {
-                MakeMesh("water", root, av, an, at, Art.Mat(new Color(0.15f, 0.35f, 0.55f), 0.4f));
+                MakeMesh("water", root, av, an, at, Art.Mat(new Color(0.22f, 0.55f, 0.82f), 0.55f));
                 var block = new GameObject("waterBlock");
                 block.transform.SetParent(root, false);
                 var bm = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };

@@ -257,43 +257,47 @@ namespace Hollowmere
         public static void Arm(HeroActor h, SkillCast c)
         {
             if (h == null) return;
-            string texName = TrailFor(h);
-            var tex = CombatDrop.Tex(texName);
-            var hand = Find(h.transform, "RightHand");
             // World-space follower. Parenting the ribbon to the hand inherits the 0.01 armature
             // and the swing disappears.
             var go = new GameObject("weaponTrail");
-            go.transform.position = hand != null ? hand.position : h.Pos + Vector3.up * 1.15f;
+            var origin = h.Pos;
+            var forward = h.transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
+            forward.Normalize();
+            var right = Vector3.Cross(Vector3.up, forward);
+            // The hand bone barely moves in world space, so a trail stuck to it
+            // draws no ribbon. Sweep an arc in front of the hero instead.
+            go.transform.position = origin + forward * 1.35f + Vector3.up * 1.15f;
             var follow = go.AddComponent<TrailFollow>();
-            follow.target = hand != null ? hand : h.transform;
+            follow.origin = origin;
+            follow.forward = forward;
+            follow.right = right;
+            follow.life = 0.45f;
             var tr = go.AddComponent<TrailRenderer>();
-            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.55f);
+            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.45f);
+            col.a = 0.9f;
             tr.time = Mathf.Max(0.45f, DesignTable.TrailLife / 1000f);
-            float width = 1.15f;
+            float width = 1.6f;
             tr.startWidth = width;
-            tr.endWidth = width * 0.4f;
+            tr.endWidth = width * 0.85f;
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
             tr.numCapVertices = 2;
             tr.startColor = col;
-            tr.endColor = new Color(col.r, col.g, col.b, 0f);
-            // Additive glow. Vertex colour carries the swing tint and the fade.
-            // The alpha sheet kept the dark cell and the swing disappeared.
-            var ribbon = Art.GlowMat(Color.white, true, tex);
-            if (tex != null)
-            {
-                ribbon.mainTextureScale = new Vector2(-1f, 1f);
-                ribbon.mainTextureOffset = new Vector2(1f, 0f);
-            }
+            tr.endColor = new Color(col.r, col.g, col.b, 0.85f);
+            // No trail texture: a dark cell multiplied the ribbon down to nothing.
+            // Vertex colour is the emissive tint, alpha kept at 0.85 or above.
+            var ribbon = Art.GlowMat(Color.white, true, null);
             tr.material = ribbon;
             tr.emitting = true;
-            var burst = Art.GlowSprite(null, 1.8f, col);
+            var burst = Art.GlowSprite(null, 1.6f, new Color(1f, 0.95f, 0.75f, 1f));
             burst.transform.position = go.transform.position;
-            burst.AddComponent<FxLife>().Init(0.35f, Vector3.one * 1.4f, Vector3.one * 2.6f);
+            burst.AddComponent<FxLife>().Init(0.22f, Vector3.one * 1.2f, Vector3.one * 2.4f);
             var hold = go.AddComponent<TrailStop>();
             hold.trail = tr;
-            hold.until = Time.time + DesignTable.TrailHold / 1000f;
+            hold.until = Time.time + Mathf.Max(0.45f, DesignTable.TrailHold / 1000f);
         }
 
         public static string TrailFor(HeroActor h)
@@ -316,26 +320,23 @@ namespace Hollowmere
             }
         }
 
-        static Transform Find(Transform root, string name)
-        {
-            if (root.name == name) return root;
-            for (int i = 0; i < root.childCount; i++)
-            {
-                var f = Find(root.GetChild(i), name);
-                if (f != null) return f;
-            }
-            return null;
-        }
     }
 
-    /// <summary>Keeps a world-space trail on the hand without inheriting the 0.01 armature scale.</summary>
+    /// <summary>Sweeps the ribbon through a world-space arc so the swing is visible.</summary>
     public sealed class TrailFollow : MonoBehaviour
     {
-        public Transform target;
+        public Vector3 origin = Vector3.zero;
+        public Vector3 forward = Vector3.forward;
+        public Vector3 right = Vector3.right;
+        public float life = 0.45f;
+        float t;
 
         void LateUpdate()
         {
-            if (target != null) transform.position = target.position;
+            t += Time.deltaTime;
+            float u = Mathf.Clamp01(t / Mathf.Max(0.05f, life));
+            float ang = Mathf.Lerp(-1.15f, 1.15f, u);
+            transform.position = origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.35f + Vector3.up * 1.15f;
         }
     }
 

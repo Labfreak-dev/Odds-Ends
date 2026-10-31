@@ -102,7 +102,12 @@ namespace Hollowmere
                     foreach (var it in Interactable.All)
                         if (it != null && it.kind == InteractKind.Fishing) { spot = it; break; }
                     Vector3 water = spot != null ? spot.transform.position : HeroActor.I.Pos + Vector3.left * 4f;
-                    Vector3 stand = spot != null && spot.pool != null ? World.ToWorld(spot.pool.standAt) : water + Vector3.right * World.T;
+                    water.y = 0.07f;
+                    // standAt is the Old Angler's tile. Step off them onto the next shore tile.
+                    Vector3 angler = spot != null && spot.pool != null ? World.ToWorld(spot.pool.standAt) : water + Vector3.right * World.T;
+                    Vector3 stand = angler + Vector3.right * World.T;
+                    if (!World.Walkable(stand)) stand = angler - Vector3.forward * World.T;
+                    if (!World.Walkable(stand)) stand = angler + Vector3.forward * World.T;
                     var hero = HeroActor.I;
                     hero.Teleport(stand);
                     hero.Face(water - stand);

@@ -95,7 +95,8 @@ namespace Hollowmere
                     var c = new Vector3(x * T, 0, y * T);
                     if (tile == Tile.Floor)
                     {
-                        Quad(fv, fn, (x + y) % 2 == 0 ? ta : tb, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
+                        bool dirt = map.theme == Theme.Town && DirtPatch(x, y);
+                        Quad(fv, fn, dirt ? tb : ta, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
                     }
                     else if (tile == Tile.Water)
                     {
@@ -103,7 +104,7 @@ namespace Hollowmere
                         // here used to show the black skirt (and a pink edge where a stripped
                         // material failed). The sheet has to sit above the bed or the grass
                         // checker covers the lake and the bobber reads as sitting on the lawn.
-                        Quad(fv, fn, (x + y) % 2 == 0 ? ta : tb, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
+                        Quad(fv, fn, ta, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
                         float wy = 0.07f;
                         Quad(av, an, at, c + new Vector3(-half, wy, -half), c + new Vector3(-half, wy, half), c + new Vector3(half, wy, half), c + new Vector3(half, wy, -half), Vector3.up);
                         Box(bv, bt, c, half, 1.5f);
@@ -195,7 +196,7 @@ namespace Hollowmere
             sun.transform.rotation = Quaternion.Euler(50, -30, 0);
             sun.intensity = town ? 1.85f : 1.45f;
             sun.shadows = LightShadows.Soft;
-            sun.shadowStrength = 0.65f;
+            sun.shadowStrength = 0.8f;
             sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
             PbrKit.Grade(map);
             if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
@@ -220,6 +221,13 @@ namespace Hollowmere
             }
             Dressing.Mood(map);
             return root;
+        }
+
+        /// <summary>A 2×2 dirt patch on about one street block in eight. The rest of town is cobble.</summary>
+        static bool DirtPatch(int x, int y)
+        {
+            int h = ((x >> 1) * 17 + (y >> 1) * 31) & 15;
+            return h == 1 || h == 6;
         }
 
         static void PaintGround(Material m, Texture tex)

@@ -164,6 +164,7 @@ namespace Hollowmere
                     yield return new WaitForSeconds(0.15f);
                 }
             }
+            if (HeroActor.I != null) GearAttach.AuditGrip(HeroActor.I.transform);
             yield return new WaitForEndOfFrame();
             var tex = ScreenCapture.CaptureScreenshotAsTexture();
             var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + scene + ".png");

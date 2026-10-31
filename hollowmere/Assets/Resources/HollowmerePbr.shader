@@ -5,6 +5,7 @@ Shader "Hollowmere/Pbr"
     Properties
     {
         [MainColor] _BaseColor ("Color", Color) = (1,1,1,1)
+        [MainTexture] _MainTex ("Albedo", 2D) = "white" {}
         _BaseMap ("Albedo", 2D) = "white" {}
         _BumpMap ("Normal", 2D) = "bump" {}
         _MetallicGlossMap ("Metal", 2D) = "white" {}
@@ -42,6 +43,7 @@ Shader "Hollowmere/Pbr"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
+                float4 _MainTex_ST;
                 half _Tile;
                 half _HasNormal;
                 half _HasMetal;

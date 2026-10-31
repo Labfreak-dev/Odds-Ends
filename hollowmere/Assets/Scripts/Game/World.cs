@@ -197,7 +197,7 @@ namespace Hollowmere
             sun.shadows = LightShadows.Soft;
             sun.shadowStrength = 0.65f;
             sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
-            PbrKit.Grade();
+            PbrKit.Grade(map);
             if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 
             FloorNav.Build(map);

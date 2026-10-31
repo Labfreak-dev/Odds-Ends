@@ -1,10 +1,11 @@
-using System;
-using System.Reflection;
+using Hollowmere.Core;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Hollowmere
 {
-    /// <summary>CC0 surfaces and the lake. Textures live in Art/PBR and are linked from Resources/PbrKit.</summary>
+    /// <summary>CC0 surfaces and the lake. Textures live in Resources/PbrKit.</summary>
     public static class PbrKit
     {
         const string Root = "PbrKit/materials/";
@@ -42,7 +43,6 @@ namespace Hollowmere
                 if (m.HasProperty("_HasAo")) m.SetFloat("_HasAo", 1f);
             }
             if (m.HasProperty("_Tile")) m.SetFloat("_Tile", tileMetres);
-            m.mainTextureScale = Vector2.one;
             return m;
         }
 
@@ -77,43 +77,35 @@ namespace Hollowmere
             return m;
         }
 
-        /// <summary>Global bloom, SSAO, ACES, and a light grade. Missing types are skipped.</summary>
-        public static void Grade()
+        /// <summary>Global bloom, ACES, and a light grade for this level. SSAO is the renderer feature:
+        /// it is not a volume component, and adding it here used to throw.</summary>
+        public static void Grade(DungeonMap map)
         {
-            var volumeType = Type.GetType("UnityEngine.Rendering.Volume, Unity.RenderPipelines.Core.Runtime");
-            var profileType = Type.GetType("UnityEngine.Rendering.VolumeProfile, Unity.RenderPipelines.Core.Runtime");
-            if (volumeType == null || profileType == null) return;
-            if (UnityEngine.Object.FindFirstObjectByType(volumeType) != null) return;
+            if (UnityEngine.Object.FindFirstObjectByType<Volume>() != null) return;
+            var spec = PostVolume.For(map);
             var go = new GameObject("pbrVolume");
             UnityEngine.Object.DontDestroyOnLoad(go);
-            var volume = go.AddComponent(volumeType);
-            var profile = ScriptableObject.CreateInstance(profileType);
-            Set(volume, "sharedProfile", profile);
-            Set(volume, "isGlobal", true);
-            Set(volume, "priority", 20f);
-            Add(profile, "UnityEngine.Rendering.Universal.Bloom, Unity.RenderPipelines.Universal.Runtime", c =>
-            {
-                SetParam(c, "threshold", 1.1f);
-                SetParam(c, "intensity", 0.35f);
-                SetParam(c, "scatter", 0.55f);
-            });
-            Add(profile, "UnityEngine.Rendering.Universal.Tonemapping, Unity.RenderPipelines.Universal.Runtime", c =>
-            {
-                // ACES is mode 2 on TonemappingMode.
-                SetParam(c, "mode", 2);
-            });
-            Add(profile, "UnityEngine.Rendering.Universal.ColorAdjustments, Unity.RenderPipelines.Universal.Runtime", c =>
-            {
-                SetParam(c, "postExposure", 0.12f);
-                SetParam(c, "contrast", 8f);
-                SetParam(c, "saturation", 6f);
-                SetParam(c, "colorFilter", new Color(1f, 0.97f, 0.92f, 1f));
-            });
-            Add(profile, "UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion, Unity.RenderPipelines.Universal.Runtime", c =>
-            {
-                SetParam(c, "intensity", 0.45f);
-                SetParam(c, "radius", 0.25f);
-            });
+            var volume = go.AddComponent<Volume>();
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            volume.sharedProfile = profile;
+            volume.isGlobal = true;
+            volume.priority = 20f;
+
+            var bloomSpec = spec.Get<PostBloom>();
+            var bloom = profile.Add<Bloom>();
+            bloom.threshold.Override(bloomSpec.threshold);
+            bloom.intensity.Override(bloomSpec.intensity);
+            bloom.scatter.Override(bloomSpec.scatter);
+
+            var tone = profile.Add<Tonemapping>();
+            tone.mode.Override(spec.Get<PostTonemapping>().mode == PostTonemap.Aces ? TonemappingMode.ACES : TonemappingMode.Neutral);
+
+            var colorSpec = spec.Get<PostColorAdjustments>();
+            var color = profile.Add<ColorAdjustments>();
+            color.postExposure.Override(colorSpec.postExposure);
+            color.contrast.Override(colorSpec.contrast);
+            color.saturation.Override(colorSpec.saturation);
+            color.colorFilter.Override(new Color(colorSpec.filterR, colorSpec.filterG, colorSpec.filterB, 1f));
         }
 
         static Texture2D Load(string folder, string suffix)
@@ -121,50 +113,5 @@ namespace Hollowmere
             return Resources.Load<Texture2D>(Root + folder + "/" + folder + "_" + suffix);
         }
 
-        static void Add(ScriptableObject profile, string typeName, Action<object> fill)
-        {
-            var t = Type.GetType(typeName);
-            if (t == null) return;
-            MethodInfo add = null;
-            foreach (var method in profile.GetType().GetMethods())
-            {
-                if (method.Name != "Add" || !method.IsGenericMethodDefinition) continue;
-                if (method.GetParameters().Length != 1) continue;
-                add = method;
-                break;
-            }
-            if (add == null) return;
-            var generic = add.MakeGenericMethod(t);
-            var component = generic.Invoke(profile, new object[] { true });
-            if (component != null) fill(component);
-        }
-
-        static void Set(object target, string name, object value)
-        {
-            var f = target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (f != null) { f.SetValue(target, value); return; }
-            var p = target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (p != null && p.CanWrite) p.SetValue(target, value);
-        }
-
-        static void SetParam(object component, string name, object value)
-        {
-            var f = component.GetType().GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            if (f == null) return;
-            var param = f.GetValue(component);
-            if (param == null) return;
-            var pt = param.GetType();
-            var over = pt.GetProperty("overrideState") ?? pt.GetProperty("overrideState", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            over?.SetValue(param, true);
-            var prop = pt.GetProperty("value");
-            if (prop == null) return;
-            var dest = prop.PropertyType;
-            if (value is int && dest.IsEnum)
-                prop.SetValue(param, Enum.ToObject(dest, (int)value));
-            else if (dest.IsInstanceOfType(value) || value == null)
-                prop.SetValue(param, value);
-            else if (value is float && dest == typeof(float))
-                prop.SetValue(param, value);
-        }
     }
 }

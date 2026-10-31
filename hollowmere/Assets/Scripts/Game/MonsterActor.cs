@@ -400,14 +400,18 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>Lifts the wraith so the robe hem sits about 0.4 m off the floor, and folds the feet into the robe.</summary>
-    [DefaultExecutionOrder(220)]
+    /// <summary>Holds the robe hem at 0.4 m. Walk and attack may bob by less than 0.08 m, so every reading stays inside 0.3–0.5.</summary>
+    [DefaultExecutionOrder(400)]
     public sealed class WraithFloat : MonoBehaviour
     {
         public float lift = 0.4f;
-        int logged;
+        public float bob = 0.08f;
+        public float Hem { get; private set; } = 0.4f;
 
-        void LateUpdate()
+        void LateUpdate() => Pin(false);
+
+        /// <summary>Call after a clip sample so the hem is inside the window before the shot is read.</summary>
+        public void Pin(bool log)
         {
             var visual = transform.childCount > 0 ? transform.GetChild(0) : transform;
             Squash("LeftFoot");
@@ -415,22 +419,25 @@ namespace Hollowmere
             Squash("LeftToeBase");
             Squash("RightToeBase");
             if (!Art.UnionBounds(gameObject, out var b)) return;
-            float dy = lift - b.min.y;
-            // Wait until the skin bounds include the spawn offset, then correct the instance.
-            if (logged >= 2 && Mathf.Abs(dy) > 0.02f && Mathf.Abs(dy) < 3f)
+            float low = lift - bob;
+            float high = lift + bob;
+            float hem = b.min.y;
+            if (hem < low || hem > high)
             {
-                var lp = visual.localPosition;
-                lp.y += dy;
-                visual.localPosition = lp;
+                float dy = lift - hem;
+                if (Mathf.Abs(dy) < 3f)
+                {
+                    var lp = visual.localPosition;
+                    lp.y += dy;
+                    visual.localPosition = lp;
+                    hem = lift;
+                }
             }
-            if (logged == 4)
-            {
-                float hem = b.min.y;
-                Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m");
-                if (hem < 0.3f || hem > 0.5f)
-                    Debug.LogError("Hollowmere wraith height FAIL " + hem.ToString("0.00") + "m");
-            }
-            if (logged < 8) logged++;
+            Hem = hem;
+            if (!log) return;
+            Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m");
+            if (hem < 0.3f || hem > 0.5f)
+                Debug.LogError("Hollowmere wraith height FAIL " + hem.ToString("0.00") + "m");
         }
 
         void Squash(string bone)
@@ -475,8 +482,9 @@ namespace Hollowmere
     [DefaultExecutionOrder(500)]
     public sealed class DeathLay : MonoBehaviour
     {
+        public float livingAxis;
         string clip = "none";
-        bool baked, shaped, warned;
+        bool baked, shaped, warned, matched;
         int grounds, waits;
         Animation anim;
 
@@ -505,6 +513,7 @@ namespace Hollowmere
                 TipKeepChildren();
                 FlattenChildren();
                 LayOnBack();
+                MatchLiving();
                 shaped = true;
             }
             else if (Mathf.Abs(transform.up.y) >= 0.35f)
@@ -718,6 +727,25 @@ namespace Hollowmere
                 if (transform.GetChild(i).name.IndexOf(key, System.StringComparison.OrdinalIgnoreCase) >= 0)
                     return true;
             return false;
+        }
+
+        /// <summary>Pull a corpse that baked or posed far from its living size back to that size. The pose stays.</summary>
+        void MatchLiving()
+        {
+            if (matched || livingAxis < 0.15f) return;
+            if (!BoundsNow(out var b)) return;
+            float now = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+            if (now < 0.02f) return;
+            matched = true;
+            float ratio = now / livingAxis;
+            if (ratio >= 0.8f && ratio <= 1.2f) return;
+            float s = livingAxis / now;
+            if (transform.childCount == 0) transform.localScale *= s;
+            else
+                for (int i = 0; i < transform.childCount; i++)
+                    transform.GetChild(i).localScale *= s;
+            Debug.Log("Hollowmere death lay " + name + " living scale x" + s.ToString("0.00")
+                + " ratio was " + ratio.ToString("0.00"));
         }
 
         void Ground()

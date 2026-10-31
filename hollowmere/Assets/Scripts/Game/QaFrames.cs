@@ -260,6 +260,8 @@ namespace Hollowmere
                     for (int s = 0; s < 3; s++)
                     {
                         SampleMonster(go, clips[c], s / 2f);
+                        var floater = go.GetComponent<WraithFloat>();
+                        if (floater != null) floater.Pin(true);
                         yield return new WaitForEndOfFrame();
                         SaveNamed("monsteranim-" + MonsterKeys[m] + "-" + clips[c] + "-" + s);
                         shot++;
@@ -292,11 +294,16 @@ namespace Hollowmere
                 go.transform.rotation = Quaternion.LookRotation(Vector3.back);
                 yield return null;
                 float livingAxis = 0f;
+                float livingMin = 0f;
                 if (Art.UnionBounds(go, out var live))
+                {
                     livingAxis = Mathf.Max(live.size.x, Mathf.Max(live.size.y, live.size.z));
+                    livingMin = Mathf.Min(live.size.x, Mathf.Min(live.size.y, live.size.z));
+                }
                 foreach (var hover in go.GetComponentsInChildren<BatHover>(true))
                     hover.enabled = false;
                 var lay = go.AddComponent<DeathLay>();
+                lay.livingAxis = livingAxis;
                 SampleMonster(go, "death", 0.85f);
                 float wait = 0f;
                 while (!lay.Done && wait < 2.2f)
@@ -312,29 +319,29 @@ namespace Hollowmere
                 }
                 FrameCorpse(go);
                 yield return new WaitForEndOfFrame();
+                SaveNamed("monsterdeath-" + MonsterKeys[m] + "-flat");
                 bool flat = Mathf.Abs(go.transform.up.y) < 0.4f;
                 bool onFloor = false;
-                bool sized = false;
                 if (Art.UnionBounds(go, out var b))
                 {
-                    bool thick = IsThickCorpse(MonsterKeys[m]);
-                    onFloor = b.min.y < 0.25f && b.min.y > -0.35f && (thick || b.size.y < 0.95f);
+                    // A body whose living box is already tall or thick cannot lie under 0.95 m without a scale hack.
+                    bool bulky = livingAxis >= 2f || livingMin >= 0.8f;
+                    onFloor = b.min.y < 0.25f && b.min.y > -0.35f && (bulky || b.size.y < 0.95f);
                     float corpseAxis = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
                     float ratio = livingAxis > 0.05f ? corpseAxis / livingAxis : 0f;
-                    sized = ratio >= 0.4f && ratio <= 2.5f;
                     Debug.Log("Hollowmere QA death " + MonsterKeys[m]
                         + " up=" + go.transform.up.ToString("0.00")
                         + " size=" + b.size.ToString("0.00")
                         + " minY=" + b.min.y.ToString("0.00")
                         + " living=" + livingAxis.ToString("0.00")
-                        + " ratio=" + ratio.ToString("0.00"));
-                    if (!sized)
+                        + " ratio=" + ratio.ToString("0.00")
+                        + (bulky ? " bulky" : ""));
+                    if (ratio < 0.4f || ratio > 2.5f)
                         Debug.LogError("Hollowmere QA death " + MonsterKeys[m]
                             + " FAIL corpse scale " + ratio.ToString("0.00") + "x living");
                 }
                 if (!flat || !onFloor)
                     Debug.LogError("Hollowmere QA death " + MonsterKeys[m] + " FAIL not flat on the floor");
-                SaveNamed("monsterdeath-" + MonsterKeys[m] + "-flat");
                 UnityEngine.Object.Destroy(go);
             }
         }
@@ -390,11 +397,6 @@ namespace Hollowmere
                 if (hit != null) return hit;
             }
             return null;
-        }
-
-        static bool IsThickCorpse(string key)
-        {
-            return key.Contains("demon_lord") || key.Contains("demon_brute") || key.Contains("spider");
         }
 
         /// <summary>Aim at the corpse bounds so a wide, low body such as the bat stays in frame.</summary>

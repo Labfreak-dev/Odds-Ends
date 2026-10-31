@@ -573,14 +573,17 @@ namespace Hollowmere
             {
                 if (t == null || t.name != "hm_wraith") continue;
                 found++;
-                if (!Art.UnionBounds(t.gameObject, out var b))
+                var floater = t.GetComponent<WraithFloat>();
+                if (floater != null) floater.Pin(false);
+                if (!Art.UnionBounds(t.gameObject, out var b) && floater == null)
                 {
                     Debug.LogError("Hollowmere wraith height FAIL no mesh");
                     continue;
                 }
-                Debug.Log("Hollowmere wraith height " + b.min.y.ToString("0.00") + "m");
-                if (b.min.y < 0.3f || b.min.y > 0.5f)
-                    Debug.LogError("Hollowmere wraith height FAIL " + b.min.y.ToString("0.00") + "m");
+                float hem = floater != null ? floater.Hem : b.min.y;
+                Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m");
+                if (hem < 0.3f || hem > 0.5f)
+                    Debug.LogError("Hollowmere wraith height FAIL " + hem.ToString("0.00") + "m");
             }
             if (found == 0)
                 Debug.LogError("Hollowmere wraith height FAIL missing wraith");

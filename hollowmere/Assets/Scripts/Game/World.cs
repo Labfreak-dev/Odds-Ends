@@ -17,18 +17,18 @@ namespace Hollowmere
         public static Int2 ToTile(Vector3 w) => new Int2(Mathf.RoundToInt(w.x / T), Mathf.RoundToInt(w.z / T));
         public static bool Walkable(Vector3 w) => Map != null && Map.Walkable(ToTile(w));
 
-        /// <summary>Footstep surface: grass, dirt, stone, or wood.</summary>
+        /// <summary>Footstep surface. Open water is water, the walkable edge is a wade, town shore used to be the dock.</summary>
         public static string FootSurface(Vector3 w)
         {
             if (Map == null) return "stone";
-            if (Map.theme == Theme.Town)
-            {
-                var t = ToTile(w);
-                for (int dy = -1; dy <= 1; dy++)
-                    for (int dx = -1; dx <= 1; dx++)
-                        if (Map.Get(t.x + dx, t.y + dy) == Tile.Water) return "wood";
-                return (t.x + t.y) % 2 == 0 ? "stone" : "grass";
-            }
+            var t = ToTile(w);
+            if (Map.Get(t) == Tile.Water) return "water";
+            bool shore = false;
+            for (int dy = -1; dy <= 1 && !shore; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                    if ((dx != 0 || dy != 0) && Map.Get(t.x + dx, t.y + dy) == Tile.Water) { shore = true; break; }
+            if (shore) return "wade";
+            if (Map.theme == Theme.Town) return (t.x + t.y) % 2 == 0 ? "stone" : "grass";
             if (Map.theme == Theme.Caverns || Map.theme == Theme.EmberDepths) return "dirt";
             return "stone";
         }

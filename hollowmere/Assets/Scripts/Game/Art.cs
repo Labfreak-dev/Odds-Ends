@@ -259,19 +259,18 @@ namespace Hollowmere
             // Fitting those to a short target height blew a flat mesh into the giant plane
             // that covered the corner of the town and the dungeon.
             string bodyKey = ClipFeet.Strip(key);
+            bool v5 = V5Body(bodyKey);
             bool smith = bodyKey == "npc_smith";
             if (bodyKey == "pet_hound") HideBellySlab(go);
             if (bodyKey == "pet_lynx") FaceLynx(go);
             if (IsCharacter(key))
             {
-                if (smith)
+                if (smith && !v5)
                 {
-                    // npc_smith.glb is Z-up (1.89 m deep, 1.39 m tall). A long-axis
-                    // search stands the hammer and leaves the head floating.
-                    // The walk rig is already Y-up, so it keeps identity.
+                    // The old npc_smith.glb is Z-up. The v5 rig is already Y-up.
                     go.transform.localRotation = go.transform.localRotation * SmithCorrection(key);
                 }
-                else if (IsBiped(key) && !key.StartsWith("npc_"))
+                else if (!v5 && IsBiped(key) && !key.StartsWith("npc_"))
                     StandUp(go.transform);
                 // NPCs are scaled by NpcMeasure from renderer bounds after the skin
                 // updates. Fitting here reads the 0.01 armature and leaves a 1 cm body.
@@ -307,23 +306,165 @@ namespace Hollowmere
             var foot = ClipFeet.For(key);
             ma.walkFoot = foot.walk;
             ma.runFoot = foot.run;
+            // v5 clips are in place. A run foot of 0 would keep the walk take forever.
+            if (v5) { ma.walkFoot = 1.4f; ma.runFoot = 3.6f; }
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
             // Smith is oriented by SmithCorrection. The generic stand-up pitches the
             // hammer up and never logs the holder, which is why the head had no line.
-            if (key.StartsWith("npc_") && !smith)
+            if (key.StartsWith("npc_") && !v5 && !smith)
                 holder.AddComponent<NpcStand>();
-            if (key.StartsWith("hero_"))
+            if (key.StartsWith("hero_") && !v5)
             {
                 CombatClipPlayer.Attach(ma, key);
                 CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
             }
+            if (v5) DressNpc(bodyKey, go.transform);
             return holder;
         }
 
-        /// <summary>The v2 rig if it has landed, else the older walk cycle, else the static mesh.</summary>
+        /// <summary>Mixamo v5 bodies win over the older walk rigs. Those files already contain idle, walk and run.</summary>
+        public static bool V5Body(string key)
+        {
+            switch (key)
+            {
+                case "hero":
+                case "hero_plate":
+                case "npc_smith":
+                case "npc_merchant":
+                case "npc_jeweler":
+                case "npc_mystic":
+                case "npc_curio":
+                case "npc_fisher":
+                    return true;
+            }
+            return false;
+        }
+
         public static GameObject Animated(string key, float height, Transform parent)
-            => Model(key + "_walk_v2", height, parent) ?? Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+        {
+            if (V5Body(key))
+            {
+                var fresh = Model(key, height, parent);
+                if (fresh != null) return fresh;
+            }
+            return Model(key + "_walk_v2", height, parent) ?? Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+        }
+
+        /// <summary>Town props from the character manifest. Offsets are glTFast local space. Loupe and trinkets are scaled so they read at the game camera.</summary>
+        static void DressNpc(string key, Transform rig)
+        {
+            if (key == "npc_mystic")
+                Pin(rig, "prop_mystic_staff", "RightHand", new Vector3(-0.01262f, 0.12937f, -0.01487f), new Quaternion(-0.042606f, -0.253599f, -0.920963f, -0.292746f), 1f);
+            else if (key == "npc_merchant")
+                Pin(rig, "prop_merchant_backpack", "Spine2", new Vector3(-0.00388f, -0.07094f, -0.12992f), new Quaternion(0.038513f, 0f, 0f, 0.999258f), 1f);
+            else if (key == "npc_jeweler")
+            {
+                Pin(rig, "prop_jeweler_loupe", "Head", new Vector3(0.03048f, 0.12205f, 0.11704f), new Quaternion(-0.066777f, -0.039748f, -0.039748f, 0.996183f), 1.5f);
+                Pin(rig, "prop_jeweler_tools", "Hips", new Vector3(0.14134f, -0.07676f, 0.123f), new Quaternion(0.012581f, -0.002466f, -0.002466f, 0.999915f), 1f);
+            }
+            else if (key == "npc_curio")
+                Pin(rig, "prop_curio_trinkets", "Hips", new Vector3(-0.20224f, -0.03001f, 0.07934f), new Quaternion(-0.002467f, -0.005265f, -0.005265f, 0.999969f), 1.5f);
+        }
+
+        static void Pin(Transform rig, string propKey, string bone, Vector3 pos, Quaternion rot, float scale)
+        {
+            var joint = Bone(rig, bone);
+            if (joint == null)
+            {
+                Debug.LogWarning("Hollowmere prop " + propKey + " missing " + bone);
+                return;
+            }
+            var prop = Model(propKey, 0f, joint);
+            if (prop == null) return;
+            prop.transform.localPosition = pos;
+            prop.transform.localRotation = rot;
+            prop.transform.localScale = Vector3.one * scale;
+        }
+
+        public static Transform Bone(Transform root, string name)
+        {
+            if (root == null || string.IsNullOrEmpty(name)) return null;
+            if (BoneName(root.name, name)) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var hit = Bone(root.GetChild(i), name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
+
+        static bool BoneName(string node, string name)
+        {
+            if (node == name) return true;
+            int cut = node.LastIndexOf(':');
+            return cut >= 0 && node.Substring(cut + 1) == name;
+        }
+
+        public static readonly Color[] SkinTints =
+        {
+            new Color(0.93f, 0.76f, 0.62f), new Color(0.72f, 0.5f, 0.36f), new Color(0.45f, 0.3f, 0.22f),
+            new Color(0.96f, 0.84f, 0.7f), new Color(0.55f, 0.42f, 0.34f),
+        };
+        public static readonly Color[] HairTints =
+        {
+            new Color(0.15f, 0.1f, 0.08f), new Color(0.55f, 0.32f, 0.16f), new Color(0.85f, 0.72f, 0.35f),
+            new Color(0.35f, 0.35f, 0.4f), new Color(0.7f, 0.15f, 0.12f),
+        };
+        public static readonly Color[] ArmourTints =
+        {
+            new Color(0.72f, 0.74f, 0.78f), new Color(0.45f, 0.32f, 0.22f), new Color(0.25f, 0.38f, 0.62f),
+            new Color(0.55f, 0.18f, 0.16f), new Color(0.28f, 0.42f, 0.28f),
+        };
+
+        public static Color ClothTint(int body) => body == 0
+            ? new Color(0.82f, 0.74f, 0.62f)
+            : body >= 2 ? new Color(0.34f, 0.30f, 0.28f) : new Color(0.55f, 0.40f, 0.28f);
+
+        public static string HeroMesh(Hero h) => h != null && h.plate > 0 ? "hero_plate" : "hero";
+
+        /// <summary>Mask channels multiply the base colour: R armour, G cloth, B hair. Skin is what the mask leaves.</summary>
+        public static void PaintHero(GameObject go, Color skin, Color cloth, Color hair, Color armour)
+        {
+            if (go == null) return;
+            var mask = Resources.Load<Texture2D>("Models/hero_tint_mask");
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || UnderProp(r.transform)) continue;
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null || !m.HasProperty("_TintMask")) continue;
+                    if (mask != null) m.SetTexture("_TintMask", mask);
+                    if (m.HasProperty("_HasTint")) m.SetFloat("_HasTint", mask != null ? 1f : 0f);
+                    if (m.HasProperty("_TintArmour")) m.SetColor("_TintArmour", armour);
+                    if (m.HasProperty("_TintCloth")) m.SetColor("_TintCloth", cloth);
+                    if (m.HasProperty("_TintHair")) m.SetColor("_TintHair", hair);
+                    if (m.HasProperty("_TintSkin")) m.SetColor("_TintSkin", skin);
+                }
+                r.materials = mats;
+            }
+        }
+
+        static bool UnderProp(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("prop_")) return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        public static void PaintHero(GameObject go, Hero h)
+        {
+            if (h == null) return;
+            int skin = Mathf.Clamp(h.skin, 0, SkinTints.Length - 1);
+            int hair = Mathf.Clamp(h.hair, 0, HairTints.Length - 1);
+            PaintHero(go, SkinTints[skin], ClothTint(h.body), HairTints[hair],
+                new Color(Mathf.Clamp01(h.armourR), Mathf.Clamp01(h.armourG), Mathf.Clamp01(h.armourB)));
+        }
 
         /// <summary>The older hound mesh has a ground slab under the belly. Collapse those triangles when the mesh can be edited.</summary>
         static void HideBellySlab(GameObject go)
@@ -380,13 +521,15 @@ namespace Hollowmere
 
         static bool IsCharacter(string key)
         {
-            return key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("pet_")
+            string body = ClipFeet.Strip(key);
+            return V5Body(body) || key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("pet_")
                 || key.StartsWith("mon_") || key.StartsWith("boss_");
         }
 
         static bool IsBiped(string key)
         {
-            return key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("mon_") || key.StartsWith("boss_");
+            string body = ClipFeet.Strip(key);
+            return V5Body(body) || key.StartsWith("npc_") || key.StartsWith("hero_") || key.StartsWith("mon_") || key.StartsWith("boss_");
         }
 
         /// <summary>Meshy sometimes leaves a figure lying on Z. Try quarter-turns and keep the one
@@ -1011,7 +1154,7 @@ namespace Hollowmere
             _ => new Color(0.38f, 0.22f, 0.55f),
         };
 
-        public static string HeroModelKey(HeroClass c) => "hero_" + c.ToString().ToLowerInvariant();
+        public static string HeroModelKey(HeroClass c) => "hero";
 
         public static (Color floorA, Color floorB, Color wall, Color ambient, Color light) ThemeColors(Theme t) => t switch
         {

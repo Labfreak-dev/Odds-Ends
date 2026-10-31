@@ -55,7 +55,7 @@ namespace Hollowmere
 
         static void Weapon(Transform body, string key, string name, Item it, bool main)
         {
-            var hand = main ? Hand(body) : FindBone(body, "LeftHand");
+            var hand = main ? Hand(body) : Art.Bone(body, "LeftHand");
             if (hand != null && Grip(hand, key, name, main)) return;
             if (hand != null)
                 Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
@@ -69,7 +69,7 @@ namespace Hollowmere
             var inst = Object.Instantiate(prefab);
             var skins = inst.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             if (skins.Length == 0) { Object.Destroy(inst); return false; }
-            var hips = Find(body, "Hips");
+            var hips = Art.Bone(body, "Hips");
             var arm = hips != null ? hips.parent : body;
             int missed = 0;
             foreach (var smr in skins)
@@ -79,7 +79,7 @@ namespace Hollowmere
                 for (int i = 0; i < src.Length; i++)
                 {
                     if (src[i] == null) { missed++; continue; }
-                    mapped[i] = Find(body, src[i].name);
+                    mapped[i] = Art.Bone(body, src[i].name);
                     if (mapped[i] == null) missed++;
                 }
                 smr.bones = mapped;
@@ -299,7 +299,7 @@ namespace Hollowmere
         static void Primitive(Transform body, string part, Item it)
         {
             string bone = part == "helm" ? "Head" : "Spine2";
-            var parent = Find(body, bone) ?? body;
+            var parent = Art.Bone(body, bone) ?? body;
             var host = new GameObject("gear_" + part).transform;
             host.SetParent(parent, false);
             var col = Color.Lerp(Art.Rarity(it.rarity), Color.white, 0.25f);
@@ -315,25 +315,7 @@ namespace Hollowmere
                 world.z / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
         }
 
-        static Transform Hand(Transform body) => FindBone(body, "RightHand") ?? FindBone(body, "hand");
-
-        static Transform FindBone(Transform root, string name)
-        {
-            var exact = Find(root, name);
-            if (exact != null) return exact;
-            return FindSuffix(root, name);
-        }
-
-        static Transform FindSuffix(Transform root, string name)
-        {
-            if (BoneName(root.name, name)) return root;
-            for (int i = 0; i < root.childCount; i++)
-            {
-                var hit = FindSuffix(root.GetChild(i), name);
-                if (hit != null) return hit;
-            }
-            return null;
-        }
+        static Transform Hand(Transform body) => Art.Bone(body, "RightHand") ?? Art.Bone(body, "hand");
 
         static void Clear(Transform body)
         {

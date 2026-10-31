@@ -244,6 +244,8 @@ namespace Hollowmere
             p.team = Team.Hero; p.hero = h; p.cast = c; p.dir = dir.normalized; p.speed = speed; p.rangeLeft = range; p.mult = mult; p.pierce = c.pierce;
             p.hexBolt = bolt; p.tint = tint;
             p.transform.rotation = Quaternion.LookRotation(p.dir);
+            if (c.skill.family == WeaponFamily.Magic)
+                p.ArmTravel(c.element == Element.Physical ? Element.Arcane : c.element);
             if (bolt)
             {
                 var glow = p.gameObject.AddComponent<Light>();
@@ -259,6 +261,7 @@ namespace Hollowmere
         {
             var p = Make(from, Art.Element(el) * 0.8f + Color.red * 0.2f, Vector3.one * 0.45f);
             p.team = Team.Monster; p.monster = m; p.raw = raw; p.el = el; p.dir = dir.normalized; p.speed = 11f; p.rangeLeft = range + 2; p.slow = slow;
+            if (el != Element.Physical) p.ArmTravel(el);
         }
 
         static Projectile Make(Vector3 at, Color c, Vector3 scale)
@@ -267,6 +270,23 @@ namespace Hollowmere
             var p = g.AddComponent<Projectile>();
             p.baseScale = scale;
             return p;
+        }
+
+        void ArmTravel(Element el)
+        {
+            string key = el == Element.Fire ? "spell_travel_fire"
+                : el == Element.Frost ? "spell_travel_frost"
+                : el == Element.Poison ? "spell_travel_shadow"
+                : el == Element.Arcane || el == Element.Lightning ? "spell_travel_arcane"
+                : null;
+            var clip = AudioHub.FindClip(key);
+            if (clip == null) return;
+            var src = gameObject.AddComponent<AudioSource>();
+            src.clip = clip;
+            src.loop = true;
+            src.spatialBlend = 0.55f;
+            src.volume = 0.42f * (AudioHub.I != null ? AudioHub.I.sfxVolume : 0.8f);
+            src.Play();
         }
 
         void Update()

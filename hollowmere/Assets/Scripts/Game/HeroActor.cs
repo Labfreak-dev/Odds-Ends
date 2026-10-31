@@ -52,14 +52,13 @@ namespace Hollowmere
             var b = new GameObject("body").transform;
             b.SetParent(transform, false);
             body = b;
-            var model = Art.Animated(Art.HeroModelKey(Hero.PresentationClass), 1.8f, b);
+            var model = Art.Animated(Art.HeroMesh(Hero), 1.8f, b);
             // A generated hero carries its own weapon, so no primitive weapon is attached (hand stays null).
             if (model != null)
             {
                 figure = model.transform;
                 modelAnim = model.GetComponent<ModelAnim>();
-                if (Hero.classless)
-                    Art.Tint(model, new Color(Mathf.Clamp01(Hero.armourR), Mathf.Clamp01(Hero.armourG), Mathf.Clamp01(Hero.armourB)));
+                if (Hero.classless) Art.PaintHero(model, Hero);
             }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.PresentationClass), Art.ClassColor(Hero.PresentationClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
             var ring = Hero.classless

@@ -11,26 +11,12 @@ namespace Hollowmere
     public static class TitleScreen
     {
         static PetSpecies pet = PetSpecies.Hound;
-        static int body, skin, hair, face, armour;
+        static int body, skin, hair, face, armour, plate;
         static readonly string[] HeroNames = { "Aldric", "Maren", "Tobin", "Wren", "Corvin", "Isolde", "Bram", "Sela" };
         static readonly string[] PetNames = { "Biscuit", "Pickles", "Bramble", "Soot", "Mossy", "Pepper" };
         static readonly string[] BodyNames = { "Lean", "Balanced", "Broad" };
         static readonly string[] FaceNames = { "Calm", "Stern", "Scarred", "Bright" };
-        static readonly Color[] SkinTints =
-        {
-            new Color(0.93f, 0.76f, 0.62f), new Color(0.72f, 0.5f, 0.36f), new Color(0.45f, 0.3f, 0.22f),
-            new Color(0.96f, 0.84f, 0.7f), new Color(0.55f, 0.42f, 0.34f),
-        };
-        static readonly Color[] HairTints =
-        {
-            new Color(0.15f, 0.1f, 0.08f), new Color(0.55f, 0.32f, 0.16f), new Color(0.85f, 0.72f, 0.35f),
-            new Color(0.35f, 0.35f, 0.4f), new Color(0.7f, 0.15f, 0.12f),
-        };
-        static readonly Color[] ArmourTints =
-        {
-            new Color(0.72f, 0.74f, 0.78f), new Color(0.45f, 0.32f, 0.22f), new Color(0.25f, 0.38f, 0.62f),
-            new Color(0.55f, 0.18f, 0.16f), new Color(0.28f, 0.42f, 0.28f),
-        };
+        static readonly string[] PlateNames = { "Cloth", "Plate" };
 
         static GameObject root;
         static UiRoot ui;
@@ -42,6 +28,7 @@ namespace Hollowmere
         static readonly List<Button> hairButtons = new List<Button>();
         static readonly List<Button> faceButtons = new List<Button>();
         static readonly List<Button> armourButtons = new List<Button>();
+        static readonly List<Button> plateButtons = new List<Button>();
         static readonly List<(PetSpecies pet, Button button)> pets = new List<(PetSpecies, Button)>();
         static bool onCreate;
         static Button cornerBack;
@@ -59,6 +46,7 @@ namespace Hollowmere
             hairButtons.Clear();
             faceButtons.Clear();
             armourButtons.Clear();
+            plateButtons.Clear();
             pets.Clear();
 
             root = new GameObject("title", typeof(RectTransform));
@@ -171,6 +159,8 @@ namespace Hollowmere
             Ui.Size(music, 120);
             var shake = Ui.Button(col, ShakeLabel(), ToggleShake, null, 32);
             Ui.Size(shake, 120);
+            var credits = Ui.Button(col, "CREDITS", () => CreditsScreen.Show(ui), null, 32);
+            Ui.Size(credits, 120);
             return card;
         }
 
@@ -222,10 +212,11 @@ namespace Hollowmere
 
             nameField = NameBox(list);
             ChoiceRow(list, "Body", BodyNames, bodyButtons, i => { body = i; Paint(); });
-            SwatchRow(list, "Skin", SkinTints, skinButtons, i => { skin = i; Paint(); });
-            SwatchRow(list, "Hair", HairTints, hairButtons, i => { hair = i; Paint(); });
+            SwatchRow(list, "Skin", Art.SkinTints, skinButtons, i => { skin = i; Paint(); });
+            SwatchRow(list, "Hair", Art.HairTints, hairButtons, i => { hair = i; Paint(); });
             ChoiceRow(list, "Face", FaceNames, faceButtons, i => { face = i; Paint(); });
-            SwatchRow(list, "Armour", ArmourTints, armourButtons, i => { armour = i; Paint(); });
+            SwatchRow(list, "Armour", Art.ArmourTints, armourButtons, i => { armour = i; Paint(); });
+            ChoiceRow(list, "Plate", PlateNames, plateButtons, i => { plate = i; Paint(); });
             var blurbRt = Ui.Rect(list, "blurb", Vector2.zero, Vector2.one);
             blurb = Ui.Label(blurbRt, "", 20, TextAnchor.UpperLeft, new Color(0.9f, 0.86f, 0.76f));
             Ui.Size(blurbRt, 88);
@@ -345,12 +336,13 @@ namespace Hollowmere
             }
         }
 
-        static Color PreviewTint()
+        static void ShowStage()
         {
-            var s = SkinTints[Mathf.Clamp(skin, 0, SkinTints.Length - 1)];
-            var h = HairTints[Mathf.Clamp(hair, 0, HairTints.Length - 1)];
-            var a = ArmourTints[Mathf.Clamp(armour, 0, ArmourTints.Length - 1)];
-            return new Color(s.r * 0.42f + a.r * 0.4f + h.r * 0.18f, s.g * 0.42f + a.g * 0.4f + h.g * 0.18f, s.b * 0.42f + a.b * 0.4f + h.b * 0.18f);
+            if (stage == null) return;
+            var s = Art.SkinTints[Mathf.Clamp(skin, 0, Art.SkinTints.Length - 1)];
+            var h = Art.HairTints[Mathf.Clamp(hair, 0, Art.HairTints.Length - 1)];
+            var a = Art.ArmourTints[Mathf.Clamp(armour, 0, Art.ArmourTints.Length - 1)];
+            stage.SetLook(plate > 0, s, Art.ClothTint(body), h, a, pet);
         }
 
         static void SelectPet(PetSpecies p)
@@ -363,12 +355,13 @@ namespace Hollowmere
         {
             if (blurb != null)
                 blurb.text = $"{BodyNames[body]} · {FaceNames[face]}\nOne hero. The weapon in hand sets the attack. Skills come from loot.\n" + PetSheet(pet);
-            if (onCreate && stage != null) stage.SetLook(PreviewTint(), pet);
+            if (onCreate && stage != null) ShowStage();
             PaintMarks(bodyButtons, body);
-            PaintSwatches(skinButtons, SkinTints, skin);
-            PaintSwatches(hairButtons, HairTints, hair);
+            PaintSwatches(skinButtons, Art.SkinTints, skin);
+            PaintSwatches(hairButtons, Art.HairTints, hair);
             PaintMarks(faceButtons, face);
-            PaintSwatches(armourButtons, ArmourTints, armour);
+            PaintSwatches(armourButtons, Art.ArmourTints, armour);
+            PaintMarks(plateButtons, plate);
             foreach (var (p, b) in pets) PaintChoice(b, p == pet);
         }
 
@@ -378,7 +371,7 @@ namespace Hollowmere
             if (stage == null) stage = HeroStage.Create(stageView);
             stage.gameObject.SetActive(true);
             stageView.gameObject.SetActive(true);
-            stage.SetLook(PreviewTint(), pet);
+            ShowStage();
         }
 
         static void DropStage()
@@ -445,12 +438,13 @@ namespace Hollowmere
             var petName = PetNames[r.Next(PetNames.Length)];
             var companion = pet;
             int b = body, sk = skin, hr = hair, fc = face;
-            var tint = ArmourTints[Mathf.Clamp(armour, 0, ArmourTints.Length - 1)];
+            var tint = Art.ArmourTints[Mathf.Clamp(armour, 0, Art.ArmourTints.Length - 1)];
+            int plated = plate;
             var go = root;
             root = null;
             DropStage();
             AudioHub.Play("ui_start_game", 1f);
-            ui.FadeAndClose(go, () => GameManager.I.NewGameCustom(hero, b, sk, hr, fc, tint.r, tint.g, tint.b, companion, petName));
+            ui.FadeAndClose(go, () => GameManager.I.NewGameCustom(hero, b, sk, hr, fc, tint.r, tint.g, tint.b, companion, petName, plated));
         }
 
         static string PetSheet(PetSpecies p) => p == PetSpecies.Hound

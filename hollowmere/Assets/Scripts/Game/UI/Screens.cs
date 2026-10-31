@@ -69,7 +69,20 @@ namespace Hollowmere
             Ui.Size(Ui.Button(rl, "Save", () => { gm.Save(); ui.Toast("Saved."); }), 70);
             Ui.Size(Ui.Button(rl, $"Sound: {(AudioHub.I.sfxVolume > 0 ? "on" : "off")}", () => { AudioHub.SetVolumes(AudioHub.I.sfxVolume > 0 ? 0 : 0.8f, AudioHub.I.musicVolume); Show(ui); }), 70);
             Ui.Size(Ui.Button(rl, $"Music: {(AudioHub.I.musicVolume > 0 ? "on" : "off")}", () => { AudioHub.SetVolumes(AudioHub.I.sfxVolume, AudioHub.I.musicVolume > 0 ? 0 : 0.45f); Show(ui); }), 70);
+            Ui.Size(Ui.Button(rl, "Credits", () => CreditsScreen.Show(ui)), 70);
             Ui.Size(Ui.Button(rl, "Save and quit to title", () => { gm.Save(); ui.CloseAll(); ui.ShowTitle(); }, new Color(0.4f, 0.15f, 0.12f)), 70);
+        }
+    }
+
+    public static class CreditsScreen
+    {
+        public static void Show(UiRoot ui)
+        {
+            var body = ui.Modal("credits", "Credits", new Vector2(0.08f, 0.06f), new Vector2(0.92f, 0.94f));
+            var list = Ui.Scroll(body, 8);
+            var text = Resources.Load<TextAsset>("AudioCredits");
+            string bodyText = text != null ? text.text : "Audio credits could not be loaded.";
+            Ui.Size(Ui.Label(Ui.Rect(list, "credits", Vector2.zero, Vector2.one), bodyText, 22, TextAnchor.UpperLeft), 2400);
         }
     }
 
@@ -390,7 +403,7 @@ namespace Hollowmere
             Vector3 from = hero != null ? hero.transform.position + Vector3.up * 1.25f + hero.transform.forward * 0.35f : bobber.position;
             if (hero != null)
             {
-                var hand = Find(hero.transform, "RightHand");
+                var hand = Art.Bone(hero.transform, "RightHand");
                 if (hand != null) from = hand.position;
             }
             Vector3 to = bobber.position;

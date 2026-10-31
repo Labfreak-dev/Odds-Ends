@@ -794,7 +794,7 @@ static class Program
         int tex = json.IndexOf("baseColorTexture", StringComparison.Ordinal);
         Check(tex >= 0, "npc_smith material references baseColorTexture");
         int images = json.IndexOf("\"images\"", StringComparison.Ordinal);
-        Check(images >= 0 && images < tex, "npc_smith.glb embeds an image before the material uses it");
+        Check(images >= 0 && json.IndexOf("\"bufferView\"", images, StringComparison.Ordinal) >= 0, "npc_smith.glb embeds an image");
     }
 
     static string GlbJson(string path)

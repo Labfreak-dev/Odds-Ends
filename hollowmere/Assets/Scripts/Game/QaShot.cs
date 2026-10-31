@@ -14,6 +14,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot fishing
     ///   Hollowmere -qaShot gearclose
     ///   Hollowmere -qaShot npcs
+    ///   Hollowmere -qaShot npcs-close
     ///   Hollowmere -qaShot creator
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
@@ -57,7 +58,8 @@ namespace Hollowmere
             bool gearClose = scene == "gearclose" || scene == "gear-close";
             bool gems = scene == "gems" || scene == "jeweler";
             bool fishing = scene == "fishing" || scene == "fish";
-            bool npcs = scene == "npcs" || scene == "npc";
+            bool npcs = scene == "npcs" || scene == "npc" || scene == "npcs-close" || scene == "npcclose";
+            bool npcsClose = scene == "npcs-close" || scene == "npcclose";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
@@ -89,7 +91,8 @@ namespace Hollowmere
                 if (dungeon) gm.EnterFloor(1);
                 else gm.EnterTown(false);
                 yield return new WaitForSeconds(0.8f);
-                if (npcs) FrameNpcs();
+                if (npcsClose) FrameNpcsClose();
+                else if (npcs) FrameNpcs();
                 Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
                 if (albedo == null)
@@ -230,6 +233,44 @@ namespace Hollowmere
             var cam = Camera.main;
             if (cam == null) return;
             cam.fieldOfView = 42f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        /// <summary>Line the service NPCs up and frame them from a few metres, so props and faces read.</summary>
+        static void FrameNpcsClose()
+        {
+            var row = new System.Collections.Generic.List<Interactable>();
+            foreach (var it in Interactable.All)
+            {
+                if (it == null) continue;
+                switch (it.kind)
+                {
+                    case InteractKind.Merchant:
+                    case InteractKind.Blacksmith:
+                    case InteractKind.Mystic:
+                    case InteractKind.Fisherman:
+                    case InteractKind.Jeweler:
+                    case InteractKind.Gambler:
+                        row.Add(it);
+                        break;
+                }
+            }
+            Vector3 origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            for (int i = 0; i < row.Count; i++)
+            {
+                var it = row[i];
+                it.transform.position = origin + new Vector3((i - (row.Count - 1) * 0.5f) * 1.65f, 0f, 3.4f);
+                it.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                Debug.Log("Hollowmere QA npc close " + it.kind + " at " + it.transform.position.ToString("0.0"));
+            }
+            var look = origin + new Vector3(0f, 1.2f, 3.4f);
+            var camPos = look + new Vector3(0f, 0.35f, -8.2f);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 40f;
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));

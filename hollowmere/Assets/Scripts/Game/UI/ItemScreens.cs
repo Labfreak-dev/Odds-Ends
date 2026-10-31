@@ -124,7 +124,7 @@ namespace Hollowmere
             rawRt.offsetMin = new Vector2(8, 8); rawRt.offsetMax = new Vector2(-8, -8);
             var raw = rawGo.AddComponent<RawImage>();
             raw.raycastTarget = false;
-            link.extra = InventoryStage.Build(h.PresentationClass, raw).gameObject;
+            link.extra = InventoryStage.Build(h, raw).gameObject;
 
             foreach (var d in DesignTable.Doll)
             {
@@ -576,7 +576,7 @@ namespace Hollowmere
         Camera cam;
         int framed;
 
-        public static InventoryStage Build(HeroClass cls, RawImage target)
+        public static InventoryStage Build(Hero hero, RawImage target)
         {
             var root = new GameObject("InventoryStage");
             root.transform.position = new Vector3(4000f, 0f, 4000f);
@@ -624,7 +624,8 @@ namespace Hollowmere
             var pivot = new GameObject("pivot").transform;
             pivot.SetParent(root.transform, false);
             stage.pivot = pivot;
-            Art.Animated(Art.HeroModelKey(cls), 1.8f, pivot);
+            var model = Art.Animated(Art.HeroMesh(hero), 1.8f, pivot);
+            if (hero != null && hero.classless) Art.PaintHero(model, hero);
             foreach (var tr in root.GetComponentsInChildren<Transform>(true))
                 tr.gameObject.layer = 9;
             camGo.layer = 9;

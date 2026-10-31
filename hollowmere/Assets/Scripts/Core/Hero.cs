@@ -11,7 +11,7 @@ namespace Hollowmere.Core
         public HeroClass heroClass;
         /// <summary>One hero. The old class is kept so a save still knows which skills were granted.</summary>
         public bool classless;
-        public int body, skin, hair, face;
+        public int body, skin, hair, face, plate;
         public float armourR = 1f, armourG = 1f, armourB = 1f;
         public int level = 1;
         public long xp;
@@ -167,7 +167,7 @@ namespace Hollowmere.Core
             }
         }
 
-        public static Hero CreateCustom(string name, int body, int skin, int hair, int face, float r, float g, float b, Rng rng)
+        public static Hero CreateCustom(string name, int body, int skin, int hair, int face, float r, float g, float b, Rng rng, int plate = 0)
         {
             var called = string.IsNullOrWhiteSpace(name) ? "Wanderer" : name.Trim();
             var h = Create(HeroClass.Ironclad, called, rng);
@@ -176,6 +176,7 @@ namespace Hollowmere.Core
             h.skin = skin;
             h.hair = hair;
             h.face = face;
+            h.plate = plate;
             h.armourR = r;
             h.armourG = g;
             h.armourB = b;

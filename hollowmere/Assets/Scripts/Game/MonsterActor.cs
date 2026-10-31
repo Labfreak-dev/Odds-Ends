@@ -187,6 +187,7 @@ namespace Hollowmere
             }
             if (role == MonsterRole.Brute || stats.rank == MonsterRank.Boss)
             {
+                AudioHub.Vary("monster_roar", 0.55f);
                 foreach (var a in InRadius(Team.Monster, Pos + transform.forward * 1.5f, 2.5f)) Deal(a, stats.damage, true);
                 Fx.Ring(Pos + transform.forward * 1.5f, 2.5f, Art.Element(stats.def.element), 0.25f);
                 return;

@@ -348,35 +348,94 @@ namespace Hollowmere
             Fx.Burst(Pos + Vector3.up, Art.Hex(stats.def.color), 1.6f, 0.3f);
             enabled = false;
             bool played = modelAnim != null && modelAnim.PlayClip("death", 2.2f);
-            bool beast = stats.def.model == "hm_rat" || stats.def.model == "hm_bat" || stats.def.model == "hm_spider";
-            if (beast && modelAnim != null)
-            {
-                var drop = modelAnim.gameObject.AddComponent<BeastDeath>();
-                float y = modelAnim.transform.localPosition.y;
-                drop.floorY = stats.def.model == "hm_bat" ? 0f : y - 0.35f;
-            }
-            if (!played && body != null) body.localRotation = Quaternion.Euler(-85, 0, 0);
-            Destroy(gameObject, played ? 2.4f : 1.5f);
+            foreach (var hover in GetComponentsInChildren<BatHover>(true))
+                hover.enabled = false;
+            if (body != null) body.gameObject.AddComponent<DeathLay>();
+            Destroy(gameObject, played ? 2.6f : 1.8f);
         }
     }
 
-    /// <summary>Beast death clips roll in place. Ease the body down onto the floor while the clip plays.</summary>
-    public sealed class BeastDeath : MonoBehaviour
+    /// <summary>Keeps the bat 1.2 m off the floor and bobs it. LateUpdate wins over the idle clip.</summary>
+    public sealed class BatHover : MonoBehaviour
     {
-        public float floorY;
-        Vector3 from;
-        float t;
+        public float height = 1.2f;
+        public float bob = 0.12f;
 
-        void Start() { from = transform.localPosition; }
-
-        void Update()
+        void LateUpdate()
         {
-            t += Time.deltaTime;
-            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 1.15f));
-            var p = from;
-            p.y = Mathf.Lerp(from.y, floorY, u);
+            var p = transform.localPosition;
+            p.y = height + Mathf.Sin(Time.time * 2.4f) * bob;
             transform.localPosition = p;
         }
+    }
+
+    /// <summary>Death ends with the body lying on the floor, not standing in the clip's last frame.</summary>
+    public sealed class DeathLay : MonoBehaviour
+    {
+        public float seconds = 1.35f;
+        Quaternion fromRot, flatRot;
+        float fromY, t;
+        bool chose, grounded;
+
+        void Start()
+        {
+            fromRot = transform.localRotation;
+            fromY = transform.localPosition.y;
+        }
+
+        void LateUpdate()
+        {
+            t += Time.deltaTime;
+            if (!chose)
+            {
+                chose = true;
+                flatRot = Flattest();
+            }
+            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / seconds));
+            transform.localRotation = Quaternion.Slerp(fromRot, flatRot, u);
+            var p = transform.localPosition;
+            p.y = Mathf.Lerp(fromY, 0f, u);
+            transform.localPosition = p;
+            if (t >= seconds && !grounded)
+            {
+                grounded = true;
+                Ground();
+            }
+        }
+
+        public bool Done => t >= seconds;
+
+        Quaternion Flattest()
+        {
+            var origin = transform.localRotation;
+            var best = origin;
+            float bestH = Height();
+            float[] pitches = { -90f, 90f, -80f, 80f };
+            for (int i = 0; i < pitches.Length; i++)
+            {
+                transform.localRotation = origin * Quaternion.Euler(pitches[i], 0f, 0f);
+                float h = Height();
+                if (h < bestH - 0.05f)
+                {
+                    bestH = h;
+                    best = transform.localRotation;
+                }
+            }
+            transform.localRotation = origin;
+            return best;
+        }
+
+        void Ground()
+        {
+            if (!WorldBounds(out var b)) return;
+            float dy = -b.min.y;
+            if (Mathf.Abs(dy) > 0.01f && Mathf.Abs(dy) < 3f)
+                transform.position += new Vector3(0f, dy, 0f);
+        }
+
+        float Height() => WorldBounds(out var b) ? b.size.y : 99f;
+
+        bool WorldBounds(out Bounds b) => Art.MeshWorldBounds(transform, out b);
     }
 
     public static class VecExt

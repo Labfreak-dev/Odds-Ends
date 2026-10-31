@@ -20,8 +20,7 @@ Shader "Hollowmere/Sky"
 
         Pass
         {
-            Name "Sky"
-            Tags { "LightMode" = "UniversalForward" }
+            Name "Skybox"
 
             HLSLPROGRAM
             #pragma vertex vert

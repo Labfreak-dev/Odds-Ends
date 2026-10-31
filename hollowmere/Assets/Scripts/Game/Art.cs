@@ -313,7 +313,7 @@ namespace Hollowmere
             // v5 meshes are already in metres. A stale skinned box reads as 1 cm or as a
             // giant, and fitting from that either hides the hero or blows a prop up.
             // CC0 props are already in metres. Fitting them from a bad box turned doors into giant slabs.
-            fit.freeze = v5 || key.StartsWith("npc_") || key.StartsWith("cc0_");
+            fit.freeze = v5 || key.StartsWith("npc_") || key.StartsWith("cc0_") || key.StartsWith("hm_");
             if (v5) ReadySkin(go);
             if (key.StartsWith("npc_"))
             {
@@ -353,7 +353,7 @@ namespace Hollowmere
                 fit.freeze = true;
                 DressMonster(bodyKey, go.transform);
                 if (bodyKey == "hm_rat") holder.transform.localScale *= 1.8f;
-                if (bodyKey == "hm_bat") holder.transform.localPosition = new Vector3(0f, 1f, 0f);
+                if (bodyKey == "hm_bat") holder.gameObject.AddComponent<BatHover>();
                 if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord")
                     go.AddComponent<BoneScaleLock>();
             }
@@ -436,10 +436,13 @@ namespace Hollowmere
             }
             else if (key == "hm_ossuary_king")
             {
-                Pin(rig, "hm_king_pauldron_left", "LeftArm", new Vector3(-0.00007f, -0.00003f, 0.00017f), new Quaternion(0.312039f, -0.035651f, -0.92486f, 0.214464f), 0.85f);
-                Pin(rig, "hm_king_pauldron_right", "RightArm", new Vector3(0.00048f, 0.00014f, -0.00016f), new Quaternion(-0.285569f, -0.039112f, -0.926962f, -0.240129f), 0.85f);
+                Pin(rig, "hm_king_pauldron_left", "LeftArm", new Vector3(-0.00007f, -0.00003f, 0.00017f), new Quaternion(0.312039f, -0.035651f, -0.92486f, 0.214464f), 1f);
+                Pin(rig, "hm_king_pauldron_right", "RightArm", new Vector3(0.00048f, 0.00014f, -0.00016f), new Quaternion(-0.285569f, -0.039112f, -0.926962f, -0.240129f), 1f);
                 Pin(rig, "hm_king_ribcage", "Spine2", new Vector3(0.00019f, -0.00054f, -0.00026f), new Quaternion(-0.124211f, -0.007048f, -0.007048f, 0.992206f), 1f);
                 Pin(rig, "hm_king_crown_spikes", "Head", new Vector3(0.00003f, 0.00043f, -0.00004f), new Quaternion(-0.06534f, -0.034902f, -0.034902f, 0.996642f), 1f);
+                var mace = Bone(rig, "king_mace");
+                var hand = Bone(rig, "RightHand");
+                AuditAttach(mace, hand, "king_mace");
             }
         }
 
@@ -457,6 +460,22 @@ namespace Hollowmere
             prop.transform.localRotation = rot;
             prop.transform.localScale = Vector3.one * scale;
             AuditProp(prop, propKey);
+            AuditAttach(prop.transform, joint, propKey);
+        }
+
+        /// <summary>The prop root should sit on its bone. Manifest offsets are a few millimetres. Over 10 cm is a missed parent.</summary>
+        public static void AuditAttach(Transform prop, Transform bone, string key)
+        {
+            if (prop == null || bone == null)
+            {
+                Debug.LogError("Hollowmere prop " + key + " FAIL missing bone");
+                return;
+            }
+            float d = Vector3.Distance(prop.position, bone.position);
+            string cm = (d * 100f).ToString("0.0");
+            Debug.Log("Hollowmere prop " + key + " bone=" + bone.name + " dist=" + cm + "cm");
+            if (d > 0.10f)
+                Debug.LogError("Hollowmere prop " + key + " FAIL " + cm + "cm from " + bone.name);
         }
 
         /// <summary>World size of a prop after it is parented. Anything over 2.5 m is a bad scale or a missed bone.</summary>
@@ -1460,8 +1479,6 @@ namespace Hollowmere
                 // The rat is small in the file, so it is already 1.8 times inside Model.
                 if (def.model != null && (def.model.StartsWith("kk_") || V5Monster(def.model)))
                     m.transform.localScale *= scale;
-                if (def.model == "hm_bat")
-                    m.transform.localPosition = new Vector3(0f, 1f / Mathf.Max(0.01f, m.transform.localScale.y), 0f);
                 return m;
             }
             var c = Hex(def.color);

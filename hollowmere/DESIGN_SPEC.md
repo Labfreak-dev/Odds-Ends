@@ -520,7 +520,7 @@ The story guardian is the floor-40 exit. It uses the same phase rules. No separa
 
 The design canvas is 2340 by 1080 dp, landscape, origin at the top-left, +y down. 1 dp is one pixel of that canvas. The runtime scaler uses this reference resolution and may letterbox; these rectangles are in design dp, not raw device pixels. Place one with its pivot and anchor on the canvas top-left and its anchored position at (x, −y).
 
-The inventory screen keeps the hero model in the centre, with gear slots down both sides and the bag on the right. Slot coordinates are on the canvas. The tooltip is the only card that covers another rectangle, and only while an item is selected: it covers the left of the bag grid. Every other pair on a screen is disjoint, apart from a panel and the rectangles inside it (the bag contains the grid, currency, sort, actions, tooltip, and close). The two column rectangles contain their slots.
+The inventory screen is the locked centre-stage layout. Rects below are the `layout_2340x1080` block of `Assets/Art/UI/inventory/slices.json`, and because that file is authored on this same 2340×1080 canvas, one pixel there is one dp here. The hero view is the centre. Gear runs down both sides. The bag is the panel on the right. The tooltip opens over the hero while an item is selected. The hero view overlaps the left column by 10 dp; the frame is the border and the model sits in the clear middle. The bag contains the grid, the tabs, and the bottom bar. The header overlaps the top 10 dp of the hero view. Slice borders in that json are Unity order L, B, R, T. `tooltip_header` is greyscale and is tinted by rarity. `paperdoll_panel.png` is not used.
 
 ### T.ui
 
@@ -544,21 +544,17 @@ The inventory screen keeps the hero model in the centre, with gear slots down bo
 | hud | skill4 | 2244 | 848 | 72 | 72 |
 | hud | potion | 1980 | 984 | 64 | 64 |
 | inventory | screen | 0 | 0 | 2340 | 1080 |
-| inventory | name | 40 | 36 | 480 | 44 |
-| inventory | level | 40 | 84 | 240 | 32 |
-| inventory | stats | 540 | 36 | 450 | 72 |
-| inventory | model | 168 | 120 | 720 | 880 |
-| inventory | leftColumn | 40 | 140 | 104 | 708 |
-| inventory | rightColumn | 912 | 140 | 104 | 688 |
-| inventory | tabs | 168 | 1012 | 720 | 48 |
-| inventory | bag | 1088 | 36 | 1216 | 1008 |
-| inventory | currency | 1148 | 52 | 520 | 40 |
-| inventory | close | 2216 | 48 | 64 | 64 |
-| inventory | grid | 1148 | 148 | 636 | 744 |
-| inventory | gridCell | 0 | 0 | 96 | 96 |
-| inventory | sort | 1148 | 920 | 200 | 64 |
-| inventory | actions | 1368 | 920 | 416 | 64 |
-| inventory | tooltip | 1148 | 160 | 480 | 640 |
+| inventory | hero | 300 | 110 | 1080 | 930 |
+| inventory | header | 600 | 40 | 480 | 80 |
+| inventory | leftColumn | 90 | 110 | 220 | 880 |
+| inventory | rightColumn | 1400 | 110 | 220 | 880 |
+| inventory | bag | 1640 | 60 | 660 | 960 |
+| inventory | grid | 1690 | 210 | 560 | 700 |
+| inventory | gridCell | 0 | 0 | 112 | 112 |
+| inventory | tabs | 1690 | 120 | 560 | 72 |
+| inventory | bottom | 1690 | 930 | 560 | 64 |
+| inventory | close | 2214 | 40 | 96 | 96 |
+| inventory | tooltip | 800 | 140 | 540 | 800 |
 | vendor | panel | 48 | 48 | 2244 | 984 |
 | vendor | goods | 72 | 120 | 900 | 760 |
 | vendor | actions | 72 | 900 | 900 | 80 |
@@ -568,36 +564,49 @@ The inventory screen keeps the hero model in the centre, with gear slots down bo
 | hero | info | 1580 | 120 | 480 | 560 |
 | hero | play | 960 | 960 | 420 | 72 |
 
-The bag grid is 6 columns by 7 rows. Cell size is 96 and the gap is 12, so the grid is `6*96 + 5*12 = 636` wide and `7*96 + 6*12 = 744` tall. The gridCell row's X and Y are unused; W and H are the cell. Capacity stays 40, so the last two cells are sealed. The tabs rect is split into two equal buttons, Equipment and Cosmetics.
+The bag grid is 5 columns by 6 rows of 112 dp cells with no gap, so the cells are `5*112 = 560` wide and `6*112 = 672` tall. The grid rect is 560×700, and the extra 28 dp sits under the cells. The gridCell row's X and Y are unused. Capacity is 30, one item per cell. The hero's feet anchor, which is a point rather than a rect, is (840, 1000). The tabs rect is Equipment and Cosmetics. The bottom bar is Sort and the item actions. The header is the name, the level, and one line of stats.
+
+Tooltip and beam tints for the new sprites use the art pack, not the text colours in section 6. `tooltip_header` uses the label column. The white loot beam, ground glow, and label use the beam column.
+
+### T.arttint
+
+| Rarity | Label | Beam |
+| --- | --- | --- |
+| common | FFFFFF | D8D8D8 |
+| magic | 6969FF | 6969FF |
+| rare | FFFF00 | FFE628 |
+| legendary | BF642F | FF8C28 |
+| set | 00FF00 | 3CE650 |
 
 ### T.bag
 
 | Id | Value |
 | --- | --- |
-| columns | 6 |
-| rows | 7 |
-| gap | 12 |
-| capacity | 40 |
+| columns | 5 |
+| rows | 6 |
+| gap | 0 |
+| capacity | 30 |
 
-Gear slots, canvas coordinates. Weapons are 104×148. Every other slot is 104×88. The left column, top to bottom, is amulet, ring, ring, weapon, off-hand, wrists. The right column is head, shoulders, chest, hands, waist, legs, feet. Empty slots name the family. Filled slots wash the cell with the rarity colour at 45% toward white and put an 8 dp rarity bar on the bottom edge.
+Gear slots are 112×112. The left column, top to bottom, is head, shoulders, chest, wrists, hands, belt, legs. The right column is amulet, ring, ring, cloak, feet, weapon, off-hand. Empty slots show the greyscale ghost for that family at 45% alpha. Filled slots use the rarity plate. Cloak is an equip slot.
 
 ### T.doll
 
 | Slot | X | Y | W | H |
 | --- | --- | --- | --- | --- |
-| amulet | 40 | 140 | 104 | 88 |
-| ring1 | 40 | 240 | 104 | 88 |
-| ring2 | 40 | 340 | 104 | 88 |
-| weapon | 40 | 440 | 104 | 148 |
-| offhand | 40 | 600 | 104 | 148 |
-| wrists | 40 | 760 | 104 | 88 |
-| head | 912 | 140 | 104 | 88 |
-| shoulders | 912 | 240 | 104 | 88 |
-| chest | 912 | 340 | 104 | 88 |
-| hands | 912 | 440 | 104 | 88 |
-| waist | 912 | 540 | 104 | 88 |
-| legs | 912 | 640 | 104 | 88 |
-| feet | 912 | 740 | 104 | 88 |
+| head | 144 | 134 | 112 | 112 |
+| shoulders | 144 | 254 | 112 | 112 |
+| chest | 144 | 374 | 112 | 112 |
+| wrists | 144 | 494 | 112 | 112 |
+| hands | 144 | 614 | 112 | 112 |
+| belt | 144 | 734 | 112 | 112 |
+| legs | 144 | 854 | 112 | 112 |
+| amulet | 1454 | 134 | 112 | 112 |
+| ring_l | 1454 | 254 | 112 | 112 |
+| ring_r | 1454 | 374 | 112 | 112 |
+| cloak | 1454 | 494 | 112 | 112 |
+| feet | 1454 | 614 | 112 | 112 |
+| mainhand | 1454 | 734 | 112 | 112 |
+| offhand | 1454 | 854 | 112 | 112 |
 
 ## 9. Movement
 
@@ -784,7 +793,7 @@ Section 6 already sets the beam. A drop also hops `hopMm` millimetres up over `h
 | Legendary | 12 | 1 |
 | Set | 12 | 1 |
 
-Until a licensed mesh is dropped at `Assets/Resources/Models/item_{baseId}.glb`, the ground model is a primitive. Sizes are millimetres. A two-handed weapon uses `twoHandMm` for its length instead of the weapon row's length. The icon is a 64×64 image generated in code, one per base id, replaced when `Assets/Art/Icons/{baseId}.png` is present. Generated art is original.
+Until a licensed mesh is dropped at `Assets/Resources/Models/item_{baseId}.glb`, the ground model is a primitive. Sizes are millimetres. A two-handed weapon uses `twoHandMm` for its length instead of the weapon row's length. The icon is a 64×64 image generated in code, one per base id, replaced when `Assets/Resources/Icons/{baseId}.png` is present (that folder ships in the player). Generated art is original.
 
 ### T.ground
 

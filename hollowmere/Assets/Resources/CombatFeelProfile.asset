@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5f13a26d9f86b4c0d7e3f2a1b8c9503, type: 3}
+  m_Name: CombatFeelProfile
+  m_EditorClassIdentifier: 
+  critStopMs: 60
+  killStopMs: 72
+  kickMm: 12
+  kickCapMm: 24
+  kicks: 1
+  numberNormal: {r: 0.957, g: 0.945, b: 0.918, a: 1}
+  numberCrit: {r: 1, g: 0.886, b: 0.353, a: 1}
+  numberHurt: {r: 1, g: 0.353, b: 0.29, a: 1}
+  flash: {r: 1, g: 1, b: 1, a: 1}
+  flashSeconds: 0.1
+  beamCommon: {r: 0.92, g: 0.92, b: 0.92, a: 1}
+  beamMagic: {r: 0.412, g: 0.412, b: 1, a: 1}
+  beamRare: {r: 1, g: 1, b: 0.25, a: 1}
+  beamLegendary: {r: 0.749, g: 0.392, b: 0.184, a: 1}
+  beamSet: {r: 0.15, g: 1, b: 0.2, a: 1}
+  stepCrypt: stone
+  stepCaverns: dirt
+  stepForge: stone
+  stepInfernal: dirt
+  deathDust: black_smoke_flipbook_5x5
+  deathEmber: fire_flipbook_4x4
+  deathWisp: holy_flipbook_4x4
+  wispCount: 3

@@ -21,11 +21,11 @@ namespace Hollowmere
 
         public static void Punch(string kind)
         {
-            float ms = DesignTable.HitStopMs(kind) / 1000f;
+            float ms = CombatFeelProfile.StopMs(kind) / 1000f;
             if (ms > 0f) holdUntil = Mathf.Max(holdUntil, Time.time + ms);
-            if (!ShakeEnabled) return;
-            float add = DesignTable.ShakeMm(kind) / 1000f;
-            float cap = DesignTable.ShakeMm("cap") / 1000f;
+            if (!ShakeEnabled || !CombatFeelProfile.KicksOn) return;
+            float add = CombatFeelProfile.KickMm(kind) / 1000f;
+            float cap = CombatFeelProfile.KickMm("cap") / 1000f;
             amp = Mathf.Min(cap, amp + add);
         }
 

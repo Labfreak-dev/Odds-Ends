@@ -307,7 +307,7 @@ namespace Hollowmere
     {
         public static float Yaw = 0f;
         public Transform follow;
-        public float distance = 10.5f, pitch = 55f;
+        public float distance = 8f, pitch = 55f;
         Camera cam;
         readonly List<Renderer> hidden = new List<Renderer>();
         bool locked;

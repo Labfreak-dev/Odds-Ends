@@ -146,6 +146,8 @@ namespace Hollowmere
         public static void CastGlyph(HeroActor h, string skillId)
         {
             if (h == null || string.IsNullOrEmpty(skillId) || !skillId.StartsWith("hx_")) return;
+            // The bolt cast sheet is a flat lavender hexagon. The projectile glow is the bolt.
+            if (skillId == "hx_bolt") return;
             string key = "hexweaver_hx_cast_" + skillId.Substring(3);
             var tex = CombatDrop.Tex(key);
             if (tex == null) return;

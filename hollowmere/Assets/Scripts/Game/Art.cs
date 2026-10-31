@@ -217,7 +217,6 @@ namespace Hollowmere
             // that covered the corner of the town and the dungeon.
             string bodyKey = ClipFeet.Strip(key);
             bool smith = bodyKey == "npc_smith";
-            bool merchant = bodyKey == "npc_merchant";
             if (bodyKey == "pet_hound") HideBellySlab(go);
             if (bodyKey == "pet_lynx") FaceLynx(go);
             if (IsCharacter(key))
@@ -229,11 +228,11 @@ namespace Hollowmere
                     // The walk rig is already Y-up, so it keeps identity.
                     go.transform.localRotation = go.transform.localRotation * SmithCorrection(key);
                 }
-                else if (IsBiped(key))
+                else if (IsBiped(key) && !key.StartsWith("npc_"))
                     StandUp(go.transform);
-                if (merchant)
-                    ForceHeight(go.transform, holder.transform, 1.75f);
-                else
+                // NPCs are scaled by NpcMeasure from renderer bounds after the skin
+                // updates. Fitting here reads the 0.01 armature and leaves a 1 cm body.
+                if (!key.StartsWith("npc_"))
                     FitToHeight(go.transform, holder.transform, height);
             }
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
@@ -242,13 +241,17 @@ namespace Hollowmere
             // ModelFit measures Renderer.bounds after the skin has updated. mesh.bounds stays
             // about two metres even when the armature scale is dropped and the draw is huge.
             var fit = holder.AddComponent<ModelFit>();
-            fit.targetHeight = merchant ? 1.75f : (IsCharacter(key) ? height : 0f);
+            fit.targetHeight = IsCharacter(key) ? height : 0f;
             fit.maxAxis = IsCharacter(key) ? Mathf.Max(2.5f, height * 1.3f) : 4f;
-            // Heroes keep the fit from b75410d. This pass only stands and rescales NPCs.
-            // Smith and merchant are already corrected; a second long-axis pass floats the head
-            // and shrinks the merchant.
-            fit.biped = key.StartsWith("npc_") && !smith && !merchant;
-            fit.freeze = smith || merchant;
+            // Heroes keep the fit from b75410d. NPC height is NpcMeasure, after the
+            // renderer bounds exist. ModelFit's long-axis turn floats the smith's head.
+            fit.biped = false;
+            fit.freeze = key.StartsWith("npc_");
+            if (key.StartsWith("npc_"))
+            {
+                var measure = holder.AddComponent<NpcMeasure>();
+                measure.target = height > 0.2f ? height : 1.75f;
+            }
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -263,11 +266,10 @@ namespace Hollowmere
             ma.runFoot = foot.run;
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
+            // Smith is oriented by SmithCorrection. The generic stand-up pitches the
+            // hammer up and never logs the holder, which is why the head had no line.
             if (key.StartsWith("npc_") && !smith)
-            {
-                holder.AddComponent<PoseUpright>();
                 holder.AddComponent<NpcStand>();
-            }
             if (key.StartsWith("hero_"))
             {
                 CombatClipPlayer.Attach(ma, key);
@@ -386,48 +388,6 @@ namespace Hollowmere
             go.localScale = go.localScale * (height / h);
             if (!WorldMeshBounds(go, out b)) return;
             go.position += new Vector3(holder.position.x - b.center.x, holder.position.y - b.min.y, holder.position.z - b.center.z);
-        }
-
-        /// <summary>Set the root scale from the mesh height times the armature scale.
-        /// World bounds on a 0.01 rig read as a full body, and the fit then leaves
-        /// the merchant a few centimetres tall.</summary>
-        static void ForceHeight(Transform go, Transform holder, float height)
-        {
-            float meshH = 0f;
-            Transform rendererT = null;
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
-            {
-                Mesh mesh = null;
-                var skin = r as SkinnedMeshRenderer;
-                if (skin != null) mesh = skin.sharedMesh;
-                else
-                {
-                    var mf = r.GetComponent<MeshFilter>();
-                    if (mf != null) mesh = mf.sharedMesh;
-                }
-                if (mesh == null) continue;
-                if (mesh.bounds.size.y > meshH)
-                {
-                    meshH = mesh.bounds.size.y;
-                    rendererT = r.transform;
-                }
-            }
-            if (meshH < 0.01f || rendererT == null) return;
-            float chain = 1f;
-            var t = rendererT;
-            while (t != null && t != go)
-            {
-                chain *= t.localScale.y;
-                t = t.parent;
-            }
-            float rootScale = height / (meshH * Mathf.Max(0.0001f, chain));
-            go.localScale = Vector3.one * rootScale;
-            if (!WorldMeshBounds(go, out var b)) return;
-            go.position += new Vector3(holder.position.x - b.center.x, holder.position.y - b.min.y, holder.position.z - b.center.z);
-            Debug.Log("Hollowmere NPC merchant height mesh=" + meshH.ToString("0.00")
-                + " chain=" + chain.ToString("0.000")
-                + " root=" + rootScale.ToString("0.00")
-                + " world=" + b.size.y.ToString("0.00"));
         }
 
         public static bool MeshWorldBounds(Transform root, out Bounds world) => WorldMeshBounds(root, out world);
@@ -1379,6 +1339,44 @@ namespace Hollowmere
         }
     }
 
+    /// <summary>Scales a town NPC from its renderer bounds once the GLB has drawn.
+    /// Mesh bounds at spawn read the 0.01 armature and log size=(0.01, 0.01, 0.01).</summary>
+    [DefaultExecutionOrder(220)]
+    public sealed class NpcMeasure : MonoBehaviour
+    {
+        public float target = 1.75f;
+        int step;
+
+        void LateUpdate()
+        {
+            if (step < 3) { step++; return; }
+            if (step == 3)
+            {
+                step = 4;
+                if (Art.UnionBounds(gameObject, out var b) && b.size.y > 0.001f)
+                {
+                    float factor = target / b.size.y;
+                    if (factor < 0.85f || factor > 1.15f)
+                        transform.localScale *= factor;
+                    if (Art.UnionBounds(gameObject, out b))
+                    {
+                        float ground = transform.parent != null ? transform.parent.position.y : transform.position.y;
+                        var anchor = transform.parent != null ? transform.parent.position : transform.position;
+                        transform.position += new Vector3(anchor.x - b.center.x, ground - b.min.y, anchor.z - b.center.z);
+                    }
+                }
+                return;
+            }
+            enabled = false;
+            var who = GetComponentInParent<Interactable>();
+            string label = who != null ? who.kind.ToString() : name;
+            Art.UnionBounds(gameObject, out var done);
+            Debug.Log("Hollowmere NPC " + label + " object=" + name
+                + " rot=" + transform.eulerAngles.ToString("0")
+                + " size=" + done.size.ToString("0.00"));
+        }
+    }
+
     /// <summary>
     /// Stands every town NPC by rotating its model root, and logs each one.
     /// Pitch and roll are tried once. The pose with the tallest mesh is kept,
@@ -1424,10 +1422,8 @@ namespace Hollowmere
                 }
             }
             transform.rotation = bestRot;
-            Art.MeshWorldBounds(transform, out b);
-            Debug.Log("Hollowmere NPC " + label + " object=" + name
-                + " rot=" + transform.eulerAngles.ToString("0")
-                + " size=" + b.size.ToString("0.00"));
+            // Size is logged by NpcMeasure after the renderer bounds exist.
+            // This pass still sees the 0.01 armature box.
         }
     }
 

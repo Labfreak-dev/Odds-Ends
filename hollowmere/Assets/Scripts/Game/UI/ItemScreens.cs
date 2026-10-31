@@ -499,7 +499,9 @@ namespace Hollowmere
             var pivot = new GameObject("pivot").transform;
             pivot.SetParent(root.transform, false);
             stage.pivot = pivot;
-            Art.Animated(Art.HeroModelKey(cls), 1.8f, pivot);
+            var worn = Art.Animated(Art.HeroModelKey(cls), 1.8f, pivot);
+            if (worn != null && GameManager.I != null && GameManager.I.State != null)
+                GearAttach.Apply(worn.transform, GameManager.I.State.hero);
             target.texture = tex;
             target.color = Color.white;
             return stage;

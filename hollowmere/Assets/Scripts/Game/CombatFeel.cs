@@ -146,6 +146,8 @@ namespace Hollowmere
         public static void CastGlyph(HeroActor h, string skillId)
         {
             if (h == null || string.IsNullOrEmpty(skillId) || !skillId.StartsWith("hx_")) return;
+            // The bolt cast sheet is a flat lavender hexagon. The projectile glow is the bolt.
+            if (skillId == "hx_bolt") return;
             string key = "hexweaver_hx_cast_" + skillId.Substring(3);
             var tex = CombatDrop.Tex(key);
             if (tex == null) return;
@@ -256,7 +258,10 @@ namespace Hollowmere
     {
         public static void Arm(HeroActor h, SkillCast c)
         {
-            if (h == null) return;
+            if (h == null || c == null || c.skill == null) return;
+            // A short wide ribbon with cap vertices draws as a lavender hexagon
+            // beside the Hex Bolt glow. The bolt is the soft round sprite only.
+            if (c.skill.id == "hx_bolt") return;
             // World-space follower. Parenting the ribbon to the hand inherits the 0.01 armature
             // and the swing disappears.
             var go = new GameObject("weaponTrail");

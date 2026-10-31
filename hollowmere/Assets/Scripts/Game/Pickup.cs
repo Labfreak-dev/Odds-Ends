@@ -196,8 +196,10 @@ namespace Hollowmere
                     break;
                 case InteractKind.TownPortal:
                 case InteractKind.DungeonEntrance:
-                    var col = kind == InteractKind.TownPortal ? new Color(0.3f, 0.6f, 1f) : new Color(0.6f, 0.3f, 0.9f);
-                    Art.Cylinder(t, new Vector3(0, 1.3f, 0), new Vector3(1.6f, 0.05f, 2.4f), Art.Mat(col, 2f), Quaternion.Euler(90, 0, 0));
+                    var col = kind == InteractKind.TownPortal ? new Color(0.35f, 0.62f, 1f) : new Color(0.45f, 0.28f, 0.95f);
+                    // The old fill was a Hollowmere/Color disc (shader present, not stripped)
+                    // in a magenta-purple emission, which read as flat pink.
+                    Art.Portal(t, new Vector3(0f, 1.25f, 0f), new Vector3(1.55f, 2.15f, 1f), col);
                     if (kind == InteractKind.DungeonEntrance)
                     {
                         Art.Cube(t, new Vector3(-1.1f, 1.3f, 0), new Vector3(0.4f, 2.6f, 0.5f), Art.Mat(new Color(0.4f, 0.38f, 0.36f)));
@@ -229,9 +231,23 @@ namespace Hollowmere
                     string npc = kind switch
                     {
                         InteractKind.Merchant => "npc_merchant", InteractKind.Blacksmith => "npc_smith",
-                        InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher", _ => null,
+                        InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher",
+                        // No dedicated meshes yet. A vendor and a robed figure stand in
+                        // for the yellow jeweler blob and the green dealer capsule.
+                        InteractKind.Jeweler => "npc_merchant", InteractKind.Gambler => "npc_mystic",
+                        _ => null,
                     };
                     var model = npc != null ? Art.Animated(npc, 1.75f, t) : null;
+                    if (model != null && kind == InteractKind.Jeweler)
+                    {
+                        Art.Tint(model, new Color(1.15f, 0.78f, 0.42f));
+                        Art.Sphere(model.transform, new Vector3(0.28f, 1.15f, 0.35f), Vector3.one * 0.16f, Art.Mat(new Color(0.95f, 0.45f, 0.2f), 1.4f));
+                    }
+                    else if (model != null && kind == InteractKind.Gambler)
+                    {
+                        Art.Tint(model, new Color(0.45f, 0.95f, 0.62f));
+                        Art.Cube(model.transform, new Vector3(-0.22f, 1.05f, 0.32f), new Vector3(0.22f, 0.04f, 0.16f), Art.Mat(new Color(0.15f, 0.45f, 0.28f), 0.4f));
+                    }
                     if (model == null && kind == InteractKind.QuestBoard)
                     {
                         Art.Cube(t, new Vector3(0, 1.2f, 0), new Vector3(1.8f, 1.2f, 0.12f), Art.Mat(new Color(0.55f, 0.4f, 0.25f)));
@@ -303,7 +319,7 @@ namespace Hollowmere
     {
         public static float Yaw = 0f;
         public Transform follow;
-        public float distance = 15f, pitch = 55f;
+        public float distance = 8f, pitch = 55f;
         Camera cam;
         readonly List<Renderer> hidden = new List<Renderer>();
         bool locked;

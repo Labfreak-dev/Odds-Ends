@@ -13,6 +13,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot title
     ///   Hollowmere -qaShot fishing
     ///   Hollowmere -qaShot gearclose
+    ///   Hollowmere -qaShot npcs
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
     /// </summary>
@@ -47,6 +48,7 @@ namespace Hollowmere
             bool gearClose = scene == "gearclose" || scene == "gear-close";
             bool gems = scene == "gems" || scene == "jeweler";
             bool fishing = scene == "fishing" || scene == "fish";
+            bool npcs = scene == "npcs" || scene == "npc";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
@@ -60,6 +62,7 @@ namespace Hollowmere
                 if (dungeon) gm.EnterFloor(1);
                 else gm.EnterTown(false);
                 yield return new WaitForSeconds(0.8f);
+                if (npcs) FrameNpcs();
                 Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
                 if (albedo == null)
@@ -159,6 +162,49 @@ namespace Hollowmere
             hero.Equip(Loot.Generate(rng, 8, Rarity.Rare, hero.heroClass, ItemSlot.Head, floor: 6));
             hero.Equip(Loot.Generate(rng, 8, Rarity.Magic, hero.heroClass, ItemSlot.Chest, floor: 6));
             gm.OnEquipmentChanged();
+        }
+
+        /// <summary>Wide town view that fits every service NPC, for pose checks.</summary>
+        static void FrameNpcs()
+        {
+            bool any = false;
+            Bounds box = default;
+            int count = 0;
+            foreach (var it in Interactable.All)
+            {
+                if (it == null) continue;
+                switch (it.kind)
+                {
+                    case InteractKind.Merchant:
+                    case InteractKind.Blacksmith:
+                    case InteractKind.Mystic:
+                    case InteractKind.Fisherman:
+                    case InteractKind.Jeweler:
+                    case InteractKind.Gambler:
+                        break;
+                    default:
+                        continue;
+                }
+                count++;
+                if (!Art.UnionBounds(it.gameObject, out var b) || b.size.y < 0.05f)
+                    b = new Bounds(it.transform.position + Vector3.up * 0.9f, new Vector3(0.8f, 1.8f, 0.6f));
+                if (!any) { box = b; any = true; }
+                else box.Encapsulate(b);
+                Debug.Log("Hollowmere QA npc " + it.kind + " at " + it.transform.position.ToString("0.0")
+                    + " size=" + b.size.ToString("0.00"));
+            }
+            Debug.Log("Hollowmere QA npc count=" + count);
+            if (!any) return;
+            var look = box.center;
+            float span = Mathf.Max(box.size.x, box.size.z);
+            float dist = Mathf.Clamp(span * 0.85f + 6f, 14f, 28f);
+            var camPos = look + new Vector3(0f, dist * 0.72f, -dist);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 42f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
         }
 
         /// <summary>Close 3/4 view so the helm, chest overlay, and weapon fill the frame.</summary>

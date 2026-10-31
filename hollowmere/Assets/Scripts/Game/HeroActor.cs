@@ -63,15 +63,23 @@ namespace Hollowmere
             rim.transform.SetParent(transform, false);
             rim.transform.localPosition = new Vector3(0.35f, 1.45f, -1.35f);
             rim.type = LightType.Point;
-            rim.range = 5.5f;
-            rim.intensity = 2.6f;
-            rim.color = new Color(0.82f, 0.72f, 1f);
+            rim.range = 6.5f;
+            rim.intensity = 6f;
+            rim.color = new Color(0.9f, 0.82f, 1f);
+            // Warm rim from behind the shoulders so the silhouette reads against the ground.
+            var edge = new GameObject("heroRim").AddComponent<Light>();
+            edge.transform.SetParent(transform, false);
+            edge.transform.localPosition = new Vector3(-0.45f, 1.7f, 1.15f);
+            edge.type = LightType.Point;
+            edge.range = 5.5f;
+            edge.intensity = 5f;
+            edge.color = new Color(1f, 0.72f, 0.45f);
             RefreshWeapon();
-            // A torch-light that follows the hero keeps dark floors readable on small screens.
+            // Key light just above the hero. The town sun alone left the body in shade.
             var l = new GameObject("heroLight").AddComponent<Light>();
             l.transform.SetParent(transform, false);
-            l.transform.localPosition = new Vector3(0, 4, 0);
-            l.type = LightType.Point; l.range = 14; l.intensity = 1.2f; l.color = new Color(1f, 0.9f, 0.75f);
+            l.transform.localPosition = new Vector3(0.4f, 2.6f, -0.8f);
+            l.type = LightType.Point; l.range = 9f; l.intensity = 4.5f; l.color = new Color(1f, 0.92f, 0.78f);
         }
 
         public void RefreshWeapon()

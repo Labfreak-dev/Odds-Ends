@@ -585,7 +585,7 @@ namespace Hollowmere
             stage.rt = tex;
             var camGo = new GameObject("cam");
             camGo.transform.SetParent(root.transform, false);
-            camGo.transform.localPosition = new Vector3(0f, 1.15f, -4.8f);
+            camGo.transform.localPosition = new Vector3(0.2f, 1.05f, -3.15f);
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.05f, 0.045f, 0.055f, 1f);
@@ -596,20 +596,27 @@ namespace Hollowmere
             cam.depth = -10f;
             cam.cullingMask = 1 << 9;
             if (Camera.main != null) Camera.main.cullingMask &= ~(1 << 9);
-            var sun = new GameObject("invSun").AddComponent<Light>();
+            var sun = new GameObject("invKey").AddComponent<Light>();
             sun.transform.SetParent(root.transform, false);
             sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(36f, 8f, 0f);
-            sun.intensity = 1.15f;
-            sun.color = new Color(1f, 0.9f, 0.78f);
+            sun.transform.rotation = Quaternion.Euler(40f, -24f, 0f);
+            sun.intensity = 2.2f;
+            sun.color = new Color(1f, 0.92f, 0.78f);
             sun.cullingMask = 1 << 9;
             var fill = new GameObject("invFill").AddComponent<Light>();
             fill.transform.SetParent(root.transform, false);
             fill.type = LightType.Directional;
-            fill.transform.rotation = Quaternion.Euler(12f, 190f, 0f);
-            fill.intensity = 0.28f;
-            fill.color = new Color(0.45f, 0.4f, 0.55f);
+            fill.transform.rotation = Quaternion.Euler(16f, 150f, 0f);
+            fill.intensity = 0.9f;
+            fill.color = new Color(0.58f, 0.54f, 0.74f);
             fill.cullingMask = 1 << 9;
+            var rim = new GameObject("invRim").AddComponent<Light>();
+            rim.transform.SetParent(root.transform, false);
+            rim.type = LightType.Directional;
+            rim.transform.rotation = Quaternion.Euler(8f, 200f, 0f);
+            rim.intensity = 1.45f;
+            rim.color = new Color(1f, 0.7f, 0.46f);
+            rim.cullingMask = 1 << 9;
             var floorTint = new Color(0.2f, 0.17f, 0.15f);
             var wallTint = new Color(0.1f, 0.09f, 0.1f);
             Art.PlaceQuad(root.transform, "stageFloor", new Vector3(0f, 0f, 0.2f), Quaternion.identity, 4.4f, 3.6f, Art.GroundMat("cobble", floorTint), true);
@@ -634,9 +641,9 @@ namespace Hollowmere
             if (framed < 6)
             {
                 framed++;
-                if (framed == 6 && cam != null && pivot != null && Art.MeshWorldBounds(pivot, out var b) && b.size.y > 1.1f && b.size.y < 2.6f)
+                if (framed == 6 && cam != null && pivot != null && Art.UnionBounds(pivot.gameObject, out var b) && b.size.y > 0.4f && b.size.y < 3.2f)
                 {
-                    float dist = Mathf.Clamp(b.size.y * 2.35f, 4.2f, 6.2f);
+                    float dist = Mathf.Clamp(b.size.y * 1.65f, 2.6f, 4.4f);
                     var look = b.center;
                     cam.transform.position = look + new Vector3(0f, b.size.y * 0.05f, -dist);
                     cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);

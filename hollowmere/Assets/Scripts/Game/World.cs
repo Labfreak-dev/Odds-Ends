@@ -191,7 +191,7 @@ namespace Hollowmere
             sun.transform.SetParent(root, false);
             sun.type = LightType.Directional;
             sun.transform.rotation = Quaternion.Euler(50, -30, 0);
-            sun.intensity = town ? 1.15f : 1.05f;
+            sun.intensity = town ? 1.85f : 1.35f;
             sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
             if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 

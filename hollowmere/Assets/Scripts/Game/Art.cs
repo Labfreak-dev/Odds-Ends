@@ -110,6 +110,49 @@ namespace Hollowmere
             return g;
         }
 
+        /// <summary>Vertical additive arch. Scrolls in the shader so it is not a flat colour card.</summary>
+        public static GameObject Portal(Transform parent, Vector3 pos, Vector3 scale, Color c)
+        {
+            var g = new GameObject("portal");
+            g.transform.SetParent(parent, false);
+            g.transform.localPosition = pos;
+            g.transform.localScale = scale;
+            var mf = g.AddComponent<MeshFilter>();
+            mf.sharedMesh = GlowQuadMesh();
+            var mr = g.AddComponent<MeshRenderer>();
+            var shader = Shader.Find("Hollowmere/Portal");
+            var m = shader != null ? new Material(shader) : GlowMat(c, false);
+            m.color = c;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+            if (m.HasProperty("_Speed")) m.SetFloat("_Speed", 0.4f);
+            mr.sharedMaterial = m;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            return g;
+        }
+
+        /// <summary>Multiply a model's albedo so a reused mesh reads as a different person.</summary>
+        public static void Tint(GameObject go, Color mul)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    Color c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.color;
+                    c = new Color(Mathf.Clamp01(c.r * mul.r), Mathf.Clamp01(c.g * mul.g), Mathf.Clamp01(c.b * mul.b), c.a);
+                    m.color = c;
+                    if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+                    if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+                }
+                r.materials = mats;
+            }
+        }
+
         static Mesh GlowQuadMesh()
         {
             if (glowQuad != null) return glowQuad;
@@ -216,12 +259,24 @@ namespace Hollowmere
             // Fitting those to a short target height blew a flat mesh into the giant plane
             // that covered the corner of the town and the dungeon.
             string bodyKey = ClipFeet.Strip(key);
+            bool smith = bodyKey == "npc_smith";
             if (bodyKey == "pet_hound") HideBellySlab(go);
             if (bodyKey == "pet_lynx") FaceLynx(go);
             if (IsCharacter(key))
             {
-                if (IsBiped(key)) StandUp(go.transform);
-                FitToHeight(go.transform, holder.transform, height);
+                if (smith)
+                {
+                    // npc_smith.glb is Z-up (1.89 m deep, 1.39 m tall). A long-axis
+                    // search stands the hammer and leaves the head floating.
+                    // The walk rig is already Y-up, so it keeps identity.
+                    go.transform.localRotation = go.transform.localRotation * SmithCorrection(key);
+                }
+                else if (IsBiped(key) && !key.StartsWith("npc_"))
+                    StandUp(go.transform);
+                // NPCs are scaled by NpcMeasure from renderer bounds after the skin
+                // updates. Fitting here reads the 0.01 armature and leaves a 1 cm body.
+                if (!key.StartsWith("npc_"))
+                    FitToHeight(go.transform, holder.transform, height);
             }
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
             foreach (var animator in go.GetComponentsInChildren<Animator>()) animator.applyRootMotion = false;
@@ -231,8 +286,15 @@ namespace Hollowmere
             var fit = holder.AddComponent<ModelFit>();
             fit.targetHeight = IsCharacter(key) ? height : 0f;
             fit.maxAxis = IsCharacter(key) ? Mathf.Max(2.5f, height * 1.3f) : 4f;
-            // Heroes keep the fit from b75410d. This pass only stands and rescales NPCs.
-            fit.biped = key.StartsWith("npc_");
+            // Heroes keep the fit from b75410d. NPC height is NpcMeasure, after the
+            // renderer bounds exist. ModelFit's long-axis turn floats the smith's head.
+            fit.biped = false;
+            fit.freeze = key.StartsWith("npc_");
+            if (key.StartsWith("npc_"))
+            {
+                var measure = holder.AddComponent<NpcMeasure>();
+                measure.target = height > 0.2f ? height : 1.75f;
+            }
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -247,11 +309,10 @@ namespace Hollowmere
             ma.runFoot = foot.run;
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
-            if (key.StartsWith("npc_"))
-            {
-                holder.AddComponent<PoseUpright>();
+            // Smith is oriented by SmithCorrection. The generic stand-up pitches the
+            // hammer up and never logs the holder, which is why the head had no line.
+            if (key.StartsWith("npc_") && !smith)
                 holder.AddComponent<NpcStand>();
-            }
             if (key.StartsWith("hero_"))
             {
                 CombatClipPlayer.Attach(ma, key);
@@ -355,6 +416,14 @@ namespace Hollowmere
             root.localRotation = best;
         }
 
+        /// <summary>Pitch that stands npc_smith.glb up. Walk clips are already Y-up.</summary>
+        static Quaternion SmithCorrection(string key)
+        {
+            if (key.IndexOf("walk", System.StringComparison.Ordinal) >= 0)
+                return Quaternion.identity;
+            return Quaternion.Euler(-90f, 0f, 0f);
+        }
+
         static void FitToHeight(Transform go, Transform holder, float height)
         {
             if (!WorldMeshBounds(go, out var b)) return;
@@ -395,10 +464,10 @@ namespace Hollowmere
             return any;
         }
 
-        /// <summary>glTF materials ship on URP shader graphs. Those graphs are not in the player
-        /// (always-including URP Lit compiles hundreds of thousands of variants), so a stripped
-        /// material draws magenta or drops out and leaves the black skirt showing through.
-        /// Copy albedo onto Hollowmere/Color, which is always included.</summary>
+        /// <summary>glTF materials ship on shader graphs that are not in the player.
+        /// Copy their base colour, normal and metal/roughness onto URP Lit when that
+        /// shader is loaded, otherwise onto Hollowmere/Lit (always included). Glow
+        /// stays on VFX. Capes and other double-sided shells are not back-face culled.</summary>
         public static void AdoptShaders(GameObject go)
         {
             if (go == null) return;
@@ -409,47 +478,150 @@ namespace Hollowmere
                 for (int i = 0; i < src.Length; i++)
                 {
                     var m = src[i];
-                    if (m != null && m.shader != null && (m.shader.name == "Hollowmere/Color" || m.shader.name == "Hollowmere/Text" || m.shader.name == "Hollowmere/Glow"))
+                    if (m != null && m.shader != null && KeepShader(m.shader.name))
                     {
                         next[i] = m;
                         continue;
                     }
-                    Color c = Color.white;
-                    Texture tex = null;
-                    if (m != null)
-                    {
-                        if (m.HasProperty("_BaseColor")) c = m.GetColor("_BaseColor");
-                        else if (m.HasProperty("_Color")) c = m.GetColor("_Color");
-                        else if (m.HasProperty("baseColorFactor")) c = m.GetColor("baseColorFactor");
-                        else c = m.color;
-                        tex = FirstAlbedo(m);
-                    }
-                    var dst = new Material(BaseMaterial());
-                    dst.color = c;
-                    if (dst.HasProperty("_BaseColor")) dst.SetColor("_BaseColor", c);
-                    if (tex != null)
-                    {
-                        // Sample the imported texture directly. Blitting a GPU-only glTF map
-                        // into a new Texture2D came back white and the dungeon hero was a blob.
-                        if (dst.HasProperty("_BaseMap")) dst.SetTexture("_BaseMap", tex);
-                        if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", tex);
-                        dst.mainTexture = tex;
-                        if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
-                        // Chest overlays ship a tiny embedded palette. Bilinear filtering
-                        // smears the swatches; the glTF sampler is nearest.
-                        if (tex.name.IndexOf("palette", System.StringComparison.OrdinalIgnoreCase) >= 0
-                            || (tex.width > 0 && tex.width <= 32 && tex.height <= 32))
-                        {
-                            tex.filterMode = FilterMode.Point;
-                            tex.anisoLevel = 0;
-                        }
-                        if (dst.GetTexture("_BaseMap") == null && dst.mainTexture == null)
-                            Debug.LogError("Hollowmere: albedo texture did not stick on " + go.name);
-                    }
-                    next[i] = dst;
+                    next[i] = MakeLit(m, r);
                 }
                 r.sharedMaterials = next;
             }
+        }
+
+        static bool KeepShader(string name)
+        {
+            return name == "Hollowmere/Color" || name == "Hollowmere/Text" || name == "Hollowmere/Glow"
+                || name == "Hollowmere/Sheet" || name == "Hollowmere/Lit"
+                || name == "Universal Render Pipeline/Lit";
+        }
+
+        static readonly string[] NormalNames = { "normalTexture", "_BumpMap", "_NormalMap", "normalTexture_tex" };
+        static readonly string[] MetalNames = { "metallicRoughnessTexture", "_MetallicGlossMap", "_MetallicRoughnessMap" };
+
+        static Material MakeLit(Material src, Renderer renderer)
+        {
+            Texture albedo = src != null ? FirstAlbedo(src) : null;
+            Texture normal = src != null ? FirstTex(src, NormalNames) : null;
+            bool gltfMetal = src != null && src.HasProperty("metallicRoughnessTexture") && src.GetTexture("metallicRoughnessTexture") != null;
+            Texture metal = src != null ? FirstTex(src, MetalNames) : null;
+            var urp = gltfMetal ? null : Shader.Find("Universal Render Pipeline/Lit");
+            var shader = urp != null ? urp : LitShader();
+            if (shader == null) shader = BaseMaterial().shader;
+            var dst = new Material(shader);
+            Color c = Color.white;
+            float metallic = 0f;
+            float smoothness = 0.35f;
+            if (src != null)
+            {
+                if (src.HasProperty("_BaseColor")) c = src.GetColor("_BaseColor");
+                else if (src.HasProperty("_Color")) c = src.GetColor("_Color");
+                else if (src.HasProperty("baseColorFactor")) c = src.GetColor("baseColorFactor");
+                else c = src.color;
+                if (src.HasProperty("metallicFactor")) metallic = src.GetFloat("metallicFactor");
+                else if (src.HasProperty("_Metallic")) metallic = src.GetFloat("_Metallic");
+                if (src.HasProperty("roughnessFactor")) smoothness = 1f - src.GetFloat("roughnessFactor");
+                else if (src.HasProperty("_Smoothness")) smoothness = src.GetFloat("_Smoothness");
+            }
+            dst.color = c;
+            if (dst.HasProperty("_BaseColor")) dst.SetColor("_BaseColor", c);
+            if (dst.HasProperty("_Color")) dst.SetColor("_Color", c);
+            if (dst.HasProperty("_Metallic")) dst.SetFloat("_Metallic", metallic);
+            if (dst.HasProperty("_Smoothness")) dst.SetFloat("_Smoothness", smoothness);
+            if (albedo != null)
+            {
+                if (dst.HasProperty("_BaseMap")) dst.SetTexture("_BaseMap", albedo);
+                if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", albedo);
+                dst.mainTexture = albedo;
+                if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
+                if (albedo.name.IndexOf("palette", System.StringComparison.OrdinalIgnoreCase) >= 0
+                    || (albedo.width > 0 && albedo.width <= 32 && albedo.height <= 32))
+                {
+                    albedo.filterMode = FilterMode.Point;
+                    albedo.anisoLevel = 0;
+                }
+            }
+            if (normal != null)
+            {
+                if (dst.HasProperty("_BumpMap")) dst.SetTexture("_BumpMap", normal);
+                dst.EnableKeyword("_NORMALMAP");
+                if (dst.HasProperty("_HasNormal")) dst.SetFloat("_HasNormal", 1f);
+            }
+            if (metal != null)
+            {
+                if (dst.HasProperty("_MetallicGlossMap")) dst.SetTexture("_MetallicGlossMap", metal);
+                dst.EnableKeyword("_METALLICSPECGLOSSMAP");
+                if (dst.HasProperty("_HasMetal")) dst.SetFloat("_HasMetal", 1f);
+                if (dst.HasProperty("_GltfPack")) dst.SetFloat("_GltfPack", gltfMetal ? 1f : 0f);
+            }
+            bool shell = DoubleSided(src, renderer);
+            if (dst.HasProperty("_Cull")) dst.SetFloat("_Cull", shell ? 0f : 2f);
+            dst.doubleSidedGI = shell;
+            if (albedo != null && dst.GetTexture("_BaseMap") == null && dst.mainTexture == null)
+                Debug.LogError("Hollowmere: albedo texture did not stick on " + (renderer != null ? renderer.name : "mesh"));
+            return dst;
+        }
+
+        static Shader LitShader()
+        {
+            var loaded = Resources.Load<Material>("HollowmereLit");
+            if (loaded != null && loaded.shader != null) return loaded.shader;
+            return Shader.Find("Hollowmere/Lit");
+        }
+
+        static bool DoubleSided(Material m, Renderer r)
+        {
+            if (m != null)
+            {
+                if (m.IsKeywordEnabled("_DOUBLESIDED_ON")) return true;
+                if (m.HasProperty("_Cull") && m.GetFloat("_Cull") < 1.5f) return true;
+                if (m.HasProperty("_DoubleSided") && m.GetFloat("_DoubleSided") > 0.5f) return true;
+                if (m.HasProperty("doubleSided") && m.GetFloat("doubleSided") > 0.5f) return true;
+                if (m.shader != null)
+                {
+                    int n = m.shader.GetPropertyCount();
+                    for (int i = 0; i < n; i++)
+                    {
+                        string name = m.shader.GetPropertyName(i);
+                        if (name.IndexOf("ouble", System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                        if (m.shader.GetPropertyType(i) != UnityEngine.Rendering.ShaderPropertyType.Float) continue;
+                        if (m.GetFloat(name) > 0.5f) return true;
+                    }
+                }
+            }
+            string label = ((r != null ? r.name : "") + " " + (m != null ? m.name : "")).ToLowerInvariant();
+            if (label.Contains("cape") || label.Contains("cloak") || label.Contains("robe")
+                || label.Contains("skirt") || label.Contains("cloth") || label.Contains("hair"))
+                return true;
+            if (r is SkinnedMeshRenderer)
+            {
+                var t = r.transform;
+                while (t != null)
+                {
+                    if (t.name.StartsWith("hero_")) return true;
+                    t = t.parent;
+                }
+            }
+            if (r != null)
+            {
+                var b = r.bounds.size;
+                float mx = Mathf.Max(b.x, Mathf.Max(b.y, b.z));
+                float mn = Mathf.Min(b.x, Mathf.Min(b.y, b.z));
+                if (mx > 0.25f && mn > 0f && mn < mx * 0.08f) return true;
+            }
+            return false;
+        }
+
+        static Texture FirstTex(Material m, string[] names)
+        {
+            if (m == null || names == null) return null;
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (!m.HasProperty(names[i])) continue;
+                var tex = m.GetTexture(names[i]);
+                if (tex != null) return tex;
+            }
+            return null;
         }
 
         /// <summary>glTFast's shader graph calls the base-color image baseColorTexture, not _BaseMap.</summary>
@@ -1075,6 +1247,7 @@ namespace Hollowmere
         public float targetHeight;
         public float maxAxis = 4f;
         public bool biped;
+        public bool freeze;
         int pass;
         bool applied;
 
@@ -1083,7 +1256,7 @@ namespace Hollowmere
             // Frame 0 is often the bind pose. Measure once the skin has written bounds.
             if (pass++ < 2) return;
             enabled = false;
-            if (applied) return;
+            if (freeze || applied) return;
             // Mesh-height fitting is NPC-only. Applying it to heroes and props hid the hero
             // and brought the giant rock back.
             if (biped) StandIfLying();
@@ -1209,6 +1382,44 @@ namespace Hollowmere
         }
     }
 
+    /// <summary>Scales a town NPC from its renderer bounds once the GLB has drawn.
+    /// Mesh bounds at spawn read the 0.01 armature and log size=(0.01, 0.01, 0.01).</summary>
+    [DefaultExecutionOrder(220)]
+    public sealed class NpcMeasure : MonoBehaviour
+    {
+        public float target = 1.75f;
+        int step;
+
+        void LateUpdate()
+        {
+            if (step < 3) { step++; return; }
+            if (step == 3)
+            {
+                step = 4;
+                if (Art.UnionBounds(gameObject, out var b) && b.size.y > 0.001f)
+                {
+                    float factor = target / b.size.y;
+                    if (factor < 0.85f || factor > 1.15f)
+                        transform.localScale *= factor;
+                    if (Art.UnionBounds(gameObject, out b))
+                    {
+                        float ground = transform.parent != null ? transform.parent.position.y : transform.position.y;
+                        var anchor = transform.parent != null ? transform.parent.position : transform.position;
+                        transform.position += new Vector3(anchor.x - b.center.x, ground - b.min.y, anchor.z - b.center.z);
+                    }
+                }
+                return;
+            }
+            enabled = false;
+            var who = GetComponentInParent<Interactable>();
+            string label = who != null ? who.kind.ToString() : name;
+            Art.UnionBounds(gameObject, out var done);
+            Debug.Log("Hollowmere NPC " + label + " object=" + name
+                + " rot=" + transform.eulerAngles.ToString("0")
+                + " size=" + done.size.ToString("0.00"));
+        }
+    }
+
     /// <summary>
     /// Stands every town NPC by rotating its model root, and logs each one.
     /// Pitch and roll are tried once. The pose with the tallest mesh is kept,
@@ -1254,10 +1465,8 @@ namespace Hollowmere
                 }
             }
             transform.rotation = bestRot;
-            Art.MeshWorldBounds(transform, out b);
-            Debug.Log("Hollowmere NPC " + label + " object=" + name
-                + " rot=" + transform.eulerAngles.ToString("0")
-                + " size=" + b.size.ToString("0.00"));
+            // Size is logged by NpcMeasure after the renderer bounds exist.
+            // This pass still sees the 0.01 armature box.
         }
     }
 

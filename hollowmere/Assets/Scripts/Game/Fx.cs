@@ -43,24 +43,19 @@ namespace Hollowmere
         {
             var host = new GameObject("hexImpact");
             host.transform.position = at + Vector3.up * 1.05f;
-            var tex = CombatDrop.Tex("hexweaver_hx_bolt");
-            if (tex != null)
+            // The bolt sheet is a violet hexagram. The impact is a soft round glow only.
+            var sprite = Art.GlowSprite(host.transform, 1.5f, c);
+            var mr = sprite.GetComponent<MeshRenderer>();
+            if (mr != null && mr.sharedMaterial != null)
             {
-                var quad = Art.GlowSprite(host.transform, 2.4f, Color.white);
-                var mr = quad.GetComponent<MeshRenderer>();
-                var mat = Art.GlowMat(Color.white, false, tex);
-                if (mr != null) mr.sharedMaterial = mat;
-                var play = quad.AddComponent<SheetPlay>();
-                play.mat = mat;
-                play.fps = 24;
-                play.loop = false;
-                play.life = 12f / 24f;
+                var mat = new Material(mr.sharedMaterial);
+                if (mat.HasProperty("_Soft")) mat.SetFloat("_Soft", 1f);
+                if (mat.HasProperty("_HasMap")) mat.SetFloat("_HasMap", 0f);
+                if (mat.HasProperty("_UseVertexColor")) mat.SetFloat("_UseVertexColor", 0f);
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+                mr.sharedMaterial = mat;
             }
-            else
-            {
-                var sprite = Art.GlowSprite(host.transform, 1.7f, c);
-                sprite.AddComponent<FxLife>().Init(0.4f, Vector3.one * 1.7f, Vector3.one * 2.6f);
-            }
+            sprite.AddComponent<FxLife>().Init(0.35f, Vector3.one * 1.2f, Vector3.one * 2.2f);
             var l = host.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = c;

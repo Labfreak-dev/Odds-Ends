@@ -224,7 +224,17 @@ namespace Hollowmere
                 g.transform.position = from + Vector3.up * 0.55f;
                 p = g.AddComponent<Projectile>();
                 p.baseScale = Vector3.one;
-                Art.GlowSprite(g.transform, 1.15f, tint);
+                var glowSprite = Art.GlowSprite(g.transform, 1.35f, tint);
+                var mr = glowSprite.GetComponent<MeshRenderer>();
+                if (mr != null && mr.sharedMaterial != null)
+                {
+                    var mat = new Material(mr.sharedMaterial);
+                    if (mat.HasProperty("_Soft")) mat.SetFloat("_Soft", 1f);
+                    if (mat.HasProperty("_HasMap")) mat.SetFloat("_HasMap", 0f);
+                    if (mat.HasProperty("_UseVertexColor")) mat.SetFloat("_UseVertexColor", 0f);
+                    if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", tint);
+                    mr.sharedMaterial = mat;
+                }
             }
             else
             {
@@ -236,26 +246,11 @@ namespace Hollowmere
             p.transform.rotation = Quaternion.LookRotation(p.dir);
             if (bolt)
             {
-                var trail = p.gameObject.AddComponent<TrailRenderer>();
-                trail.time = 0.45f;
-                trail.startWidth = 0.55f;
-                trail.endWidth = 0.04f;
-                trail.minVertexDistance = 0.04f;
-                trail.numCornerVertices = 2;
-                trail.alignment = LineAlignment.View;
-                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                trail.receiveShadows = false;
-                trail.material = Art.GlowMat(Color.white, true);
-                var grad = new Gradient();
-                grad.SetKeys(
-                    new[] { new GradientColorKey(tint, 0f), new GradientColorKey(new Color(0.45f, 0.15f, 0.95f), 1f) },
-                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
-                trail.colorGradient = grad;
                 var glow = p.gameObject.AddComponent<Light>();
                 glow.type = LightType.Point;
                 glow.color = tint;
-                glow.range = 12f;
-                glow.intensity = 7f;
+                glow.range = 8f;
+                glow.intensity = 4f;
                 p.glow = glow;
             }
         }

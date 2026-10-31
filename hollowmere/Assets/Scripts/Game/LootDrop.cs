@@ -162,9 +162,9 @@ namespace Hollowmere
             for (int i = 0; i < names.Length; i++)
             {
                 if (string.IsNullOrEmpty(names[i])) continue;
-                var direct = ArtDrop.Sprite(names[i]);
+                var direct = ArtDrop.ItemIcon(names[i]);
                 if (direct != null && direct.texture != null) return direct;
-                var prefixed = ArtDrop.Sprite("icon_" + names[i]);
+                var prefixed = ArtDrop.ItemIcon("icon_" + names[i]);
                 if (prefixed != null && prefixed.texture != null) return prefixed;
             }
             return Get(string.IsNullOrEmpty(names[0]) ? "item" : names[0]);
@@ -173,7 +173,7 @@ namespace Hollowmere
         public static Sprite Get(string id)
         {
             if (string.IsNullOrEmpty(id)) id = "item";
-            var painted = ArtDrop.Sprite("icon_" + id) ?? ArtDrop.Sprite(id);
+            var painted = ArtDrop.ItemIcon("icon_" + id) ?? ArtDrop.ItemIcon(id);
             if (painted != null) return painted;
             if (cache.TryGetValue(id, out var have)) return have;
             int n = Mathf.Max(8, DesignTable.IconPx);

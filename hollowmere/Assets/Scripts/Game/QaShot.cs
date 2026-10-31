@@ -252,6 +252,7 @@ namespace Hollowmere
                     InventoryScreen.Show(UiRoot.I);
                     yield return new WaitForSecondsRealtime(0.6f);
                     AuditBagIcons();
+                    AuditFrames("inventory");
                 }
                 else if (menus)
                 {
@@ -265,6 +266,7 @@ namespace Hollowmere
                         buttons = UiRoot.I.Hud.GetComponentsInChildren<UnityEngine.UI.Button>(true).Length;
                     Debug.Log("Hollowmere QA hud buttons " + buttons);
                     if (buttons < 4) Debug.LogError("Hollowmere QA hud FAIL missing menu buttons");
+                    AuditFrames("hud");
                     yield return new WaitForSeconds(0.35f);
                 }
                 else if (biomeDepth > 0)
@@ -438,6 +440,49 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere QA bag icon FAIL no item icons in the bag grid");
             else if (fail == 0)
                 Debug.Log("Hollowmere QA bag icons " + icons + " ok");
+        }
+
+        /// <summary>Iron 9-slice and teal-gold frames. panel_iron is a raw texture, not a sliced sprite.</summary>
+        static void AuditFrames(string where)
+        {
+            int sliced = 0;
+            bool hudFrame = false, button = false, column = false;
+            foreach (var img in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Image>(FindObjectsSortMode.None))
+            {
+                if (img == null || img.sprite == null) continue;
+                string n = img.sprite.name;
+                if (n == "panel_iron")
+                {
+                    Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name + " used panel_iron");
+                    continue;
+                }
+                if (img.type != UnityEngine.UI.Image.Type.Sliced) continue;
+                var b = img.sprite.border;
+                bool nine = b.x + b.y + b.z + b.w > 1f;
+                bool expected = n == "button_normal" || n == "button_pressed" || n == "button_disabled"
+                    || n == "hud_frame" || n == "icon_button" || n == "icon_button_pressed"
+                    || n == "frame_gold" || n == "slot_column"
+                    || n.StartsWith("slot_") || n.StartsWith("rarity_");
+                if (!nine || !expected)
+                {
+                    Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name
+                        + " sprite=" + n + " border=" + b.x.ToString("0") + "," + b.y.ToString("0") + "," + b.z.ToString("0") + "," + b.w.ToString("0"));
+                    continue;
+                }
+                sliced++;
+                if (n == "hud_frame") hudFrame = true;
+                if (n == "button_normal" || n == "icon_button") button = true;
+                if (n == "slot_column") column = true;
+                Debug.Log("Hollowmere QA frame " + where + " " + n);
+            }
+            if (where == "hud" && (!hudFrame || !button))
+                Debug.LogError("Hollowmere QA frame FAIL hud missing hud_frame or button_normal/icon_button");
+            if (where == "inventory" && (!column || !button))
+                Debug.LogError("Hollowmere QA frame FAIL inventory missing slot_column or button_normal");
+            if (sliced == 0)
+                Debug.LogError("Hollowmere QA frame FAIL " + where + " no 9-slice frames");
+            else
+                Debug.Log("Hollowmere QA frames " + where + " " + sliced);
         }
 
         static bool InBagCell(Transform t)

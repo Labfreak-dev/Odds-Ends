@@ -17,26 +17,35 @@ namespace Hollowmere
     {
         static HollowmereArt cat;
         static Dictionary<string, Sprite> byName;
+        static Dictionary<string, Sprite> itemIcons;
         static bool tried;
 
         public static Sprite Sprite(string name)
         {
             Ensure();
             if (string.IsNullOrEmpty(name)) return null;
-            if (byName != null && byName.TryGetValue(name, out var s) && s != null && s.texture != null) return s;
+            if (byName != null && byName.TryGetValue(name, out var s) && s != null) return s;
             var loaded = Resources.Load<Sprite>("Art/Icons/" + name);
-            if (loaded != null && loaded.texture != null)
-            {
-                if (byName != null) byName[name] = loaded;
-                return loaded;
-            }
-            // Spell sheets were imported as Default textures (textureType 0). Load<Sprite>
-            // returns null for those, which is how the bag drew a checker instead of the PNG.
+            if (loaded != null && byName != null) byName[name] = loaded;
+            return loaded;
+        }
+
+        /// <summary>
+        /// Bag and item icons only. Spell sheets under Art/Icons are Default textures, so
+        /// Load&lt;Sprite&gt; misses them. Frames stay on Sprite() and keep their 9-slice borders.
+        /// </summary>
+        public static Sprite ItemIcon(string name)
+        {
+            var sprite = Sprite(name);
+            if (sprite != null) return sprite;
+            if (string.IsNullOrEmpty(name)) return null;
+            if (itemIcons != null && itemIcons.TryGetValue(name, out var have) && have != null) return have;
             var tex = Resources.Load<Texture2D>("Art/Icons/" + name);
             if (tex == null) return null;
             var made = UnityEngine.Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
             made.name = name;
-            if (byName != null) byName[name] = made;
+            if (itemIcons == null) itemIcons = new Dictionary<string, Sprite>();
+            itemIcons[name] = made;
             return made;
         }
 

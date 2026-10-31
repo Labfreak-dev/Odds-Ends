@@ -39,8 +39,9 @@ namespace Hollowmere.Editor
         {
             if (string.IsNullOrEmpty(path)) return false;
             var p = path.Replace('\\', '/');
-            if (p.EndsWith("_walk.glb", StringComparison.OrdinalIgnoreCase)
-                && p.IndexOf("/Resources/Models/", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (p.IndexOf("/Resources/Models/", StringComparison.OrdinalIgnoreCase) >= 0
+                && (p.EndsWith("_walk.glb", StringComparison.OrdinalIgnoreCase)
+                    || p.EndsWith("_walk_v2.glb", StringComparison.OrdinalIgnoreCase)))
                 return true;
             return p.EndsWith("_combat_anims.glb", StringComparison.OrdinalIgnoreCase)
                 && p.IndexOf("/Art/Combat/anims/", StringComparison.OrdinalIgnoreCase) >= 0;

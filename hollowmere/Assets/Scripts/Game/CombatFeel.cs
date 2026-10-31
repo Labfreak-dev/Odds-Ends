@@ -483,7 +483,7 @@ namespace Hollowmere
         public static void Attach(ModelAnim ma, string key)
         {
             if (ma == null || ma.anim == null || string.IsNullOrEmpty(key)) return;
-            string hero = key.EndsWith("_walk") ? key.Substring(0, key.Length - "_walk".Length) : key;
+            string hero = ClipFeet.Strip(key);
             var text = Resources.Load<TextAsset>("Combat/" + hero + "_combat");
             if (text == null) return;
             var clips = CombatClipPack.Load(text.bytes);

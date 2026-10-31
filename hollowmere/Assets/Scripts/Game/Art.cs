@@ -159,6 +159,9 @@ namespace Hollowmere
             // Props (dock, well, torch, skirt-sized scenery) keep the exported size.
             // Fitting those to a short target height blew a flat mesh into the giant plane
             // that covered the corner of the town and the dungeon.
+            string bodyKey = ClipFeet.Strip(key);
+            if (bodyKey == "pet_hound") HideBellySlab(go);
+            if (bodyKey == "pet_lynx") FaceLynx(go);
             if (IsCharacter(key))
             {
                 if (IsBiped(key)) StandUp(go.transform);
@@ -181,13 +184,71 @@ namespace Hollowmere
             var ma = holder.AddComponent<ModelAnim>();
             ma.anim = anim;
             ma.animator = go.GetComponentInChildren<Animator>();
+            var foot = ClipFeet.For(key);
+            ma.walkFoot = foot.walk;
+            ma.runFoot = foot.run;
+            ma.longPunch = foot.longPunch;
+            if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
             if (key.StartsWith("hero_")) CombatClipPlayer.Attach(ma, key);
             return holder;
         }
 
-        /// <summary>The walk-cycle variant of a model if one was generated (Meshy rigging), else the static one.</summary>
+        /// <summary>The v2 rig if it has landed, else the older walk cycle, else the static mesh.</summary>
         public static GameObject Animated(string key, float height, Transform parent)
-            => Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+            => Model(key + "_walk_v2", height, parent) ?? Model(key + "_walk", height, parent) ?? Model(key, height, parent);
+
+        /// <summary>The older hound mesh has a ground slab under the belly. Collapse those triangles when the mesh can be edited.</summary>
+        static void HideBellySlab(GameObject go)
+        {
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+                ClipSlab(mf.sharedMesh, m => mf.sharedMesh = m);
+            foreach (var skin in go.GetComponentsInChildren<SkinnedMeshRenderer>())
+                ClipSlab(skin.sharedMesh, m => skin.sharedMesh = m);
+        }
+
+        static void ClipSlab(Mesh src, System.Action<Mesh> assign)
+        {
+            if (src == null || !src.isReadable) return;
+            var verts = src.vertices;
+            var tris = src.triangles;
+            bool dropped = false;
+            for (int i = 0; i < tris.Length; i += 3)
+            {
+                var a = verts[tris[i]];
+                var b = verts[tris[i + 1]];
+                var c = verts[tris[i + 2]];
+                if (a.y >= -0.58f || b.y >= -0.58f || c.y >= -0.58f) continue;
+                float cx = (a.x + b.x + c.x) / 3f;
+                float cz = (a.z + b.z + c.z) / 3f;
+                if (Mathf.Abs(cx) >= 0.28f || Mathf.Abs(cz) >= 0.45f) continue;
+                tris[i + 1] = tris[i];
+                tris[i + 2] = tris[i];
+                dropped = true;
+            }
+            if (!dropped) return;
+            var copy = UnityEngine.Object.Instantiate(src);
+            copy.triangles = tris;
+            assign(copy);
+        }
+
+        /// <summary>A lynx that is longer across X is turned onto +Z. One that already faces +Z is left alone.</summary>
+        static void FaceLynx(GameObject go)
+        {
+            float x = 0f, z = 0f;
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>())
+                if (mf.sharedMesh != null)
+                {
+                    x = Mathf.Max(x, mf.sharedMesh.bounds.size.x);
+                    z = Mathf.Max(z, mf.sharedMesh.bounds.size.z);
+                }
+            foreach (var skin in go.GetComponentsInChildren<SkinnedMeshRenderer>())
+                if (skin.sharedMesh != null)
+                {
+                    x = Mathf.Max(x, skin.sharedMesh.bounds.size.x);
+                    z = Mathf.Max(z, skin.sharedMesh.bounds.size.z);
+                }
+            if (x > z * 1.25f) go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+        }
 
         static bool IsCharacter(string key)
         {
@@ -632,15 +693,17 @@ namespace Hollowmere
     }
 
     /// <summary>
-    /// Blends idle, walk, and run from the ground speed, and crossfades attacks.
-    /// Shipped clips are legacy, so the blend is Animation.CrossFade. An Animator
-    /// controller is used when the model already has one. Playback rate is
-    /// groundSpeed / clipWalk so the feet match the ground. Root motion stays off.
+    /// Switches idle, walk, and run from the ground speed, and crossfades attacks and hits.
+    /// Shipped clips are legacy, so the blend is Animation.CrossFade. Playback rate is
+    /// groundSpeed / footSpeed from ClipFeet, so the feet match the ground. Root motion stays off.
     /// </summary>
     public sealed class ModelAnim : MonoBehaviour
     {
         public Animation anim;
         public Animator animator;
+        public float walkFoot = 2.2f;
+        public float runFoot = 4.1f;
+        public bool longPunch;
         public bool HasClips => (anim != null && anim.clip != null) || animator != null;
         /// <summary>True only when a clip or an animator controller will actually play. A bare Animator does not.</summary>
         public bool PlaysClips => (anim != null && anim.clip != null) || (animator != null && animator.runtimeAnimatorController != null);
@@ -657,8 +720,10 @@ namespace Hollowmere
             }
         }
 
-        AnimationState idle, walk, run, attack, skill, current;
-        float attackLeft, attackTotal;
+        AnimationState idle, walk, run, attack, hit, skill, current;
+        float attackLeft, attackTotal, hitLeft;
+        const float PunchIn = 0.85f;
+        const float PunchOut = 1.75f;
         bool cached, attackEdge, skillLoop;
         bool HasAttackTrigger;
         public bool HasNamedSkill => skill != null;
@@ -670,8 +735,9 @@ namespace Hollowmere
         {
             Ensure();
             Casting = cast;
-            attackTotal = seconds > 0.05f ? seconds : Feel.Active.attackSeconds;
+            attackTotal = seconds > 0.05f ? seconds : (longPunch ? PunchOut - PunchIn : Feel.Active.attackSeconds);
             attackLeft = attackTotal;
+            hitLeft = 0f;
             attackEdge = true;
             skillLoop = false;
             skill = null;
@@ -693,9 +759,17 @@ namespace Hollowmere
             skill.speed = 1f;
         }
 
+        public void BeginHit()
+        {
+            Ensure();
+            if (hit == null || attackLeft > 0f) return;
+            hitLeft = 0.7f;
+        }
+
         public void CancelAttack()
         {
             attackLeft = 0f;
+            hitLeft = 0f;
             Casting = false;
             attackEdge = false;
             skillLoop = false;
@@ -709,24 +783,28 @@ namespace Hollowmere
         {
             Ensure();
             if (attackLeft > 0f) attackLeft = Mathf.Max(0f, attackLeft - dt);
+            if (hitLeft > 0f) hitLeft = Mathf.Max(0f, hitLeft - dt);
             var f = Feel.Active;
             if (anim != null && (walk != null || idle != null))
             {
                 var posed = skill != null ? skill : attack;
                 bool striking = attackLeft > 0f && posed != null;
-                var clip = striking ? posed : Loco(groundSpeed, f.idle, f.walkRun);
+                bool flinch = !striking && hitLeft > 0f && hit != null;
+                var clip = striking ? posed : flinch ? hit : Loco(groundSpeed, f.idle, f.walkRun);
                 if (clip != null)
                 {
-                    float rate = striking ? 1f : Rate(clip, groundSpeed, f.idle, f.clipWalk);
-                    float blend = striking ? f.attackBlend : f.locoBlend;
+                    float rate = striking || flinch ? 1f : Rate(clip, groundSpeed, f.idle);
+                    float blend = striking || flinch ? f.attackBlend : f.locoBlend;
                     if (clip != current)
                     {
                         current = clip;
-                        clip.wrapMode = striking ? (skillLoop ? WrapMode.Loop : WrapMode.Once) : WrapMode.Loop;
+                        clip.wrapMode = striking ? (skillLoop ? WrapMode.Loop : WrapMode.Once) : flinch ? WrapMode.Once : WrapMode.Loop;
                         clip.speed = rate;
                         anim.CrossFade(clip.name, Mathf.Max(0.02f, blend));
+                        if (striking && longPunch && skill == null) clip.time = PunchIn;
                     }
-                    else if (!striking) clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
+                    else if (!striking && !flinch) clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
+                    if (striking && longPunch && skill == null && clip.time >= PunchOut) attackLeft = 0f;
                 }
             }
             DriveAnimator(groundSpeed, f);
@@ -750,16 +828,24 @@ namespace Hollowmere
 
         AnimationState Loco(float speed, float idleAt, float runAt)
         {
-            if (speed < idleAt) return idle != null && idle != walk ? idle : walk;
-            if (speed >= runAt && run != null) return run;
+            if (speed < idleAt && idle != null && idle != walk) return idle;
+            if (speed >= runAt && run != null && runFoot > 0.2f) return run;
             return walk ?? idle;
         }
 
-        float Rate(AnimationState clip, float speed, float idleAt, float clipWalk)
+        float Rate(AnimationState clip, float speed, float idleAt)
         {
             if (clip == idle && idle != walk) return 1f;
-            if (speed < idleAt) return 0f;
-            return speed / Mathf.Max(0.1f, clipWalk);
+            float foot = clip == run && runFoot > 0.2f ? runFoot : walkFoot;
+            if (foot < 0.15f) foot = Feel.Active.clipWalk;
+            // A missing idle used to freeze the walk at speed 0, which parked the feet mid-stride.
+            if (speed < idleAt) return Mathf.Max(0.2f, speed / foot);
+            return Mathf.Max(0.05f, speed / foot);
+        }
+
+        static bool Named(string n, string key)
+        {
+            return n == key || n.EndsWith("|" + key) || n.Contains("|" + key + "|");
         }
 
         void Ensure()
@@ -771,19 +857,54 @@ namespace Hollowmere
                 foreach (AnimationState st in anim)
                 {
                     string n = st.name.ToLowerInvariant();
-                    if (n.Contains("attack") || n.Contains("swing") || n.Contains("cast")) attack = st;
-                    else if (n.Contains("run")) run = st;
-                    else if (n.Contains("walk")) walk = st;
-                    else if (n.Contains("idle") || n.Contains("clip0")) idle = st;
-                    else if (walk == null) walk = st;
+                    if (Named(n, "hit")) hit = st;
+                    else if (Named(n, "attack") || Named(n, "swing")) attack = st;
+                    else if (Named(n, "run")) run = st;
+                    else if (Named(n, "walk")) walk = st;
+                    else if (Named(n, "idle") || n.Contains("clip0")) idle = st;
                 }
                 if (walk == null && anim.clip != null) walk = anim[anim.clip.name];
+                if (idle == walk) idle = null;
             }
             if (animator != null && animator.runtimeAnimatorController != null)
             {
                 foreach (var p in animator.parameters)
                     if (p.name == "Attack") HasAttackTrigger = true;
             }
+        }
+    }
+
+    /// <summary>Keeps the drowned wraith's hips over the controller. The long punch walks them almost a metre off to the side.</summary>
+    public sealed class WraithHips : MonoBehaviour
+    {
+        Transform hips;
+        Vector3 rest;
+        bool ready;
+
+        void LateUpdate()
+        {
+            if (!ready)
+            {
+                hips = Find(transform);
+                if (hips == null) return;
+                rest = hips.localPosition;
+                ready = true;
+            }
+            var p = hips.localPosition;
+            p.x = Mathf.Clamp(p.x, rest.x - 0.18f, rest.x + 0.18f);
+            p.z = Mathf.Clamp(p.z, rest.z - 0.18f, rest.z + 0.18f);
+            hips.localPosition = p;
+        }
+
+        static Transform Find(Transform root)
+        {
+            if (root.name == "Hips") return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var f = Find(root.GetChild(i));
+                if (f != null) return f;
+            }
+            return null;
         }
     }
 

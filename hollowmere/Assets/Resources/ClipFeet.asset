@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8e1a4b27f904d6e9a3c5d7e1f243658, type: 3}
+  m_Name: ClipFeet
+  m_EditorClassIdentifier: 
+  entries:
+  - model: hero_hexweaver
+    walk: 0.8
+    run: 4.11
+    longPunch: 0
+  - model: hero_ironclad
+    walk: 0.81
+    run: 4.21
+    longPunch: 0
+  - model: hero_stalker
+    walk: 0.75
+    run: 3.92
+    longPunch: 0
+  - model: boss_abbot
+    walk: 1.04
+    run: 5.29
+    longPunch: 0
+  - model: mon_bogfiend
+    walk: 0.54
+    run: 2.9
+    longPunch: 1
+  - model: mon_bonewalker
+    walk: 0.36
+    run: 4.55
+    longPunch: 0
+  - model: mon_cinderimp
+    walk: 0.42
+    run: 2.2
+    longPunch: 1
+  - model: mon_stonehulk
+    walk: 1
+    run: 5.09
+    longPunch: 1
+  - model: npc_fisher
+    walk: 0.86
+    run: 4.46
+    longPunch: 0
+  - model: npc_merchant
+    walk: 0.77
+    run: 3.99
+    longPunch: 0
+  - model: npc_mystic
+    walk: 0.81
+    run: 0
+    longPunch: 0
+  - model: npc_smith
+    walk: 1.03
+    run: 0
+    longPunch: 0
+  - model: mon_drownedwraith
+    walk: 0.59
+    run: 3.4
+    longPunch: 1

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Hollowmere.Core;
@@ -30,6 +31,7 @@ static class Program
         SaveRoundTrip();
         Progression();
         ModelAlbedo();
+        PostVolumeLevel();
         SpecTables();
         P2P5();
         Console.WriteLine($"{passed} passed, {failed} failed");
@@ -686,6 +688,41 @@ static class Program
 
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto
     /// Hollowmere/Color; a model with no embedded texture cannot show anything but flat white.</summary>
+    static void PostVolumeLevel()
+    {
+        var town = Town.BuildTownMap(out _);
+        var townVolume = PostVolume.For(town);
+        var bloom = townVolume.Get<PostBloom>();
+        var tone = townVolume.Get<PostTonemapping>();
+        var color = townVolume.Get<PostColorAdjustments>();
+        var ao = townVolume.Get<PostOcclusion>();
+        Check(bloom != null && bloom.threshold == 1.1f && bloom.intensity == 0.35f && bloom.scatter == 0.55f, "town level volume has bloom");
+        Check(tone != null && tone.mode == PostTonemap.Aces, "town level volume tonemaps with ACES");
+        Check(color != null && color.postExposure == 0.12f && color.contrast == 8f && color.saturation == 6f, "town level volume has the color grade");
+        Check(ao != null && ao.intensity == 0.45f && ao.radius == 0.25f, "town level volume has ambient occlusion");
+
+        var floor = DungeonGenerator.Generate(3, 17);
+        var dungeonVolume = PostVolume.For(floor);
+        Check(dungeonVolume.components.Count == 4 && dungeonVolume.Get<PostBloom>() != null, "dungeon level builds a post-processing volume");
+        Check(PostVolume.For(null).components.Count == 0, "a volume is not built without a level");
+
+        var add = typeof(PostVolume).GetMethod("Add");
+        bool rejected = false;
+        try { add.MakeGenericMethod(typeof(string)); }
+        catch (ArgumentException) { rejected = true; }
+        Check(add != null && add.IsGenericMethodDefinition && rejected, "adding a non-component to the volume is rejected");
+
+        string src = null;
+        foreach (var path in new[]
+        {
+            Path.Combine("Assets", "Scripts", "Game", "PbrKit.cs"),
+            Path.Combine("hollowmere", "Assets", "Scripts", "Game", "PbrKit.cs"),
+        })
+            if (File.Exists(path)) src = File.ReadAllText(path);
+        Check(src != null && src.IndexOf("MakeGenericMethod", StringComparison.Ordinal) < 0, "player volume setup does not use MakeGenericMethod");
+        Check(src != null && src.Contains("Add<Bloom>()") && src.Contains("Add<ColorAdjustments>()") && src.Contains("Add<Tonemapping>()"), "player adds Bloom, ColorAdjustments, and Tonemapping directly");
+    }
+
     static void ModelAlbedo()
     {
         string path = null;

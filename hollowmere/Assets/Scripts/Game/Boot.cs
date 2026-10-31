@@ -17,7 +17,9 @@ namespace Hollowmere
             Screen.autorotateToPortraitUpsideDown = false;
             Screen.autorotateToLandscapeLeft = true;
             Screen.autorotateToLandscapeRight = true;
-            QualitySettings.shadows = ShadowQuality.Disable;
+            QualitySettings.shadows = ShadowQuality.All;
+            QualitySettings.shadowResolution = ShadowResolution.Medium;
+            QualitySettings.shadowDistance = 40f;
             QualitySettings.pixelLightCount = 4;
 
             // Remove whatever the template scene shipped with: we bring our own camera and light.

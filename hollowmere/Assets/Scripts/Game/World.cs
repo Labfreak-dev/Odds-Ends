@@ -82,7 +82,7 @@ namespace Hollowmere
             var fv = new List<Vector3>(); var fn = new List<Vector3>(); var fuv = new List<Vector2>();
             var ta = new List<int>(); var tb = new List<int>();
             // ---------- walls
-            var wv = new List<Vector3>(); var wn = new List<Vector3>(); var wt = new List<int>();
+            var wv = new List<Vector3>(); var wn = new List<Vector3>(); var wt = new List<int>(); var wtTop = new List<int>();
             // ---------- water + its blocker collider
             var av = new List<Vector3>(); var an = new List<Vector3>(); var at = new List<int>();
             var bv = new List<Vector3>(); var bt = new List<int>();
@@ -114,7 +114,7 @@ namespace Hollowmere
                         foreach (var d in Pathfinder.Dirs4) if (map.Get(x + d.x, y + d.y) != Tile.Wall) visible = true;
                         if (!visible) continue;
                         var top = c + Vector3.up * wallH;
-                        Quad(wv, wn, wt, top + new Vector3(-half, 0, -half), top + new Vector3(-half, 0, half), top + new Vector3(half, 0, half), top + new Vector3(half, 0, -half), Vector3.up);
+                        Quad(wv, wn, wtTop, top + new Vector3(-half, 0, -half), top + new Vector3(-half, 0, half), top + new Vector3(half, 0, half), top + new Vector3(half, 0, -half), Vector3.up);
                         foreach (var d in Pathfinder.Dirs4)
                         {
                             if (map.Get(x + d.x, y + d.y) == Tile.Wall) continue;
@@ -128,33 +128,36 @@ namespace Hollowmere
 
             Debug.Log("Hollowmere level " + map.theme + " " + map.width + "x" + map.height
                 + " floorVerts=" + fv.Count + " wallVerts=" + wv.Count + " depth=" + map.depth);
-            var floor = MakeMesh("floor", root, fv, fn, null, Art.Mat(fa), fuv);
+            bool town = map.theme == Theme.Town;
+            var floorA = town
+                ? PbrKit.Surface("town_cobble", 2f, Color.white)
+                : map.theme == Theme.Caverns
+                    ? PbrKit.Surface("mossy_rock", 3f, Color.white)
+                    : map.theme == Theme.EmberDepths
+                        ? PbrKit.Surface("dirt_path", 4f, new Color(0.85f, 0.7f, 0.6f))
+                        : PbrKit.Surface("dungeon_floor", 2.5f, Color.white);
+            var floorB = town ? PbrKit.Surface("dirt_path", 4f, Color.white) : floorA;
+            var floor = MakeMesh("floor", root, fv, fn, null, floorA, fuv);
             var fm = floor.GetComponent<MeshFilter>().sharedMesh;
             fm.subMeshCount = 2;
             fm.SetTriangles(ta, 0);
             fm.SetTriangles(tb, 1);
-            var floorMats = new[] { Art.Mat(fa), Art.Mat(fb) };
-            if (map.theme == Theme.Town)
-            {
-                var cobble = ArtDrop.Ground("cobble");
-                var grass = ArtDrop.Ground("grass");
-                if (cobble != null) PaintGround(floorMats[0], cobble);
-                if (grass != null) PaintGround(floorMats[1], grass);
-            }
-            else
-            {
-                var groundName = map.theme == Theme.Crypt ? "crypt" : map.theme == Theme.Caverns ? "cave" : map.theme == Theme.SunkenHalls ? "flag" : "cracked";
-                var groundTex = ArtDrop.Ground(groundName);
-                if (groundTex != null)
-                    for (int gi = 0; gi < floorMats.Length; gi++) PaintGround(floorMats[gi], groundTex);
-            }
-            floor.GetComponent<MeshRenderer>().sharedMaterials = floorMats;
+            floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { floorA, floorB };
 
-            var walls = MakeMesh("walls", root, wv, wn, wt, Art.Mat(wallC));
-            walls.AddComponent<MeshCollider>().sharedMesh = walls.GetComponent<MeshFilter>().sharedMesh;
+            var wallSide = town
+                ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.93f, 0.9f, 0.84f))
+                : PbrKit.Surface("dungeon_wall", 3f, Color.white);
+            var wallTop = town ? PbrKit.Surface("roof_tiles", 2.9f, Color.white) : wallSide;
+            var walls = MakeMesh("walls", root, wv, wn, null, wallSide);
+            var wm = walls.GetComponent<MeshFilter>().sharedMesh;
+            wm.subMeshCount = 2;
+            wm.SetTriangles(wt, 0);
+            wm.SetTriangles(wtTop, 1);
+            walls.GetComponent<MeshRenderer>().sharedMaterials = new[] { wallSide, wallTop };
+            walls.AddComponent<MeshCollider>().sharedMesh = wm;
             if (av.Count > 0)
             {
-                MakeMesh("water", root, av, an, at, Art.Mat(new Color(0.22f, 0.55f, 0.82f), 0.55f));
+                MakeMesh("water", root, av, an, at, PbrKit.Water());
                 var block = new GameObject("waterBlock");
                 block.transform.SetParent(root, false);
                 var bm = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
@@ -170,7 +173,6 @@ namespace Hollowmere
             Art.AdoptShaders(root.gameObject);
 
             // ---------- lighting
-            bool town = map.theme == Theme.Town;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = ambient * (town ? 1.35f : 1.45f);
             RenderSettings.fog = true;
@@ -191,8 +193,11 @@ namespace Hollowmere
             sun.transform.SetParent(root, false);
             sun.type = LightType.Directional;
             sun.transform.rotation = Quaternion.Euler(50, -30, 0);
-            sun.intensity = town ? 1.85f : 1.35f;
+            sun.intensity = town ? 1.85f : 1.45f;
+            sun.shadows = LightShadows.Soft;
+            sun.shadowStrength = 0.65f;
             sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
+            PbrKit.Grade(map);
             if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 
             FloorNav.Build(map);

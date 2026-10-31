@@ -493,6 +493,7 @@ namespace Hollowmere
         {
             return name == "Hollowmere/Color" || name == "Hollowmere/Text" || name == "Hollowmere/Glow"
                 || name == "Hollowmere/Sheet" || name == "Hollowmere/Lit"
+                || name == "Hollowmere/Pbr" || name == "Hollowmere/Water" || name == "Hollowmere/Portal"
                 || name == "Universal Render Pipeline/Lit";
         }
 

@@ -116,7 +116,11 @@ namespace Hollowmere
             // Scenery
             // North of the hero, off the camera-to-hero line. The old south-east tile sat in the
             // foreground and a blown-up well mesh covered the top-right of the town shot.
-            Art.Model("prop_well", 1.5f, root)?.transform.SetPositionAndRotation(World.ToWorld(new Int2(24, 10)), Quaternion.identity);
+            var well = PbrKit.Prop("town_well", root) ?? Art.Model("prop_well", 1.5f, root);
+            if (well != null) well.transform.SetPositionAndRotation(World.ToWorld(new Int2(24, 10)), Quaternion.identity);
+            var stall = PbrKit.Prop("market_stall", root);
+            if (stall != null) stall.transform.SetPositionAndRotation(World.ToWorld(marks['M']) + new Vector3(2.2f, 0f, -1.4f), Quaternion.Euler(0f, 20f, 0f));
+            Art.PlaceQuad(root, "woodDeck", World.ToWorld(marks['F']) + new Vector3(-1.4f, 0.03f, 0.2f), Quaternion.identity, 3.4f, 2.4f, PbrKit.Surface("wood_planks", 2f, Color.white), true);
             // A little dock out into the lake beside the Old Angler.
             var dock = Art.Model("prop_dock", 0.5f, root);
             if (dock != null) dock.transform.SetPositionAndRotation(World.ToWorld(marks['F']) + new Vector3(-World.T, -0.2f, 0), Quaternion.Euler(0, 90, 0));

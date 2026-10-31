@@ -122,13 +122,19 @@ namespace Hollowmere
             go.transform.SetParent(parent, false);
             var tint = color ?? (primary ? ButtonHot : ButtonC);
             var img = Box((RectTransform)go.transform, tint);
-            var skin = UiArt.ButtonSprite(primary ? UiArt.ButtonKind.Primary : UiArt.ButtonKind.Normal);
+            var iron = ArtDrop.Sprite(UiFeelProfile.IronFrame);
+            var skin = iron != null ? iron : UiArt.ButtonSprite(primary ? UiArt.ButtonKind.Primary : UiArt.ButtonKind.Normal);
             if (skin != null)
             {
                 img.sprite = skin;
                 img.type = Image.Type.Sliced;
                 img.color = Color.white;
             }
+            var glow = Rect(go.transform, "glow", Vector2.zero, Vector2.one);
+            var gi = glow.gameObject.AddComponent<Image>();
+            gi.sprite = UiArt.Soft();
+            gi.color = new Color(1f, 0.82f, 0.4f, 0f);
+            gi.raycastTarget = false;
             var b = go.AddComponent<Button>();
             b.targetGraphic = img;
             var cb = b.colors;
@@ -307,12 +313,14 @@ namespace Hollowmere
         public Text label;
         public RectTransform cooldown;
         public Image image;
+        public Color rest = Color.white;
 
         public static HoldButton Create(Transform parent, string name, Vector2 anchor, Vector2 pos, float size, Color c, string text, int fontSize = 26)
         {
             var rt = Ui.At(parent, name, anchor, pos, new Vector2(size, size));
             var img = rt.gameObject.AddComponent<Image>();
-            var plate = UiArt.Catalog != null ? UiArt.Catalog.iconButton : null;
+            var iron = ArtDrop.Sprite(UiFeelProfile.IronFrame);
+            var plate = iron != null ? iron : (UiArt.Catalog != null ? UiArt.Catalog.iconButton : null);
             if (plate != null)
             {
                 img.sprite = plate;
@@ -323,6 +331,7 @@ namespace Hollowmere
             else { img.sprite = Ui.Circle; img.color = c; }
             var hb = rt.gameObject.AddComponent<HoldButton>();
             hb.image = img;
+            hb.rest = img.color;
             var cd = Ui.Rect(rt, "cooldown", Vector2.zero, new Vector2(1, 0));
             var ci = cd.gameObject.AddComponent<Image>(); ci.color = new Color(0, 0, 0, 0.55f); ci.raycastTarget = false;
             hb.cooldown = cd;
@@ -330,8 +339,22 @@ namespace Hollowmere
             return hb;
         }
 
-        public void OnPointerDown(PointerEventData e) { Held = true; onDown.Invoke(); }
-        public void OnPointerUp(PointerEventData e) { if (Held) { Held = false; onUp.Invoke(); } }
+        public void OnPointerDown(PointerEventData e)
+        {
+            Held = true;
+            transform.localScale = Vector3.one * UiFeelProfile.PressScale;
+            if (image != null) image.color = Color.Lerp(rest, rest * UiFeelProfile.Glow, 0.7f);
+            Haptics.Light();
+            onDown.Invoke();
+        }
+        public void OnPointerUp(PointerEventData e)
+        {
+            if (!Held) return;
+            Held = false;
+            transform.localScale = Vector3.one;
+            if (image != null) image.color = rest;
+            onUp.Invoke();
+        }
         public void OnPointerExit(PointerEventData e) { }
 
         public void SetCooldown(float frac)

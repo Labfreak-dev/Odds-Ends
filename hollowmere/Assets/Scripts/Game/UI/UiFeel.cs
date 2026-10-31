@@ -41,6 +41,7 @@ namespace Hollowmere
             down = true;
             vel = -3.2f;
             AudioHub.PlayUi(sound);
+            Haptics.Light();
             if (img != null && pressedSprite != null) img.sprite = pressedSprite;
             ShiftLabel(true);
         }
@@ -77,13 +78,27 @@ namespace Hollowmere
                 transform.localScale = Vector3.one;
                 return;
             }
-            float target = down ? 0.92f : 1f;
+            float target = down ? UiFeelProfile.PressScale : 1f;
             vel += (target - scale) * 86f * dt;
             vel *= Mathf.Exp(-13f * dt);
             scale = Mathf.Clamp(scale + vel * dt, 0.84f, 1.08f);
             transform.localScale = new Vector3(scale, scale, 1f);
             if (img != null && pressedSprite == null)
-                img.color = Color.Lerp(baseColor, baseColor * 0.78f, down ? 1f : 0f);
+            {
+                float g = UiFeelProfile.Glow;
+                img.color = Color.Lerp(baseColor, baseColor * g, down ? 1f : 0f);
+            }
+            var glow = transform.Find("glow");
+            if (glow != null)
+            {
+                var gi = glow.GetComponent<Image>();
+                if (gi != null)
+                {
+                    var gc = gi.color;
+                    gc.a = down ? 0.55f : 0f;
+                    gi.color = gc;
+                }
+            }
         }
     }
 
@@ -154,7 +169,7 @@ namespace Hollowmere
             }
             if (!armed) return;
             t += dt;
-            float open = Mathf.Clamp01(t / 0.28f);
+            float open = Mathf.Clamp01(t / Mathf.Max(0.12f, UiFeelProfile.Fade));
             float ease = 1f - Mathf.Pow(1f - open, 3f);
             if (panel != null)
             {

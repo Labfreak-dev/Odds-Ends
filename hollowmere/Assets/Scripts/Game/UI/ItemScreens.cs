@@ -55,10 +55,33 @@ namespace Hollowmere
                     }
                 }
             }
-            // Rarity edge
+            // Rarity edge, plus the itsmars border when that sprite is in the drop.
             var edge = Ui.Rect(b.transform, "edge", new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 8));
             Ui.Box(edge, Art.Rarity(it.rarity), false).raycastTarget = false;
+            var border = ArtDrop.Sprite(RarityFrame(it.rarity));
+            if (border != null)
+            {
+                var fr = Ui.Rect(b.transform, "rarity", Vector2.zero, Vector2.one);
+                var fi = fr.gameObject.AddComponent<Image>();
+                fi.sprite = border;
+                fi.type = Image.Type.Sliced;
+                fi.color = Color.white;
+                fi.raycastTarget = false;
+            }
             return b;
+        }
+
+        static string RarityFrame(Rarity rarity)
+        {
+            switch (rarity)
+            {
+                case Rarity.Magic: return "rarity_magic";
+                case Rarity.Rare: return "rarity_rare";
+                case Rarity.Legendary:
+                case Rarity.Set: return "rarity_unique";
+                case Rarity.Common: return "rarity_common";
+                default: return "rarity_normal";
+            }
         }
 
         public static Item EquippedCounterpart(Hero h, Item it)
@@ -586,11 +609,11 @@ namespace Hollowmere
             stage.rt = tex;
             var camGo = new GameObject("cam");
             camGo.transform.SetParent(root.transform, false);
-            camGo.transform.localPosition = new Vector3(0.2f, 1.05f, -3.15f);
+            camGo.transform.localPosition = new Vector3(0f, 1.15f, 5.6f);
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.05f, 0.045f, 0.055f, 1f);
-            cam.fieldOfView = 24f;
+            cam.fieldOfView = 28f;
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 16f;
             cam.targetTexture = tex;
@@ -630,7 +653,7 @@ namespace Hollowmere
             foreach (var tr in root.GetComponentsInChildren<Transform>(true))
                 tr.gameObject.layer = 9;
             camGo.layer = 9;
-            cam.transform.LookAt(root.transform.TransformPoint(new Vector3(0f, 0.95f, 0.1f)));
+            cam.transform.LookAt(root.transform.TransformPoint(new Vector3(0f, 0.9f, 0f)));
             stage.cam = cam;
             target.texture = tex;
             target.color = Color.white;
@@ -639,16 +662,14 @@ namespace Hollowmere
 
         void LateUpdate()
         {
-            if (pivot != null) pivot.Rotate(0f, 12f * Time.unscaledDeltaTime, 0f, Space.Self);
-            if (framed < 6)
+            if (framed < 8)
             {
                 framed++;
-                if (framed == 6 && cam != null && pivot != null && Art.UnionBounds(pivot.gameObject, out var b) && b.size.y > 0.4f && b.size.y < 3.2f)
+                if (framed == 8 && cam != null && pivot != null && Art.UnionBounds(pivot.gameObject, out var b) && b.size.y > 0.4f && b.size.y < 3.2f)
                 {
-                    float dist = Mathf.Clamp(b.size.y * 1.65f, 2.6f, 4.4f);
-                    var look = b.center;
-                    cam.transform.position = look + new Vector3(0f, b.size.y * 0.05f, -dist);
-                    cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);
+                    float dist = PortraitCam.FrameFront(cam, b, 0.68f);
+                    Debug.Log("Hollowmere QA portrait inventory front dist=" + dist.ToString("0.00")
+                        + " size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
                 }
             }
         }

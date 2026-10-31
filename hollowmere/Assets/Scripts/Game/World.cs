@@ -116,7 +116,12 @@ namespace Hollowmere
             fm.subMeshCount = 2;
             fm.SetTriangles(ta, 0);
             fm.SetTriangles(tb, 1);
-            floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { Art.Mat(fa), Art.Mat(fb) };
+            var floorMats = new[] { Art.Mat(fa), Art.Mat(fb) };
+            var groundName = map.theme == Theme.Town ? "grass" : map.theme == Theme.Crypt ? "crypt" : map.theme == Theme.Caverns ? "cave" : map.theme == Theme.SunkenHalls ? "flag" : "cracked";
+            var groundTex = ArtDrop.Ground(groundName);
+            if (groundTex != null)
+                for (int gi = 0; gi < floorMats.Length; gi++) floorMats[gi].mainTexture = groundTex;
+            floor.GetComponent<MeshRenderer>().sharedMaterials = floorMats;
 
             var walls = MakeMesh("walls", root, wv, wn, wt, Art.Mat(wallC));
             walls.AddComponent<MeshCollider>().sharedMesh = walls.GetComponent<MeshFilter>().sharedMesh;
@@ -170,6 +175,7 @@ namespace Hollowmere
                     l.type = LightType.Point; l.color = lightC; l.range = 12; l.intensity = 1.6f;
                 }
             }
+            Dressing.Mood(map);
             return root;
         }
 

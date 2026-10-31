@@ -125,6 +125,10 @@ namespace Hollowmere
                 Art.Cylinder(root, tp + Vector3.up * 0.8f, new Vector3(0.35f, 0.8f, 0.35f), Art.Mat(new Color(0.4f, 0.28f, 0.16f)));
                 Art.Sphere(root, tp + Vector3.up * 2.4f, new Vector3(2.2f, 2f, 2.2f), Art.Mat(new Color(0.25f, 0.45f, 0.2f)));
             }
+            var blocked = new System.Collections.Generic.List<Int2>();
+            foreach (var kv in marks) blocked.Add(kv.Value);
+            blocked.Add(new Int2(24, 10));
+            Dressing.Scatter(map, root, blocked, (int)State.seed);
 
             Vector3 spawn = World.ToWorld(map.entry);
             if (viaPortal && State.portalDepth > 0) spawn = World.ToWorld(marks['D']) + new Vector3(-3, 0, 0);
@@ -188,6 +192,11 @@ namespace Hollowmere
                 State.portalDepth = 0;
             }
             SpawnHeroAndPet(World.ClampToFloor(spawn));
+            var floorBlocked = new System.Collections.Generic.List<Int2> { map.entry, map.exit };
+            floorBlocked.AddRange(map.chests);
+            floorBlocked.AddRange(map.shrines);
+            foreach (var s in map.spawns) floorBlocked.Add(s.pos);
+            Dressing.Scatter(map, root, floorBlocked, (int)State.seed ^ (depth * 997));
             AudioHub.Music(map.bossFloor ? "mus_boss" : "mus_dungeon");
             AudioHub.Play("sfx_stairs", 0.6f);
             string where = map.theme switch { Theme.Crypt => "Crypts", Theme.Caverns => "Caverns", Theme.SunkenHalls => "Sunken Halls", _ => "Ember Depths" };

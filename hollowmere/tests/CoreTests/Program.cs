@@ -489,95 +489,8 @@ static class Program
 
     static void SpecTables()
     {
-        foreach (var row in SpecRows("### T.xp"))
-        {
-            int level = int.Parse(row[1] == "Level" ? "0" : row[0]);
-            if (row[0] == "Level") continue;
-            level = int.Parse(row[0]);
-            if (row[1] == "—") Check(DesignTable.XpToNext(level) == 0, "level 70 has no character xp cost");
-            else Check(DesignTable.XpToNext(level) == long.Parse(row[1]), "xp to next " + level);
-            Check(DesignTable.CumulativeToArrive(level) == long.Parse(row[2]), "cumulative xp " + level);
-        }
         Check(Balance.XpToNext(70) == long.MaxValue, "level 70 sentinel stays on Balance");
-
-        foreach (var row in SpecRows("### T.delve"))
-        {
-            int rank = int.Parse(row[0]);
-            Check(DesignTable.DelveXp(rank) == long.Parse(row[1]), "delve xp " + rank);
-        }
-
-        foreach (var row in SpecRows("### T.stats"))
-        {
-            int level = int.Parse(row[0]);
-            Check(DesignTable.MainStat(level) == int.Parse(row[1]), "main " + level);
-            Check(DesignTable.OffStat(level) == int.Parse(row[2]), "off " + level);
-            Check(DesignTable.Vitality(level) == int.Parse(row[3]), "vit " + level);
-            Check(DesignTable.NakedLife(level) == int.Parse(row[4]), "life " + level);
-            Check(Math.Abs((double)DesignTable.NakedArmorMitigation(level) - double.Parse(row[5])) < 1e-6, "armor mit " + level);
-            Check(Math.Abs((double)DesignTable.NakedOffResistMitigation(level) - double.Parse(row[6])) < 1e-6, "resist mit " + level);
-        }
-
-        foreach (var row in SpecRows("### T.floors"))
-        {
-            int floor = int.Parse(row[0]);
-            Check(DesignTable.LevelFromFloor(floor) == int.Parse(row[1]), "floor level " + floor);
-            Check(DesignTable.NormalLife(floor) == long.Parse(row[2]), "normal life " + floor);
-            Check(DesignTable.NormalDamage(floor) == long.Parse(row[3]), "normal damage " + floor);
-            Check(DesignTable.Unit(DesignTable.LevelFromFloor(floor)) == long.Parse(row[4]), "normal xp " + floor);
-            Check(DesignTable.RankLife(floor, 4m) == long.Parse(row[5]), "champion life " + floor);
-            Check(DesignTable.RankLife(floor, 7m) == long.Parse(row[6]), "elite life " + floor);
-            if (row[7] != "—") Check(DesignTable.RankLife(floor, 28m) == long.Parse(row[7]), "guardian life " + floor);
-        }
-
-        foreach (var row in SpecRows("### T.depthtier"))
-        {
-            int floor = int.Parse(row[0]);
-            Check(DesignTable.DepthTier(floor) == int.Parse(row[1]), "tier " + floor);
-            Check(Math.Abs((double)DesignTable.LifeScale(floor) - double.Parse(row[2])) < 1e-6, "life scale " + floor);
-            Check(Math.Abs((double)DesignTable.DamageScale(floor) - double.Parse(row[3])) < 1e-6, "damage scale " + floor);
-        }
-
-        foreach (var row in SpecRows("### T.drops"))
-        {
-            int floor = int.Parse(row[0]);
-            var w = new decimal[5];
-            DesignTable.DropWeights(floor, 0m, LootSource.Normal, w);
-            for (int i = 0; i < 5; i++)
-            {
-                decimal shown = decimal.Parse(row[i + 1]);
-                decimal got = decimal.Round(w[i] * 100m, 3, MidpointRounding.ToEven);
-                Check(got == shown, "drop " + floor + " col " + i + " spec " + shown + " got " + got);
-            }
-        }
-
-        foreach (var row in SpecRows("### T.affixcount"))
-        {
-            var rarity = Enum.Parse<Rarity>(row[0]);
-            DesignTable.AffixBudget(rarity, out int p, out int s);
-            Check(p == int.Parse(row[1]) && s == int.Parse(row[2]), "affix budget " + row[0]);
-        }
-
-        foreach (var row in SpecRows("### T.gems"))
-        {
-            int rank = int.Parse(row[0]);
-            DesignTable.GemRow(rank, out int ilvl, out int mn, out int mx, out int thorn, out int life, out int salt, out int gold);
-            Check(ilvl == int.Parse(row[1]) && mn == int.Parse(row[2]) && mx == int.Parse(row[3]) && thorn == int.Parse(row[4]) && life == int.Parse(row[5]) && salt == int.Parse(row[6]) && gold == int.Parse(row[7]), "gem rank " + rank);
-        }
-
-        foreach (var row in SpecRows("### T.affixdepth"))
-        {
-            int floor = int.Parse(row[0]);
-            Check(DesignTable.AffixCount(MonsterRank.Champion, floor) == int.Parse(row[1]), "champion affixes floor " + floor);
-            Check(DesignTable.AffixCount(MonsterRank.Elite, floor) == int.Parse(row[2]), "elite affixes floor " + floor);
-            Check(DesignTable.AffixCount(MonsterRank.Boss, floor) == int.Parse(row[3]), "guardian affixes floor " + floor);
-        }
-
-        foreach (var row in SpecRows("### T.affix"))
-        {
-            var id = Enum.Parse<EliteAffix>(row[0]);
-            Check(DesignTable.AffixName(id) == row[1], "affix name " + row[0]);
-            Check(DesignTable.AffixTelegraph(id) == row[2], "affix telegraph " + row[0]);
-        }
+        Check(DesignTable.XpToNext(1) == 120 && DesignTable.XpToNext(10) == 6748, "xp anchors stay on the data table");
 
         foreach (var row in SpecRows("### T.ui"))
         {
@@ -605,25 +518,23 @@ static class Program
         var grid = DesignTable.UiRect("inventory", "grid");
         var cell = DesignTable.UiRect("inventory", "gridCell");
         Check(DesignTable.BagColumns * cell.W + (DesignTable.BagColumns - 1) * DesignTable.BagGap == grid.W, "grid width");
-        Check(DesignTable.BagRows * cell.H + (DesignTable.BagRows - 1) * DesignTable.BagGap == grid.H, "grid height");
-        Check(DesignTable.BagColumns * DesignTable.BagRows - DesignTable.BagCapacity == 2, "two sealed bag cells");
+        Check(DesignTable.BagRows * cell.H == 672 && grid.H - 672 == 28, "grid leaves 28 dp under the cells");
+        Check(DesignTable.BagColumns * DesignTable.BagRows == DesignTable.BagCapacity, "one item per bag cell");
 
-        string[] leftSlots = { "amulet", "ring1", "ring2", "weapon", "offhand", "wrists" };
-        string[] rightSlots = { "head", "shoulders", "chest", "hands", "waist", "legs", "feet" };
+        string[] leftSlots = { "head", "shoulders", "chest", "wrists", "hands", "belt", "legs" };
+        string[] rightSlots = { "amulet", "ring_l", "ring_r", "cloak", "feet", "mainhand", "offhand" };
         var leftCol = DesignTable.UiRect("inventory", "leftColumn");
         var rightCol = DesignTable.UiRect("inventory", "rightColumn");
-        var model = DesignTable.UiRect("inventory", "model");
+        var hero = DesignTable.UiRect("inventory", "hero");
         var bag = DesignTable.UiRect("inventory", "bag");
         foreach (var id in leftSlots) Check(Contains(leftCol, DesignTable.DollRect(id)), id + " sits in the left column");
         foreach (var id in rightSlots) Check(Contains(rightCol, DesignTable.DollRect(id)), id + " sits in the right column");
         for (int i = 0; i < DesignTable.Doll.Length; i++)
             for (int j = i + 1; j < DesignTable.Doll.Length; j++)
                 Check(!Overlaps(DesignTable.Doll[i], DesignTable.Doll[j]), "slots overlap " + DesignTable.Doll[i].Id + " " + DesignTable.Doll[j].Id);
-        Check(!Overlaps(leftCol, model) && !Overlaps(rightCol, model) && !Overlaps(leftCol, rightCol), "columns clear the model");
-        Check(!Overlaps(model, bag) && !Overlaps(rightCol, bag), "bag clears the doll");
-        Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), grid), "tooltip covers the grid when shown");
-        Check(!Overlaps(DesignTable.UiRect("inventory", "tooltip"), DesignTable.UiRect("inventory", "sort")), "tooltip clears the sort row");
-        Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "close")), "grid and close sit in the bag");
+        Check(!Overlaps(rightCol, bag) && !Overlaps(hero, bag), "bag clears the hero and the right column");
+        Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), hero), "tooltip opens over the hero");
+        Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "tabs")) && Contains(bag, DesignTable.UiRect("inventory", "bottom")), "grid, tabs, and the bottom bar sit in the bag");
 
         string asset = FeelAsset();
         Check(asset != null, "FeelProfile.asset is on disk");

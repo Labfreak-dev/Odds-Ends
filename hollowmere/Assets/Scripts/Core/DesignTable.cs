@@ -65,10 +65,10 @@ namespace Hollowmere.Core
         public const int QaWidth = 2340;
         public const int QaHeight = 1080;
 
-        public const int BagColumns = 6;
-        public const int BagRows = 7;
-        public const int BagGap = 12;
-        public const int BagCapacity = 40;
+        public const int BagColumns = 5;
+        public const int BagRows = 6;
+        public const int BagGap = 0;
+        public const int BagCapacity = 30;
 
         public static readonly decimal[] EliteGlobeThresholds = { EliteGlobeFirst, EliteGlobeSecond, EliteGlobeThird };
 
@@ -102,21 +102,17 @@ namespace Hollowmere.Core
             new Rect("hud", "skill4", 2244, 848, 72, 72),
             new Rect("hud", "potion", 1980, 984, 64, 64),
             new Rect("inventory", "screen", 0, 0, 2340, 1080),
-            new Rect("inventory", "name", 40, 36, 480, 44),
-            new Rect("inventory", "level", 40, 84, 240, 32),
-            new Rect("inventory", "stats", 540, 36, 450, 72),
-            new Rect("inventory", "model", 168, 120, 720, 880),
-            new Rect("inventory", "leftColumn", 40, 140, 104, 708),
-            new Rect("inventory", "rightColumn", 912, 140, 104, 688),
-            new Rect("inventory", "tabs", 168, 1012, 720, 48),
-            new Rect("inventory", "bag", 1088, 36, 1216, 1008),
-            new Rect("inventory", "currency", 1148, 52, 520, 40),
-            new Rect("inventory", "close", 2216, 48, 64, 64),
-            new Rect("inventory", "grid", 1148, 148, 636, 744),
-            new Rect("inventory", "gridCell", 0, 0, 96, 96),
-            new Rect("inventory", "sort", 1148, 920, 200, 64),
-            new Rect("inventory", "actions", 1368, 920, 416, 64),
-            new Rect("inventory", "tooltip", 1148, 160, 480, 640),
+            new Rect("inventory", "hero", 300, 110, 1080, 930),
+            new Rect("inventory", "header", 600, 40, 480, 80),
+            new Rect("inventory", "leftColumn", 90, 110, 220, 880),
+            new Rect("inventory", "rightColumn", 1400, 110, 220, 880),
+            new Rect("inventory", "bag", 1640, 60, 660, 960),
+            new Rect("inventory", "grid", 1690, 210, 560, 700),
+            new Rect("inventory", "gridCell", 0, 0, 112, 112),
+            new Rect("inventory", "tabs", 1690, 120, 560, 72),
+            new Rect("inventory", "bottom", 1690, 930, 560, 64),
+            new Rect("inventory", "close", 2214, 40, 96, 96),
+            new Rect("inventory", "tooltip", 800, 140, 540, 800),
             new Rect("vendor", "panel", 48, 48, 2244, 984),
             new Rect("vendor", "goods", 72, 120, 900, 760),
             new Rect("vendor", "actions", 72, 900, 900, 80),
@@ -129,19 +125,20 @@ namespace Hollowmere.Core
 
         public static readonly Rect[] Doll =
         {
-            new Rect("doll", "amulet", 40, 140, 104, 88),
-            new Rect("doll", "ring1", 40, 240, 104, 88),
-            new Rect("doll", "ring2", 40, 340, 104, 88),
-            new Rect("doll", "weapon", 40, 440, 104, 148),
-            new Rect("doll", "offhand", 40, 600, 104, 148),
-            new Rect("doll", "wrists", 40, 760, 104, 88),
-            new Rect("doll", "head", 912, 140, 104, 88),
-            new Rect("doll", "shoulders", 912, 240, 104, 88),
-            new Rect("doll", "chest", 912, 340, 104, 88),
-            new Rect("doll", "hands", 912, 440, 104, 88),
-            new Rect("doll", "waist", 912, 540, 104, 88),
-            new Rect("doll", "legs", 912, 640, 104, 88),
-            new Rect("doll", "feet", 912, 740, 104, 88),
+            new Rect("doll", "head", 144, 134, 112, 112),
+            new Rect("doll", "shoulders", 144, 254, 112, 112),
+            new Rect("doll", "chest", 144, 374, 112, 112),
+            new Rect("doll", "wrists", 144, 494, 112, 112),
+            new Rect("doll", "hands", 144, 614, 112, 112),
+            new Rect("doll", "belt", 144, 734, 112, 112),
+            new Rect("doll", "legs", 144, 854, 112, 112),
+            new Rect("doll", "amulet", 1454, 134, 112, 112),
+            new Rect("doll", "ring_l", 1454, 254, 112, 112),
+            new Rect("doll", "ring_r", 1454, 374, 112, 112),
+            new Rect("doll", "cloak", 1454, 494, 112, 112),
+            new Rect("doll", "feet", 1454, 614, 112, 112),
+            new Rect("doll", "mainhand", 1454, 734, 112, 112),
+            new Rect("doll", "offhand", 1454, 854, 112, 112),
         };
 
         public static Rect UiRect(string screen, string id)

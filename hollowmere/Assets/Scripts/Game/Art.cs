@@ -59,12 +59,15 @@ namespace Hollowmere
 
         public static Material Mat(string hex, float emission = 0f) => Mat(Hex(hex), emission);
 
-        /// <summary>Additive unlit material. Vertex-color mode is for TrailRenderer gradients;
-        /// the sprite quad uses a flat color so a mesh without colors still glows.</summary>
-        public static Material GlowMat(Color c, bool vertexColor = false)
+        /// <summary>Additive unlit material from Resources/HollowmereGlow, which is always included.
+        /// Vertex-color mode is for TrailRenderer gradients. A texture (impact sheets) is masked by
+        /// luminance so a dark cell does not become an opaque square. A bare quad is a soft disc.</summary>
+        public static Material GlowMat(Color c, bool vertexColor = false, Texture tex = null)
         {
             string key = ColorUtility.ToHtmlStringRGBA(c) + (vertexColor ? "v" : "c");
-            if (glowMats.TryGetValue(key, out var m)) return m;
+            // A sheet animates mainTextureOffset, so each textured material must be its own instance.
+            if (tex == null && glowMats.TryGetValue(key, out var cached)) return cached;
+            Material m;
             if (glowBase == null)
             {
                 var loaded = Resources.Load<Material>("HollowmereGlow");
@@ -74,11 +77,20 @@ namespace Hollowmere
             }
             m = new Material(glowBase);
             m.color = c;
+            m.renderQueue = 3000;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
             if (m.HasProperty("_Color")) m.SetColor("_Color", c);
             if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", vertexColor ? Color.white : c);
             if (m.HasProperty("_UseVertexColor")) m.SetFloat("_UseVertexColor", vertexColor ? 1f : 0f);
-            glowMats[key] = m;
+            bool mapped = tex != null;
+            if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", mapped ? 1f : 0f);
+            if (m.HasProperty("_Soft")) m.SetFloat("_Soft", !mapped && !vertexColor ? 1f : 0f);
+            if (mapped)
+            {
+                m.mainTexture = tex;
+                if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
+            }
+            else glowMats[key] = m;
             return m;
         }
 
@@ -107,6 +119,7 @@ namespace Hollowmere
                 new Vector3(-0.5f, -0.5f, 0f), new Vector3(-0.5f, 0.5f, 0f),
                 new Vector3(0.5f, 0.5f, 0f), new Vector3(0.5f, -0.5f, 0f),
             };
+            glowQuad.uv = new[] { new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(1f, 0f) };
             glowQuad.colors = new[] { Color.white, Color.white, Color.white, Color.white };
             glowQuad.triangles = new[] { 0, 1, 2, 0, 2, 3 };
             glowQuad.RecalculateBounds();
@@ -175,6 +188,8 @@ namespace Hollowmere
             var fit = holder.AddComponent<ModelFit>();
             fit.targetHeight = IsCharacter(key) ? height : 0f;
             fit.maxAxis = IsCharacter(key) ? Mathf.Max(2.5f, height * 1.3f) : 4f;
+            // Only people. A spider or hound is supposed to be longer than it is tall.
+            fit.biped = key.StartsWith("npc_") || key.StartsWith("hero_");
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -297,6 +312,8 @@ namespace Hollowmere
             go.position += new Vector3(holder.position.x - b.center.x, holder.position.y - b.min.y, holder.position.z - b.center.z);
         }
 
+        public static bool MeshWorldBounds(Transform root, out Bounds world) => WorldMeshBounds(root, out world);
+
         static bool WorldMeshBounds(Transform root, out Bounds world)
         {
             world = new Bounds(root.position, Vector3.zero);
@@ -360,9 +377,11 @@ namespace Hollowmere
                     if (dst.HasProperty("_BaseColor")) dst.SetColor("_BaseColor", c);
                     if (tex != null)
                     {
-                        var readable = ReadableCopy(tex);
-                        if (dst.HasProperty("_BaseMap")) dst.SetTexture("_BaseMap", readable);
-                        if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", readable);
+                        // Sample the imported texture directly. Blitting a GPU-only glTF map
+                        // into a new Texture2D came back white and the dungeon hero was a blob.
+                        if (dst.HasProperty("_BaseMap")) dst.SetTexture("_BaseMap", tex);
+                        if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", tex);
+                        dst.mainTexture = tex;
                         if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
                         if (dst.GetTexture("_BaseMap") == null && dst.mainTexture == null)
                             Debug.LogError("Hollowmere: albedo texture did not stick on " + go.name);
@@ -398,26 +417,6 @@ namespace Hollowmere
             return m.mainTexture;
         }
 
-        /// <summary>GPU-only glTF textures cannot be read back. Blit into a Texture2D so the
-        /// copy is readable and is the one the included shader actually samples.</summary>
-        static Texture ReadableCopy(Texture src)
-        {
-            if (src == null) return null;
-            if (src is Texture2D tex2d && tex2d.isReadable) return src;
-            int w = Mathf.Max(1, src.width);
-            int h = Mathf.Max(1, src.height);
-            var rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32);
-            Graphics.Blit(src, rt);
-            var prev = RenderTexture.active;
-            RenderTexture.active = rt;
-            var copy = new Texture2D(w, h, TextureFormat.RGBA32, false) { name = src.name + " albedo" };
-            copy.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-            copy.Apply();
-            RenderTexture.active = prev;
-            RenderTexture.ReleaseTemporary(rt);
-            return copy;
-        }
-
         /// <summary>First albedo on a character, for the QA check that the copy kept a texture.</summary>
         public static Texture AlbedoOf(GameObject go)
         {
@@ -433,6 +432,53 @@ namespace Hollowmere
                 }
             }
             return null;
+        }
+
+        /// <summary>Hollowmere/Color with a repeating ground texture. Used by the hero-select stage
+        /// and the inventory backdrop so those cameras are not a flat untextured disc.</summary>
+        public static Material GroundMat(string name)
+        {
+            var tex = ArtDrop.Ground(name);
+            var m = new Material(BaseMaterial());
+            m.color = Color.white;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);
+            if (tex != null)
+            {
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+                if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
+                m.mainTexture = tex;
+                m.mainTextureScale = new Vector2(2f, 2f);
+                if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 1f);
+            }
+            return m;
+        }
+
+        /// <summary>Place a camera so the renderers under root fill the frame. Skips backdrop meshes.</summary>
+        public static void FrameCamera(Camera cam, GameObject root, string skipPrefix, float fill = 0.78f)
+        {
+            if (cam == null || root == null) return;
+            bool any = false;
+            Bounds b = default;
+            foreach (var r in root.GetComponentsInChildren<Renderer>())
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (!string.IsNullOrEmpty(skipPrefix) && r.gameObject.name.StartsWith(skipPrefix)) continue;
+                if (!any) { b = r.bounds; any = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            if (!any) return;
+            float h = Mathf.Max(0.4f, b.size.y);
+            float w = Mathf.Max(h * 0.4f, b.size.x);
+            float aspect = cam.aspect > 0.05f ? cam.aspect : 1f;
+            float vfov = cam.fieldOfView * Mathf.Deg2Rad;
+            float distH = (h * 0.5f) / (Mathf.Tan(vfov * 0.5f) * Mathf.Max(0.4f, fill));
+            float hfov = 2f * Mathf.Atan(Mathf.Tan(vfov * 0.5f) * aspect);
+            float distW = (w * 0.5f) / (Mathf.Tan(hfov * 0.5f) * Mathf.Max(0.4f, fill));
+            float dist = Mathf.Max(distH, distW) + 0.35f;
+            var look = b.center;
+            cam.transform.position = look + new Vector3(0f, h * 0.04f, -dist);
+            cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);
         }
 
         public static float MaxAxis(Vector3 size) => Mathf.Max(size.x, Mathf.Max(size.y, size.z));
@@ -916,6 +962,7 @@ namespace Hollowmere
     {
         public float targetHeight;
         public float maxAxis = 4f;
+        public bool biped;
         int pass;
         bool applied;
 
@@ -925,25 +972,65 @@ namespace Hollowmere
             if (pass++ < 2) return;
             enabled = false;
             if (applied) return;
+            if (biped) StandIfLying();
             if (!Art.UnionBounds(gameObject, out var b)) return;
             float max = Art.MaxAxis(b.size);
             if (max < 0.02f) return;
             float factor = 1f;
             if (max > 10f)
                 factor = (targetHeight > 0.2f ? targetHeight : Mathf.Min(maxAxis, 2.6f)) / max;
+            else if (targetHeight > 0.2f && b.size.y > targetHeight * 1.35f)
+                factor = targetHeight / b.size.y;
             else if (targetHeight > 0.2f && b.size.y > 0.3f && b.size.y < targetHeight * 0.65f)
                 factor = targetHeight / b.size.y;
-            if (factor > 0.92f && factor < 1.08f) return;
-            applied = true;
-            Debug.LogWarning("Hollowmere scale: " + name + " size " + b.size + " center " + b.center + " x" + factor.ToString("0.###"));
-            transform.localScale *= factor;
-            if (targetHeight > 0.2f && Art.UnionBounds(gameObject, out b))
+            bool grounded = false;
+            if (factor > 0.92f && factor < 1.08f) factor = 1f;
+            else
+            {
+                applied = true;
+                grounded = true;
+                Debug.LogWarning("Hollowmere scale: " + name + " size " + b.size + " center " + b.center + " x" + factor.ToString("0.###"));
+                transform.localScale *= factor;
+            }
+            if ((grounded || biped) && targetHeight > 0.2f && Art.UnionBounds(gameObject, out b))
             {
                 var p = transform.position;
                 var shift = new Vector3(p.x - b.center.x, p.y - b.min.y, p.z - b.center.z);
                 if (shift.sqrMagnitude > 0.0004f)
                     foreach (Transform c in transform) c.position += shift;
             }
+        }
+
+        /// <summary>A biped whose skinned bounds are longer than they are tall is lying down.
+        /// Quarter-turns of the holder stand the whole clip up. Pets are not bipeds.</summary>
+        void StandIfLying()
+        {
+            // mesh.bounds through the world matrix, not Renderer.bounds: the skinned box
+            // stays stale until the end of the frame, so a same-frame turn would see no change.
+            if (!Art.MeshWorldBounds(transform, out var b)) return;
+            if (b.size.y >= b.size.x * 0.92f && b.size.y >= b.size.z * 0.92f) return;
+            var start = transform.localRotation;
+            var best = start;
+            float bestH = b.size.y;
+            Quaternion[] opts =
+            {
+                Quaternion.Euler(-90f, 0f, 0f),
+                Quaternion.Euler(90f, 0f, 0f),
+                Quaternion.Euler(0f, 0f, -90f),
+                Quaternion.Euler(0f, 0f, 90f),
+            };
+            foreach (var q in opts)
+            {
+                transform.localRotation = start * q;
+                if (!Art.MeshWorldBounds(transform, out var nb)) continue;
+                if (nb.size.y > bestH)
+                {
+                    bestH = nb.size.y;
+                    best = transform.localRotation;
+                }
+            }
+            transform.localRotation = best;
+            Debug.LogWarning("Hollowmere stand: " + name + " height " + bestH.ToString("0.00"));
         }
     }
 

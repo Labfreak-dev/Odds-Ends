@@ -16,16 +16,22 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _UseVertexColor: 0
+    - _HasMap: 0
+    - _Soft: 1
     m_Colors:
     - _BaseColor: {r: 0.72, g: 0.35, b: 1, a: 1}
     - _Color: {r: 0.72, g: 0.35, b: 1, a: 1}

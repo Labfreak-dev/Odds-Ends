@@ -304,12 +304,36 @@ namespace Hollowmere
             {
                 string ghostId = slotId == "belt" ? "belt" : slotId == "mainhand" ? "mainhand" : slotId == "ring_l" || slotId == "ring_r" ? "ring" : slotId;
                 var ghost = ArtDrop.Sprite("ghost_" + ghostId);
-                if (ghost == null) return;
-                var g = Ui.At(b.transform, "ghost", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(72f, 72f));
-                var gi = g.gameObject.AddComponent<Image>();
-                gi.sprite = ghost; gi.color = new Color(1f, 1f, 1f, 0.45f); gi.raycastTarget = false; gi.preserveAspect = true;
+                if (ghost != null)
+                {
+                    var g = Ui.At(b.transform, "ghost", new Vector2(0.5f, 0.62f), Vector2.zero, new Vector2(64f, 64f));
+                    var gi = g.gameObject.AddComponent<Image>();
+                    gi.sprite = ghost; gi.color = new Color(1f, 1f, 1f, 0.55f); gi.raycastTarget = false; gi.preserveAspect = true;
+                }
+                var cap = Ui.At(b.transform, "slotLabel", new Vector2(0.5f, 0.12f), Vector2.zero, new Vector2(180f, 28f));
+                var lab = Ui.Label(cap, SlotLabel(slotId), 16, TextAnchor.MiddleCenter, new Color(0.75f, 0.7f, 0.62f, 0.9f));
+                lab.raycastTarget = false;
             }
         }
+
+        static string SlotLabel(string id) => id switch
+        {
+            "head" => "Head",
+            "shoulders" => "Shoulders",
+            "chest" => "Chest",
+            "wrists" => "Wrists",
+            "hands" => "Hands",
+            "belt" => "Belt",
+            "legs" => "Legs",
+            "amulet" => "Amulet",
+            "ring_l" => "Ring",
+            "ring_r" => "Ring",
+            "cloak" => "Cloak",
+            "feet" => "Feet",
+            "mainhand" => "Weapon",
+            "offhand" => "Off-hand",
+            _ => id ?? "",
+        };
 
         static EquipSlot SlotOf(string id) => id switch
         {
@@ -508,6 +532,8 @@ namespace Hollowmere
     {
         RenderTexture rt;
         Transform pivot;
+        Camera cam;
+        int framed;
 
         public static InventoryStage Build(HeroClass cls, RawImage target)
         {
@@ -522,31 +548,47 @@ namespace Hollowmere
             camGo.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.07f, 0.06f, 0.08f, 1f);
-            cam.fieldOfView = 24f;
+            cam.backgroundColor = new Color(0.22f, 0.16f, 0.13f, 1f);
+            cam.fieldOfView = 22f;
             cam.nearClipPlane = 0.05f;
-            cam.farClipPlane = 12f;
+            cam.farClipPlane = 16f;
             cam.targetTexture = tex;
             cam.depth = -10f;
-            var light = new GameObject("light").AddComponent<Light>();
-            light.transform.SetParent(root.transform, false);
-            light.transform.localPosition = new Vector3(0.6f, 2.2f, -1.4f);
-            light.type = LightType.Point;
-            light.range = 8f;
-            light.intensity = 3.2f;
-            light.color = new Color(1f, 0.94f, 0.86f);
+            var sun = new GameObject("invSun").AddComponent<Light>();
+            sun.transform.SetParent(root.transform, false);
+            sun.type = LightType.Directional;
+            sun.transform.rotation = Quaternion.Euler(38f, 12f, 0f);
+            sun.intensity = 1.8f;
+            sun.color = new Color(1f, 0.93f, 0.82f);
+            var fill = new GameObject("invFill").AddComponent<Light>();
+            fill.transform.SetParent(root.transform, false);
+            fill.type = LightType.Directional;
+            fill.transform.rotation = Quaternion.Euler(18f, -150f, 0f);
+            fill.intensity = 0.45f;
+            fill.color = new Color(0.7f, 0.62f, 0.85f);
+            var wall = Art.Cube(root.transform, new Vector3(0f, 1.15f, 1.8f), new Vector3(4.4f, 3.4f, 0.08f), Art.GroundMat("crypt"));
+            wall.name = "stageBackdrop";
+            var floor = Art.Cube(root.transform, new Vector3(0f, -0.02f, 0.15f), new Vector3(4.4f, 0.05f, 3.2f), Art.GroundMat("cobble"));
+            floor.name = "stageBackdropFloor";
             var pivot = new GameObject("pivot").transform;
             pivot.SetParent(root.transform, false);
             stage.pivot = pivot;
             Art.Animated(Art.HeroModelKey(cls), 1.8f, pivot);
+            stage.cam = cam;
             target.texture = tex;
             target.color = Color.white;
             return stage;
         }
 
-        void Update()
+        void LateUpdate()
         {
             if (pivot != null) pivot.Rotate(0f, 12f * Time.unscaledDeltaTime, 0f, Space.Self);
+            if (framed < 4)
+            {
+                framed++;
+                if (framed == 4 && cam != null)
+                    Art.FrameCamera(cam, gameObject, "stageBackdrop", 0.8f);
+            }
         }
 
         void OnDestroy()

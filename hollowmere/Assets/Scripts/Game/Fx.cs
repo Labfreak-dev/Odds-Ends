@@ -38,22 +38,36 @@ namespace Hollowmere
             if (target != null) target.PunchFlash(c);
         }
 
-        /// <summary>Hex Bolt's hit: a coloured burst plus a point light that fades out.</summary>
+        /// <summary>Hex Bolt's hit: the additive impact sheet, a soft glow, and a fading point light.</summary>
         public static void HexImpact(Vector3 at, Color c, Actor target)
         {
-            Impact(at, c, target);
-            Burst(at + Vector3.up * 0.8f, c, 2.8f, 0.42f);
-            Ring(at, 2.4f, c, 0.45f);
             var host = new GameObject("hexImpact");
             host.transform.position = at + Vector3.up * 1.05f;
-            var sprite = Art.GlowSprite(host.transform, 2.4f, c);
-            sprite.AddComponent<FxLife>().Init(0.4f, Vector3.one * 2.4f, Vector3.one * 3.6f);
+            var tex = CombatDrop.Tex("hexweaver_hx_bolt");
+            if (tex != null)
+            {
+                var quad = Art.GlowSprite(host.transform, 2.4f, Color.white);
+                var mr = quad.GetComponent<MeshRenderer>();
+                var mat = Art.GlowMat(Color.white, false, tex);
+                if (mr != null) mr.sharedMaterial = mat;
+                var play = quad.AddComponent<SheetPlay>();
+                play.mat = mat;
+                play.fps = 24;
+                play.loop = false;
+                play.life = 12f / 24f;
+            }
+            else
+            {
+                var sprite = Art.GlowSprite(host.transform, 1.7f, c);
+                sprite.AddComponent<FxLife>().Init(0.4f, Vector3.one * 1.7f, Vector3.one * 2.6f);
+            }
             var l = host.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = c;
             l.range = 11f;
             l.intensity = 8f;
             host.AddComponent<LightFade>().Init(0.42f, 8f);
+            if (target != null) target.PunchFlash(c);
         }
 
         public static void Burst(Vector3 at, Color c, float size = 0.6f, float seconds = 0.25f)

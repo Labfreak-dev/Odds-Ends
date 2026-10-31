@@ -5,7 +5,8 @@ using UnityEngine;
 namespace Hollowmere
 {
     /// <summary>Seeded clutter that stays off the gate, the NPCs and the corridor the hero needs.
-    /// Painted props and decals stand in when the drop-in art is present. A blob sits under each prop.</summary>
+    /// Painted props and decals stand in when the drop-in art is present. Decals need the
+    /// transparent sheet shader; an opaque stand-in was painting black ovals on the grass.</summary>
     public static class Dressing
     {
         public static void Scatter(DungeonMap map, Transform root, IList<Int2> blocked, int seed)
@@ -90,16 +91,17 @@ namespace Hollowmere
             RenderSettings.fogMode = FogMode.Linear;
             if (map.theme == Theme.Town)
             {
-                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.62f, 0.7f, 0.62f), 0.5f);
-                RenderSettings.fogStartDistance = 28f;
-                RenderSettings.fogEndDistance = 80f;
+                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.72f, 0.78f, 0.7f), 0.55f);
+                RenderSettings.fogStartDistance = 16f;
+                RenderSettings.fogEndDistance = 58f;
             }
             else
             {
-                RenderSettings.fogColor = Color.Lerp(ambient, Color.black, 0.45f);
-                RenderSettings.fogStartDistance = 9f;
-                RenderSettings.fogEndDistance = 26f;
-                RenderSettings.ambientLight = ambient * 0.85f;
+                // Far enough that the hero and nearby VFX stay readable, close enough to see.
+                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.55f, 0.5f, 0.46f), 0.4f);
+                RenderSettings.fogStartDistance = 18f;
+                RenderSettings.fogEndDistance = 52f;
+                RenderSettings.ambientLight = ambient * 1.35f;
             }
             foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
             {
@@ -151,22 +153,21 @@ namespace Hollowmere
             var mf = go.AddComponent<MeshFilter>();
             mf.sharedMesh = StandMesh();
             var mr = go.AddComponent<MeshRenderer>();
-            mr.sharedMaterial = PropMat(sprite.texture);
-            Blob(root, at, height * 0.42f);
+            var mat = PropMat(sprite.texture);
+            if (mat == null) { Object.Destroy(go); return false; }
+            mr.sharedMaterial = mat;
             return true;
-        }
-
-        static void Blob(Transform root, Vector3 at, float radius)
-        {
-            Art.Cylinder(root, at + Vector3.up * 0.02f, new Vector3(radius * 2f, 0.012f, radius * 1.35f), Art.Mat(new Color(0.02f, 0.02f, 0.02f)));
         }
 
         static Material PropMat(Texture2D tex)
         {
+            if (tex == null) return null;
             int id = tex.GetInstanceID();
             if (propMats.TryGetValue(id, out var m) && m != null) return m;
             var src = Resources.Load<Material>("HollowmereSheet");
-            m = src != null ? new Material(src) : Art.Mat(Color.white);
+            // An opaque fallback paints the decal's black backdrop as a blotch on the grass.
+            if (src == null || src.shader == null || src.shader.name != "Hollowmere/Sheet") return null;
+            m = new Material(src);
             m.mainTexture = tex;
             if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
             if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);
@@ -257,26 +258,19 @@ namespace Hollowmere
         {
             var pool = town ? TownDecals : DungeonDecals;
             var sprite = ArtDrop.Sprite(pool[rng.Next(pool.Length)]);
-            if (sprite != null && sprite.texture != null)
-            {
-                float s = 0.9f + (float)rng.NextDouble() * 0.8f;
-                var go = new GameObject(sprite.name);
-                go.transform.SetParent(root, false);
-                go.transform.position = at + Vector3.up * 0.03f;
-                go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
-                go.transform.localScale = new Vector3(s, 1f, s * 0.85f);
-                var mf = go.AddComponent<MeshFilter>();
-                mf.sharedMesh = FlatMesh();
-                var mr = go.AddComponent<MeshRenderer>();
-                mr.sharedMaterial = PropMat(sprite.texture);
-                return;
-            }
-            bool moss = rng.Next(2) == 0;
-            var c = moss
-                ? (town ? new Color(0.28f, 0.4f, 0.2f, 1f) : new Color(0.2f, 0.32f, 0.18f, 1f))
-                : new Color(0.15f, 0.13f, 0.12f, 1f);
-            float size = 0.7f + (float)rng.NextDouble() * 0.8f;
-            Art.Cylinder(root, at + Vector3.up * 0.015f, new Vector3(size, 0.008f, size * 0.72f), Art.Mat(c));
+            if (sprite == null || sprite.texture == null) return;
+            var mat = PropMat(sprite.texture);
+            if (mat == null) return;
+            float s = 0.9f + (float)rng.NextDouble() * 0.8f;
+            var go = new GameObject(sprite.name);
+            go.transform.SetParent(root, false);
+            go.transform.position = at + Vector3.up * 0.03f;
+            go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+            go.transform.localScale = new Vector3(s, 1f, s * 0.85f);
+            var mf = go.AddComponent<MeshFilter>();
+            mf.sharedMesh = FlatMesh();
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = mat;
         }
     }
 

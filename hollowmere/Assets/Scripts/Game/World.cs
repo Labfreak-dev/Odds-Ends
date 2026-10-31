@@ -137,15 +137,15 @@ namespace Hollowmere
             {
                 var cobble = ArtDrop.Ground("cobble");
                 var grass = ArtDrop.Ground("grass");
-                if (cobble != null) floorMats[0].mainTexture = cobble;
-                if (grass != null) floorMats[1].mainTexture = grass;
+                if (cobble != null) PaintGround(floorMats[0], cobble);
+                if (grass != null) PaintGround(floorMats[1], grass);
             }
             else
             {
                 var groundName = map.theme == Theme.Crypt ? "crypt" : map.theme == Theme.Caverns ? "cave" : map.theme == Theme.SunkenHalls ? "flag" : "cracked";
                 var groundTex = ArtDrop.Ground(groundName);
                 if (groundTex != null)
-                    for (int gi = 0; gi < floorMats.Length; gi++) floorMats[gi].mainTexture = groundTex;
+                    for (int gi = 0; gi < floorMats.Length; gi++) PaintGround(floorMats[gi], groundTex);
             }
             floor.GetComponent<MeshRenderer>().sharedMaterials = floorMats;
 
@@ -169,18 +169,29 @@ namespace Hollowmere
             Art.AdoptShaders(root.gameObject);
 
             // ---------- lighting
+            bool town = map.theme == Theme.Town;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = ambient * (map.theme == Theme.Town ? 1.3f : 1.6f);
-            RenderSettings.fog = map.theme != Theme.Town;
-            RenderSettings.fogColor = ambient * 0.5f;
+            RenderSettings.ambientLight = ambient * (town ? 1.35f : 1.45f);
+            RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogStartDistance = 18; RenderSettings.fogEndDistance = 42;
+            if (town)
+            {
+                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.72f, 0.78f, 0.7f), 0.55f);
+                RenderSettings.fogStartDistance = 16f;
+                RenderSettings.fogEndDistance = 58f;
+            }
+            else
+            {
+                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.55f, 0.5f, 0.46f), 0.4f);
+                RenderSettings.fogStartDistance = 18f;
+                RenderSettings.fogEndDistance = 52f;
+            }
             var sun = new GameObject("sun").AddComponent<Light>();
             sun.transform.SetParent(root, false);
             sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(55, -30, 0);
-            sun.intensity = map.theme == Theme.Town ? 1.1f : 0.35f;
-            sun.color = map.theme == Theme.Town ? new Color(1f, 0.95f, 0.85f) : lightC;
+            sun.transform.rotation = Quaternion.Euler(50, -30, 0);
+            sun.intensity = town ? 1.15f : 1.05f;
+            sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
             if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 
             FloorNav.Build(map);
@@ -203,6 +214,16 @@ namespace Hollowmere
             }
             Dressing.Mood(map);
             return root;
+        }
+
+        static void PaintGround(Material m, Texture tex)
+        {
+            if (m == null || tex == null) return;
+            m.mainTexture = tex;
+            if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+            if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
+            if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 1f);
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
         }
 
         static void Quad(List<Vector3> v, List<Vector3> n, List<int> t, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, List<Vector2> uv = null)

@@ -30,6 +30,13 @@ namespace Hollowmere.Core
             h.equipment[(int)EquipSlot.Chest] = Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Chest);
             h.inventory.Add(Loot.Potion(3));
             h.inventory.Add(Loot.TownPortal(2));
+            // A few pieces so a new bag is not an empty grid on the inventory screen.
+            h.inventory.Add(Loot.Generate(rng, 1, Rarity.Magic, cls, ItemSlot.Ring));
+            h.inventory.Add(Loot.Generate(rng, 1, Rarity.Rare, cls, ItemSlot.Head));
+            h.inventory.Add(Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Feet));
+            h.inventory.Add(Loot.Generate(rng, 1, Rarity.Magic, cls, ItemSlot.Amulet));
+            h.inventory.Add(Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Hands));
+            h.inventory.Add(Loot.Generate(rng, 2, Rarity.Rare, cls, ItemSlot.OffHand));
             return h;
         }
 

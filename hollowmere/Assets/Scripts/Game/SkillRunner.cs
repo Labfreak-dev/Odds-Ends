@@ -216,28 +216,30 @@ namespace Hollowmere
         {
             bool bolt = c.skill.id == "hx_bolt";
             var tint = Art.Element(c.element);
-            // Stay on the element colour. Lerping toward white and cranking emission clipped the
-            // bolt to three white dots in the dungeon shot.
-            var core = bolt ? new Color(0.62f, 0.18f, 1f, 1f) : tint;
-            var p = Make(from + (bolt ? Vector3.up * 0.55f : Vector3.zero), core, bolt ? Vector3.one * 1.15f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            Projectile p;
+            if (bolt)
+            {
+                // No opaque core. The included additive glow is the bolt; a hard quad read as a pink square.
+                var g = new GameObject("hexBolt");
+                g.transform.position = from + Vector3.up * 0.55f;
+                p = g.AddComponent<Projectile>();
+                p.baseScale = Vector3.one;
+                Art.GlowSprite(g.transform, 1.15f, tint);
+            }
+            else
+            {
+                var core = tint;
+                p = Make(from, core, c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            }
             p.team = Team.Hero; p.hero = h; p.cast = c; p.dir = dir.normalized; p.speed = speed; p.rangeLeft = range; p.mult = mult; p.pierce = c.pierce;
             p.hexBolt = bolt; p.tint = tint;
             p.transform.rotation = Quaternion.LookRotation(p.dir);
             if (bolt)
             {
-                Fx.Burst(from, tint, 0.7f, 0.16f);
-                var rend = p.GetComponent<Renderer>();
-                if (rend != null)
-                {
-                    rend.sharedMaterial = Art.Mat(core, 1.1f);
-                    rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                }
-                // Parent scale is the 1.15 m core. The sprite is sized so the world quad is ~2.6 m.
-                Art.GlowSprite(p.transform, 2.6f / 1.15f, tint);
                 var trail = p.gameObject.AddComponent<TrailRenderer>();
                 trail.time = 0.45f;
-                trail.startWidth = 0.72f;
-                trail.endWidth = 0.08f;
+                trail.startWidth = 0.55f;
+                trail.endWidth = 0.04f;
                 trail.minVertexDistance = 0.04f;
                 trail.numCornerVertices = 2;
                 trail.alignment = LineAlignment.View;

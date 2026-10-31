@@ -83,6 +83,9 @@ namespace Hollowmere
         {
             if (h == null || c == null || c.skill == null) return;
             string id = c.skill.id;
+            // The flying glow, trail and impact own Hex Bolt. The sheet cell is a dark square
+            // when drawn with alpha blend, which is what QA saw as an opaque pink quad.
+            if (id == "hx_bolt") return;
             var style = DesignTable.Vfx(id);
             var col = Art.Hex("#" + style.Hex);
             if (!DesignTable.HasSheet(id))

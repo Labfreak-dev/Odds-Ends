@@ -119,11 +119,14 @@ namespace Hollowmere
             // A little dock out into the lake beside the Old Angler.
             var dock = Art.Model("prop_dock", 0.5f, root);
             if (dock != null) dock.transform.SetPositionAndRotation(World.ToWorld(marks['F']) + new Vector3(-World.T, -0.2f, 0), Quaternion.Euler(0, 90, 0));
-            for (int i = 0; i < 6; i++)
+            // Small canopies on the north wall, off the NPC tiles. The old row of 2 m green
+            // spheres sat on the mystic and the dealer and read as a figure lying at the top.
+            int[] treeX = { 6, 12, 18, 27 };
+            for (int i = 0; i < treeX.Length; i++)
             {
-                var tp = World.ToWorld(new Int2(2 + i * 5, 13)) + new Vector3(0, 0, 0.6f);
-                Art.Cylinder(root, tp + Vector3.up * 0.8f, new Vector3(0.35f, 0.8f, 0.35f), Art.Mat(new Color(0.4f, 0.28f, 0.16f)));
-                Art.Sphere(root, tp + Vector3.up * 2.4f, new Vector3(2.2f, 2f, 2.2f), Art.Mat(new Color(0.25f, 0.45f, 0.2f)));
+                var tp = World.ToWorld(new Int2(treeX[i], 13)) + new Vector3(0, 0, 0.4f);
+                Art.Cylinder(root, tp + Vector3.up * 0.7f, new Vector3(0.28f, 0.7f, 0.28f), Art.Mat(new Color(0.4f, 0.28f, 0.16f)));
+                Art.Sphere(root, tp + Vector3.up * 1.7f, new Vector3(1.15f, 0.9f, 1.15f), Art.Mat(new Color(0.25f, 0.45f, 0.2f)));
             }
             var blocked = new System.Collections.Generic.List<Int2>();
             foreach (var kv in marks) blocked.Add(kv.Value);

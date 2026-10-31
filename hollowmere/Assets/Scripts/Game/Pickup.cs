@@ -231,7 +231,7 @@ namespace Hollowmere
                         InteractKind.Merchant => "npc_merchant", InteractKind.Blacksmith => "npc_smith",
                         InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher", _ => null,
                     };
-                    var model = npc != null ? Art.Model(npc, 1.75f, t) : null;
+                    var model = npc != null ? Art.Animated(npc, 1.75f, t) : null;
                     if (model == null && kind == InteractKind.QuestBoard)
                     {
                         Art.Cube(t, new Vector3(0, 1.2f, 0), new Vector3(1.8f, 1.2f, 0.12f), Art.Mat(new Color(0.55f, 0.4f, 0.25f)));
@@ -280,6 +280,18 @@ namespace Hollowmere
         public float distance = 15f, pitch = 55f;
         Camera cam;
         readonly List<Renderer> hidden = new List<Renderer>();
+        bool locked;
+        Vector3 lockedPos;
+        Quaternion lockedRot;
+
+        /// <summary>Stop following so a QA pass can watch the hero cross a fixed frame.</summary>
+        public void Lock(Vector3 pos, Quaternion rot)
+        {
+            locked = true;
+            lockedPos = pos;
+            lockedRot = rot;
+            transform.SetPositionAndRotation(pos, rot);
+        }
 
         public static CameraRig Create()
         {
@@ -298,6 +310,11 @@ namespace Hollowmere
 
         void LateUpdate()
         {
+            if (locked)
+            {
+                transform.SetPositionAndRotation(lockedPos, lockedRot);
+                return;
+            }
             if (follow == null) return;
             // Pull in on narrow (portrait-ish) screens so the hero stays readable.
             float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);

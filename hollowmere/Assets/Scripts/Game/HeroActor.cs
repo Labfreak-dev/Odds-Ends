@@ -29,6 +29,10 @@ namespace Hollowmere
         SkillCast spinCast;
         float regenAcc;
         readonly Locomotion loco = new Locomotion();
+        float releaseIn = -1f;
+        SkillCast pendingCast;
+        Vector3 pendingDir;
+        Actor pendingTarget;
 
         public static HeroActor Spawn(Vector3 at)
         {
@@ -121,6 +125,24 @@ namespace Hollowmere
             combatTimer -= dt;
             potionCd -= dt;
 
+            if (releaseIn >= 0f)
+            {
+                if (!CombatClock.Frozen) releaseIn -= dt;
+                if (releaseIn <= 0f)
+                {
+                    releaseIn = -1f;
+                    var cast = pendingCast;
+                    pendingCast = null;
+                    if (cast != null)
+                    {
+                        SkillRunner.Execute(this, cast, pendingDir, pendingTarget);
+                        if (cast.skill.shape == SkillShape.MeleeArc || cast.skill.id == "ic_whirl")
+                            TrailHold.Arm(hand != null ? hand.gameObject : figure != null ? figure.gameObject : gameObject, SkillVfx.Hex(DesignTable.VfxFor(cast.skill.id).Hex));
+                    }
+                }
+            }
+            if (CombatClock.Frozen) return;
+
             // ---- spin (Whirling Steel) ticks while moving
             bool spinning = spinUntil > Time.time;
             if (spinning && figure != null)
@@ -204,6 +226,7 @@ namespace Hollowmere
         public bool UseSkill(SkillDef s)
         {
             if (Dead || busy || Stunned || GameManager.I.Paused || Hero.skills.Rank(s.id) == 0) return false;
+            if (releaseIn >= 0f) return false;
             if (CooldownLeft(s.id) > 0) return false;
             if (GameManager.I.InTown && s.shape != SkillShape.Dash) { GameManager.I.Toast("Not in town."); return false; }
             var cast = SkillDb.Resolve(s, Hero, stats);
@@ -222,9 +245,14 @@ namespace Hollowmere
             if (dir.sqrMagnitude > 0.0001f) aim = dir.normalized;
             // A dash leaves on this heading. Everything else turns through the motor.
             if (s.shape == SkillShape.Dash) { if (dir.sqrMagnitude > 0.0001f) Face(dir); }
-            else modelAnim?.BeginAttack(s.id == "hx_bolt");
+            var timing = DesignTable.CastFor(s.id, s.shape.ToString());
+            modelAnim?.BeginAttack(s.id == "hx_bolt" || s.shape == SkillShape.Projectile || s.shape == SkillShape.Buff, timing.TotalMs / 1000f);
             combatTimer = 4;
-            SkillRunner.Execute(this, cast, dir, target);
+            pendingCast = cast;
+            pendingDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
+            pendingTarget = target;
+            releaseIn = timing.Windup / 1000f;
+            if (releaseIn <= 0f) releaseIn = 0.0001f;
             return true;
         }
 
@@ -272,6 +300,7 @@ namespace Hollowmere
             float extra = HasBuff("rn_warcry_iron") ? 0.3f : 0;
             var h = Combat.MonsterHit(raw, el, stats, from != null ? from.Level : Hero.level, rng, extra);
             if (h.blocked) Fx.Text(Pos, "Block", Color.white, 0.8f);
+            else CombatClock.Punch("hurt");
             TakeDamage(h, from);
             combatTimer = 4;
             if (melee && from != null && stats[Stat.Thorns] > 0)

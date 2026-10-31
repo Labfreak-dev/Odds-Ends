@@ -661,11 +661,11 @@ namespace Hollowmere
         bool cached, attackEdge;
         bool HasAttackTrigger;
 
-        public void BeginAttack(bool cast)
+        public void BeginAttack(bool cast, float seconds = -1f)
         {
             Ensure();
             Casting = cast;
-            attackLeft = Feel.Active.attackSeconds;
+            attackLeft = seconds > 0f ? seconds : Feel.Active.attackSeconds;
             attackEdge = true;
         }
 

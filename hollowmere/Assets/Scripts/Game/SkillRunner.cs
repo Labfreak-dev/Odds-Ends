@@ -14,6 +14,7 @@ namespace Hollowmere
         {
             var s = c.skill;
             var col = Art.Element(c.element);
+            SkillVfx.Play(h, c, dir);
             Sound(c);
             switch (s.shape)
             {
@@ -158,6 +159,9 @@ namespace Hollowmere
             if (a == null || !a.Targetable) return;
             var hit = Combat.HeroHit(h.Ctx, c, a.IsElite, h.Rng, mult);
             a.TakeDamage(hit, h);
+            string punch = a.Dead ? "kill" : hit.crit ? "crit" : c.skill.primary ? "normal" : "skill";
+            CombatClock.Punch(punch);
+            Fx.Sparks(a.Pos + Vector3.up * 0.8f, Art.Element(c.element), hit.crit ? "crit" : c.skill.primary ? "normal" : "skill");
             if (c.slow > 0) a.Slow(c.slow, 2.5f);
             if (c.stun > 0) a.Stun(c.stun);
             if (c.burnPct > 0) a.Burn(hit.amount * c.burnPct, 3f, c.element, h);

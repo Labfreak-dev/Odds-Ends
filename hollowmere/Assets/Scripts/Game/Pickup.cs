@@ -300,6 +300,7 @@ namespace Hollowmere
             var rot = Quaternion.Euler(pitch, Yaw, 0);
             var targetPos = follow.position + Vector3.up * 1f - rot * Vector3.forward * d;
             transform.position = Vector3.Lerp(transform.position, targetPos, 1 - Mathf.Exp(-10 * Time.unscaledDeltaTime));
+            transform.position += CombatClock.Offset(Time.unscaledDeltaTime);
             transform.rotation = rot;
             HideOccluders();
         }

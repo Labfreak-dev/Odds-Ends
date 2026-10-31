@@ -36,7 +36,7 @@ namespace Hollowmere
 
         static IEnumerator Run(GameManager gm, string mode)
         {
-            if (mode != "move" && mode != "pet" && mode != "combat" && mode != "loot")
+            if (mode != "move" && mode != "pet" && mode != "combat" && mode != "loot" && mode != "gear")
             {
                 Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
                 Application.Quit();
@@ -69,6 +69,19 @@ namespace Hollowmere
                 var def = MonsterDb.Get("bonewalker");
                 var ms = MonsterDb.Create(def, 1, MonsterRank.Normal, new Rng(3), 1);
                 MonsterActor.Spawn(ms, World.ClampToFloor(hero.Pos + drive.forward * 2.4f), 9);
+            }
+            if (mode == "gear" && hero.Hero != null)
+            {
+                var rng = new Rng(9);
+                void Wear(string baseId, EquipSlot slot)
+                {
+                    var it = Loot.Generate(rng, 8, Rarity.Rare, hero.Hero.heroClass, forceBase: baseId);
+                    hero.Hero.Equip(it, slot);
+                }
+                Wear("sword", EquipSlot.MainHand);
+                Wear("helm", EquipSlot.Head);
+                Wear("plate", EquipSlot.Chest);
+                hero.RefreshWeapon();
             }
             if (mode == "loot")
             {
@@ -162,6 +175,12 @@ namespace Hollowmere
             {
                 mag = 1f;
                 dir = forward;
+            }
+            else if (mode == "gear")
+            {
+                mag = 0f;
+                dir = forward;
+                hero.transform.Rotate(0f, 50f * Time.deltaTime, 0f, Space.World);
             }
             else if (mode == "combat")
             {

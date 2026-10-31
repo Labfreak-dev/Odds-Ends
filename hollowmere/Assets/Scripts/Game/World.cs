@@ -133,10 +133,12 @@ namespace Hollowmere
             var floorA = town
                 ? PbrKit.Surface("town_cobble", 2f, Color.white)
                 : map.theme == Theme.Caverns
-                    ? PbrKit.Surface("mossy_rock", 3f, Color.white)
+                    ? PbrKit.Surface("cave_rock", 3f, Color.white)
                     : map.theme == Theme.EmberDepths
-                        ? PbrKit.Surface("dirt_path", 4f, new Color(0.85f, 0.7f, 0.6f))
-                        : PbrKit.Surface("dungeon_floor", 2.5f, Color.white);
+                        ? PbrKit.Surface("lava", 4f, Color.white)
+                        : map.theme == Theme.SunkenHalls
+                            ? PbrKit.Surface("marble_floor", 2.5f, Color.white)
+                            : PbrKit.Surface("catacomb_floor", 2.5f, Color.white);
             var floorB = town ? PbrKit.Surface("dirt_path", 4f, Color.white) : floorA;
             var floor = MakeMesh("floor", root, fv, fn, null, floorA, fuv);
             var fm = floor.GetComponent<MeshFilter>().sharedMesh;
@@ -146,8 +148,10 @@ namespace Hollowmere
             floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { floorA, floorB };
 
             var wallSide = town
-                ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.93f, 0.9f, 0.84f))
-                : PbrKit.Surface("dungeon_wall", 3f, Color.white);
+                ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.56f, 0.54f, 0.50f))
+                : map.theme == Theme.Caverns
+                    ? PbrKit.Surface("cave_rock", 3f, Color.white)
+                    : PbrKit.Surface("crypt_wall", 3f, Color.white);
             var wallTop = town ? PbrKit.Surface("roof_tiles", 2.9f, Color.white) : wallSide;
             var walls = MakeMesh("walls", root, wv, wn, null, wallSide);
             var wm = walls.GetComponent<MeshFilter>().sharedMesh;
@@ -233,6 +237,7 @@ namespace Hollowmere
                 }
             }
             Dressing.Mood(map);
+            ModularKit.Dress(map, root);
             return root;
         }
 

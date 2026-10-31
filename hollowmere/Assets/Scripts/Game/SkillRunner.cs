@@ -58,6 +58,7 @@ namespace Hollowmere
                         foreach (var a in hits) HitEnemy(h, c, a);
                         OnHits(h, c, hits.Count);
                         for (float d = 1; d < c.range; d += 1.5f) Fx.Burst(h.Pos + dir * d, col, c.radius * 1.2f, 0.4f);
+                        Fx.Magic(h.Pos + dir * Mathf.Min(2.5f, c.range * 0.45f) + Vector3.up * 1.1f, c.element);
                         if (c.burnPct > 0) GroundEffect.Hero(h, c, h.Pos + dir * c.range * 0.5f, c.range * 0.5f, 3f, 0.4f, 0f);
                     }
                     break;

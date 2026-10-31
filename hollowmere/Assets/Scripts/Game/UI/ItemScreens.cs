@@ -333,7 +333,8 @@ namespace Hollowmere
         static void SkinGearSlot(Button b, Item it, string slotId)
         {
             var img = b.GetComponent<Image>();
-            var plate = !Item.IsNone(it) ? ArtDrop.Sprite("slot_" + it.rarity.ToString().ToLowerInvariant()) : ArtDrop.Sprite("slot_normal");
+            string rareName = !Item.IsNone(it) ? it.rarity.ToString().ToLowerInvariant() : "normal";
+            var plate = ArtDrop.Sprite("rarity_" + rareName) ?? ArtDrop.Sprite("slot_" + rareName);
             plate = plate ?? ArtDrop.Sprite("slot_normal");
             if (plate != null && img != null) { img.sprite = plate; img.type = Image.Type.Sliced; img.color = Color.white; }
             if (Item.IsNone(it) && slotId != null)

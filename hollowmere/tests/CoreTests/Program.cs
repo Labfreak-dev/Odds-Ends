@@ -34,6 +34,7 @@ static class Program
         PostVolumeLevel();
         HeroFitLevel();
         Cc0PropFiles();
+        ModularKitFiles();
         SpecTables();
         P2P5();
         Console.WriteLine($"{passed} passed, {failed} failed");
@@ -892,6 +893,38 @@ static class Program
             i += 2 + seg;
         }
         return false;
+    }
+
+    /// <summary>Modular kit meshes do not embed the shared textures. Those live once under PbrKit.</summary>
+    static void ModularKitFiles()
+    {
+        string wall = null;
+        foreach (var c in new[]
+        {
+            Path.Combine("Assets", "Resources", "Models", "kit_town_wall_4m.glb"),
+            Path.Combine("hollowmere", "Assets", "Resources", "Models", "kit_town_wall_4m.glb"),
+        })
+            if (File.Exists(c)) wall = c;
+        Check(wall != null, "modular town wall is on disk");
+        if (wall != null)
+        {
+            var data = File.ReadAllBytes(wall);
+            int jlen = BitConverter.ToInt32(data, 12);
+            var js = JsonDocument.Parse(Encoding.UTF8.GetString(data, 20, jlen));
+            int images = js.RootElement.TryGetProperty("images", out var im) ? im.GetArrayLength() : 0;
+            Check(images == 0, "modular wall does not embed textures");
+            Check(data.Length < 200000, "modular wall stays a small mesh");
+        }
+        string lava = null;
+        foreach (var c in new[]
+        {
+            Path.Combine("Assets", "Resources", "PbrKit", "materials", "lava", "lava_basecolor.jpg"),
+            Path.Combine("hollowmere", "Assets", "Resources", "PbrKit", "materials", "lava", "lava_basecolor.jpg"),
+        })
+            if (File.Exists(c)) lava = c;
+        Check(lava != null, "shared lava base map is on disk");
+        if (lava != null)
+            Check(new FileInfo(lava).Length < 800000, "lava base map was resized under the shared set");
     }
 
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto

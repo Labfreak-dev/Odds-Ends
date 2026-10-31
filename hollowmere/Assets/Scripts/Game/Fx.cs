@@ -90,6 +90,47 @@ namespace Hollowmere
             play.life = count / 16f + 0.05f;
         }
 
+        /// <summary>Element flipbooks. Fire, frost, lightning and poison are additive. Arcane uses the shadow sheet with alpha.</summary>
+        public static void Magic(Vector3 at, Element el)
+        {
+            string tex;
+            bool alpha;
+            switch (el)
+            {
+                case Element.Fire: tex = "fire_flipbook_4x4"; alpha = false; break;
+                case Element.Frost: tex = "frost_flipbook_4x4"; alpha = false; break;
+                case Element.Lightning: tex = "lightning_flipbook_4x4"; alpha = false; break;
+                case Element.Poison: tex = "poison_flipbook_4x4"; alpha = false; break;
+                case Element.Arcane: tex = "shadow_flipbook_4x4"; alpha = true; break;
+                default: return;
+            }
+            if (Art.VfxTex(tex) == null) return;
+            var go = Art.VfxSprite(null, 1.6f, Color.white, tex);
+            go.transform.position = at;
+            if (alpha)
+            {
+                var sheet = Resources.Load<Material>("HollowmereSheet");
+                var mr = go.GetComponent<MeshRenderer>();
+                if (sheet != null && mr != null)
+                {
+                    var m = new Material(sheet);
+                    var map = Art.VfxTex(tex);
+                    m.mainTexture = map;
+                    if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", map);
+                    if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);
+                    mr.sharedMaterial = m;
+                }
+            }
+            var play = go.AddComponent<SheetPlay>();
+            var rend = go.GetComponent<MeshRenderer>();
+            play.mat = rend != null ? rend.material : null;
+            play.columns = 4;
+            play.rows = 4;
+            play.count = 16;
+            play.fps = 16;
+            play.life = 1.05f;
+        }
+
         public static void Beam(Vector3 a, Vector3 b, Color c, float width = 0.12f, float seconds = 0.15f)
         {
             var mid = (a + b) * 0.5f;

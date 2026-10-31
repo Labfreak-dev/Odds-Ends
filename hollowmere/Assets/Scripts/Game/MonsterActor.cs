@@ -400,21 +400,31 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>Lifts the wraith off the floor and folds its feet up into the robe.</summary>
+    /// <summary>Lifts the wraith so the robe hem sits about 0.4 m off the floor, and folds the feet into the robe.</summary>
     [DefaultExecutionOrder(220)]
     public sealed class WraithFloat : MonoBehaviour
     {
-        public float lift = 0.5f;
+        public float lift = 0.4f;
+        int logged;
 
         void LateUpdate()
         {
-            var p = transform.localPosition;
-            p.y = lift;
-            transform.localPosition = p;
             Squash("LeftFoot");
             Squash("RightFoot");
             Squash("LeftToeBase");
             Squash("RightToeBase");
+            if (!Art.UnionBounds(gameObject, out var b) && !Art.MeshWorldBounds(transform, out b)) return;
+            float dy = lift - b.min.y;
+            if (Mathf.Abs(dy) > 0.002f && Mathf.Abs(dy) < 4f)
+                transform.position += new Vector3(0f, dy, 0f);
+            if (logged == 2)
+            {
+                float hem = b.min.y + dy;
+                Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m root=" + name);
+                if (hem < 0.3f || hem > 0.5f)
+                    Debug.LogError("Hollowmere wraith height FAIL " + hem.ToString("0.00") + "m");
+            }
+            if (logged < 4) logged++;
         }
 
         void Squash(string bone)
@@ -476,6 +486,8 @@ namespace Hollowmere
                     hover.transform.localPosition = hp;
                 }
             }
+            foreach (var floater in GetComponentsInChildren<WraithFloat>(true))
+                floater.enabled = false;
             HoldDeath();
             if (!baked)
             {
@@ -580,6 +592,17 @@ namespace Hollowmere
         {
             if (smr == null) return;
             var go = smr.gameObject;
+            // World size of the posed skin, before the renderer is destroyed.
+            var before = smr.bounds.size;
+            float beforeLen = Mathf.Max(before.x, Mathf.Max(before.y, before.z));
+            if (smr.sharedMesh != null)
+            {
+                var meshSize = smr.sharedMesh.bounds.size;
+                float meshLen = Mathf.Max(meshSize.x, Mathf.Max(meshSize.y, meshSize.z));
+                // A stale skin box reads the 1 cm rig. The authored mesh is the living size.
+                if (meshLen > 0.4f && beforeLen < meshLen * 0.25f) beforeLen = meshLen;
+            }
+            var lossy = smr.transform.lossyScale;
             Mesh mesh = null;
             Material[] mats = smr.sharedMaterials;
             var shadows = smr.shadowCastingMode;
@@ -601,6 +624,20 @@ namespace Hollowmere
             mr.sharedMaterials = mats;
             mr.shadowCastingMode = shadows;
             mr.receiveShadows = receive;
+            // A rig at 0.01 (the horror ghoul) makes BakeMesh a centimetre tall once it is a plain mesh.
+            var world = Vector3.Scale(mesh.bounds.size, new Vector3(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z)));
+            float afterLen = Mathf.Max(world.x, Mathf.Max(world.y, world.z));
+            if (beforeLen > 0.2f && afterLen > 0.0001f)
+            {
+                float ratio = afterLen / beforeLen;
+                if (ratio < 0.4f || ratio > 2.5f)
+                {
+                    float s = beforeLen / afterLen;
+                    go.transform.localScale *= s;
+                    Debug.Log("Hollowmere death lay bake " + go.name + " scale x" + s.ToString("0.00")
+                        + " was " + afterLen.ToString("0.00") + "m posed " + beforeLen.ToString("0.00") + "m");
+                }
+            }
         }
 
         /// <summary>Tip this transform onto its back without moving the posed meshes.</summary>

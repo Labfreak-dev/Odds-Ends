@@ -353,9 +353,10 @@ namespace Hollowmere
                 fit.freeze = true;
                 DressMonster(bodyKey, go.transform);
                 if (bodyKey == "hm_rat") holder.transform.localScale *= 1.8f;
-                if (bodyKey == "hm_vampire_bat") holder.transform.localScale *= 6f;
+                // The file is 1.4 m across the wings and 0.13 m tall. 6× put a 7 m corpse off screen.
+                if (bodyKey == "hm_vampire_bat") holder.transform.localScale *= 1.6f;
                 if (bodyKey == "hm_bat") go.AddComponent<BatHover>();
-                if (bodyKey == "hm_wraith") go.AddComponent<WraithFloat>();
+                if (bodyKey == "hm_wraith") holder.AddComponent<WraithFloat>();
                 if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord"
                     || bodyKey == "hm_cultist_smith" || bodyKey == "hm_bone_golem"
                     || bodyKey == "hm_grave_eater" || bodyKey == "hm_drowned_husk" || bodyKey == "hm_imp")

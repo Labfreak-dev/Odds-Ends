@@ -278,6 +278,10 @@ namespace Hollowmere
                 if (go == null) continue;
                 go.transform.position = origin + new Vector3(0f, 0f, 4.2f);
                 go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                yield return null;
+                float livingAxis = 0f;
+                if (Art.UnionBounds(go, out var live))
+                    livingAxis = Mathf.Max(live.size.x, Mathf.Max(live.size.y, live.size.z));
                 foreach (var hover in go.GetComponentsInChildren<BatHover>(true))
                     hover.enabled = false;
                 var lay = go.AddComponent<DeathLay>();
@@ -298,13 +302,22 @@ namespace Hollowmere
                 yield return new WaitForEndOfFrame();
                 bool flat = Mathf.Abs(go.transform.up.y) < 0.4f;
                 bool onFloor = false;
+                bool sized = false;
                 if (Art.UnionBounds(go, out var b))
                 {
                     onFloor = b.size.y < 0.95f && b.min.y < 0.25f && b.min.y > -0.35f;
+                    float corpseAxis = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+                    float ratio = livingAxis > 0.05f ? corpseAxis / livingAxis : 0f;
+                    sized = ratio >= 0.4f && ratio <= 2.5f;
                     Debug.Log("Hollowmere QA death " + MonsterKeys[m]
                         + " up=" + go.transform.up.ToString("0.00")
                         + " size=" + b.size.ToString("0.00")
-                        + " minY=" + b.min.y.ToString("0.00"));
+                        + " minY=" + b.min.y.ToString("0.00")
+                        + " living=" + livingAxis.ToString("0.00")
+                        + " ratio=" + ratio.ToString("0.00"));
+                    if (!sized)
+                        Debug.LogError("Hollowmere QA death " + MonsterKeys[m]
+                            + " FAIL corpse scale " + ratio.ToString("0.00") + "x living");
                 }
                 if (!flat || !onFloor)
                     Debug.LogError("Hollowmere QA death " + MonsterKeys[m] + " FAIL not flat on the floor");

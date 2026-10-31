@@ -10,7 +10,7 @@ namespace Hollowmere.Core
 
     public enum Rarity { Common, Magic, Rare, Legendary, Set }
 
-    public enum ItemKind { Equipment, Fish, Potion, TownPortal }
+    public enum ItemKind { Equipment, Fish, Potion, TownPortal, Gem }
 
     [Serializable]
     public sealed class AffixRoll
@@ -65,6 +65,7 @@ namespace Hollowmere.Core
             if (kind == ItemKind.Fish) return FishDb.Get(fishId)?.sellValue * stack ?? 1;
             if (kind == ItemKind.Potion) return 5 * stack;
             if (kind == ItemKind.TownPortal) return 10 * stack;
+            if (kind == ItemKind.Gem && Gems.Parse(baseId, out _, out int rank)) return Math.Max(1, DesignTable.GemCombineGold(rank) / 3) * stack;
             int mult = rarity switch
             {
                 Rarity.Common => 1, Rarity.Magic => 3, Rarity.Rare => 8, _ => 25,

@@ -69,6 +69,17 @@ namespace Hollowmere
                     yield return new WaitForSeconds(0.15f);
                 }
             }
+            if (scene == "jeweler" && gm.State != null)
+            {
+                var hero = gm.State.hero;
+                hero.gold = 500;
+                hero.AddItem(Gems.Make("cinder", 1, 3));
+                hero.AddItem(Gems.Make("thorn", 2, 1));
+                var worn = hero.Equipped(EquipSlot.MainHand);
+                if (worn != null) worn.sockets = 1;
+                UiRoot.I.OpenTown(TownTab.Jeweler);
+                yield return new WaitForSecondsRealtime(0.6f);
+            }
             yield return new WaitForEndOfFrame();
             var tex = ScreenCapture.CaptureScreenshotAsTexture();
             var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + scene + ".png");

@@ -118,7 +118,7 @@ namespace Hollowmere
         }
     }
 
-    public enum InteractKind { StairsDown, StairsUp, TownPortal, Chest, Shrine, Fishing, Merchant, Blacksmith, Mystic, Gambler, Stash, QuestBoard, DungeonEntrance, Fisherman }
+    public enum InteractKind { StairsDown, StairsUp, TownPortal, Chest, Shrine, Fishing, Merchant, Blacksmith, Mystic, Gambler, Stash, QuestBoard, DungeonEntrance, Fisherman, Jeweler }
 
     /// <summary>Something the hero can use by standing near it and pressing the action button.</summary>
     public sealed class Interactable : MonoBehaviour
@@ -147,6 +147,7 @@ namespace Hollowmere
             InteractKind.Gambler => "Gamble",
             InteractKind.Stash => "Stash",
             InteractKind.QuestBoard => "Quests",
+            InteractKind.Jeweler => "Gems",
             _ => "Enter",
         };
 

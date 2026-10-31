@@ -34,7 +34,7 @@ namespace Hollowmere
         public static string LootCue => Active != null && !string.IsNullOrEmpty(Active.lootCue) ? Active.lootCue : "item_pickup";
     }
 
-    /// <summary>Short Handheld.Vibrate pulse. Off unless the settings toggle is on.</summary>
+    /// <summary>Short vibration on phones. Standalone and the editor compile this as a no-op.</summary>
     public static class Haptics
     {
         const string Key = "haptics";
@@ -55,7 +55,9 @@ namespace Hollowmere
             if (!Enabled) return;
             if (Time.unscaledTime < next) return;
             next = Time.unscaledTime + 0.12f;
+#if UNITY_ANDROID || UNITY_IOS
             Handheld.Vibrate();
+#endif
         }
     }
 

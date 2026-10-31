@@ -9,7 +9,9 @@
     <LangVersion>9.0</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <DefineConstants>$(DefineConstants);ENABLE_LEGACY_INPUT_MANAGER</DefineConstants>
+    <!-- StandaloneLinux64 player scripting defines. UNITY_ANDROID and UNITY_IOS stay off,
+         so phone-only APIs such as Handheld must be wrapped or this build fails. -->
+    <DefineConstants>$(DefineConstants);ENABLE_LEGACY_INPUT_MANAGER;UNITY_STANDALONE;UNITY_STANDALONE_LINUX;UNITY_STANDALONE_LINUX_API;PLATFORM_STANDALONE_LINUX;UNITY_64</DefineConstants>
     <NoWarn>CS0649;CS0414;CS0169</NoWarn>
   </PropertyGroup>
   <ItemGroup>

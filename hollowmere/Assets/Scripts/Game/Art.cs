@@ -110,6 +110,27 @@ namespace Hollowmere
             return g;
         }
 
+        public static Texture2D VfxTex(string name) => string.IsNullOrEmpty(name) ? null : Resources.Load<Texture2D>("Vfx/" + name);
+
+        /// <summary>Additive camera-facing quad using a Kenney particle when that texture is present.</summary>
+        public static GameObject VfxSprite(Transform parent, float size, Color c, string texName)
+        {
+            var g = GlowSprite(parent, size, c);
+            var tex = VfxTex(texName);
+            var mr = g.GetComponent<MeshRenderer>();
+            if (tex != null && mr != null && mr.sharedMaterial != null)
+            {
+                var mat = new Material(mr.sharedMaterial);
+                mat.mainTexture = tex;
+                if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
+                if (mat.HasProperty("_HasMap")) mat.SetFloat("_HasMap", 1f);
+                if (mat.HasProperty("_Soft")) mat.SetFloat("_Soft", 0f);
+                if (mat.HasProperty("_MainTex_ST")) mat.SetVector("_MainTex_ST", new Vector4(1f, 1f, 0f, 0f));
+                mr.sharedMaterial = mat;
+            }
+            return g;
+        }
+
         /// <summary>Vertical additive arch. Scrolls in the shader so it is not a flat colour card.</summary>
         public static GameObject Portal(Transform parent, Vector3 pos, Vector3 scale, Color c)
         {
@@ -129,6 +150,7 @@ namespace Hollowmere
             mr.sharedMaterial = m;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             mr.receiveShadows = false;
+            VfxSprite(g.transform, 0.7f, c, "twirl_01");
             return g;
         }
 
@@ -599,6 +621,22 @@ namespace Hollowmere
 
         public static string HeroMesh(Hero h) => h != null && h.plate > 0 ? "hero_plate" : "hero";
 
+        /// <summary>CC0 world mesh for a weapon or shield. Null keeps the older class mesh.</summary>
+        public static string Cc0Gear(string baseId)
+        {
+            switch (baseId)
+            {
+                case "sword": return "cc0_estoc";
+                case "dagger": return "cc0_dagger";
+                case "mace": return "cc0_mace";
+                case "warhammer": return "cc0_warhammer";
+                case "axe":
+                case "greataxe": return "cc0_axe";
+                case "shield": return "cc0_shield";
+            }
+            return null;
+        }
+
         /// <summary>Mask channels multiply the base colour: R armour, G cloth, B hair. Skin is what the mask leaves.</summary>
         public static void PaintHero(GameObject go, Color skin, Color cloth, Color hair, Color armour)
         {
@@ -814,6 +852,7 @@ namespace Hollowmere
             return name == "Hollowmere/Color" || name == "Hollowmere/Text" || name == "Hollowmere/Glow"
                 || name == "Hollowmere/Sheet" || name == "Hollowmere/Lit"
                 || name == "Hollowmere/Pbr" || name == "Hollowmere/Water" || name == "Hollowmere/Portal"
+                || name == "Hollowmere/Sky"
                 || name == "Universal Render Pipeline/Lit";
         }
 
@@ -1327,7 +1366,13 @@ namespace Hollowmere
         {
             float h = def.role switch { MonsterRole.Swarm => 0.8f, MonsterRole.Brute => 2.6f, _ => 1.8f } * scale;
             var m = Animated(def.model, h, parent);
-            if (m != null) return m;
+            if (m != null)
+            {
+                // KayKit skeletons are already about 1.75 m. Scale is the elite and boss multiplier.
+                if (def.model != null && def.model.StartsWith("kk_"))
+                    m.transform.localScale *= scale;
+                return m;
+            }
             var c = Hex(def.color);
             switch (def.model)
             {

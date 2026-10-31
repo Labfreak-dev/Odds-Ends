@@ -58,7 +58,134 @@ namespace Hollowmere
                     }
                 }
             Debug.Log("Hollowmere dressing: " + placed + " pieces on " + map.theme);
+            SetPieces(map, root, skip, rng);
             if (town) TownTorches(map, root, skip);
+        }
+
+        static readonly string[] TownKit = { "cc0_cabinet", "cc0_bookshelf", "cc0_statue", "cc0_rack", "cc0_candle", "cc0_chest" };
+        static readonly string[] DungeonKit = { "cc0_cabinet", "cc0_bookshelf", "cc0_rack", "cc0_boulder", "cc0_roots", "cc0_candle", "cc0_chest" };
+
+        static void Prop(Transform root, Vector3 at, System.Random rng, bool town)
+        {
+            float yaw = (float)rng.NextDouble() * 360f;
+            var rot = Quaternion.Euler(0f, yaw, 0f);
+            string[] pbr = town
+                ? new[] { "wine_barrel_01", "wooden_crate_01", "wooden_crate_02", "tree_stump_01", "rock_09", "wooden_table_02", "wooden_lantern_01", "wooden_bucket_01" }
+                : new[] { "wine_barrel_01", "wooden_crate_02", "rock_07", "rock_09", "lantern_01" };
+            if (rng.Next(2) == 0)
+            {
+                string kitName = pbr[rng.Next(pbr.Length)];
+                var spawned = PbrKit.Prop(kitName, root);
+                if (spawned != null)
+                {
+                    spawned.transform.SetPositionAndRotation(at, rot);
+                    if (kitName.Contains("lantern"))
+                    {
+                        var l = new GameObject("torch").AddComponent<Light>();
+                        l.transform.SetParent(spawned.transform, false);
+                        l.transform.localPosition = Vector3.up * 0.4f;
+                        l.type = LightType.Point;
+                        l.color = new Color(1f, 0.72f, 0.4f);
+                        l.range = 7f;
+                        l.intensity = 1.8f;
+                    }
+                    return;
+                }
+            }
+            var pool = town ? TownKit : DungeonKit;
+            if (rng.Next(3) != 0 && Place(root, pool[rng.Next(pool.Length)], at, rot, 0f, false, default, 0f, 0f))
+                return;
+            var names = town ? TownProps : DungeonProps;
+            if (Stand(root, at, names[rng.Next(names.Length)], rot, 1.45f)) return;
+            switch (rng.Next(town ? 4 : 5))
+            {
+                case 0: Barrel(root, at, rot); break;
+                case 1: Crate(root, at, rot, rng); break;
+                case 2: Rock(root, at, rng, town); break;
+                default: Rubble(root, at, rng); break;
+            }
+        }
+
+        static void SetPieces(DungeonMap map, Transform root, HashSet<Int2> skip, System.Random rng)
+        {
+            var spots = new List<Int2>();
+            for (int y = 2; y < map.height - 2; y++)
+                for (int x = 2; x < map.width - 2; x++)
+                {
+                    var p = new Int2(x, y);
+                    if (map.Get(x, y) != Tile.Floor || skip.Contains(p)) continue;
+                    spots.Add(p);
+                }
+            if (spots.Count == 0) return;
+            int n = 0;
+            Int2 Next() => spots[n++ % spots.Count];
+            bool town = map.theme == Theme.Town;
+            var warm = new Color(1f, 0.72f, 0.38f);
+            if (town)
+            {
+                Place(root, "cc0_firepit", World.ToWorld(Next()), Quaternion.identity, 0f, true, new Color(1f, 0.45f, 0.16f), 7f, 2.2f);
+                Place(root, "cc0_chandelier", World.ToWorld(Next()), Quaternion.identity, 2.5f, true, warm, 8f, 2f);
+                Place(root, "cc0_caged", World.ToWorld(Next()), Quaternion.identity, 2.3f, true, warm, 7f, 1.8f);
+                Place(root, "cc0_candles", World.ToWorld(Next()), Quaternion.Euler(0f, 30f, 0f), 0f, true, warm, 4.5f, 1.3f);
+                Place(root, "cc0_candle", World.ToWorld(Next()), Quaternion.identity, 0f, true, warm, 3.5f, 1.1f);
+                Place(root, "cc0_cabinet", World.ToWorld(Next()), Quaternion.Euler(0f, 180f, 0f), 0f, false, default, 0f, 0f);
+                Place(root, "cc0_bookshelf", World.ToWorld(Next()), Quaternion.Euler(0f, 90f, 0f), 0f, false, default, 0f, 0f);
+                Place(root, "cc0_statue", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_rack", World.ToWorld(Next()), Quaternion.Euler(0f, 40f, 0f), 0f, false, default, 0f, 0f);
+                Place(root, "cc0_chest", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_boulder", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_deadtree", World.ToWorld(Next()), Quaternion.Euler(0f, rng.Next(360), 0f), 0f, false, default, 0f, 0f);
+                Place(root, "cc0_roots", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                var cliff = Art.Model("cc0_cliff", 0f, root);
+                if (cliff != null)
+                    cliff.transform.position = new Vector3(map.width * World.T * 0.5f, 0f, map.height * World.T + 3f);
+                var door = Art.Model("cc0_door", 0f, root);
+                if (door != null)
+                    door.transform.SetPositionAndRotation(World.ToWorld(map.entry) + new Vector3(3.4f, 0f, 0.4f), Quaternion.Euler(0f, 90f, 0f));
+                var gate = Art.Model("cc0_gate", 0f, root);
+                if (gate != null)
+                    gate.transform.SetPositionAndRotation(World.ToWorld(map.entry) + new Vector3(-3.6f, 0f, 1.2f), Quaternion.Euler(0f, 80f, 0f));
+            }
+            else
+            {
+                Place(root, "cc0_chandelier", World.ToWorld(Next()), Quaternion.identity, 2.4f, true, warm, 8f, 1.6f);
+                Place(root, "cc0_caged", World.ToWorld(Next()), Quaternion.identity, 2.2f, true, warm, 6f, 1.5f);
+                Place(root, "cc0_candles", World.ToWorld(Next()), Quaternion.identity, 0f, true, warm, 4f, 1.1f);
+                Place(root, "cc0_cabinet", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_bookshelf", World.ToWorld(Next()), Quaternion.Euler(0f, 15f, 0f), 0f, false, default, 0f, 0f);
+                Place(root, "cc0_statue", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_rack", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_firepit", World.ToWorld(Next()), Quaternion.identity, 0f, true, new Color(1f, 0.4f, 0.15f), 6f, 1.8f);
+                Place(root, "cc0_boulder", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_roots", World.ToWorld(Next()), Quaternion.identity, 0f, false, default, 0f, 0f);
+                Place(root, "cc0_deadtree", World.ToWorld(Next()), Quaternion.Euler(0f, 40f, 0f), 0f, false, default, 0f, 0f);
+                var door = Art.Model("cc0_door", 0f, root);
+                if (door != null)
+                    door.transform.SetPositionAndRotation(World.ToWorld(map.entry) + new Vector3(2.2f, 0f, 0f), Quaternion.Euler(0f, 90f, 0f));
+                var gate = Art.Model("cc0_gate", 0f, root);
+                if (gate != null)
+                    gate.transform.SetPositionAndRotation(World.ToWorld(map.exit) + new Vector3(-2.2f, 0f, 0f), Quaternion.Euler(0f, -90f, 0f));
+            }
+        }
+
+        static bool Place(Transform root, string key, Vector3 at, Quaternion rot, float lift, bool light, Color color, float range, float intensity)
+        {
+            var go = Art.Model(key, 0f, root);
+            if (go == null) return false;
+            go.transform.SetPositionAndRotation(at + Vector3.up * lift, rot);
+            if (light)
+            {
+                var l = new GameObject("torch").AddComponent<Light>();
+                l.transform.SetParent(go.transform, false);
+                l.transform.localPosition = Vector3.up * 0.45f;
+                l.type = LightType.Point;
+                l.color = color;
+                l.range = range;
+                l.intensity = intensity;
+                l.shadows = LightShadows.None;
+                l.gameObject.AddComponent<TorchFlicker>();
+            }
+            return true;
         }
 
         static void TownTorches(DungeonMap map, Transform root, HashSet<Int2> skip)
@@ -125,41 +252,6 @@ namespace Hollowmere
 
         static Mesh standMesh, flatMesh;
         static readonly Dictionary<int, Material> propMats = new Dictionary<int, Material>();
-
-        static void Prop(Transform root, Vector3 at, System.Random rng, bool town)
-        {
-            float yaw = (float)rng.NextDouble() * 360f;
-            var rot = Quaternion.Euler(0f, yaw, 0f);
-            string[] kit = town
-                ? new[] { "wine_barrel_01", "wooden_crate_01", "wooden_crate_02", "tree_stump_01", "rock_09", "wooden_table_02", "wooden_lantern_01", "wooden_bucket_01" }
-                : new[] { "wine_barrel_01", "wooden_crate_02", "rock_07", "rock_09", "lantern_01" };
-            string kitName = kit[rng.Next(kit.Length)];
-            var spawned = PbrKit.Prop(kitName, root);
-            if (spawned != null)
-            {
-                spawned.transform.SetPositionAndRotation(at, rot);
-                if (kitName.Contains("lantern"))
-                {
-                    var l = new GameObject("torch").AddComponent<Light>();
-                    l.transform.SetParent(spawned.transform, false);
-                    l.transform.localPosition = Vector3.up * 0.4f;
-                    l.type = LightType.Point;
-                    l.color = new Color(1f, 0.72f, 0.4f);
-                    l.range = 7f;
-                    l.intensity = 1.8f;
-                }
-                return;
-            }
-            var pool = town ? TownProps : DungeonProps;
-            if (Stand(root, at, pool[rng.Next(pool.Length)], rot, 1.45f)) return;
-            switch (rng.Next(town ? 4 : 5))
-            {
-                case 0: Barrel(root, at, rot); break;
-                case 1: Crate(root, at, rot, rng); break;
-                case 2: Rock(root, at, rng, town); break;
-                default: Rubble(root, at, rng); break;
-            }
-        }
 
         static bool Stand(Transform root, Vector3 at, string name, Quaternion rot, float height)
         {
@@ -337,6 +429,30 @@ namespace Hollowmere
             transform.localPosition = origin + new Vector3(Mathf.Sin(t * 3f) * 0.06f, k * 0.55f, Mathf.Cos(t * 2.2f) * 0.06f);
             float s = 0.05f * (1f - k);
             transform.localScale = new Vector3(s, s, s);
+        }
+    }
+
+    /// <summary>Equirect HDR sky. Town at night is moonlit. The title and any daytime outdoor use the overcast HDR.</summary>
+    public static class Cc0Sky
+    {
+        static Material mat;
+        static string current;
+
+        public static void Use(string key, float exposure)
+        {
+            if (string.IsNullOrEmpty(key) || (current == key && RenderSettings.skybox == mat)) return;
+            var tex = Resources.Load<Texture>("Sky/" + key);
+            if (tex == null) return;
+            var shader = Shader.Find("Hollowmere/Sky");
+            if (shader == null) shader = Shader.Find("Skybox/Panoramic");
+            if (shader == null) return;
+            if (mat == null) mat = new Material(shader);
+            mat.mainTexture = tex;
+            if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
+            if (mat.HasProperty("_Exposure")) mat.SetFloat("_Exposure", exposure);
+            if (mat.HasProperty("_Mapping")) mat.SetFloat("_Mapping", 1f);
+            RenderSettings.skybox = mat;
+            current = key;
         }
     }
 }

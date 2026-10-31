@@ -37,6 +37,9 @@ namespace Hollowmere
 
         void Start()
         {
+            // Day sky behind the title. Town at night swaps in the moonlit HDR.
+            Cc0Sky.Use("overcast", 1.05f);
+            if (Camera.main != null) Camera.main.clearFlags = CameraClearFlags.Skybox;
             if (!QaShot.RunIfRequested(this) && !QaFrames.RunIfRequested(this)) UiRoot.I.ShowTitle();
         }
 

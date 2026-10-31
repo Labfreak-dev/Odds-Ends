@@ -198,12 +198,19 @@ namespace Hollowmere
             {
                 var to = h.Pos + dir * Mathf.Max(1.5f, c.range);
                 Fx.Beam(h.Pos + Vector3.up * 0.9f, to + Vector3.up * 0.9f, col, 0.18f, 0.22f);
-                Fx.Burst(h.Pos + Vector3.up, col, 0.8f, 0.2f);
+                Fx.Burst(h.Pos + Vector3.up, col, 0.8f, 0.2f, "trace_02");
             }
             else if (kind == "buff")
+            {
                 Fx.Ring(h.Pos, 2.2f, col, 0.45f);
+                Fx.Burst(h.Pos + Vector3.up * 1.2f, col, 1.6f, 0.4f, "magic_03");
+            }
+            else if (kind == "meteor" || kind == "nova")
+                Fx.Flip(h.Pos + Vector3.up * 1.2f, col, "explosion_flipbook_3x3", 3, 3, 9, 2.4f);
+            else if (c.skill.family == WeaponFamily.Magic)
+                Fx.Flip(h.Pos + Vector3.up * 1.1f, col, "flash_flipbook_3x3", 3, 3, 9, 1.8f);
             else
-                Fx.Burst(h.Pos + Vector3.up * 1.1f, col, 1.4f, 0.35f);
+                Fx.Burst(h.Pos + Vector3.up * 1.1f, col, 1.4f, 0.35f, "slash_02");
         }
 
         static Mesh quad;

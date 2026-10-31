@@ -82,6 +82,7 @@ namespace Hollowmere
             var list = Ui.Scroll(body, 8);
             var text = Resources.Load<TextAsset>("AudioCredits");
             string bodyText = text != null ? text.text : "Audio credits could not be loaded.";
+            bodyText += "\n\n<b>CC0 art</b>\nPoly Haven props, weapons, environment and HDRIs. Kenney particles and flipbooks. Kay Lousberg skeleton stand-ins. No attribution required.";
             Ui.Size(Ui.Label(Ui.Rect(list, "credits", Vector2.zero, Vector2.one), bodyText, 22, TextAnchor.UpperLeft), 2400);
         }
     }

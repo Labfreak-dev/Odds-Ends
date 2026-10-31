@@ -199,7 +199,20 @@ namespace Hollowmere
             sun.shadowStrength = 0.8f;
             sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
             PbrKit.Grade(map);
-            if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
+            if (Camera.main != null)
+            {
+                Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
+                if (town)
+                {
+                    Camera.main.clearFlags = CameraClearFlags.Skybox;
+                    Cc0Sky.Use("moonlit", 0.85f);
+                }
+                else
+                {
+                    Camera.main.clearFlags = CameraClearFlags.SolidColor;
+                    RenderSettings.skybox = null;
+                }
+            }
 
             FloorNav.Build(map);
             if (map.theme != Theme.Town)

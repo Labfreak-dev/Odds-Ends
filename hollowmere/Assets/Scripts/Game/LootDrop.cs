@@ -11,9 +11,10 @@ namespace Hollowmere
         {
             var host = new GameObject("model").transform;
             host.SetParent(pickup.transform, false);
+            string cc0 = it.kind == ItemKind.Equipment ? Art.Cc0Gear(it.baseId) : null;
             string key = it.kind == ItemKind.Gem ? DesignTable.GemArt(it.baseId)
                 : it.kind == ItemKind.Fish ? "fish_" + it.fishId
-                : "drop_" + it.baseId;
+                : cc0 ?? ("drop_" + it.baseId);
             var dropped = Art.DropIn(key, host);
             if (dropped == null) Primitive(host, it);
             else if (it.kind == ItemKind.Gem) dropped.transform.localPosition = Vector3.up * 0.04f;

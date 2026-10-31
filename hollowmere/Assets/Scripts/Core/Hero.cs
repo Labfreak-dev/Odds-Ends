@@ -62,6 +62,8 @@ namespace Hollowmere.Core
         public int GainXp(long amount)
         {
             if (level >= Balance.MaxLevel) return 0;
+            int helm = Gems.HelmXpPercent(this);
+            if (helm > 0) amount += amount * helm / 100;
             xp += amount;
             int gained = 0;
             while (level < Balance.MaxLevel && xp >= Balance.XpToNext(level))
@@ -84,7 +86,8 @@ namespace Hollowmere.Core
             if (it.Stackable)
             {
                 // JsonUtility loads null strings as "", so compare them as equal.
-                var same = inventory.FirstOrDefault(x => x.kind == it.kind && (x.fishId ?? "") == (it.fishId ?? ""));
+                var same = inventory.FirstOrDefault(x => x.kind == it.kind && (x.fishId ?? "") == (it.fishId ?? "")
+                    && (it.kind != ItemKind.Gem || x.baseId == it.baseId));
                 if (same != null) { same.stack += it.stack; return true; }
             }
             if (inventory.Count >= Balance.InventorySize) return false;
@@ -224,13 +227,14 @@ namespace Hollowmere.Core
             int glass = skills.Rank("hx_p_glass");
             if (glass > 0 && heroClass == HeroClass.Hexweaver) s[Stat.Armor] *= 1 - 0.05f * glass;
 
+            Gems.Contribute(this, s);
             s[Stat.PetDamage] += LegendaryTotal(LegendaryEffect.PetDamage);
             foreach (Element e in Enum.GetValues(typeof(Element)))
                 s.Add(StatInfo.ElementStat(e), LegendaryTotal(LegendaryEffect.ElementDamage, e));
             return s;
         }
 
-        public float MaxLife(StatBlock s) => (Balance.BaseLife(level) + Balance.LifeFromVitality(s[Stat.Vitality])) * (1 + s[Stat.MaxLifePercent] / 100f);
+        public float MaxLife(StatBlock s) => (Balance.BaseLife(level) + Balance.LifeFromVitality(s[Stat.Vitality]) + Gems.MarrowLife(this)) * (1 + s[Stat.MaxLifePercent] / 100f);
 
         public (float min, float max, float aps) WeaponDamage(StatBlock s)
         {

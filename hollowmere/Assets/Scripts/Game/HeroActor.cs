@@ -78,6 +78,7 @@ namespace Hollowmere
         {
             var w = Hero.Equipped(EquipSlot.MainHand);
             if (hand != null) Art.Weapon(hand, w?.baseId ?? "sword", w != null ? Art.Rarity(w.rarity) : Color.gray);
+            if (figure != null) GearAttach.Apply(figure, Hero);
         }
 
         public void RefreshStats(bool fill = false)

@@ -1095,16 +1095,15 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>After the idle pose is playing, stand a person whose skeleton is lying down
-    /// and lock their height. Mesh bounds miss a pose that only exists in the bones.</summary>
+    /// <summary>Stand an NPC whose head is not above the hips. Bone positions update
+    /// immediately, so this does not depend on a stale skinned box, and it does not rescale.</summary>
     [DefaultExecutionOrder(50)]
     public sealed class PoseUpright : MonoBehaviour
     {
-        int phase;
-        Quaternion bestRot;
-        float bestH;
+        int waited;
         static readonly Vector3[] Turns =
         {
+            Vector3.zero,
             new Vector3(-90f, 0f, 0f),
             new Vector3(90f, 0f, 0f),
             new Vector3(0f, 0f, -90f),
@@ -1113,74 +1112,26 @@ namespace Hollowmere
 
         void LateUpdate()
         {
-            phase++;
-            if (phase < 3) return;
-            if (phase == 3)
-            {
-                var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
-                if (hips != null && hips.up.y < 0.4f)
-                    transform.rotation = Quaternion.FromToRotation(hips.up, Vector3.up) * transform.rotation;
-                return;
-            }
-            if (!Sane(out var b))
-            {
-                if (phase > 4) transform.rotation = bestRot;
-                Finish();
-                return;
-            }
-            if (phase == 4)
-            {
-                bestRot = transform.rotation;
-                bestH = b.size.y;
-                if (Upright(b)) { Finish(); return; }
-                transform.rotation = bestRot * Quaternion.Euler(Turns[0]);
-                return;
-            }
-            int tried = phase - 5;
-            if (b.size.y > bestH)
-            {
-                bestH = b.size.y;
-                bestRot = transform.rotation;
-            }
-            else transform.rotation = bestRot;
-            if (Upright(b) || tried >= Turns.Length - 1)
-            {
-                transform.rotation = bestRot;
-                Finish();
-                return;
-            }
-            transform.rotation = bestRot * Quaternion.Euler(Turns[tried + 1]);
-        }
-
-        void Finish()
-        {
-            var fit = GetComponent<ModelFit>();
-            float target = fit != null && fit.targetHeight > 0.2f ? fit.targetHeight : 1.75f;
-            if (Art.MeshWorldBounds(transform, out var b) && b.size.y > 0.35f && b.size.y < 6f)
-            {
-                float factor = target / b.size.y;
-                if (factor < 0.8f || factor > 1.25f)
-                    transform.localScale *= Mathf.Clamp(factor, 0.5f, 2f);
-            }
-            if (Art.MeshWorldBounds(transform, out var grounded))
-            {
-                var p = transform.position;
-                var shift = new Vector3(p.x - grounded.center.x, p.y - grounded.min.y, p.z - grounded.center.z);
-                if (shift.sqrMagnitude > 0.0004f)
-                    foreach (Transform c in transform) c.position += shift;
-            }
+            if (waited++ < 2) return;
             enabled = false;
+            var head = FindBone(transform, "Head") ?? FindBone(transform, "head");
+            var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
+            if (head == null || hips == null) return;
+            var origin = transform.rotation;
+            var best = origin;
+            float bestRise = head.position.y - hips.position.y;
+            foreach (var e in Turns)
+            {
+                transform.rotation = origin * Quaternion.Euler(e);
+                float rise = head.position.y - hips.position.y;
+                if (rise > bestRise)
+                {
+                    bestRise = rise;
+                    best = transform.rotation;
+                }
+            }
+            transform.rotation = best;
         }
-
-        bool Sane(out Bounds b)
-        {
-            b = default;
-            if (!Art.UnionBounds(gameObject, out b)) return false;
-            float m = Art.MaxAxis(b.size);
-            return m > 0.35f && m < 4.5f;
-        }
-
-        static bool Upright(Bounds b) => b.size.y >= Mathf.Max(b.size.x, b.size.z) * 0.85f;
 
         static Transform FindBone(Transform root, string name)
         {

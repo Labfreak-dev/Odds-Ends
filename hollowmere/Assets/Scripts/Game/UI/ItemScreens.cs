@@ -361,7 +361,7 @@ namespace Hollowmere
         static void Equip(Hero h, Item it, EquipSlot? slot, UiRoot ui)
         {
             if (!h.Equip(it, slot)) { ui.Toast("No room in your bag for what comes off."); Sfx.Bag("error_bag_full"); }
-            else { Sfx.Bag("equip"); selected = null; }
+            else { Sfx.Bag("equip"); if (it.Base != null) Sfx.PlayEquip(it.Base.slot); selected = null; }
             GameManager.I.OnEquipmentChanged();
             Show(ui);
         }

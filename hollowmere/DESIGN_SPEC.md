@@ -242,3 +242,77 @@ Twin Shot, Volley, and Earthsplitter are the long Meshy takes. Playback keeps th
 | hx_blink | c8b0ff | dash |
 | hx_thrall | b0a0d8 | summon |
 | hx_meteor | e0603a | meteor |
+
+## P2. Loot on the ground
+
+A drop hops `hopMm` millimetres over `hopMs`, then settles for `settleMs`. Motes and a ground ring follow rarity. Legendary and set also play `legendary_sting`. Until a free mesh exists at `Models/item_{baseId}`, the drop is an original primitive. Sizes are millimetres. A two-handed weapon uses `twoHandMm` for its length. The icon is a generated 64×64 image, replaced by a catalogued `icon_{baseId}` sprite.
+
+### T.motes
+
+| Rarity | Motes | Ring |
+| --- | --- | --- |
+| Common | 0 | 0 |
+| Magic | 4 | 0 |
+| Rare | 8 | 1 |
+| Legendary | 12 | 1 |
+| Set | 12 | 1 |
+
+### T.ground
+
+| Slot | Shape | X | Y | Z |
+| --- | --- | --- | --- | --- |
+| weapon | box | 80 | 700 | 80 |
+| offhand | box | 280 | 360 | 60 |
+| head | sphere | 320 | 320 | 320 |
+| chest | box | 420 | 380 | 220 |
+| legs | box | 220 | 400 | 160 |
+| amulet | sphere | 160 | 160 | 160 |
+| ring | sphere | 100 | 100 | 100 |
+
+## P3. Visible gear
+
+The class mesh is the body. Weapon, helm, then chest attach, in that order. A bone named `RightHand`, `Head`, or `Spine2` is used when its scale is human. Otherwise the offset below, in millimetres, is on the body. Other slots do not change the mesh. `Models/gear_{baseId}.glb` replaces the primitive.
+
+### T.sockets
+
+| Id | X | Y | Z |
+| --- | --- | --- | --- |
+| weapon | 150 | 1050 | 350 |
+| helm | 0 | 1720 | 0 |
+| chest | 0 | 1150 | 80 |
+
+## P4. Gems and the jeweler
+
+Gem ids are `{name}_{rank}` for cinder, thorn, marrow, and salt, ranks 1 through 5. Three of one id plus `100 * rank * rank` gold become one gem of the next rank. Rank 5 does not combine. Socketing writes the id into `Item.gemId` and removes the gem from the bag. A filled socket returns the previous gem first. Sockets roll only on weapons, helms, chests, and legs, one each. Chances: rare 0.25, legendary 1, set 1, otherwise 0.
+
+Cinder in a weapon adds the min and max columns to weapon damage. Cinder in a helm adds `rank` percent kill XP. Thorn adds critical damage. Marrow adds flat life after vitality. Salt adds all resist. Any other slot does nothing. The jeweler stands on town tile `J`.
+
+### T.gems
+
+| Rank | ItemLevel | CinderMin | CinderMax | ThornCrit | MarrowLife | SaltResist | CombineGold |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | 2 | 3 | 6 | 35 | 4 | 100 |
+| 2 | 18 | 9 | 16 | 16 | 1049 | 24 | 400 |
+| 3 | 35 | 17 | 30 | 26 | 2063 | 44 | 900 |
+| 4 | 52 | 24 | 43 | 37 | 3077 | 64 | 1600 |
+| 5 | 69 | 32 | 57 | 47 | 4090 | 84 | 0 |
+
+## P5. Fishing
+
+`castMs` is the cast. The wait is uniform from `waitMinMs` to `waitMaxMs`, then zero to `nibbleMax - 1` nibbles of `nibbleMs`, with gaps from `gapMinMs` to `gapMaxMs`. The bite window is `biteMs` plus `biteLuckMs` per point of fishing luck, plus the rod's extra window. Hooking starts tension at `hookTension` and progress at `hookProgress`, both thousandths of the bar. Holding adds `reelHold` plus `reelRun` times the surge to tension, and `reelGain` minus `reelRunCut` times the surge to progress, per second. Releasing subtracts `reelRelease` from tension. The bar snaps at 1000 tension and lands at 1000 progress.
+
+A fish below its minimum depth has weight 0. At floor F at or above that depth the weight is `base * min(depthCap/1000, 1 + (depthStep/1000) * (F - minDepth))`. `depthStep` is 40 and `depthCap` is 2000, so the weight grows 4 percent per floor and stops at double. Town fishing uses floor 1. `otherMilli` 150 of casts are not fish. `fish_reel_loop_01` loops while the reel button is held.
+
+### T.fishscale
+
+| Floor | MinDepth | Base | Weight |
+| --- | --- | --- | --- |
+| 1 | 1 | 10 | 10 |
+| 11 | 1 | 10 | 14 |
+| 26 | 1 | 10 | 20 |
+| 20 | 20 | 0.5 | 0.5 |
+| 10 | 20 | 0.5 | 0 |
+
+If Unity reports that `DesignTable` does not exist after an asmdef change, the Bee cache is stale. From the `hollowmere` folder, delete it and reopen the project:
+
+`rm -rf Library/Bee Library/ScriptAssemblies`

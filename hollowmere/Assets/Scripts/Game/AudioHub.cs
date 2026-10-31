@@ -15,6 +15,8 @@ namespace Hollowmere
         readonly Dictionary<string, AudioClip> cache = new Dictionary<string, AudioClip>();
         readonly Dictionary<string, float> lastPlayed = new Dictionary<string, float>();
         AudioSource sfx, music;
+        AudioSource[] shots;
+        int shotCursor;
         string musicKey;
         bool clickAlt;
         Coroutine sting;
@@ -29,6 +31,13 @@ namespace Hollowmere
             music = gameObject.AddComponent<AudioSource>();
             sfx.spatialBlend = 0f;
             music.spatialBlend = 0f;
+            shots = new AudioSource[4];
+            for (int i = 0; i < shots.Length; i++)
+            {
+                shots[i] = gameObject.AddComponent<AudioSource>();
+                shots[i].spatialBlend = 0f;
+                shots[i].playOnAwake = false;
+            }
             music.loop = true;
             sfxVolume = PlayerPrefs.GetFloat("sfx", 0.8f);
             musicVolume = PlayerPrefs.GetFloat("music", 0.45f);
@@ -39,7 +48,11 @@ namespace Hollowmere
                 var musicGroups = mix.FindMatchingGroups("Music");
                 var sfxGroups = mix.FindMatchingGroups("SFX");
                 if (musicGroups != null && musicGroups.Length > 0) music.outputAudioMixerGroup = musicGroups[0];
-                if (sfxGroups != null && sfxGroups.Length > 0) sfx.outputAudioMixerGroup = sfxGroups[0];
+                if (sfxGroups != null && sfxGroups.Length > 0)
+                {
+                    sfx.outputAudioMixerGroup = sfxGroups[0];
+                    for (int i = 0; i < shots.Length; i++) shots[i].outputAudioMixerGroup = sfxGroups[0];
+                }
             }
         }
 
@@ -50,6 +63,7 @@ namespace Hollowmere
             if (c == null) c = Resources.Load<AudioClip>("Audio/UI/" + key);
             if (c == null) c = Resources.Load<AudioClip>("Audio/" + key);
             if (c == null) c = UiArt.Clip(key);
+            if (c == null) c = SfxBook.Get(key);
             cache[key] = c;
             return c;
         }
@@ -123,6 +137,27 @@ namespace Hollowmere
             if (I.lastPlayed.TryGetValue(key, out var t) && Time.unscaledTime - t < 0.05f) return;
             I.lastPlayed[key] = Time.unscaledTime;
             I.sfx.PlayOneShot(c, 0.55f * I.sfxVolume);
+        }
+
+        /// <summary>Picks cue_01 .. cue_04 at random and nudges the pitch a little.</summary>
+        public static void Vary(string cue, float volume = 0.8f)
+        {
+            if (I == null || string.IsNullOrEmpty(cue)) return;
+            if (I.lastPlayed.TryGetValue(cue, out var t) && Time.unscaledTime - t < 0.05f) return;
+            AudioClip pick = null;
+            int found = 0;
+            for (int n = 1; n <= 4; n++)
+            {
+                var c = I.Clip(cue + "_" + n.ToString("00"));
+                if (c == null) continue;
+                found++;
+                if (Random.Range(0, found) == 0) pick = c;
+            }
+            if (pick == null) return;
+            I.lastPlayed[cue] = Time.unscaledTime;
+            var src = I.shots[I.shotCursor++ % I.shots.Length];
+            src.pitch = Random.Range(0.96f, 1.04f);
+            src.PlayOneShot(pick, volume * I.sfxVolume);
         }
 
         public static void Play(string key, float volume = 1f)

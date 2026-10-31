@@ -47,6 +47,7 @@ namespace Hollowmere
             p.Rebuild();
             p.RefreshLife(true);
             if (FloorNav.Ready && p.agent != null) p.agent.Warp(go.transform.position);
+            Sfx.Pet("summon");
             return p;
         }
 
@@ -106,6 +107,7 @@ namespace Hollowmere
                     // Reappearing beside the hero is a warp, and the player is looking at that spot.
                     WarpTo(Slot(hero), true);
                     life = maxLife;
+                    Sfx.Pet("summon");
                 }
             }
             if (!show) return;
@@ -138,6 +140,7 @@ namespace Hollowmere
                             }
                             if (form != null && form.slow > 0) foe.Slow(form.slow, 2);
                             anim?.BeginAttack(false);
+                            Sfx.Pet("attack");
                         }
                     }
                     Pose(dt);
@@ -283,6 +286,13 @@ namespace Hollowmere
                 target.z += 0.22f * Mathf.Sin(anim.AttackUnit * Mathf.PI);
             body.localPosition = Vector3.Lerp(body.localPosition, target, dt * 10f);
             body.localRotation = Quaternion.Slerp(body.localRotation, rot, dt * 10f);
+        }
+
+        public override void TakeDamage(Hit h, Actor source)
+        {
+            if (Dead || h.amount <= 0f) return;
+            base.TakeDamage(h, source);
+            Sfx.Pet("hurt");
         }
 
         protected override void Die(Actor killer)

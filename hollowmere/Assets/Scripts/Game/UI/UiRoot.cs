@@ -221,7 +221,11 @@ namespace Hollowmere
         }
         public void ShowDeath() => DeathScreen.Show(this);
         public void ShowWaypoints() => WaypointScreen.Show(this);
-        public void OpenInventory() => InventoryScreen.Show(this);
+        public void OpenInventory()
+        {
+            Sfx.Bag("bag_open");
+            InventoryScreen.Show(this);
+        }
         public void OpenSkills() => SkillScreen.Show(this);
         public void OpenPet() => PetScreen.Show(this);
         public void OpenMenu() => MenuScreen.Show(this);

@@ -29,6 +29,7 @@ namespace Hollowmere
         SkillCast spinCast;
         float regenAcc;
         readonly Locomotion loco = new Locomotion();
+        float stepDebt;
 
         public static HeroActor Spawn(Vector3 at)
         {
@@ -153,6 +154,7 @@ namespace Hollowmere
             var face = attacking ? aim : wishDir;
             loco.Step(this, wishDir, wish, dt, face, attacking, false, spinning);
             modelAnim?.Tick(loco.groundSpeed, dt);
+            Footstep(attacking);
 
             // A missing attack clip eases a lean in and out. A real clip owns the body instead.
             if (!spinning && figure != null)
@@ -184,6 +186,21 @@ namespace Hollowmere
 
             // ---- pickups
             Pickup.Collect(this, stats[Stat.PickupRadius]);
+        }
+
+        /// <summary>The walk take is 1.067s with two plants. Distance, not a timer, keeps the boots on the feet.</summary>
+        void Footstep(bool attacking)
+        {
+            if (attacking || loco.groundSpeed < Feel.Active.idle)
+            {
+                stepDebt = 0f;
+                return;
+            }
+            stepDebt += loco.groundSpeed * Time.deltaTime;
+            float stride = Feel.Active.clipWalk * 1.067f * 0.5f;
+            if (stepDebt < stride) return;
+            stepDebt = 0f;
+            Sfx.Step(World.FootSurface(Pos));
         }
 
         Actor PickTarget()

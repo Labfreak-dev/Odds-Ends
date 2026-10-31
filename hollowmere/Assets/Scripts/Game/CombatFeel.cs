@@ -100,9 +100,11 @@ namespace Hollowmere
             float size = c.radius > 0.5f ? c.radius * 2f : 2.4f;
             if (c.range > size && (style.Kind == "line" || style.Kind == "fan" || style.Kind == "bolt"))
                 size = Mathf.Min(c.range, 8f);
-            bool flat = style.Kind == "nova" || style.Kind == "ground" || style.Kind == "meteor" || style.Kind == "line";
+            bool flat = style.Kind == "nova" || style.Kind == "ground" || style.Kind == "meteor" || style.Kind == "line" || id == "ic_charge";
             Vector3 at = h.Pos;
-            if (style.Kind == "ground" || style.Kind == "meteor")
+            if (id == "st_mark" && target != null)
+                at = target.Pos;
+            else if (style.Kind == "ground" || style.Kind == "meteor")
                 at = target != null ? target.Pos : h.Pos + dir * Mathf.Max(2f, c.range * 0.6f);
             else if (style.Kind == "bolt" || style.Kind == "fan" || style.Kind == "chain")
                 at = target != null ? target.Pos : h.Pos + dir * 2.2f;
@@ -127,6 +129,62 @@ namespace Hollowmere
             play.loop = DesignTable.SheetLoops(id);
             play.life = play.loop ? Mathf.Max(0.4f, c.duration > 0f ? c.duration : 2f) : 12f / Mathf.Max(1, play.fps);
             play.flat = flat;
+        }
+
+        /// <summary>A second copy at the landing point for blink and roll.</summary>
+        public static void Landing(HeroActor h, SkillCast c)
+        {
+            if (h == null || c == null || c.skill == null) return;
+            if (c.skill.id != "hx_blink" && c.skill.id != "st_roll") return;
+            Play(h, c, h.transform.forward, null);
+        }
+
+        /// <summary>Hexweaver cast glyph at the hand, or on the ground for a ring.</summary>
+        public static void CastGlyph(HeroActor h, string skillId)
+        {
+            if (h == null || string.IsNullOrEmpty(skillId) || !skillId.StartsWith("hx_")) return;
+            string key = "hexweaver_hx_cast_" + skillId.Substring(3);
+            var tex = CombatDrop.Tex(key);
+            if (tex == null) return;
+            bool feet = skillId == "hx_frostring" || skillId == "hx_meteor" || skillId == "hx_blink" || skillId == "hx_thrall";
+            var hand = FindHand(h.transform);
+            var go = new GameObject("glyph_" + skillId);
+            if (!feet && hand != null)
+            {
+                go.transform.SetParent(hand, false);
+                go.transform.localPosition = new Vector3(0f, 0.02f, 0.1f);
+                go.transform.localScale = Vector3.one * 0.65f;
+            }
+            else
+            {
+                var face = h.transform.forward;
+                face.y = 0f;
+                if (face.sqrMagnitude < 0.001f) face = Vector3.forward;
+                go.transform.SetPositionAndRotation(h.Pos + Vector3.up * 0.06f, Quaternion.LookRotation(Vector3.up, face.normalized));
+                go.transform.localScale = new Vector3(1.7f, 1.7f, 1f);
+            }
+            var filt = go.AddComponent<MeshFilter>();
+            filt.sharedMesh = Quad();
+            var rend = go.AddComponent<MeshRenderer>();
+            var mat = CombatDrop.Sheet(Color.white, tex);
+            rend.sharedMaterial = mat;
+            var play = go.AddComponent<SheetPlay>();
+            play.mat = mat;
+            play.fps = 24;
+            play.loop = false;
+            play.life = 12f / 24f;
+            play.flat = feet;
+        }
+
+        static Transform FindHand(Transform root)
+        {
+            if (root.name == "RightHand") return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var f = FindHand(root.GetChild(i));
+                if (f != null) return f;
+            }
+            return null;
         }
 
         static void Placeholder(HeroActor h, SkillCast c, Vector3 dir, string kind, Color col)

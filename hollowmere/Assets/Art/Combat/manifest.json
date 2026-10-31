@@ -2,7 +2,7 @@
  "phase": "P1 Combat",
  "game": "Hollowmere",
  "created": "2026-10-30",
- "license": "All files original: procedural (numpy/PIL, code in no repo dump) or Meshy-generated animation from the user's paid Meshy account; font glyphs rendered from Cinzel (SIL OFL 1.1). No third-party/free assets used. No Blizzard reference traced or copied.",
+ "license": "All files original: procedural, made in code or Meshy-generated animation from the user's paid Meshy account; font glyphs rendered from Cinzel (SIL OFL 1.1). No third-party/free assets used. No Blizzard reference traced or copied.",
  "meshy_credits_spent": 54,
  "files": [
   {
@@ -292,6 +292,270 @@
    "file": "vfx/hexweaver_hx_meteor.json",
    "type": "frame_json",
    "use": "frame data for hexweaver_hx_meteor.png"
+  },
+  {
+   "file": "vfx/ironclad_ic_charge.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/ironclad_ic_charge.json",
+   "skill": "ic_charge",
+   "class_": "ironclad",
+   "use": "dash dust wedge + speed lines, up=forward",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/ironclad_ic_charge.json",
+   "type": "frame_json",
+   "use": "frame data for ironclad_ic_charge.png"
+  },
+  {
+   "file": "vfx/stalker_st_roll.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/stalker_st_roll.json",
+   "skill": "st_roll",
+   "class_": "stalker",
+   "use": "smoke puff at roll start/end (alpha blend)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/stalker_st_roll.json",
+   "type": "frame_json",
+   "use": "frame data for stalker_st_roll.png"
+  },
+  {
+   "file": "vfx/stalker_st_mark.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/stalker_st_mark.json",
+   "skill": "st_mark",
+   "class_": "stalker",
+   "use": "reticle over marked target / buff on hero",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/stalker_st_mark.json",
+   "type": "frame_json",
+   "use": "frame data for stalker_st_mark.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_blink.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_blink.json",
+   "skill": "hx_blink",
+   "class_": "hexweaver",
+   "use": "void tear: in at origin (frames 0-5), burst at destination (6-11)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_blink.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_blink.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_thrall.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_thrall.json",
+   "skill": "hx_thrall",
+   "class_": "hexweaver",
+   "use": "summon circle + rising wisps where thrall spawns",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_thrall.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_thrall.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_bolt.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_cast_bolt.json",
+   "skill": "hx_cast_bolt",
+   "class_": "hexweaver",
+   "use": "cast glyph at hand/feet during hx_cast_bolt (violet hexagram)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_bolt.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_cast_bolt.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_frostring.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_cast_frostring.json",
+   "skill": "hx_cast_frostring",
+   "class_": "hexweaver",
+   "use": "cast glyph (ice snowflake)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_frostring.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_cast_frostring.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_chain.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_cast_chain.json",
+   "skill": "hx_cast_chain",
+   "class_": "hexweaver",
+   "use": "cast glyph (radial lightning)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_chain.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_cast_chain.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_meteor.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_cast_meteor.json",
+   "skill": "hx_cast_meteor",
+   "class_": "hexweaver",
+   "use": "cast glyph (ring of flames)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_meteor.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_cast_meteor.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_blink.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_cast_blink.json",
+   "skill": "hx_cast_blink",
+   "class_": "hexweaver",
+   "use": "cast glyph (void swirl)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_blink.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_cast_blink.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_thrall.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_cast_thrall.json",
+   "skill": "hx_cast_thrall",
+   "class_": "hexweaver",
+   "use": "cast glyph (bone-tooth summoning ring)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural, made in code"
+  },
+  {
+   "file": "vfx/hexweaver_hx_cast_thrall.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_cast_thrall.png"
   },
   {
    "file": "trails/trail_sword.png",
@@ -621,5 +885,6 @@
    "file": "manifest.json",
    "type": "manifest"
   }
- ]
+ ],
+ "hexweaver_cast_note": "Hexweaver Meshy cast clips share a similar body motion; each cast is distinguished by its own hx_cast_<skill> glyph sheet (violet hexagram / ice snowflake / radial lightning / flame ring / void swirl / bone ring) played at the hand or feet during the clip, plus its own impact sheet."
 }

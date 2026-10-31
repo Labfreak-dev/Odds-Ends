@@ -607,8 +607,7 @@ namespace Hollowmere.Core
 
         public static bool HasSheet(string skillId)
         {
-            if (skillId == "ic_charge" || skillId == "ic_warcry" || skillId == "st_roll"
-                || skillId == "st_mark" || skillId == "hx_blink" || skillId == "hx_thrall")
+            if (skillId == "ic_warcry")
                 return false;
             return VfxIdsHas(skillId);
         }

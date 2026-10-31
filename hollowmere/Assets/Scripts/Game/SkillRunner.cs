@@ -97,6 +97,7 @@ namespace Hollowmere
                         OnHits(h, c, hits.Count);
                     }
                     h.Teleport(to);
+                    SkillVfx.Landing(h, c);
                     Fx.Beam(from + Vector3.up, to + Vector3.up, col, 0.5f, 0.25f);
                     if (c.healPct > 0) h.Heal(h.maxLife * c.healPct);
                     if (c.slow > 0) { foreach (var a in Actor.InRadius(Team.Hero, from, 3.5f)) { a.Slow(c.slow, 3); if (s.id == "hx_blink") HitEnemy(h, c, a, 1.5f); } Fx.Ring(from, 3.5f, col); }

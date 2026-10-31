@@ -252,6 +252,7 @@ namespace Hollowmere
                 seconds = (frameB - frameA) / 24f;
             modelAnim?.BeginAttack(s.shape != SkillShape.MeleeArc, seconds, clip);
             Sfx.Cast(this, s.id);
+            SkillVfx.CastGlyph(this, s.id);
             pendingCast = cast;
             pendingDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
             pendingTarget = target;

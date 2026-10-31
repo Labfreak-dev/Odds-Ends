@@ -1,0 +1,19 @@
+{
+ "skill_id": "hx_cast_bolt",
+ "skill": "Hex Bolt cast",
+ "class": "hexweaver",
+ "sheet": "hexweaver_hx_cast_bolt.png",
+ "frame_w": 256,
+ "frame_h": 256,
+ "columns": 4,
+ "rows": 3,
+ "frame_count": 12,
+ "fps": 24,
+ "loop": false,
+ "pivot": [
+  0.5,
+  0.5
+ ],
+ "blend": "additive (alpha also valid)",
+ "use": "cast glyph at hand/feet during hx_cast_bolt (violet hexagram)"
+}

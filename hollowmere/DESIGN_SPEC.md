@@ -198,7 +198,7 @@ Shake is added in millimetres and then decays by `decay` per second, never past 
 | crit | ffe25a | 82 | 1900 | 900 |
 | hurt | ff5a4a | 55 | 1400 | 700 |
 
-Sheets in `Assets/Art/Combat/vfx/` are 4×3 frames. Whirling Steel is 20 fps and loops. The others are 24 fps and play once. `charge`, `roll`, `mark`, `blink`, `thrall`, and `warcry` have no sheet, so they use a short placeholder. Trails are white and tint by weapon. Damage glyphs are the sprite font in that folder. A heal uses the green sheet.
+Sheets in `Assets/Art/Combat/vfx/` are 4×3 frames. Whirling Steel is 20 fps and loops. The others are 24 fps and play once. Charge, roll, mark, blink, and thrall have sheets. War Cry still uses a short placeholder. Hexweaver cast glyphs play at the hand or the feet for the matching cast. Trails are white and tint by weapon. Damage glyphs are the sprite font in that folder. A heal uses the green sheet.
 
 ### T.trail
 

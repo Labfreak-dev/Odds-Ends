@@ -90,6 +90,7 @@ namespace Hollowmere
                 yield return new WaitForEndOfFrame();
                 while (i < f.frames && drive.elapsed + 0.0001f >= next)
                 {
+                    AssertHeroVisible(hero);
                     if (mode == "move")
                     {
                         var p = hero.Pos;
@@ -105,6 +106,45 @@ namespace Hollowmere
             }
             Debug.Log("Hollowmere QA frames saved: " + i + " " + mode);
             Application.Quit();
+        }
+
+        /// <summary>Catches a hero that was scaled away or left outside the frame.</summary>
+        static void AssertHeroVisible(HeroActor hero)
+        {
+            if (hero == null)
+            {
+                Debug.LogError("Hollowmere QA: hero is missing");
+                return;
+            }
+            bool any = false;
+            Bounds b = default;
+            foreach (var r in hero.GetComponentsInChildren<Renderer>())
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (!r.enabled || OnRing(r.transform)) continue;
+                if (!any) { b = r.bounds; any = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            if (!any || b.size.sqrMagnitude < 0.04f)
+            {
+                Debug.LogError("Hollowmere QA: hero renderer bounds are empty");
+                return;
+            }
+            var cam = Camera.main;
+            if (cam == null) return;
+            var vp = cam.WorldToViewportPoint(b.center);
+            if (vp.z <= 0f || vp.x < -0.05f || vp.x > 1.05f || vp.y < -0.05f || vp.y > 1.05f)
+                Debug.LogError("Hollowmere QA: hero is off-screen center=" + b.center + " size=" + b.size + " vp=" + vp);
+        }
+
+        static bool OnRing(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name == "heroRing") return true;
+                t = t.parent;
+            }
+            return false;
         }
 
         static void Save(string mode, int index)

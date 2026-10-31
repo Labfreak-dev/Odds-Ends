@@ -188,8 +188,8 @@ namespace Hollowmere
             var fit = holder.AddComponent<ModelFit>();
             fit.targetHeight = IsCharacter(key) ? height : 0f;
             fit.maxAxis = IsCharacter(key) ? Mathf.Max(2.5f, height * 1.3f) : 4f;
-            // Only people. A spider or hound is supposed to be longer than it is tall.
-            fit.biped = key.StartsWith("npc_") || key.StartsWith("hero_");
+            // Heroes keep the fit from b75410d. This pass only stands and rescales NPCs.
+            fit.biped = key.StartsWith("npc_");
             var anim = go.GetComponentInChildren<Animation>();
             if (anim != null && anim.clip != null)
             {
@@ -264,16 +264,6 @@ namespace Hollowmere
                     z = Mathf.Max(z, skin.sharedMesh.bounds.size.z);
                 }
             if (x > z * 1.25f) go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
-        }
-
-        static bool UnderCharacter(Transform t)
-        {
-            while (t != null)
-            {
-                if (IsCharacter(t.name)) return true;
-                t = t.parent;
-            }
-            return false;
         }
 
         static bool IsCharacter(string key)
@@ -577,10 +567,7 @@ namespace Hollowmere
                 bool level = IsLevelMesh(r.transform);
                 if (max > 10f || near)
                     Debug.LogWarning("Hollowmere bounds: " + PathOf(r.transform) + " size=" + b.size + " center=" + b.center + (near ? " near-camera" : "") + (level ? " level" : ""));
-                // A skinned AABB can read as tens of metres. Shrinking from that made the
-                // blacksmith a speck and hid the hero on the select stage. People are fitted
-                // from the mesh, not from that box.
-                if (level || max <= 10f || UnderCharacter(r.transform)) continue;
+                if (level || max <= 10f) continue;
                 var root = ScalableRoot(r.transform);
                 if (root == null || !seen.Add(root)) continue;
                 var fit = root.GetComponent<ModelFit>();
@@ -1038,25 +1025,35 @@ namespace Hollowmere
             if (pass++ < 2) return;
             enabled = false;
             if (applied) return;
+            // Mesh-height fitting is NPC-only. Applying it to heroes and props hid the hero
+            // and brought the giant rock back.
             if (biped) StandIfLying();
-            // Mesh bounds through the world matrix. Renderer.bounds on these rigs can be
-            // huge or tiny and that is what shrank the blacksmith.
-            if (!Art.MeshWorldBounds(transform, out var b)) return;
-            float h = b.size.y;
-            if (h < 0.002f) return;
+            if (!Art.UnionBounds(gameObject, out var b)) return;
+            float max = Art.MaxAxis(b.size);
+            if (max < 0.02f) return;
             float factor = 1f;
-            if (targetHeight > 0.2f)
-                factor = targetHeight / h;
-            else if (Art.MaxAxis(b.size) > maxAxis)
-                factor = maxAxis / Art.MaxAxis(b.size);
+            if (biped && targetHeight > 0.2f && Art.MeshWorldBounds(transform, out var meshB))
+            {
+                float h = meshB.size.y;
+                if (h > 0.35f && h < targetHeight * 0.65f) factor = targetHeight / h;
+                else if (h > targetHeight * 1.35f && h < targetHeight * 3f) factor = targetHeight / h;
+            }
+            else if (max > 10f)
+                factor = (targetHeight > 0.2f ? targetHeight : Mathf.Min(maxAxis, 2.6f)) / max;
+            else if (!biped && targetHeight > 0.2f && b.size.y > targetHeight * 1.35f)
+                factor = targetHeight / b.size.y;
+            else if (!biped && targetHeight > 0.2f && b.size.y > 0.3f && b.size.y < targetHeight * 0.65f)
+                factor = targetHeight / b.size.y;
+            bool grounded = false;
             if (factor > 0.92f && factor < 1.08f) factor = 1f;
             else
             {
                 applied = true;
-                Debug.LogWarning("Hollowmere scale: " + name + " mesh " + b.size + " x" + factor.ToString("0.###"));
+                grounded = true;
+                Debug.LogWarning("Hollowmere scale: " + name + " size " + b.size + " x" + factor.ToString("0.###"));
                 transform.localScale *= factor;
             }
-            if (targetHeight > 0.2f && Art.MeshWorldBounds(transform, out b))
+            if ((grounded || biped) && targetHeight > 0.2f && Art.UnionBounds(gameObject, out b))
             {
                 var p = transform.position;
                 var shift = new Vector3(p.x - b.center.x, p.y - b.min.y, p.z - b.center.z);
@@ -1159,11 +1156,11 @@ namespace Hollowmere
         {
             var fit = GetComponent<ModelFit>();
             float target = fit != null && fit.targetHeight > 0.2f ? fit.targetHeight : 1.75f;
-            if (Art.MeshWorldBounds(transform, out var b) && b.size.y > 0.02f)
+            if (Art.MeshWorldBounds(transform, out var b) && b.size.y > 0.35f && b.size.y < 6f)
             {
                 float factor = target / b.size.y;
                 if (factor < 0.8f || factor > 1.25f)
-                    transform.localScale *= factor;
+                    transform.localScale *= Mathf.Clamp(factor, 0.5f, 2f);
             }
             if (Art.MeshWorldBounds(transform, out var grounded))
             {

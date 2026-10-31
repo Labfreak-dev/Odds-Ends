@@ -144,7 +144,9 @@ namespace Hollowmere
             var st = GameManager.I.State;
             var h = st.hero;
             Keys();
-            hero.moveInput = stick.Value + KeyMove();
+            // -qaFrames owns the stick. Overwriting it here left speed at 0 for the whole clip.
+            if (string.IsNullOrEmpty(QaFrames.Requested))
+                hero.moveInput = stick.Value + KeyMove();
 
             levelText.text = h.level.ToString();
             float lifeFrac = hero.LifeFraction;

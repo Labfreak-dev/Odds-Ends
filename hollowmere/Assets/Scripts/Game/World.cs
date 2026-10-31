@@ -116,7 +116,20 @@ namespace Hollowmere
             fm.subMeshCount = 2;
             fm.SetTriangles(ta, 0);
             fm.SetTriangles(tb, 1);
-            floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { Art.Mat(fa), Art.Mat(fb) };
+            var floorMats = new[] { Art.Mat(fa), Art.Mat(fb) };
+            var groundName = map.theme switch
+            {
+                Theme.Town => "grass",
+                Theme.Crypt => "crypt",
+                Theme.Caverns => "cave",
+                Theme.SunkenHalls => "flag",
+                _ => "cracked",
+            };
+            var groundTex = ArtDrop.Ground(groundName);
+            if (groundTex != null)
+                for (int i = 0; i < floorMats.Length; i++) floorMats[i].mainTexture = groundTex;
+            floor.GetComponent<MeshRenderer>().sharedMaterials = floorMats;
+            Dress(map, root);
 
             var walls = MakeMesh("walls", root, wv, wn, wt, Art.Mat(wallC));
             walls.AddComponent<MeshCollider>().sharedMesh = walls.GetComponent<MeshFilter>().sharedMesh;
@@ -190,6 +203,44 @@ namespace Hollowmere
                 v.Add(c + new Vector3((k & 1) == 0 ? -half : half, (k & 2) == 0 ? -0.5f : h, (k & 4) == 0 ? -half : half));
             int[] f = { 0, 2, 3, 0, 3, 1, 4, 5, 7, 4, 7, 6, 0, 4, 6, 0, 6, 2, 1, 3, 7, 1, 7, 5, 2, 6, 7, 2, 7, 3, 0, 1, 5, 0, 5, 4 };
             foreach (var x in f) t.Add(i + x);
+        }
+
+        static void Dress(DungeonMap map, Transform root)
+        {
+            if (ArtDrop.Sprite("barrel") == null && ArtDrop.Sprite("crack1") == null) return;
+            string[] props = { "barrel", "crate", "sconce", "brazier", "lantern", "tombstone", "pillar", "banner", "bonepile", "chest" };
+            string[] decals = { "crack1", "moss1", "rubble", "leaves", "puddle", "bones" };
+            var rng = new Rng((ulong)(map.depth * 97 + map.width * 13 + 5));
+            int propsPlaced = 0, decalsPlaced = 0;
+            for (int y = 1; y < map.height - 1 && (propsPlaced < 8 || decalsPlaced < 6); y++)
+                for (int x = 1; x < map.width - 1 && (propsPlaced < 8 || decalsPlaced < 6); x++)
+                {
+                    if (!map.Walkable(x, y)) continue;
+                    if ((map.entry.x == x && map.entry.y == y) || (map.exit.x == x && map.exit.y == y)) continue;
+                    if (rng.Value() > 0.12f) continue;
+                    bool decal = decalsPlaced < 6 && (propsPlaced >= 8 || rng.Value() < 0.45f);
+                    var names = decal ? decals : props;
+                    var sprite = ArtDrop.Sprite(names[rng.Range(0, names.Length)]);
+                    if (sprite == null) continue;
+                    var go = new GameObject(decal ? "decal" : "prop");
+                    go.transform.SetParent(root, false);
+                    var at = World.ToWorld(new Int2(x, y));
+                    if (decal)
+                    {
+                        go.transform.position = at + new Vector3(0f, 0.03f, 0f);
+                        go.transform.rotation = Quaternion.Euler(90f, rng.Range(0, 4) * 90f, 0f);
+                        go.transform.localScale = Vector3.one * 1.3f;
+                        decalsPlaced++;
+                    }
+                    else
+                    {
+                        go.transform.position = at + new Vector3(0.35f, 0.55f, 0.15f);
+                        go.transform.localScale = Vector3.one * 0.85f;
+                        propsPlaced++;
+                    }
+                    var sr = go.AddComponent<SpriteRenderer>();
+                    sr.sprite = sprite;
+                }
         }
 
         static GameObject MakeMesh(string name, Transform parent, List<Vector3> v, List<Vector3> n, List<int> t, Material m, List<Vector2> uv = null)

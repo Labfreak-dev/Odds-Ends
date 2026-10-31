@@ -147,6 +147,33 @@ namespace Hollowmere
         }
     }
 
+    /// <summary>Plays one row of a sprite sheet, 16 frames at 24 fps, then removes itself.</summary>
+    public sealed class BurstSheet : MonoBehaviour
+    {
+        Material mat;
+        int frames = 16, fps = 24;
+        float life = 1.2f, t;
+
+        public void Init(Material material, int frameCount, int framesPerSecond, float seconds)
+        {
+            mat = material;
+            frames = Mathf.Max(1, frameCount);
+            fps = Mathf.Max(1, framesPerSecond);
+            life = seconds;
+        }
+
+        void Update()
+        {
+            t += Time.deltaTime;
+            if (mat != null)
+            {
+                int frame = Mathf.Min(frames - 1, Mathf.FloorToInt(t * fps));
+                mat.mainTextureOffset = new Vector2(frame / (float)frames, 0f);
+            }
+            if (t >= life) Destroy(gameObject);
+        }
+    }
+
     public sealed class SparkMote : MonoBehaviour
     {
         public Vector3 velocity;

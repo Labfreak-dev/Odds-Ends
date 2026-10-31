@@ -1,0 +1,827 @@
+{
+  "_meta": {
+    "reference_resolution": [
+      2400,
+      1080
+    ],
+    "border_order_note": "borders are left/right/top/bottom px; Unity Sprite Editor order is L,B,R,T",
+    "border_order": "L,B,R,T"
+  },
+  "rarity": {
+    "common": {
+      "label": "#FFFFFF",
+      "beam": "#D8D8D8",
+      "slot_wash": "#D8D8D8"
+    },
+    "magic": {
+      "label": "#6969FF",
+      "beam": "#6969FF",
+      "slot_wash": "#6969FF"
+    },
+    "rare": {
+      "label": "#FFFF00",
+      "beam": "#FFE628",
+      "slot_wash": "#FFE628"
+    },
+    "legendary": {
+      "label": "#BF642F",
+      "beam": "#FF8C28",
+      "slot_wash": "#E67828"
+    },
+    "set": {
+      "label": "#00FF00",
+      "beam": "#3CE650",
+      "slot_wash": "#3CE650"
+    },
+    "unique": {
+      "label": "#3CDCD2",
+      "beam": "#3CDCD2",
+      "slot_wash": "#3CDCD2"
+    },
+    "mythic": {
+      "label": "#E8403A",
+      "beam": "#E8403A",
+      "slot_wash": "#E8403A"
+    }
+  },
+  "sprites": {
+    "hud/globe_frame.png": {
+      "size": [
+        320,
+        360
+      ],
+      "note": "ring frame; globe centre at (160,200), inner radius 124. Draw fill below, glass above"
+    },
+    "hud/globe_glass.png": {
+      "size": [
+        320,
+        320
+      ],
+      "note": "overlay above fill; same centre"
+    },
+    "hud/globe_fill_health.png": {
+      "size": [
+        320,
+        320
+      ],
+      "note": "liquid; mask with circle r=124 and crop from top by (1-value) (Image Filled Vertical)"
+    },
+    "hud/globe_fill_mana.png": {
+      "size": [
+        320,
+        320
+      ],
+      "note": "liquid; mask with circle r=124 and crop from top by (1-value) (Image Filled Vertical)"
+    },
+    "hud/globe_fill_fury.png": {
+      "size": [
+        320,
+        320
+      ],
+      "note": "liquid; mask with circle r=124 and crop from top by (1-value) (Image Filled Vertical)"
+    },
+    "hud/globe_fill_essence.png": {
+      "size": [
+        320,
+        320
+      ],
+      "note": "liquid; mask with circle r=124 and crop from top by (1-value) (Image Filled Vertical)"
+    },
+    "hud/boss_bar_frame.png": {
+      "size": [
+        1400,
+        72
+      ],
+      "border": [
+        60,
+        0,
+        60,
+        0
+      ],
+      "note": "fill area inset 14px each side (y 14..58)",
+      "border_order": "L,B,R,T"
+    },
+    "hud/boss_bar_fill.png": {
+      "size": [
+        200,
+        44
+      ],
+      "border": [
+        4,
+        0,
+        4,
+        0
+      ],
+      "note": "tint per phase or use as-is; ghost trail = same sprite tinted #FFD8A0 a=0.6",
+      "border_order": "L,B,R,T"
+    },
+    "hud/boss_phase_marker.png": {
+      "size": [
+        28,
+        88
+      ],
+      "note": "place at phase thresholds (e.g. 75/50/25%), centred on bar height"
+    },
+    "fx/loot_beam.png": {
+      "size": [
+        128,
+        768
+      ],
+      "note": "additive, Image/SpriteRenderer color = rarity beam colour, pivot bottom-centre"
+    },
+    "fx/loot_ground_glow.png": {
+      "size": [
+        256,
+        256
+      ],
+      "note": "flat ellipse under the item, tinted"
+    },
+    "fx/loot_label.png": {
+      "size": [
+        240,
+        56
+      ],
+      "border": [
+        14,
+        14,
+        14,
+        14
+      ],
+      "note": "ground item label; tint the 2px rim by rarity, text in rarity label colour",
+      "border_order": "L,B,R,T"
+    },
+    "fx/telegraph_circle.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "AoE circle, tint red/orange; scale over time"
+    },
+    "fx/telegraph_cone.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "60deg cone pointing up (+Y), origin at centre"
+    },
+    "fx/telegraph_line.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "line/charge strip, tile vertically"
+    },
+    "fx/telegraph_rune.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "arcane/ritual warning ring, rotate slowly"
+    },
+    "hud/socket_empty.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "gem centre at 48,48, put gem icon at 64px"
+    },
+    "hud/gem_ruby.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "socketed gem, fits socket_empty"
+    },
+    "hud/gem_sapphire.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "socketed gem, fits socket_empty"
+    },
+    "hud/gem_emerald.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "socketed gem, fits socket_empty"
+    },
+    "hud/gem_amethyst.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "socketed gem, fits socket_empty"
+    },
+    "hud/gem_topaz.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "socketed gem, fits socket_empty"
+    },
+    "hud/gem_diamond.png": {
+      "size": [
+        96,
+        96
+      ],
+      "note": "socketed gem, fits socket_empty"
+    },
+    "fx/levelup_burst.png": {
+      "size": [
+        4096,
+        256
+      ],
+      "note": "16 frames 256x256 in one row, additive blend",
+      "frames": "fx/levelup_burst.json"
+    },
+    "hud/skill_ring_bronze.png": {
+      "size": [
+        192,
+        192
+      ],
+      "note": "bronze ring, skill icon inside r=72"
+    },
+    "hud/cooldown_mask.png": {
+      "size": [
+        192,
+        192
+      ],
+      "note": "black disc, Image Filled Radial360 clockwise from top"
+    },
+    "hud/minimap_frame.png": {
+      "size": [
+        360,
+        360
+      ],
+      "note": "circle minimap; mask inner r=148 (use minimap_mask)"
+    },
+    "hud/minimap_mask.png": {
+      "size": [
+        360,
+        360
+      ]
+    },
+    "icons/icon_amulet.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_axe.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_belt.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_boots.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_bow.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_bracers.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_chest.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_cloak.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_dagger.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_gem_blue.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_gem_green.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_gem_purple.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_gem_red.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_gloves.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_gold.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_helm.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_hpotion.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_key.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_mace.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_mpotion.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_orb.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_pants.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_ring.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_scroll.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_shield.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_shoulders.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_staff.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_sword.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_tome.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "icons/icon_wand.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 painted item icon"
+    },
+    "affixes/arcane.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/electric.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/fastest.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/frozen.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/jailer.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/molten.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/plagued.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/poison.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/shielding.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/teleporter.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/vampiric.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "affixes/vortex.png": {
+      "size": [
+        128,
+        128
+      ],
+      "note": "128x128 elite affix badge"
+    },
+    "props/banner.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/barrel.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/bonepile.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/brazier.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/candles.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/cauldron.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/chest.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/crate.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/lantern.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/pillar.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/sarcophagus.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/sconce.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/signpost.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/stall.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/statue.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/tombstone.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "props/well.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent prop, pivot bottom-centre ~ (0.5,0.1)"
+    },
+    "decals/blood1.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/blood2.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/bones.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/crack1.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/crack2.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/leaves.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/moss1.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/moss2.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/puddle.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/rubble.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/rune.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "decals/scorch.png": {
+      "size": [
+        512,
+        512
+      ],
+      "note": "512x512 transparent ground decal, alpha-faded edges"
+    },
+    "textures/cave.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/cobble.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/cracked.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/crypt.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/dirt.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/flag.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/grass.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    },
+    "textures/wood.jpg": {
+      "size": [
+        1024,
+        1024
+      ],
+      "wrap": "Repeat",
+      "note": "seamless, verified (wrap-edge mean diff 1-6/255, same as adjacent-pixel diff)"
+    }
+  }
+}

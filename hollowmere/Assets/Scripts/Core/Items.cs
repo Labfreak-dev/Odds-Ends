@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 namespace Hollowmere.Core
 {
-    public enum ItemSlot { Head, Shoulders, Chest, Hands, Wrists, Waist, Legs, Feet, Amulet, Ring, MainHand, OffHand }
+    public enum ItemSlot { Head, Shoulders, Chest, Hands, Wrists, Waist, Legs, Feet, Amulet, Ring, MainHand, OffHand, Cloak }
 
     /// <summary>Paper-doll positions. Rings occupy two.</summary>
-    public enum EquipSlot { Head, Shoulders, Chest, Hands, Wrists, Waist, Legs, Feet, Amulet, Ring1, Ring2, MainHand, OffHand, Count }
+    public enum EquipSlot { Head, Shoulders, Chest, Hands, Wrists, Waist, Legs, Feet, Amulet, Ring1, Ring2, MainHand, OffHand, Cloak, Count }
 
     public enum Rarity { Common, Magic, Rare, Legendary, Set }
 
@@ -100,8 +100,9 @@ namespace Hollowmere.Core
         Hands = 1 << ItemSlot.Hands, Wrists = 1 << ItemSlot.Wrists, Waist = 1 << ItemSlot.Waist,
         Legs = 1 << ItemSlot.Legs, Feet = 1 << ItemSlot.Feet, Amulet = 1 << ItemSlot.Amulet,
         Ring = 1 << ItemSlot.Ring, MainHand = 1 << ItemSlot.MainHand, OffHand = 1 << ItemSlot.OffHand,
+        Cloak = 1 << ItemSlot.Cloak,
         Jewelry = Amulet | Ring,
-        Armor = Head | Shoulders | Chest | Hands | Wrists | Waist | Legs | Feet,
+        Armor = Head | Shoulders | Chest | Hands | Wrists | Waist | Legs | Feet | Cloak,
         Weapon = MainHand,
         All = Armor | Jewelry | MainHand | OffHand,
     }

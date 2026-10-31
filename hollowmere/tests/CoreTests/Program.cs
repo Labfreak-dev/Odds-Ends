@@ -646,25 +646,23 @@ static class Program
         var grid = DesignTable.UiRect("inventory", "grid");
         var cell = DesignTable.UiRect("inventory", "gridCell");
         Check(DesignTable.BagColumns * cell.W + (DesignTable.BagColumns - 1) * DesignTable.BagGap == grid.W, "grid width");
-        Check(DesignTable.BagRows * cell.H + (DesignTable.BagRows - 1) * DesignTable.BagGap == grid.H, "grid height");
-        Check(DesignTable.BagColumns * DesignTable.BagRows - DesignTable.BagCapacity == 2, "two sealed bag cells");
+        Check(DesignTable.BagRows * cell.H == 672 && grid.H - 672 == 28, "grid leaves 28 dp under the cells");
+        Check(DesignTable.BagColumns * DesignTable.BagRows == DesignTable.BagCapacity, "one item per bag cell");
 
-        string[] leftSlots = { "amulet", "ring1", "ring2", "weapon", "offhand", "wrists" };
-        string[] rightSlots = { "head", "shoulders", "chest", "hands", "waist", "legs", "feet" };
+        string[] leftSlots = { "head", "shoulders", "chest", "wrists", "hands", "belt", "legs" };
+        string[] rightSlots = { "amulet", "ring_l", "ring_r", "cloak", "feet", "mainhand", "offhand" };
         var leftCol = DesignTable.UiRect("inventory", "leftColumn");
         var rightCol = DesignTable.UiRect("inventory", "rightColumn");
-        var model = DesignTable.UiRect("inventory", "model");
+        var hero = DesignTable.UiRect("inventory", "hero");
         var bag = DesignTable.UiRect("inventory", "bag");
         foreach (var id in leftSlots) Check(Contains(leftCol, DesignTable.DollRect(id)), id + " sits in the left column");
         foreach (var id in rightSlots) Check(Contains(rightCol, DesignTable.DollRect(id)), id + " sits in the right column");
         for (int i = 0; i < DesignTable.Doll.Length; i++)
             for (int j = i + 1; j < DesignTable.Doll.Length; j++)
                 Check(!Overlaps(DesignTable.Doll[i], DesignTable.Doll[j]), "slots overlap " + DesignTable.Doll[i].Id + " " + DesignTable.Doll[j].Id);
-        Check(!Overlaps(leftCol, model) && !Overlaps(rightCol, model) && !Overlaps(leftCol, rightCol), "columns clear the model");
-        Check(!Overlaps(model, bag) && !Overlaps(rightCol, bag), "bag clears the doll");
-        Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), grid), "tooltip covers the grid when shown");
-        Check(!Overlaps(DesignTable.UiRect("inventory", "tooltip"), DesignTable.UiRect("inventory", "sort")), "tooltip clears the sort row");
-        Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "close")), "grid and close sit in the bag");
+        Check(!Overlaps(leftCol, rightCol) && !Overlaps(rightCol, bag) && !Overlaps(hero, bag), "bag clears the right column and the hero");
+        Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), hero), "tooltip opens over the hero");
+        Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "tabs")) && Contains(bag, DesignTable.UiRect("inventory", "bottom")), "grid, tabs, and the bottom bar sit in the bag");
 
         string asset = FeelAsset();
         Check(asset != null, "FeelProfile.asset is on disk");

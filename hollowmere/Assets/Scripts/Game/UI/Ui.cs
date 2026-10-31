@@ -336,6 +336,14 @@ namespace Hollowmere
 
         public void SetCooldown(float frac)
         {
+            var img = cooldown != null ? cooldown.GetComponent<Image>() : null;
+            if (img != null && img.type == Image.Type.Filled)
+            {
+                img.fillAmount = Mathf.Clamp01(frac);
+                cooldown.anchorMin = Vector2.zero;
+                cooldown.anchorMax = Vector2.one;
+                return;
+            }
             var a = cooldown.anchorMax; a.y = Mathf.Clamp01(frac); cooldown.anchorMax = a;
         }
     }

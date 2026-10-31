@@ -55,6 +55,7 @@ namespace Hollowmere.Core
             Armor("trousers", "Trousers", ItemSlot.Legs, 5);
             Armor("boots", "Boots", ItemSlot.Feet, 4);
             Armor("waders", "Waders", ItemSlot.Feet, 4);
+            Armor("cloak", "Cloak", ItemSlot.Cloak, 4);
             Armor("amulet", "Amulet", ItemSlot.Amulet, 0);
             Armor("ring", "Ring", ItemSlot.Ring, 0);
 
@@ -194,6 +195,7 @@ namespace Hollowmere.Core
             ItemSlot.Legs => new[] { EquipSlot.Legs },
             ItemSlot.Feet => new[] { EquipSlot.Feet },
             ItemSlot.Amulet => new[] { EquipSlot.Amulet },
+            ItemSlot.Cloak => new[] { EquipSlot.Cloak },
             ItemSlot.MainHand => new[] { EquipSlot.MainHand },
             _ => new[] { EquipSlot.OffHand },
         };

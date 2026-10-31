@@ -8,7 +8,7 @@ namespace Hollowmere.Core
     public static class Balance
     {
         public const int MaxLevel = 70;
-        public const int InventorySize = 40;
+        public const int InventorySize = 30;
         public const int StashSize = 120;
 
         public static long XpToNext(int level) => level >= MaxLevel ? long.MaxValue : DesignTable.XpToNext(level);

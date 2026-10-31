@@ -308,6 +308,19 @@ namespace Hollowmere
                 light.intensity = 6f;
                 pillar.AddComponent<LightFade>().Init((float)DesignTable.LevelUpSeconds, 6f);
                 Fx.Ring(hero.Pos, 4f, new Color(1f, 0.9f, 0.4f), (float)DesignTable.LevelUpSeconds);
+                var burst = ArtDrop.Sprite("levelup_burst");
+                if (burst != null)
+                {
+                    var sheet = new GameObject("levelBurst");
+                    sheet.transform.position = hero.Pos + Vector3.up * 1.1f;
+                    var sr = sheet.AddComponent<SpriteRenderer>();
+                    sr.sprite = burst;
+                    var mat = new Material(sr.sharedMaterial);
+                    mat.mainTextureScale = new Vector2(1f / 16f, 1f);
+                    sr.material = mat;
+                    sheet.AddComponent<BurstSheet>().Init(mat, 16, 24, (float)DesignTable.LevelUpSeconds);
+                    sheet.transform.localScale = Vector3.one * 2.4f;
+                }
                 PetActor.I?.RefreshLife(true);
             }
         }

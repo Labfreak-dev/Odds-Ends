@@ -160,6 +160,10 @@ namespace Hollowmere
         {
             "hm_skel_warrior", "hm_skel_archer", "hm_ghoul", "hm_zombie", "hm_cultist",
             "hm_demon_brute", "hm_ossuary_king", "hm_demon_lord", "hm_rat", "hm_bat", "hm_spider",
+            "hm_grave_eater", "hm_wraith", "hm_horror_ghoul", "hm_drowned_husk",
+            "hm_cave_crawler", "hm_warwolf", "hm_vampire_bat", "hm_bone_golem",
+            "hm_cultist_smith", "hm_forest_brute", "hm_hellhound", "hm_imp",
+            "hm_giant_mutant", "hm_lava_golem",
         };
 
         public static IEnumerator RunMonsterMode(GameManager gm, string mode)

@@ -99,6 +99,11 @@ namespace Hollowmere
                 case "npcclose":
                 case "monsters":
                 case "monster":
+                case "monsters-v6":
+                case "monstersv6":
+                case "elites":
+                case "eliteshot":
+                case "elite":
                 case "monsteranim":
                 case "monsterdeath":
                 case "skelclose":
@@ -143,6 +148,8 @@ namespace Hollowmere
             bool npcs = scene == "npcs" || scene == "npc" || scene == "npcs-close" || scene == "npcclose";
             bool npcsClose = scene == "npcs-close" || scene == "npcclose";
             bool monsters = scene == "monsters" || scene == "monster";
+            bool monstersV6 = scene == "monsters-v6" || scene == "monstersv6";
+            bool elites = scene == "elites" || scene == "eliteshot" || scene == "elite";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
@@ -182,6 +189,8 @@ namespace Hollowmere
                     yield break;
                 }
                 if (monsters) FrameMonsters();
+                else if (monstersV6) FrameV6();
+                else if (elites) FrameElites();
                 else if (npcs) FrameNpcs();
                 Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
@@ -583,6 +592,89 @@ namespace Hollowmere
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        /// <summary>The v6 roster, one row, so the new bodies and the smith's hammer can be checked.</summary>
+        static void FrameV6()
+        {
+            var keys = Art.V6Monsters;
+            Vector3 origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 40f;
+            float x = -18f;
+            int shown = 0;
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var go = Art.Animated(keys[i], 1.8f, null);
+                if (go == null)
+                {
+                    Debug.LogError("Hollowmere QA monster missing " + keys[i]);
+                    continue;
+                }
+                shown++;
+                bool wide = keys[i].Contains("golem") || keys[i].Contains("brute") || keys[i].Contains("mutant") || keys[i].Contains("wolf");
+                go.transform.position = origin + new Vector3(x, 0f, 6f);
+                go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                Debug.Log("Hollowmere QA monster " + keys[i] + " at " + go.transform.position.ToString("0.0"));
+                x += wide ? 3.8f : 2.4f;
+            }
+            if (shown != keys.Length)
+                Debug.LogError("Hollowmere QA monsters-v6 FAIL " + shown + "/" + keys.Length);
+            var look = origin + new Vector3(0f, 1.5f, 6f);
+            var camPos = look + new Vector3(0f, 3.2f, -22f);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 42f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        /// <summary>A blue champion and a yellow elite, with the affix list on the name plate.</summary>
+        static void FrameElites()
+        {
+            AffixCatalog.Install();
+            Vector3 origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 24f;
+            var rng = new Rng(7);
+            var champ = MonsterDb.Create(MonsterDb.Get("grave_eater"), 12, MonsterRank.Champion, rng, 8);
+            var elite = MonsterDb.Create(MonsterDb.Get("cultist_smith"), 18, MonsterRank.Elite, rng, 14);
+            champ.affixes.Clear();
+            champ.affixes.Add(EliteAffix.Hasty);
+            elite.affixes.Clear();
+            elite.affixes.Add(EliteAffix.Molten);
+            elite.affixes.Add(EliteAffix.Vampiric);
+            var a = MonsterActor.Spawn(champ, origin + new Vector3(-1.7f, 0f, 4.4f), 1);
+            var b = MonsterActor.Spawn(elite, origin + new Vector3(1.7f, 0f, 4.4f), 2);
+            a.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            b.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            LogPlate(a, "champion");
+            LogPlate(b, "elite");
+            var look = origin + new Vector3(0f, 1.6f, 4.4f);
+            var camPos = look + new Vector3(0f, 1.1f, -7.5f);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 36f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static void LogPlate(MonsterActor actor, string kind)
+        {
+            if (actor == null)
+            {
+                Debug.LogError("Hollowmere QA elite plate FAIL missing " + kind);
+                return;
+            }
+            TextMesh plate = null;
+            foreach (var tm in actor.GetComponentsInChildren<TextMesh>(true))
+                if (tm.gameObject.name == "label") plate = tm;
+            string text = plate != null ? plate.text : "";
+            Debug.Log("Hollowmere QA elite plate " + kind + " " + text.Replace('\n', '|'));
+            if (plate == null || string.IsNullOrEmpty(text) || text.IndexOf('\n') < 0)
+                Debug.LogError("Hollowmere QA elite plate FAIL " + kind + " has no affix list");
         }
 
         /// <summary>Line the service NPCs up and frame them from a few metres, so props and faces read.</summary>

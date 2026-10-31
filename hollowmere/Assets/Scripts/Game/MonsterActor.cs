@@ -49,10 +49,55 @@ namespace Hollowmere
                 var c = s.rank == MonsterRank.Champion ? new Color(0.3f, 0.5f, 1f) : s.rank == MonsterRank.Elite ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.3f, 0.2f);
                 Art.Cylinder(go.transform, new Vector3(0, 0.03f, 0), new Vector3(1.6f * scale, 0.01f, 1.6f * scale), Art.Mat(c, 1.2f));
             }
+            if (s.rank == MonsterRank.Champion || s.rank == MonsterRank.Elite)
+                EliteMark(go, b.gameObject, s, scale);
             m.affixTimer = Random.Range(2f, 5f);
             m.affixTimer2 = Random.Range(3f, 6f);
             m.bossTimer = 6f;
             return m;
+        }
+
+        static void EliteMark(GameObject go, GameObject body, MonsterStats s, float scale)
+        {
+            var tint = s.affixes.Count > 0
+                ? AffixCatalog.Tint(s.affixes[0])
+                : s.rank == MonsterRank.Champion ? new Color(0.35f, 0.55f, 1f) : new Color(1f, 0.82f, 0.25f);
+            foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || r.gameObject.name == "label") continue;
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var mat = mats[i];
+                    if (mat == null) continue;
+                    if (mat.HasProperty("_BaseColor"))
+                        mat.SetColor("_BaseColor", Color.Lerp(mat.GetColor("_BaseColor"), tint, 0.42f));
+                    if (mat.HasProperty("_Color"))
+                        mat.SetColor("_Color", Color.Lerp(mat.GetColor("_Color"), tint, 0.42f));
+                    if (mat.HasProperty("_EmissionColor"))
+                    {
+                        mat.EnableKeyword("_EMISSION");
+                        mat.SetColor("_EmissionColor", tint * 0.55f);
+                    }
+                }
+            }
+            var rim = new GameObject("eliteRim").AddComponent<Light>();
+            rim.type = LightType.Point;
+            rim.color = tint;
+            rim.intensity = 1.6f;
+            rim.range = 3.4f;
+            rim.shadows = LightShadows.None;
+            rim.transform.SetParent(go.transform, false);
+            rim.transform.localPosition = new Vector3(0f, 1.3f * scale, 0f);
+            string lines = s.displayName;
+            if (s.affixes.Count > 0)
+            {
+                var names = new string[s.affixes.Count];
+                for (int i = 0; i < names.Length; i++) names[i] = AffixCatalog.Label(s.affixes[i]);
+                lines += "\n" + string.Join(" · ", names);
+            }
+            var ink = s.rank == MonsterRank.Champion ? new Color(0.75f, 0.86f, 1f) : new Color(1f, 0.9f, 0.45f);
+            Fx.WorldLabel(go.transform, new Vector3(0f, 2.35f * scale, 0f), lines, ink, 42, 0.045f);
         }
 
         protected override void Update()
@@ -355,6 +400,30 @@ namespace Hollowmere
         }
     }
 
+    /// <summary>Lifts the wraith off the floor and folds its feet up into the robe.</summary>
+    [DefaultExecutionOrder(220)]
+    public sealed class WraithFloat : MonoBehaviour
+    {
+        public float lift = 0.5f;
+
+        void LateUpdate()
+        {
+            var p = transform.localPosition;
+            p.y = lift;
+            transform.localPosition = p;
+            Squash("LeftFoot");
+            Squash("RightFoot");
+            Squash("LeftToeBase");
+            Squash("RightToeBase");
+        }
+
+        void Squash(string bone)
+        {
+            var t = Art.Bone(transform, bone);
+            if (t != null) t.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+        }
+    }
+
     /// <summary>Keeps the bat 1.2 m off the floor and bobs it. LateUpdate wins over the idle clip.</summary>
     public sealed class BatHover : MonoBehaviour
     {
@@ -449,6 +518,7 @@ namespace Hollowmere
                 list += s.name;
                 if (ClipLeaf(s.name) == "death") death = s;
             }
+            bool crawler = CorpseNamed("crawler");
             if (death == null || death.clip == null)
             {
                 if (waits >= 3 && !warned)
@@ -460,21 +530,30 @@ namespace Hollowmere
                     animator.enabled = false;
                 return;
             }
-            clip = death.name;
+            // The crawler's death roll knots the body. Lay the idle pose flat instead.
+            AnimationState pose = death;
+            if (crawler)
+            {
+                foreach (AnimationState s in anim)
+                    if (ClipLeaf(s.name) == "idle" && s.clip != null) pose = s;
+                if (pose != death) Debug.Log("Hollowmere death lay " + name + " crawler uses idle");
+            }
+            clip = pose == death ? death.name : "idle-flat";
             foreach (AnimationState s in anim)
             {
                 s.weight = 0f;
                 s.enabled = false;
             }
-            death.wrapMode = WrapMode.ClampForever;
-            death.enabled = true;
-            death.weight = 1f;
-            death.speed = 0f;
+            pose.wrapMode = WrapMode.ClampForever;
+            pose.enabled = true;
+            pose.weight = 1f;
+            pose.speed = 0f;
             // Play resets the clock. Put it back on the last frame before sampling,
             // or the bake freezes the standing start of the clip.
-            anim.Play(death.name);
-            death.time = Mathf.Max(0.05f, death.length) * 0.99f;
-            death.normalizedTime = 0.99f;
+            anim.Play(pose.name);
+            float unit = pose == death ? 0.99f : 0.35f;
+            pose.time = Mathf.Max(0.05f, pose.length) * unit;
+            pose.normalizedTime = unit;
             anim.Sample();
             foreach (var animator in GetComponentsInChildren<Animator>(true))
                 animator.enabled = false;
@@ -602,7 +681,7 @@ namespace Hollowmere
         /// <summary>Demon and spider poses are still thicker than 0.95 m. Scale the mesh, not the check.</summary>
         void ShrinkIfThick()
         {
-            for (int pass = 0; pass < 2; pass++)
+            for (int pass = 0; pass < 3; pass++)
             {
                 if (!Art.UnionBounds(gameObject, out var b) || b.size.y < 0.88f) return;
                 float s = 0.78f / Mathf.Max(0.2f, b.size.y);

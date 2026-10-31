@@ -28,6 +28,7 @@ namespace Hollowmere
         void Awake()
         {
             I = this;
+            AffixCatalog.Install();
             gameObject.AddComponent<AudioHub>();
             cam = CameraRig.Create();
             DontDestroyOnLoad(cam.gameObject);
@@ -105,6 +106,7 @@ namespace Hollowmere
         public void EnterTown(bool viaPortal)
         {
             ClearWorld();
+            MonsterDb.ClearRoster();
             State.depth = 0;
             var map = Town.BuildTownMap(out var marks);
             World.Map = map;

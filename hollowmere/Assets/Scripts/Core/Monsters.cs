@@ -54,17 +54,53 @@ namespace Hollowmere.Core
             new MonsterDef { id = "cinderimp", name = "Cinder Imp", model = "hm_bat", family = "Demon", role = MonsterRole.Ranged, life = 0.7f, damage = 1.1f, speed = 4.2f, attackRange = 8f, attackCooldown = 1.6f, element = Element.Fire, minDepth = 26, color = "#c4462a" },
             new MonsterDef { id = "magmahulk", name = "Magma Hulk", model = "hm_demon_brute", family = "Construct", role = MonsterRole.Brute, life = 3.2f, damage = 2.2f, speed = 2.3f, attackRange = 2.6f, attackCooldown = 2.2f, element = Element.Fire, minDepth = 28, xp = 2.5f, color = "#8a3a1a" },
 
+            // v6 bands. The live game replaces this with the biome roster.
+            new MonsterDef { id = "grave_eater", name = "Grave Eater", model = "hm_grave_eater", family = "Undead", role = MonsterRole.Melee, life = 1.1f, damage = 1.05f, minDepth = 1, maxDepth = 5, color = "#6a5340" },
+            new MonsterDef { id = "wraith", name = "Wraith", model = "hm_wraith", family = "Undead", role = MonsterRole.Caster, life = 0.85f, damage = 1.1f, speed = 3.4f, attackRange = 8f, attackCooldown = 2f, element = Element.Frost, minDepth = 1, maxDepth = 5, color = "#9ec4d4" },
+            new MonsterDef { id = "horror_ghoul", name = "Horror Ghoul", model = "hm_horror_ghoul", family = "Undead", role = MonsterRole.Melee, life = 1.2f, damage = 1.15f, speed = 3.6f, minDepth = 2, maxDepth = 5, color = "#3a4030" },
+            new MonsterDef { id = "drowned_husk", name = "Drowned Husk", model = "hm_drowned_husk", family = "Undead", role = MonsterRole.Melee, life = 1.15f, damage = 1f, minDepth = 6, maxDepth = 10, color = "#4a6a62" },
+            new MonsterDef { id = "cave_crawler", name = "Cave Crawler", model = "hm_cave_crawler", family = "Beast", role = MonsterRole.Swarm, life = 0.55f, damage = 0.6f, speed = 4.4f, attackCooldown = 1f, minDepth = 6, maxDepth = 10, xp = 0.5f, color = "#5a4030" },
+            new MonsterDef { id = "warwolf", name = "Warwolf", model = "hm_warwolf", family = "Beast", role = MonsterRole.Brute, life = 1.6f, damage = 1.3f, speed = 4.2f, scale = 0.62f, minDepth = 6, maxDepth = 10, xp = 1.4f, color = "#6a5a48" },
+            new MonsterDef { id = "vampire_bat", name = "Vampire Bat", model = "hm_vampire_bat", family = "Beast", role = MonsterRole.Swarm, life = 0.4f, damage = 0.45f, speed = 5f, attackCooldown = 0.8f, minDepth = 6, maxDepth = 10, xp = 0.35f, color = "#3a2030" },
+            new MonsterDef { id = "bone_golem", name = "Bone Golem", model = "hm_bone_golem", family = "Construct", role = MonsterRole.Brute, life = 2.8f, damage = 1.8f, speed = 2.2f, attackRange = 2.4f, attackCooldown = 2f, minDepth = 11, maxDepth = 15, xp = 2.2f, color = "#d8d0c0" },
+            new MonsterDef { id = "cultist_smith", name = "Cultist Smith", model = "hm_cultist_smith", family = "Cult", role = MonsterRole.Melee, life = 1.2f, damage = 1.35f, attackRange = 2.2f, minDepth = 11, maxDepth = 15, color = "#6a3030" },
+            new MonsterDef { id = "forest_brute", name = "Forest Brute", model = "hm_forest_brute", family = "Beast", role = MonsterRole.Brute, life = 2.4f, damage = 1.6f, speed = 2.4f, scale = 0.72f, attackRange = 2.6f, minDepth = 11, maxDepth = 15, xp = 2f, color = "#3a5a30" },
+            new MonsterDef { id = "hellhound", name = "Hellhound", model = "hm_hellhound", family = "Demon", role = MonsterRole.Melee, life = 1.1f, damage = 1.2f, speed = 4.8f, element = Element.Fire, minDepth = 16, color = "#c04020" },
+            new MonsterDef { id = "imp", name = "Imp", model = "hm_imp", family = "Demon", role = MonsterRole.Ranged, life = 0.7f, damage = 1f, speed = 4f, attackRange = 8f, element = Element.Fire, minDepth = 16, color = "#e07030" },
+
             // Bosses (every 5th floor), in rotation
             new MonsterDef { id = "boss_abbot", name = "The Drowned Abbot", model = "hm_zombie", family = "Boss", role = MonsterRole.Brute, life = 1, damage = 1.4f, speed = 2.6f, attackRange = 3.2f, attackCooldown = 1.8f, element = Element.Frost, scale = 1.15f, boss = true, xp = 1, color = "#3c6a7a" },
             new MonsterDef { id = "boss_matriarch", name = "Gloom Matriarch", model = "hm_spider", family = "Boss", role = MonsterRole.Melee, life = 1, damage = 1.2f, speed = 3.6f, attackRange = 3f, attackCooldown = 1.4f, element = Element.Poison, scale = 1.35f, boss = true, color = "#4a2a5a" },
             new MonsterDef { id = "boss_ossuary", name = "Ossuary King", model = "hm_ossuary_king", family = "Boss", role = MonsterRole.Melee, life = 1, damage = 1.5f, speed = 3f, attackRange = 3f, attackCooldown = 1.6f, boss = true, xp = 1, color = "#e6dcc0" },
             new MonsterDef { id = "boss_furnace", name = "Furnace Heart", model = "hm_demon_lord", family = "Boss", role = MonsterRole.Brute, life = 1, damage = 1.7f, speed = 2.2f, attackRange = 3.4f, attackCooldown = 2f, element = Element.Fire, boss = true, color = "#b0401a" },
+            new MonsterDef { id = "boss_mutant", name = "Giant Mutant", model = "hm_giant_mutant", family = "Boss", role = MonsterRole.Brute, life = 1, damage = 1.6f, speed = 2.4f, attackRange = 3.2f, attackCooldown = 1.8f, scale = 1.05f, boss = true, color = "#6a7a40" },
+            new MonsterDef { id = "boss_lava", name = "Lava Golem", model = "hm_lava_golem", family = "Boss", role = MonsterRole.Brute, life = 1, damage = 1.7f, speed = 2f, attackRange = 3.2f, attackCooldown = 2f, element = Element.Fire, scale = 1.55f, boss = true, color = "#ff5a18" },
         };
+
+        static string[] rosterIds;
+        static EliteAffix[] affixPool;
 
         public static MonsterDef Get(string id) => All.FirstOrDefault(m => m.id == id);
 
+        /// <summary>The biome's roster replaces the depth filter until the next floor or town.</summary>
+        public static void UseRoster(string[] ids) { rosterIds = ids; }
+        public static void ClearRoster() { rosterIds = null; }
+
+        /// <summary>Affixes the game may roll. Null keeps the full enum, which the core tests use.</summary>
+        public static void UseAffixes(EliteAffix[] ids) { affixPool = ids; }
+
         public static List<MonsterDef> ForDepth(int depth)
         {
+            if (rosterIds != null && rosterIds.Length > 0)
+            {
+                var picked = new List<MonsterDef>();
+                for (int i = 0; i < rosterIds.Length; i++)
+                {
+                    var d = Get(rosterIds[i]);
+                    if (d != null && !d.boss) picked.Add(d);
+                }
+                if (picked.Count > 0) return picked;
+            }
             // Past the deepest band the pool loops with everything unlocked.
             var pool = All.Where(m => !m.boss && depth >= m.minDepth && depth <= m.maxDepth).ToList();
             return pool.Count > 0 ? pool : All.Where(m => !m.boss).ToList();
@@ -75,7 +111,7 @@ namespace Hollowmere.Core
             var bosses = All.Where(m => m.boss).ToList();
             int n = Math.Max(0, depth / Balance.BossEvery - 1);
             // Introduce them in a fixed order so floor 5 is always the Ossuary King, etc.
-            string[] order = { "boss_ossuary", "boss_matriarch", "boss_abbot", "boss_furnace" };
+            string[] order = { "boss_ossuary", "boss_matriarch", "boss_abbot", "boss_furnace", "boss_mutant", "boss_lava" };
             return Get(order[n % order.Length]);
         }
 
@@ -104,7 +140,9 @@ namespace Hollowmere.Core
             m.xp = DesignTable.RoundEven(DesignTable.Unit(level) * (decimal)def.xp * xpRank);
 
             int affixCount = DesignTable.AffixCount(rank, floor);
-            var options = Enum.GetValues(typeof(EliteAffix)).Cast<EliteAffix>().ToList();
+            var options = affixPool != null && affixPool.Length > 0
+                ? affixPool.ToList()
+                : Enum.GetValues(typeof(EliteAffix)).Cast<EliteAffix>().ToList();
             rng.Shuffle(options);
             for (int i = 0; i < Math.Min(affixCount, options.Count); i++) m.affixes.Add(options[i]);
             if (m.affixes.Contains(EliteAffix.Hasty)) { m.speed *= 1.5f; m.attackCooldown *= 0.75f; }

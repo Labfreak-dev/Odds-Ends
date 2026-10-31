@@ -84,6 +84,7 @@ namespace Hollowmere
             var text = Resources.Load<TextAsset>("AudioCredits");
             string bodyText = text != null ? text.text : "Audio credits could not be loaded.";
             bodyText += "\n\n<b>CC0 art</b>\nPoly Haven props, weapons, environment and HDRIs. Kenney particles and flipbooks. Kay Lousberg skeleton stand-ins. Modular town and dungeon kit. No attribution required.";
+            bodyText += "\n\n<b>CC0 monsters</b>\nForest Monster by Čestmír Dammer (CDmir). Giant Mutant, Lava Golem, Vampire Bat, and Warwolf from OpenGameArt. Horror Ghoul by HorrorGameMaker.com. CC0.";
             bodyText += "\n\n<b>Painterly Spell Icons</b>\nPainterly Spell Icons by J. W. Bjerk (eleazzaar), CC-BY 3.0.";
             Ui.Size(Ui.Label(Ui.Rect(list, "credits", Vector2.zero, Vector2.one), bodyText, 22, TextAnchor.UpperLeft), 2400);
         }

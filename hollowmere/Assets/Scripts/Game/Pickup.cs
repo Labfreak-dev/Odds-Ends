@@ -263,10 +263,10 @@ namespace Hollowmere
                         Art.Capsule(fig, new Vector3(-0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
                         Art.Capsule(fig, new Vector3(0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
                         Art.Sphere(head, Vector3.zero, Vector3.one * 0.36f, Art.Mat(new Color(0.93f, 0.8f, 0.68f)));
-                        // Direct stand for the north-east green dealer. The quarter-turn
-                        // search left this one on its side; NpcStand logs the name and,
-                        // if the bounds are still wider than they are tall, pitches the root.
-                        fig.gameObject.AddComponent<NpcStand>();
+                        // The north-east green figure. Its world label is "Curio Dealer"
+                        // (the cropped '…eal…'). It is not one of the npc_*_walk models,
+                        // so the model stand-up never sees it. Hold this root upright here.
+                        fig.gameObject.AddComponent<DealerUpright>();
                     }
                     else if (model == null)
                     {
@@ -294,6 +294,26 @@ namespace Hollowmere
             l.transform.SetParent(transform, false);
             l.transform.localPosition = Vector3.up * 1.5f;
             l.color = c; l.range = 6; l.intensity = 1.5f;
+        }
+    }
+
+    /// <summary>
+    /// The Curio Dealer is built here, not from an npc_*_walk model, so the model
+    /// stand-up never logs it. Keep the capsule body upright and name it in the log.
+    /// </summary>
+    [DefaultExecutionOrder(200)]
+    public sealed class DealerUpright : MonoBehaviour
+    {
+        int waited;
+
+        void LateUpdate()
+        {
+            transform.localRotation = Quaternion.identity;
+            if (waited++ < 4) return;
+            enabled = false;
+            Debug.Log("Hollowmere NPC Curio Dealer object=" + name
+                + " rot=" + transform.eulerAngles.ToString("0")
+                + " local=" + transform.localEulerAngles.ToString("0"));
         }
     }
 

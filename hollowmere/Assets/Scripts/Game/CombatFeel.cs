@@ -146,6 +146,9 @@ namespace Hollowmere
         public static void CastGlyph(HeroActor h, string skillId)
         {
             if (h == null || string.IsNullOrEmpty(skillId) || !skillId.StartsWith("hx_")) return;
+            // Hex Bolt's cast sheet is a lavender hexagon. Drawn on a quad it sits
+            // flat beside the bolt. The glow projectile is the bolt.
+            if (skillId == "hx_bolt") return;
             string key = "hexweaver_hx_cast_" + skillId.Substring(3);
             var tex = CombatDrop.Tex(key);
             if (tex == null) return;
@@ -273,31 +276,40 @@ namespace Hollowmere
             follow.origin = origin;
             follow.forward = forward;
             follow.right = right;
-            follow.life = 0.45f;
+            follow.life = 0.8f;
             var tr = go.AddComponent<TrailRenderer>();
-            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.45f);
-            col.a = 0.9f;
-            tr.time = Mathf.Max(0.45f, DesignTable.TrailLife / 1000f);
-            float width = 1.6f;
+            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.65f);
+            col.a = 1f;
+            tr.time = 0.8f;
+            float width = 2.8f;
             tr.startWidth = width;
-            tr.endWidth = width * 0.85f;
+            tr.endWidth = width * 0.9f;
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
             tr.numCapVertices = 2;
             tr.startColor = col;
             tr.endColor = new Color(col.r, col.g, col.b, 0.85f);
-            // No trail texture: a dark cell multiplied the ribbon down to nothing.
-            // Vertex colour is the emissive tint, alpha kept at 0.85 or above.
-            var ribbon = Art.GlowMat(Color.white, true, null);
+            // Solid ribbon. Vertex-colour multiply and the soft disc both ate the
+            // swing, and a dark trail cell did the same.
+            var ribbon = Art.GlowMat(new Color(2.2f, 1.5f, 0.45f, 1f), false, null);
+            if (ribbon.HasProperty("_Soft")) ribbon.SetFloat("_Soft", 0f);
+            if (ribbon.HasProperty("_UseVertexColor")) ribbon.SetFloat("_UseVertexColor", 0f);
+            if (ribbon.HasProperty("_HasMap")) ribbon.SetFloat("_HasMap", 0f);
+            if (ribbon.HasProperty("_BaseColor")) ribbon.SetColor("_BaseColor", new Color(2.2f, 1.5f, 0.45f, 1f));
+            if (ribbon.HasProperty("_EmissionColor")) ribbon.SetColor("_EmissionColor", new Color(2.2f, 1.5f, 0.45f, 1f));
             tr.material = ribbon;
             tr.emitting = true;
-            var burst = Art.GlowSprite(null, 1.6f, new Color(1f, 0.95f, 0.75f, 1f));
-            burst.transform.position = go.transform.position;
-            burst.AddComponent<FxLife>().Init(0.22f, Vector3.one * 1.2f, Vector3.one * 2.4f);
+            for (int i = 0; i < 5; i++)
+            {
+                float ang = Mathf.Lerp(-1.15f, 1.15f, i / 4f);
+                var puff = Art.GlowSprite(null, 1.8f, new Color(1f, 0.95f, 0.7f, 1f));
+                puff.transform.position = origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.7f + Vector3.up * 1.2f;
+                puff.AddComponent<FxLife>().Init(0.55f, Vector3.one * 1.4f, Vector3.one * 2.6f);
+            }
             var hold = go.AddComponent<TrailStop>();
             hold.trail = tr;
-            hold.until = Time.time + Mathf.Max(0.45f, DesignTable.TrailHold / 1000f);
+            hold.until = Time.time + 0.8f;
         }
 
         public static string TrailFor(HeroActor h)
@@ -336,7 +348,7 @@ namespace Hollowmere
             t += Time.deltaTime;
             float u = Mathf.Clamp01(t / Mathf.Max(0.05f, life));
             float ang = Mathf.Lerp(-1.15f, 1.15f, u);
-            transform.position = origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.35f + Vector3.up * 1.15f;
+            transform.position = origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.7f + Vector3.up * 1.25f;
         }
     }
 

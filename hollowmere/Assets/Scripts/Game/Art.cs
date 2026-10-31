@@ -1225,9 +1225,41 @@ namespace Hollowmere
             enabled = false;
             var who = GetComponentInParent<Interactable>();
             string label = who != null ? who.kind.ToString() : name;
-            // mesh.bounds through the world matrix, not Renderer.bounds: the skinned
-            // box stays stale, so a same-frame turn would see no change and a standing
-            // primitive would get rolled onto its side.
+            var head = FindBone(transform, "Head") ?? FindBone(transform, "head");
+            var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
+            if (head != null && hips != null)
+            {
+                // Mesh bounds lie when a hammer or cloak is longer than the body.
+                // The smith's (90,180,0) pitch made the tool the tall axis and put
+                // the head beside the hips. Keep the root pose with the head highest.
+                var origin = transform.rotation;
+                var best = origin;
+                float bestRise = float.NegativeInfinity;
+                Quaternion[] turns =
+                {
+                    Quaternion.identity,
+                    Quaternion.Euler(-90f, 0f, 0f),
+                    Quaternion.Euler(90f, 0f, 0f),
+                    Quaternion.Euler(0f, 0f, -90f),
+                    Quaternion.Euler(0f, 0f, 90f),
+                };
+                for (int i = 0; i < turns.Length; i++)
+                {
+                    transform.rotation = origin * turns[i];
+                    float rise = head.position.y - hips.position.y;
+                    if (rise > bestRise)
+                    {
+                        bestRise = rise;
+                        best = transform.rotation;
+                    }
+                }
+                transform.rotation = best;
+                Debug.Log("Hollowmere NPC " + label + " object=" + name
+                    + " rot=" + transform.eulerAngles.ToString("0")
+                    + " headAboveHips=" + (bestRise > 0.25f)
+                    + " rise=" + bestRise.ToString("0.00"));
+                return;
+            }
             if (!Art.MeshWorldBounds(transform, out var b))
             {
                 Debug.Log("Hollowmere NPC " + label + " object=" + name
@@ -1236,16 +1268,16 @@ namespace Hollowmere
             }
             float upright = b.size.y;
             var bestRot = transform.rotation;
-            Quaternion[] turns =
+            var meshOrigin = transform.rotation;
+            Quaternion[] meshTurns =
             {
                 Quaternion.identity,
                 Quaternion.Euler(-90f, 0f, 0f),
                 Quaternion.Euler(0f, 0f, 90f),
             };
-            var origin = transform.rotation;
-            for (int i = 0; i < turns.Length; i++)
+            for (int i = 0; i < meshTurns.Length; i++)
             {
-                transform.rotation = origin * turns[i];
+                transform.rotation = meshOrigin * meshTurns[i];
                 if (!Art.MeshWorldBounds(transform, out var nb)) continue;
                 if (nb.size.y > upright + 0.02f)
                 {
@@ -1254,10 +1286,20 @@ namespace Hollowmere
                 }
             }
             transform.rotation = bestRot;
-            Art.MeshWorldBounds(transform, out b);
             Debug.Log("Hollowmere NPC " + label + " object=" + name
                 + " rot=" + transform.eulerAngles.ToString("0")
-                + " size=" + b.size.ToString("0.00"));
+                + " stood=" + upright.ToString("0.00"));
+        }
+
+        static Transform FindBone(Transform root, string bone)
+        {
+            if (root.name == bone) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var f = FindBone(root.GetChild(i), bone);
+                if (f != null) return f;
+            }
+            return null;
         }
     }
 

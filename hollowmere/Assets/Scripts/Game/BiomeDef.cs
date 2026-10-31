@@ -37,6 +37,7 @@ namespace Hollowmere
         public int minRooms = 6;
         public int sideRooms = 3;
         public float wideCorridor = 0.25f;
+        public MonsterRoster roster;
 
         public bool Contains(int depth) => depth >= minDepth && (maxDepth <= 0 || depth <= maxDepth);
 
@@ -96,6 +97,10 @@ namespace Hollowmere
         {
             var def = ForDepth(depth);
             BiomePlans.Override = def != null ? def.ToPlan() : null;
+            if (def != null && def.roster != null && def.roster.monsterIds != null && def.roster.monsterIds.Length > 0)
+                MonsterDb.UseRoster(def.roster.monsterIds);
+            else
+                MonsterDb.ClearRoster();
         }
 
         static void Ensure()

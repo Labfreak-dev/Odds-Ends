@@ -62,3 +62,4 @@ MonoBehaviour:
   minRooms: 5
   sideRooms: 3
   wideCorridor: 0.2
+  roster: {fileID: 11400000, guid: a11c0e01b2c34d5e8f9012345678ab04, type: 2}

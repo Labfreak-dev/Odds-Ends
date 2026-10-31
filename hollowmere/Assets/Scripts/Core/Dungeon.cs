@@ -267,13 +267,16 @@ namespace Hollowmere.Core
                     packId++;
                     var def = rng.Pick(pool);
                     float roll = rng.Value();
-                    if (roll < Balance.ElitePackChance)
+                    float depthBias = Math.Max(0, depth - 1);
+                    float eliteP = Math.Min(0.30f, Balance.ElitePackChance + 0.005f * depthBias);
+                    float champP = Math.Min(0.40f, Balance.ChampionPackChance + 0.004f * depthBias);
+                    if (roll < eliteP)
                     {
                         AddSpawn(map, r, def.id, MonsterRank.Elite, packId, rng);
                         var minion = rng.Pick(pool);
                         for (int i = 0; i < rng.Range(3, 5); i++) AddSpawn(map, r, minion.id, MonsterRank.Minion, packId, rng);
                     }
-                    else if (roll < Balance.ElitePackChance + Balance.ChampionPackChance)
+                    else if (roll < eliteP + champP)
                     {
                         for (int i = 0; i < rng.Range(3, 5); i++) AddSpawn(map, r, def.id, MonsterRank.Champion, packId, rng);
                     }

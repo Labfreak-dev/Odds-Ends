@@ -1,0 +1,163 @@
+{
+ "folder": "art_v6/monsters/cc0",
+ "created": "2026-10-31",
+ "meshy_credits_spent": 0,
+ "assets": [
+  {
+   "file": "forest_brute.glb",
+   "source_url": "https://opengameart.org/content/forest-monster",
+   "author": "\u010cestm\u00edr Dammer (CDmir), Kelgar project; UV texture derived from Rick Hoppmann",
+   "license": "CC0 1.0",
+   "attribution": "Forest Monster by CDmir (kelgar.org), CC0 (attribution not required)",
+   "bytes": 2403732,
+   "height_m": 3.17,
+   "tris": 5546,
+   "bones": 76,
+   "clips": [
+    "attack",
+    "death",
+    "hit",
+    "idle",
+    "run",
+    "walk"
+   ],
+   "generated_clips": [
+    "run(time-scaled walk)",
+    "hit"
+   ],
+   "spec": "1 primitive, max 4 normalised weights, UVs, 1k textures, metres, +Z forward (Blender -Y), origin at feet; Generic rig",
+   "notes": "Tree on its back removed (separate mesh with no diffuse). run = time-scaled walk; hit procedural."
+  },
+  {
+   "file": "giant_mutant.glb",
+   "source_url": "https://opengameart.org/content/giant-mutant",
+   "author": "OpenGameArt user (giant-mutant page)",
+   "license": "CC0 1.0",
+   "attribution": "Giant Mutant (OpenGameArt), CC0 (attribution not required)",
+   "bytes": 2128040,
+   "height_m": 2.34,
+   "tris": 24998,
+   "bones": 22,
+   "clips": [
+    "attack",
+    "attack2",
+    "death",
+    "hit",
+    "idle",
+    "run",
+    "slam",
+    "walk"
+   ],
+   "generated_clips": [
+    "walk(time-scaled run)",
+    "hit"
+   ],
+   "spec": "1 primitive, max 4 normalised weights, UVs, 1k textures, metres, +Z forward (Blender -Y), origin at feet; Generic rig",
+   "notes": "Decimated 78.6k -> 25k tris. Extra clips attack2 (left punch), slam. walk = time-scaled run; hit procedural."
+  },
+  {
+   "file": "horror_ghoul.glb",
+   "source_url": "https://opengameart.org/content/3d-horror-game-monster",
+   "author": "HorrorGameMaker.com",
+   "license": "CC0 1.0",
+   "attribution": "Monster by HorrorGameMaker.com (credit optional), CC0 (attribution not required)",
+   "bytes": 1103728,
+   "height_m": 1.92,
+   "tris": 3584,
+   "bones": 70,
+   "clips": [
+    "attack",
+    "death",
+    "hit",
+    "idle",
+    "run",
+    "walk"
+   ],
+   "generated_clips": [
+    "attack",
+    "hit",
+    "death"
+   ],
+   "spec": "1 primitive, max 4 normalised weights, UVs, 1k textures, metres, +Z forward (Blender -Y), origin at feet; Generic rig",
+   "notes": "Black colour variant; Unity MetallicSmoothness converted to ORM. idle/walk/run from pack; attack, hit, death procedural (basic)."
+  },
+  {
+   "file": "lava_golem.glb",
+   "source_url": "https://opengameart.org/content/lava-golem",
+   "author": "OpenGameArt user (lava-golem page)",
+   "license": "CC0 1.0",
+   "attribution": "Lava Golem (OpenGameArt), CC0 (attribution not required)",
+   "bytes": 3974352,
+   "height_m": 1.14,
+   "tris": 5502,
+   "bones": 71,
+   "clips": [
+    "attack",
+    "death",
+    "hit",
+    "idle",
+    "run",
+    "walk"
+   ],
+   "generated_clips": [
+    "run(time-scaled walk)",
+    "hit",
+    "death"
+   ],
+   "spec": "1 primitive, max 4 normalised weights, UVs, 1k textures, metres, +Z forward (Blender -Y), origin at feet; Generic rig",
+   "notes": "Boss candidate. Base colour rebuilt from its AO map x ambientCG Rock035 + its emission cracks; emission map in GLB. run = time-scaled walk; hit, death procedural."
+  },
+  {
+   "file": "vampire_bat.glb",
+   "source_url": "https://opengameart.org/content/vampire-bat-animated",
+   "author": "OpenGameArt user (vampire-bat-animated page)",
+   "license": "CC0 1.0",
+   "attribution": "Vampire Bat (OpenGameArt), CC0 (attribution not required)",
+   "bytes": 1096700,
+   "height_m": 0.13,
+   "tris": 7732,
+   "bones": 32,
+   "clips": [
+    "attack",
+    "death",
+    "hit",
+    "idle",
+    "run",
+    "walk"
+   ],
+   "generated_clips": [
+    "run(time-scaled walk)",
+    "hit"
+   ],
+   "spec": "1 primitive, max 4 normalised weights, UVs, 1k textures, metres, +Z forward (Blender -Y), origin at feet; Generic rig",
+   "notes": "Flying; walk/run = flying cycle (run time-scaled). Frost bat variant not exported. hit procedural."
+  },
+  {
+   "file": "warwolf.glb",
+   "source_url": "https://opengameart.org/content/warwolf",
+   "author": "based on ThetankOmeter (blendswap) with animations by the OGA uploader",
+   "license": "CC0 1.0",
+   "attribution": "WarWolf based on ThetankOmeter, CC0 (attribution not required)",
+   "bytes": 906920,
+   "height_m": 2.4,
+   "tris": 4418,
+   "bones": 87,
+   "clips": [
+    "attack",
+    "attack2",
+    "charge",
+    "death",
+    "hit",
+    "idle",
+    "run",
+    "walk"
+   ],
+   "generated_clips": [
+    "walk(time-scaled run)",
+    "hit"
+   ],
+   "spec": "1 primitive, max 4 normalised weights, UVs, 1k textures, metres, +Z forward (Blender -Y), origin at feet; Generic rig",
+   "notes": "idle = roar; extra clips attack2, charge. walk = time-scaled run; hit procedural. Hands use flat colour."
+  }
+ ]
+}

@@ -305,6 +305,11 @@ static class Program
         var deep = MonsterDb.Create(MonsterDb.Get("bonewalker"), 70, MonsterRank.Elite, rng, 40);
         Check(deep.affixes.Count == DesignTable.AffixCount(MonsterRank.Elite, 40), "floor 40 elites gain affixes from depth");
         Check(MonsterDb.BossFor(5).id == "boss_ossuary" && MonsterDb.BossFor(10).id == "boss_matriarch", "boss rotation");
+        Check(MonsterDb.BossFor(25).id == "boss_mutant" && MonsterDb.BossFor(30).id == "boss_lava", "v6 bosses join the rotation");
+        MonsterDb.UseRoster(new[] { "grave_eater", "wraith", "horror_ghoul", "bonewalker", "boneslinger" });
+        var crypt = MonsterDb.ForDepth(3);
+        Check(crypt.Count == 5 && crypt.Any(m => m.id == "wraith") && crypt.All(m => !m.boss), "crypt roster");
+        MonsterDb.ClearRoster();
         for (int d = 1; d < 60; d++) Check(MonsterDb.ForDepth(d).Count > 0, $"monsters exist at depth {d}");
     }
 

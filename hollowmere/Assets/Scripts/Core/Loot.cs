@@ -238,8 +238,8 @@ namespace Hollowmere.Core
             float itemChance; int maxItems;
             switch (src)
             {
-                case LootSource.Champion: itemChance = 1f; maxItems = 2; break;
-                case LootSource.Elite: itemChance = 1f; maxItems = 3; break;
+                case LootSource.Champion: itemChance = 1f; maxItems = 3; break;
+                case LootSource.Elite: itemChance = 1f; maxItems = 4; break;
                 case LootSource.Boss: itemChance = 1f; maxItems = 6; break;
                 case LootSource.Chest: itemChance = 1f; maxItems = 3; break;
                 default: itemChance = 0.16f; maxItems = 1; break;
@@ -255,7 +255,7 @@ namespace Hollowmere.Core
             float goldChance = src == LootSource.Normal ? 0.35f : 1f;
             if (rng.Chance(goldChance))
                 drop.gold = (int)Math.Round((3 + monsterLevel * 2.2f) * rng.Range(0.7f, 1.3f) * (1 + gf / 100f)
-                    * (src == LootSource.Boss ? 12 : src == LootSource.Elite ? 4 : src == LootSource.Champion ? 2.5f : src == LootSource.Chest ? 3 : 1));
+                    * (src == LootSource.Boss ? 12 : src == LootSource.Elite ? 6 : src == LootSource.Champion ? 3.5f : src == LootSource.Chest ? 3 : 1));
             if (rng.Chance(src == LootSource.Normal ? 0.03f : 0.3f)) drop.potions = 1;
             if (src >= LootSource.Elite && rng.Chance(src == LootSource.Boss ? 0.35f : 0.12f))
             {

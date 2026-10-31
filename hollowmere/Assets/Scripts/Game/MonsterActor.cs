@@ -49,10 +49,55 @@ namespace Hollowmere
                 var c = s.rank == MonsterRank.Champion ? new Color(0.3f, 0.5f, 1f) : s.rank == MonsterRank.Elite ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.3f, 0.2f);
                 Art.Cylinder(go.transform, new Vector3(0, 0.03f, 0), new Vector3(1.6f * scale, 0.01f, 1.6f * scale), Art.Mat(c, 1.2f));
             }
+            if (s.rank == MonsterRank.Champion || s.rank == MonsterRank.Elite)
+                EliteMark(go, b.gameObject, s, scale);
             m.affixTimer = Random.Range(2f, 5f);
             m.affixTimer2 = Random.Range(3f, 6f);
             m.bossTimer = 6f;
             return m;
+        }
+
+        static void EliteMark(GameObject go, GameObject body, MonsterStats s, float scale)
+        {
+            var tint = s.affixes.Count > 0
+                ? AffixCatalog.Tint(s.affixes[0])
+                : s.rank == MonsterRank.Champion ? new Color(0.35f, 0.55f, 1f) : new Color(1f, 0.82f, 0.25f);
+            foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || r.gameObject.name == "label") continue;
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var mat = mats[i];
+                    if (mat == null) continue;
+                    if (mat.HasProperty("_BaseColor"))
+                        mat.SetColor("_BaseColor", Color.Lerp(mat.GetColor("_BaseColor"), tint, 0.42f));
+                    if (mat.HasProperty("_Color"))
+                        mat.SetColor("_Color", Color.Lerp(mat.GetColor("_Color"), tint, 0.42f));
+                    if (mat.HasProperty("_EmissionColor"))
+                    {
+                        mat.EnableKeyword("_EMISSION");
+                        mat.SetColor("_EmissionColor", tint * 0.55f);
+                    }
+                }
+            }
+            var rim = new GameObject("eliteRim").AddComponent<Light>();
+            rim.type = LightType.Point;
+            rim.color = tint;
+            rim.intensity = 1.6f;
+            rim.range = 3.4f;
+            rim.shadows = LightShadows.None;
+            rim.transform.SetParent(go.transform, false);
+            rim.transform.localPosition = new Vector3(0f, 1.3f * scale, 0f);
+            string lines = s.displayName;
+            if (s.affixes.Count > 0)
+            {
+                var names = new string[s.affixes.Count];
+                for (int i = 0; i < names.Length; i++) names[i] = AffixCatalog.Label(s.affixes[i]);
+                lines += "\n" + string.Join(" · ", names);
+            }
+            var ink = s.rank == MonsterRank.Champion ? new Color(0.75f, 0.86f, 1f) : new Color(1f, 0.9f, 0.45f);
+            Fx.WorldLabel(go.transform, new Vector3(0f, 2.35f * scale, 0f), lines, ink, 42, 0.045f);
         }
 
         protected override void Update()
@@ -355,6 +400,53 @@ namespace Hollowmere
         }
     }
 
+    /// <summary>Holds the robe hem at 0.4 m. Walk and attack may bob by less than 0.08 m, so every reading stays inside 0.3–0.5.</summary>
+    [DefaultExecutionOrder(400)]
+    public sealed class WraithFloat : MonoBehaviour
+    {
+        public float lift = 0.4f;
+        public float bob = 0.08f;
+        public float Hem { get; private set; } = 0.4f;
+
+        void LateUpdate() => Pin(false);
+
+        /// <summary>Call after a clip sample so the hem is inside the window before the shot is read.</summary>
+        public void Pin(bool log)
+        {
+            var visual = transform.childCount > 0 ? transform.GetChild(0) : transform;
+            Squash("LeftFoot");
+            Squash("RightFoot");
+            Squash("LeftToeBase");
+            Squash("RightToeBase");
+            if (!Art.UnionBounds(gameObject, out var b)) return;
+            float low = lift - bob;
+            float high = lift + bob;
+            float hem = b.min.y;
+            if (hem < low || hem > high)
+            {
+                float dy = lift - hem;
+                if (Mathf.Abs(dy) < 3f)
+                {
+                    var lp = visual.localPosition;
+                    lp.y += dy;
+                    visual.localPosition = lp;
+                    hem = lift;
+                }
+            }
+            Hem = hem;
+            if (!log) return;
+            Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m");
+            if (hem < 0.3f || hem > 0.5f)
+                Debug.LogError("Hollowmere wraith height FAIL " + hem.ToString("0.00") + "m");
+        }
+
+        void Squash(string bone)
+        {
+            var t = Art.Bone(transform, bone);
+            if (t != null) t.localScale = new Vector3(0.02f, 0.02f, 0.02f);
+        }
+    }
+
     /// <summary>Keeps the bat 1.2 m off the floor and bobs it. LateUpdate wins over the idle clip.</summary>
     public sealed class BatHover : MonoBehaviour
     {
@@ -390,8 +482,9 @@ namespace Hollowmere
     [DefaultExecutionOrder(500)]
     public sealed class DeathLay : MonoBehaviour
     {
+        public float livingAxis;
         string clip = "none";
-        bool baked, shaped, warned;
+        bool baked, shaped, warned, matched;
         int grounds, waits;
         Animation anim;
 
@@ -407,6 +500,8 @@ namespace Hollowmere
                     hover.transform.localPosition = hp;
                 }
             }
+            foreach (var floater in GetComponentsInChildren<WraithFloat>(true))
+                floater.enabled = false;
             HoldDeath();
             if (!baked)
             {
@@ -418,7 +513,7 @@ namespace Hollowmere
                 TipKeepChildren();
                 FlattenChildren();
                 LayOnBack();
-                ShrinkIfThick();
+                MatchLiving();
                 shaped = true;
             }
             else if (Mathf.Abs(transform.up.y) >= 0.35f)
@@ -449,6 +544,7 @@ namespace Hollowmere
                 list += s.name;
                 if (ClipLeaf(s.name) == "death") death = s;
             }
+            bool crawler = CorpseNamed("crawler");
             if (death == null || death.clip == null)
             {
                 if (waits >= 3 && !warned)
@@ -460,21 +556,30 @@ namespace Hollowmere
                     animator.enabled = false;
                 return;
             }
-            clip = death.name;
+            // The crawler's death roll knots the body. Lay the idle pose flat instead.
+            AnimationState pose = death;
+            if (crawler)
+            {
+                foreach (AnimationState s in anim)
+                    if (ClipLeaf(s.name) == "idle" && s.clip != null) pose = s;
+                if (pose != death) Debug.Log("Hollowmere death lay " + name + " crawler uses idle");
+            }
+            clip = pose == death ? death.name : "idle-flat";
             foreach (AnimationState s in anim)
             {
                 s.weight = 0f;
                 s.enabled = false;
             }
-            death.wrapMode = WrapMode.ClampForever;
-            death.enabled = true;
-            death.weight = 1f;
-            death.speed = 0f;
+            pose.wrapMode = WrapMode.ClampForever;
+            pose.enabled = true;
+            pose.weight = 1f;
+            pose.speed = 0f;
             // Play resets the clock. Put it back on the last frame before sampling,
             // or the bake freezes the standing start of the clip.
-            anim.Play(death.name);
-            death.time = Mathf.Max(0.05f, death.length) * 0.99f;
-            death.normalizedTime = 0.99f;
+            anim.Play(pose.name);
+            float unit = pose == death ? 0.99f : 0.35f;
+            pose.time = Mathf.Max(0.05f, pose.length) * unit;
+            pose.normalizedTime = unit;
             anim.Sample();
             foreach (var animator in GetComponentsInChildren<Animator>(true))
                 animator.enabled = false;
@@ -501,6 +606,17 @@ namespace Hollowmere
         {
             if (smr == null) return;
             var go = smr.gameObject;
+            // World size of the posed skin, before the renderer is destroyed.
+            var before = smr.bounds.size;
+            float beforeLen = Mathf.Max(before.x, Mathf.Max(before.y, before.z));
+            if (smr.sharedMesh != null)
+            {
+                var meshSize = smr.sharedMesh.bounds.size;
+                float meshLen = Mathf.Max(meshSize.x, Mathf.Max(meshSize.y, meshSize.z));
+                // A stale skin box reads the 1 cm rig. The authored mesh is the living size.
+                if (meshLen > 0.4f && beforeLen < meshLen * 0.25f) beforeLen = meshLen;
+            }
+            var lossy = smr.transform.lossyScale;
             Mesh mesh = null;
             Material[] mats = smr.sharedMaterials;
             var shadows = smr.shadowCastingMode;
@@ -522,6 +638,20 @@ namespace Hollowmere
             mr.sharedMaterials = mats;
             mr.shadowCastingMode = shadows;
             mr.receiveShadows = receive;
+            // A rig at 0.01 (the horror ghoul) makes BakeMesh a centimetre tall once it is a plain mesh.
+            var world = Vector3.Scale(mesh.bounds.size, new Vector3(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y), Mathf.Abs(lossy.z)));
+            float afterLen = Mathf.Max(world.x, Mathf.Max(world.y, world.z));
+            if (beforeLen > 0.2f && afterLen > 0.0001f)
+            {
+                float ratio = afterLen / beforeLen;
+                if (ratio < 0.4f || ratio > 2.5f)
+                {
+                    float s = beforeLen / afterLen;
+                    go.transform.localScale *= s;
+                    Debug.Log("Hollowmere death lay bake " + go.name + " scale x" + s.ToString("0.00")
+                        + " was " + afterLen.ToString("0.00") + "m posed " + beforeLen.ToString("0.00") + "m");
+                }
+            }
         }
 
         /// <summary>Tip this transform onto its back without moving the posed meshes.</summary>
@@ -599,20 +729,23 @@ namespace Hollowmere
             return false;
         }
 
-        /// <summary>Demon and spider poses are still thicker than 0.95 m. Scale the mesh, not the check.</summary>
-        void ShrinkIfThick()
+        /// <summary>Pull a corpse that baked or posed far from its living size back to that size. The pose stays.</summary>
+        void MatchLiving()
         {
-            for (int pass = 0; pass < 2; pass++)
-            {
-                if (!Art.UnionBounds(gameObject, out var b) || b.size.y < 0.88f) return;
-                float s = 0.78f / Mathf.Max(0.2f, b.size.y);
-                if (transform.childCount == 0) transform.localScale *= s;
-                else
-                    for (int i = 0; i < transform.childCount; i++)
-                        transform.GetChild(i).localScale *= s;
-                Debug.Log("Hollowmere death lay " + name + " scaled x" + s.ToString("0.00")
-                    + " was " + b.size.y.ToString("0.00") + "m tall");
-            }
+            if (matched || livingAxis < 0.15f) return;
+            if (!BoundsNow(out var b)) return;
+            float now = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+            if (now < 0.02f) return;
+            matched = true;
+            float ratio = now / livingAxis;
+            if (ratio >= 0.8f && ratio <= 1.2f) return;
+            float s = livingAxis / now;
+            if (transform.childCount == 0) transform.localScale *= s;
+            else
+                for (int i = 0; i < transform.childCount; i++)
+                    transform.GetChild(i).localScale *= s;
+            Debug.Log("Hollowmere death lay " + name + " living scale x" + s.ToString("0.00")
+                + " ratio was " + ratio.ToString("0.00"));
         }
 
         void Ground()

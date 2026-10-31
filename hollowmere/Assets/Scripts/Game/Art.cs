@@ -353,8 +353,20 @@ namespace Hollowmere
                 fit.freeze = true;
                 DressMonster(bodyKey, go.transform);
                 if (bodyKey == "hm_rat") holder.transform.localScale *= 1.8f;
+                // The file is 1.4 m across the wings and 0.13 m tall. 6× put a 7 m corpse off screen.
+                if (bodyKey == "hm_vampire_bat") holder.transform.localScale *= 1.6f;
                 if (bodyKey == "hm_bat") go.AddComponent<BatHover>();
-                if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord")
+                if (bodyKey == "hm_wraith")
+                {
+                    holder.AddComponent<WraithFloat>();
+                    // On the spawned instance, not the prefab. The robe hem starts at the origin.
+                    var raised = go.transform.localPosition;
+                    raised.y += 0.4f;
+                    go.transform.localPosition = raised;
+                }
+                if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord"
+                    || bodyKey == "hm_cultist_smith" || bodyKey == "hm_bone_golem"
+                    || bodyKey == "hm_grave_eater" || bodyKey == "hm_drowned_husk" || bodyKey == "hm_imp")
                     go.AddComponent<BoneScaleLock>();
             }
             return holder;
@@ -378,24 +390,19 @@ namespace Hollowmere
             return false;
         }
 
+        public static readonly string[] V6Monsters =
+        {
+            "hm_grave_eater", "hm_wraith", "hm_horror_ghoul", "hm_drowned_husk",
+            "hm_cave_crawler", "hm_warwolf", "hm_vampire_bat", "hm_bone_golem",
+            "hm_cultist_smith", "hm_forest_brute", "hm_hellhound", "hm_imp",
+            "hm_giant_mutant", "hm_lava_golem",
+        };
+
         public static bool V5Monster(string key)
         {
-            switch (key)
-            {
-                case "hm_skel_warrior":
-                case "hm_skel_archer":
-                case "hm_ghoul":
-                case "hm_zombie":
-                case "hm_cultist":
-                case "hm_demon_brute":
-                case "hm_ossuary_king":
-                case "hm_demon_lord":
-                case "hm_rat":
-                case "hm_bat":
-                case "hm_spider":
-                    return true;
-            }
-            return false;
+            if (string.IsNullOrEmpty(key) || !key.StartsWith("hm_")) return false;
+            if (key.StartsWith("hm_king_") || key.StartsWith("hm_rusty_") || key == "hm_forge_hammer") return false;
+            return true;
         }
 
         public static GameObject Animated(string key, float height, Transform parent)
@@ -446,6 +453,12 @@ namespace Hollowmere
                 var mace = Bone(rig, "king_mace");
                 var hand = Bone(rig, "RightHand");
                 AuditAttach(mace, hand, "king_mace");
+            }
+            else if (key == "hm_cultist_smith")
+            {
+                // The manifest palm sits 11.4 cm off the wrist joint. The origin has to stay
+                // inside 5 cm of the bone, so this keeps that rotation and seats it 4.5 cm along the same axis.
+                Pin(rig, "hm_forge_hammer", "RightHand", new Vector3(-0.0008f, 0.0450f, -0.0016f), new Quaternion(-0.055155f, -0.200208f, -0.927651f, -0.310384f), 1f);
             }
         }
 

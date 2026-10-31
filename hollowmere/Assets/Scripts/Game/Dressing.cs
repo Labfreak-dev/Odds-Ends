@@ -5,8 +5,7 @@ using UnityEngine;
 namespace Hollowmere
 {
     /// <summary>Seeded clutter that stays off the gate, the NPCs and the corridor the hero needs.
-    /// Props are original primitives (no third-party pack) so the repo stays small and the
-    /// licence stays clean. A downloaded replacement can drop in later as a prop_ glb.</summary>
+    /// Painted props and decals stand in when the drop-in art is present. A blob sits under each prop.</summary>
     public static class Dressing
     {
         public static void Scatter(DungeonMap map, Transform root, IList<Int2> blocked, int seed)
@@ -110,26 +109,98 @@ namespace Hollowmere
             }
         }
 
+        static readonly string[] TownProps =
+        {
+            "barrel", "crate", "stall", "hay_bales", "fence", "weapon_rack", "anvil", "firewood", "signpost",
+        };
+        static readonly string[] DungeonProps =
+        {
+            "barrel", "crate", "bonepile", "tombstone", "sarcophagus", "pillar", "altar", "gibbet_cage",
+            "bookshelf", "broken_cart", "statue", "candles", "brazier",
+        };
+        static readonly string[] TownDecals = { "leaves", "moss1", "moss2" };
+        static readonly string[] DungeonDecals = { "blood1", "blood2", "bones", "crack1", "crack2", "rubble", "scorch", "puddle", "rune", "moss1" };
+
+        static Mesh standMesh, flatMesh;
+        static readonly Dictionary<int, Material> propMats = new Dictionary<int, Material>();
+
         static void Prop(Transform root, Vector3 at, System.Random rng, bool town)
         {
-            int kind = rng.Next(town ? 4 : 5);
             float yaw = (float)rng.NextDouble() * 360f;
             var rot = Quaternion.Euler(0f, yaw, 0f);
-            switch (kind)
+            var pool = town ? TownProps : DungeonProps;
+            if (Stand(root, at, pool[rng.Next(pool.Length)], rot, 1.45f)) return;
+            switch (rng.Next(town ? 4 : 5))
             {
-                case 0:
-                    Barrel(root, at, rot);
-                    break;
-                case 1:
-                    Crate(root, at, rot, rng);
-                    break;
-                case 2:
-                    Rock(root, at, rng, town);
-                    break;
-                default:
-                    Rubble(root, at, rng);
-                    break;
+                case 0: Barrel(root, at, rot); break;
+                case 1: Crate(root, at, rot, rng); break;
+                case 2: Rock(root, at, rng, town); break;
+                default: Rubble(root, at, rng); break;
             }
+        }
+
+        static bool Stand(Transform root, Vector3 at, string name, Quaternion rot, float height)
+        {
+            var sprite = ArtDrop.Sprite(name);
+            if (sprite == null || sprite.texture == null) return false;
+            float aspect = sprite.rect.width / Mathf.Max(1f, sprite.rect.height);
+            var go = new GameObject(name);
+            go.transform.SetParent(root, false);
+            go.transform.SetPositionAndRotation(at, rot);
+            go.transform.localScale = new Vector3(height * aspect, height, 1f);
+            var mf = go.AddComponent<MeshFilter>();
+            mf.sharedMesh = StandMesh();
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = PropMat(sprite.texture);
+            Blob(root, at, height * 0.42f);
+            return true;
+        }
+
+        static void Blob(Transform root, Vector3 at, float radius)
+        {
+            Art.Cylinder(root, at + Vector3.up * 0.02f, new Vector3(radius * 2f, 0.012f, radius * 1.35f), Art.Mat(new Color(0.02f, 0.02f, 0.02f)));
+        }
+
+        static Material PropMat(Texture2D tex)
+        {
+            int id = tex.GetInstanceID();
+            if (propMats.TryGetValue(id, out var m) && m != null) return m;
+            var src = Resources.Load<Material>("HollowmereSheet");
+            m = src != null ? new Material(src) : Art.Mat(Color.white);
+            m.mainTexture = tex;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);
+            propMats[id] = m;
+            return m;
+        }
+
+        static Mesh StandMesh()
+        {
+            if (standMesh != null) return standMesh;
+            standMesh = new Mesh();
+            standMesh.vertices = new[]
+            {
+                new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f),
+                new Vector3(-0.5f, 1f, 0f), new Vector3(0.5f, 1f, 0f),
+            };
+            standMesh.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+            standMesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+            return standMesh;
+        }
+
+        static Mesh FlatMesh()
+        {
+            if (flatMesh != null) return flatMesh;
+            flatMesh = new Mesh();
+            flatMesh.vertices = new[]
+            {
+                new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f),
+                new Vector3(-0.5f, 0f, 0.5f), new Vector3(0.5f, 0f, 0.5f),
+            };
+            flatMesh.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+            flatMesh.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
+            flatMesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+            return flatMesh;
         }
 
         static void Barrel(Transform root, Vector3 at, Quaternion rot)
@@ -184,12 +255,28 @@ namespace Hollowmere
 
         static void Decal(Transform root, Vector3 at, System.Random rng, bool town)
         {
+            var pool = town ? TownDecals : DungeonDecals;
+            var sprite = ArtDrop.Sprite(pool[rng.Next(pool.Length)]);
+            if (sprite != null && sprite.texture != null)
+            {
+                float s = 0.9f + (float)rng.NextDouble() * 0.8f;
+                var go = new GameObject(sprite.name);
+                go.transform.SetParent(root, false);
+                go.transform.position = at + Vector3.up * 0.03f;
+                go.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 360f, 0f);
+                go.transform.localScale = new Vector3(s, 1f, s * 0.85f);
+                var mf = go.AddComponent<MeshFilter>();
+                mf.sharedMesh = FlatMesh();
+                var mr = go.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = PropMat(sprite.texture);
+                return;
+            }
             bool moss = rng.Next(2) == 0;
             var c = moss
                 ? (town ? new Color(0.28f, 0.4f, 0.2f, 1f) : new Color(0.2f, 0.32f, 0.18f, 1f))
                 : new Color(0.15f, 0.13f, 0.12f, 1f);
-            float s = 0.7f + (float)rng.NextDouble() * 0.8f;
-            Art.Cylinder(root, at + Vector3.up * 0.015f, new Vector3(s, 0.008f, s * 0.72f), Art.Mat(c));
+            float size = 0.7f + (float)rng.NextDouble() * 0.8f;
+            Art.Cylinder(root, at + Vector3.up * 0.015f, new Vector3(size, 0.008f, size * 0.72f), Art.Mat(c));
         }
     }
 

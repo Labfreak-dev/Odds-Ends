@@ -27,7 +27,7 @@ namespace Hollowmere
                 for (int dy = -1; dy <= 1; dy++)
                     for (int dx = -1; dx <= 1; dx++)
                         if (Map.Get(t.x + dx, t.y + dy) == Tile.Water) return "wood";
-                return "grass";
+                return (t.x + t.y) % 2 == 0 ? "stone" : "grass";
             }
             if (Map.theme == Theme.Caverns || Map.theme == Theme.EmberDepths) return "dirt";
             return "stone";
@@ -133,10 +133,20 @@ namespace Hollowmere
             fm.SetTriangles(ta, 0);
             fm.SetTriangles(tb, 1);
             var floorMats = new[] { Art.Mat(fa), Art.Mat(fb) };
-            var groundName = map.theme == Theme.Town ? "grass" : map.theme == Theme.Crypt ? "crypt" : map.theme == Theme.Caverns ? "cave" : map.theme == Theme.SunkenHalls ? "flag" : "cracked";
-            var groundTex = ArtDrop.Ground(groundName);
-            if (groundTex != null)
-                for (int gi = 0; gi < floorMats.Length; gi++) floorMats[gi].mainTexture = groundTex;
+            if (map.theme == Theme.Town)
+            {
+                var cobble = ArtDrop.Ground("cobble");
+                var grass = ArtDrop.Ground("grass");
+                if (cobble != null) floorMats[0].mainTexture = cobble;
+                if (grass != null) floorMats[1].mainTexture = grass;
+            }
+            else
+            {
+                var groundName = map.theme == Theme.Crypt ? "crypt" : map.theme == Theme.Caverns ? "cave" : map.theme == Theme.SunkenHalls ? "flag" : "cracked";
+                var groundTex = ArtDrop.Ground(groundName);
+                if (groundTex != null)
+                    for (int gi = 0; gi < floorMats.Length; gi++) floorMats[gi].mainTexture = groundTex;
+            }
             floor.GetComponent<MeshRenderer>().sharedMaterials = floorMats;
 
             var walls = MakeMesh("walls", root, wv, wn, wt, Art.Mat(wallC));

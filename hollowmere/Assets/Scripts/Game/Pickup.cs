@@ -263,7 +263,10 @@ namespace Hollowmere
                         Art.Capsule(fig, new Vector3(-0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
                         Art.Capsule(fig, new Vector3(0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
                         Art.Sphere(head, Vector3.zero, Vector3.one * 0.36f, Art.Mat(new Color(0.93f, 0.8f, 0.68f)));
-                        fig.gameObject.AddComponent<PoseUpright>();
+                        // Direct stand for the north-east green dealer. The quarter-turn
+                        // search left this one on its side; NpcStand logs the name and,
+                        // if the bounds are still wider than they are tall, pitches the root.
+                        fig.gameObject.AddComponent<NpcStand>();
                     }
                     else if (model == null)
                     {

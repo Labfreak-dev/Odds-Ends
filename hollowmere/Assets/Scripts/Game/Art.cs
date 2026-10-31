@@ -247,7 +247,11 @@ namespace Hollowmere
             ma.runFoot = foot.run;
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
-            if (key.StartsWith("npc_")) holder.AddComponent<PoseUpright>();
+            if (key.StartsWith("npc_"))
+            {
+                holder.AddComponent<PoseUpright>();
+                holder.AddComponent<NpcStand>();
+            }
             if (key.StartsWith("hero_"))
             {
                 CombatClipPlayer.Attach(ma, key);
@@ -431,6 +435,14 @@ namespace Hollowmere
                         if (dst.HasProperty("_MainTex")) dst.SetTexture("_MainTex", tex);
                         dst.mainTexture = tex;
                         if (dst.HasProperty("_HasMap")) dst.SetFloat("_HasMap", 1f);
+                        // Chest overlays ship a tiny embedded palette. Bilinear filtering
+                        // smears the swatches; the glTF sampler is nearest.
+                        if (tex.name.IndexOf("palette", System.StringComparison.OrdinalIgnoreCase) >= 0
+                            || (tex.width > 0 && tex.width <= 32 && tex.height <= 32))
+                        {
+                            tex.filterMode = FilterMode.Point;
+                            tex.anisoLevel = 0;
+                        }
                         if (dst.GetTexture("_BaseMap") == null && dst.mainTexture == null)
                             Debug.LogError("Hollowmere: albedo texture did not stick on " + go.name);
                     }
@@ -1194,6 +1206,46 @@ namespace Hollowmere
                 if (f != null) return f;
             }
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Stands one NPC by rotating its model root, and logs the object name.
+    /// The green figure at the north-east of town (the Curio Dealer, object
+    /// npc_gambler) stayed on its side through the head-above-hips search.
+    /// If the render bounds are longer than they are tall, the long axis is
+    /// pitched up in one step. No search.
+    /// </summary>
+    [DefaultExecutionOrder(120)]
+    public sealed class NpcStand : MonoBehaviour
+    {
+        int waited;
+
+        void LateUpdate()
+        {
+            if (waited++ < 4) return;
+            enabled = false;
+            var who = GetComponentInParent<Interactable>();
+            string label = who != null ? who.kind.ToString() : name;
+            if (!Art.UnionBounds(gameObject, out var b))
+            {
+                Debug.Log("Hollowmere NPC " + label + " object=" + name
+                    + " rot=" + transform.eulerAngles.ToString("0") + " size=none");
+                return;
+            }
+            bool lying = b.size.y < Mathf.Max(b.size.x, b.size.z) * 0.92f;
+            Debug.Log("Hollowmere NPC " + label + " object=" + name
+                + " rot=" + transform.eulerAngles.ToString("0")
+                + " size=" + b.size.ToString("0.00")
+                + (lying ? " lying" : " upright"));
+            if (!lying) return;
+            // One direct turn of this root. Z-long pitches up; X-long rolls up.
+            if (b.size.z >= b.size.x)
+                transform.Rotate(-90f, 0f, 0f, Space.Self);
+            else
+                transform.Rotate(0f, 0f, 90f, Space.Self);
+            Debug.Log("Hollowmere NPC " + label + " object=" + name
+                + " forced rot=" + transform.eulerAngles.ToString("0"));
         }
     }
 

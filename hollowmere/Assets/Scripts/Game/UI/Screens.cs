@@ -271,6 +271,11 @@ namespace Hollowmere
                 bob = Art.Sphere(null, Vector3.zero, Vector3.one * 0.12f, Art.Mat(new Color(1f, 0.2f, 0.15f), 0.8f));
             bobber = bob.transform;
             bobber.gameObject.SetActive(false);
+            var line = new GameObject("castLine");
+            line.transform.SetParent(bobber, false);
+            var cast = line.AddComponent<CastLine>();
+            cast.bobber = bobber;
+            cast.bar = Art.Cube(line.transform, Vector3.zero, Vector3.one, Art.Mat(new Color(0.92f, 0.9f, 0.82f))).transform;
             if (HeroActor.I != null) HeroActor.I.BeginFishing();
         }
 
@@ -308,12 +313,19 @@ namespace Hollowmere
             Ui.SetBar(staminaFill, s.fishMaxStamina > 0 ? s.fishStamina / s.fishMaxStamina : 0);
             ((Image)tensionFill.GetComponent<Image>()).color = s.tension > 0.75f ? new Color(1f, 0.15f, 0.1f) : new Color(0.9f, 0.55f, 0.2f);
 
-            bobber.gameObject.SetActive(s.phase != FishingPhase.Ready && !s.Done);
+            bool showBobber = s.phase != FishingPhase.Ready && !s.Done;
+            bobber.gameObject.SetActive(showBobber);
             float y = 0.1f + Mathf.Sin(Time.time * 3) * 0.04f;
             if (s.phase == FishingPhase.Nibble) y = 0.02f + Mathf.Sin(Time.time * 40) * 0.05f;
             if (s.phase == FishingPhase.Bite) y = -0.2f;
             if (s.phase == FishingPhase.Reeling) y = -0.1f + Mathf.Sin(Time.time * 18) * 0.08f;
             bobber.position = bobberAt + new Vector3(0, y, 0);
+            var castLine = bobber.GetComponentInChildren<CastLine>(true);
+            if (castLine != null)
+            {
+                castLine.gameObject.SetActive(showBobber);
+                if (showBobber) castLine.Pull();
+            }
 
             switch (s.phase)
             {
@@ -359,6 +371,42 @@ namespace Hollowmere
         {
             if (!closed && HeroActor.I != null) HeroActor.I.EndFishing();
             if (bobber != null) Destroy(bobber.gameObject);
+        }
+    }
+
+    /// <summary>A thin line from the hero's hand to the bobber.</summary>
+    public sealed class CastLine : MonoBehaviour
+    {
+        public Transform bobber;
+        public Transform bar;
+
+        public void Pull()
+        {
+            if (bar == null || bobber == null) return;
+            var hero = HeroActor.I;
+            Vector3 from = hero != null ? hero.transform.position + Vector3.up * 1.25f + hero.transform.forward * 0.35f : bobber.position;
+            if (hero != null)
+            {
+                var hand = Find(hero.transform, "RightHand");
+                if (hand != null) from = hand.position;
+            }
+            Vector3 to = bobber.position;
+            var delta = to - from;
+            float len = delta.magnitude;
+            bar.position = (from + to) * 0.5f;
+            if (len > 0.05f) bar.rotation = Quaternion.LookRotation(delta);
+            bar.localScale = new Vector3(0.02f, 0.02f, Mathf.Max(0.05f, len));
+        }
+
+        static Transform Find(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var hit = Find(root.GetChild(i), name);
+                if (hit != null) return hit;
+            }
+            return null;
         }
     }
 }

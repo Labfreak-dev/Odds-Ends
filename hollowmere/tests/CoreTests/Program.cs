@@ -427,6 +427,18 @@ static class Program
     static bool Contains(DesignTable.Rect outer, DesignTable.Rect inner)
         => inner.X >= outer.X && inner.Y >= outer.Y && inner.X + inner.W <= outer.X + outer.W && inner.Y + inner.H <= outer.Y + outer.H;
 
+    static string PresentAsset()
+    {
+        foreach (var c in new[]
+        {
+            Path.Combine("Assets", "Resources", "Presentation.asset"),
+            Path.Combine("hollowmere", "Assets", "Resources", "Presentation.asset"),
+            Path.Combine("..", "..", "Assets", "Resources", "Presentation.asset"),
+        })
+            if (File.Exists(c)) return File.ReadAllText(c);
+        return null;
+    }
+
     static string FeelAsset()
     {
         foreach (var c in new[]
@@ -634,6 +646,73 @@ static class Program
                 foreach (var row in SpecRows(heading))
                     Check(YamlField(asset, row[0]) == row[1], "FeelProfile " + row[0] + " is " + YamlField(asset, row[0]));
             }
+        }
+
+        foreach (var row in SpecRows("### T.cast"))
+        {
+            var c = DesignTable.Cast(row[0]);
+            Check(c.Id == row[0] && c.Windup == int.Parse(row[1]) && c.Strike == int.Parse(row[2]) && c.Recover == int.Parse(row[3]), "cast " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.hitstop"))
+            Check(DesignTable.HitStopMs(row[0]) == int.Parse(row[1]), "hitstop " + row[0]);
+        foreach (var row in SpecRows("### T.shake"))
+            Check(DesignTable.ShakeMm(row[0]) == int.Parse(row[1]), "shake " + row[0]);
+        foreach (var row in SpecRows("### T.sparks"))
+        {
+            var s = DesignTable.Spark(row[0]);
+            Check(s.Count == int.Parse(row[1]) && s.Speed == int.Parse(row[2]) && s.Life == int.Parse(row[3]) && s.Size == int.Parse(row[4]), "sparks " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.numbers"))
+        {
+            var n = DesignTable.NumberStyle(row[0]);
+            Check(n.Hex == row[1] && n.Size == int.Parse(row[2]) && n.Rise == int.Parse(row[3]) && n.Life == int.Parse(row[4]), "number " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.vfx"))
+        {
+            var v = DesignTable.VfxFor(row[0]);
+            Check(v.Hex == row[1] && v.Kind == row[2] && SkillDb.Get(row[0]) != null, "vfx " + row[0]);
+        }
+        Check(DesignTable.Vfx.Length == 18, "six cast skills on each of three classes");
+        foreach (var row in SpecRows("### T.motes"))
+        {
+            var m = DesignTable.Mote(row[0]);
+            Check(m.Motes == int.Parse(row[1]) && m.Ring == int.Parse(row[2]), "motes " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.ground"))
+        {
+            var g = DesignTable.GroundFor(row[0]);
+            Check(g.Shape == row[1] && g.X == int.Parse(row[2]) && g.Y == int.Parse(row[3]) && g.Z == int.Parse(row[4]), "ground " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.sockets"))
+        {
+            var s = DesignTable.Socket(row[0]);
+            Check(s.X == int.Parse(row[1]) && s.Y == int.Parse(row[2]) && s.W == int.Parse(row[3]), "socket " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.present"))
+            Check(DesignTable.Tune(row[0]) == decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture), "present " + row[0]);
+        foreach (var row in SpecRows("### T.fish"))
+        {
+            var f = FishDb.Get(row[0]);
+            Check(f != null && f.minDepth == int.Parse(row[1]), "fish depth " + row[0]);
+            Check(Math.Abs(f.weight - float.Parse(row[2], System.Globalization.CultureInfo.InvariantCulture)) < 1e-4, "fish weight " + row[0]);
+            Check(Math.Abs(f.pull - float.Parse(row[3], System.Globalization.CultureInfo.InvariantCulture)) < 1e-4, "fish pull " + row[0]);
+            Check(Math.Abs(f.erratic - float.Parse(row[4], System.Globalization.CultureInfo.InvariantCulture)) < 1e-4, "fish erratic " + row[0]);
+            Check(Math.Abs(f.stamina - float.Parse(row[5], System.Globalization.CultureInfo.InvariantCulture)) < 1e-4, "fish stamina " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.fishscale"))
+        {
+            int floor = int.Parse(row[0]);
+            int min = int.Parse(row[1]);
+            var basis = decimal.Parse(row[2], System.Globalization.CultureInfo.InvariantCulture);
+            var want = decimal.Parse(row[3], System.Globalization.CultureInfo.InvariantCulture);
+            Check(DesignTable.FishWeight(basis, min, floor) == want, "fish scale floor " + floor);
+        }
+        string present = PresentAsset();
+        Check(present != null, "Presentation.asset is on disk");
+        if (present != null)
+        {
+            foreach (var row in SpecRows("### T.present"))
+                Check(YamlField(present, row[0]) == row[1], "Presentation " + row[0]);
         }
 
         Check(DesignTable.GlobeNormalChance == 0.08m && DesignTable.GlobeHealFraction == 0.25m, "globe rates");

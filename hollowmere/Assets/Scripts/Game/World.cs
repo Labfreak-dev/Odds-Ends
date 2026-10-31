@@ -157,7 +157,9 @@ namespace Hollowmere
             wm.subMeshCount = 2;
             wm.SetTriangles(wt, 0);
             wm.SetTriangles(wtTop, 1);
-            wm.RecalculateTangents();
+            // Town walls do not need tangents. Rebuilding them made every later screenshot pay for a normal-mapped street.
+            if (!town && wallSide != null && wallSide.IsKeywordEnabled("_NORMALMAP"))
+                wm.RecalculateTangents();
             walls.GetComponent<MeshRenderer>().sharedMaterials = new[] { wallSide, wallTop };
             walls.AddComponent<MeshCollider>().sharedMesh = wm;
             if (av.Count > 0)

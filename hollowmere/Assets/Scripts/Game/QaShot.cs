@@ -442,47 +442,76 @@ namespace Hollowmere
                 Debug.Log("Hollowmere QA bag icons " + icons + " ok");
         }
 
-        /// <summary>Iron 9-slice and teal-gold frames. panel_iron is a raw texture, not a sliced sprite.</summary>
+        /// <summary>
+        /// Buttons, panels, and slots that should wear an iron or teal/gold frame.
+        /// Empty cells and fill bars are not frames. A horizontal-only border is a bar, not a failure.
+        /// </summary>
         static void AuditFrames(string where)
         {
-            int sliced = 0;
-            bool hudFrame = false, button = false, column = false;
+            int frames = 0;
+            int bad = 0;
             foreach (var img in UnityEngine.Object.FindObjectsByType<UnityEngine.UI.Image>(FindObjectsSortMode.None))
             {
-                if (img == null || img.sprite == null) continue;
-                string n = img.sprite.name;
+                if (img == null) continue;
+                var sp = img.sprite;
+                string n = sp != null ? sp.name : "";
                 if (n == "panel_iron")
                 {
+                    bad++;
                     Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name + " used panel_iron");
                     continue;
                 }
-                if (img.type != UnityEngine.UI.Image.Type.Sliced) continue;
-                var b = img.sprite.border;
-                bool nine = b.x + b.y + b.z + b.w > 1f;
-                bool expected = n == "button_normal" || n == "button_pressed" || n == "button_disabled"
-                    || n == "hud_frame" || n == "icon_button" || n == "icon_button_pressed"
-                    || n == "frame_gold" || n == "slot_column"
-                    || n.StartsWith("slot_") || n.StartsWith("rarity_");
-                if (!nine || !expected)
+                if (string.IsNullOrEmpty(n) || IsFillBar(n)) continue;
+                bool button = img.GetComponent<UnityEngine.UI.Button>() != null || img.GetComponent<HoldButton>() != null;
+                if (!button && !IsIronFrame(n)) continue;
+                if (sp == null || !IsIronFrame(n))
                 {
-                    Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name
-                        + " sprite=" + n + " border=" + b.x.ToString("0") + "," + b.y.ToString("0") + "," + b.z.ToString("0") + "," + b.w.ToString("0"));
+                    bad++;
+                    Debug.LogError("Hollowmere QA frame FAIL " + where + " " + img.gameObject.name + " missing frame sprite=" + n);
                     continue;
                 }
-                sliced++;
-                if (n == "hud_frame") hudFrame = true;
-                if (n == "button_normal" || n == "icon_button") button = true;
-                if (n == "slot_column") column = true;
+                frames++;
                 Debug.Log("Hollowmere QA frame " + where + " " + n);
             }
-            if (where == "hud" && (!hudFrame || !button))
-                Debug.LogError("Hollowmere QA frame FAIL hud missing hud_frame or button_normal/icon_button");
-            if (where == "inventory" && (!column || !button))
-                Debug.LogError("Hollowmere QA frame FAIL inventory missing slot_column or button_normal");
-            if (sliced == 0)
-                Debug.LogError("Hollowmere QA frame FAIL " + where + " no 9-slice frames");
-            else
-                Debug.Log("Hollowmere QA frames " + where + " " + sliced);
+            if (frames == 0)
+                Debug.LogError("Hollowmere QA frame FAIL " + where + " no iron frames");
+            else if (bad == 0)
+                Debug.Log("Hollowmere QA frames " + where + " " + frames + " ok");
+        }
+
+        static bool IsFillBar(string name)
+        {
+            return name.StartsWith("hud_fill") || name.StartsWith("slider_");
+        }
+
+        static bool IsIronFrame(string name)
+        {
+            switch (name)
+            {
+                case "button_normal":
+                case "button_pressed":
+                case "button_disabled":
+                case "button_dark":
+                case "button_red":
+                case "icon_button":
+                case "icon_button_pressed":
+                case "hud_frame":
+                case "frame_gold":
+                case "panel":
+                case "panel_bg":
+                case "panel_header":
+                case "bag_panel":
+                case "inventory_frame":
+                case "inv_screen_frame":
+                case "slot_column":
+                case "stats_panel":
+                case "tooltip_frame":
+                case "tooltip_header":
+                case "tab_active":
+                case "tab_inactive":
+                    return true;
+            }
+            return name.StartsWith("slot_") || name.StartsWith("rarity_");
         }
 
         static bool InBagCell(Transform t)

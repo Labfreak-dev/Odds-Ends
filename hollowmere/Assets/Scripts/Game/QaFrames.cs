@@ -179,9 +179,10 @@ namespace Hollowmere
             gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
             gm.EnterTown(false);
             yield return new WaitForSeconds(0.5f);
-            if (Camera.main != null) Camera.main.clearFlags = CameraClearFlags.Skybox;
             Screen.SetResolution(f.width, f.height, FullScreenMode.Windowed);
             yield return null;
+            // Close-ups. The town, its lights, and soft shadows were the cost that ran monsteranim out of time.
+            CheapMonsterStage();
             var origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
             origin.y = 0f;
             if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 30f;
@@ -194,6 +195,42 @@ namespace Hollowmere
             else
                 yield return MonsterAnim(origin);
             Application.Quit();
+        }
+
+        /// <summary>Drop the town mesh, point lights, and shadow maps. The shot is one monster.</summary>
+        static void CheapMonsterStage()
+        {
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = new Color(0.13f, 0.12f, 0.11f);
+            }
+            int hidden = 0;
+            int lights = 0;
+            if (World.Root != null)
+            {
+                var renderers = World.Root.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    if (renderers[i] == null) continue;
+                    renderers[i].enabled = false;
+                    hidden++;
+                }
+                var lits = World.Root.GetComponentsInChildren<Light>(true);
+                for (int i = 0; i < lits.Length; i++)
+                {
+                    if (lits[i] == null) continue;
+                    if (lits[i].type == LightType.Directional)
+                    {
+                        lits[i].shadows = LightShadows.None;
+                        continue;
+                    }
+                    lits[i].enabled = false;
+                    lights++;
+                }
+            }
+            Debug.Log("Hollowmere QA monster stage hid " + hidden + " town renderers, " + lights + " lights");
         }
 
         static IEnumerator MonsterAnim(Vector3 origin)
@@ -210,6 +247,9 @@ namespace Hollowmere
                 }
                 go.transform.position = origin + new Vector3(0f, 0f, 4.2f);
                 go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                var skins = go.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < skins.Length; i++)
+                    if (skins[i] != null) skins[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 FrameMonster(go, 1.3f, 4.6f);
                 for (int c = 0; c < clips.Length; c++)
                 {

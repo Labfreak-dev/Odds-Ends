@@ -28,7 +28,22 @@ namespace Hollowmere.Editor
 
         public void OnPreprocessBuild(BuildReport report)
         {
-            ReimportGlbsForUrp();
+            // Do not ImportAsset, Refresh, or SaveAssets here. This callback runs inside
+            // BuildPlayer. Reimporting a GLB at that point (and a failed glTFast import in
+            // particular) corrupts the script compilation pipeline: EditorCompilation
+            // throws InvalidCastException and the player build reports compiler errors
+            // even though no script failed to compile. PrepareBeforePlayerBuild does the work.
+        }
+
+        /// <summary>Shader pin and GLB check, run from <see cref="HollowmereBuild"/> before BuildPlayer.</summary>
+        public static void PrepareBeforePlayerBuild()
+        {
+            PinShaders(true);
+            AdoptImportedModels();
+        }
+
+        static void PinShaders(bool save)
+        {
             var gsAsset = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0];
             var gsSo = new SerializedObject(gsAsset);
             var gsProp = gsSo.FindProperty("m_AlwaysIncludedShaders");
@@ -52,14 +67,21 @@ namespace Hollowmere.Editor
                 gsProp.arraySize = included.Count;
                 for (int i = 0; i < included.Count; i++) gsProp.GetArrayElementAtIndex(i).objectReferenceValue = included[i];
                 gsSo.ApplyModifiedProperties();
-                AssetDatabase.SaveAssets();
-                Debug.Log("Hollowmere: added " + added + " shaders to Always Included Shaders.");
+                if (save)
+                {
+                    AssetDatabase.SaveAssets();
+                    Debug.Log("Hollowmere: added " + added + " shaders to Always Included Shaders.");
+                }
             }
         }
 
-        /// <summary>glTFast bakes the pipeline into the imported materials. A Library left over from
-        /// the built-in pipeline still has those shaders, which draw magenta under URP.</summary>
-        static void ReimportGlbsForUrp()
+        /// <summary>
+        /// A Library left over from the built-in pipeline imports glTFast materials that draw
+        /// magenta under URP. Reimport those before the player build, never during it.
+        /// A GLB whose import already failed is left alone: the build continues and the
+        /// game falls back to the primitive for that model.
+        /// </summary>
+        static void AdoptImportedModels()
         {
             if (GraphicsSettings.currentRenderPipeline == null) return;
             var dir = "Assets/Resources/Models";
@@ -67,17 +89,40 @@ namespace Hollowmere.Editor
             foreach (var file in Directory.GetFiles(dir, "*.glb"))
             {
                 var path = file.Replace('\\', '/');
-                var urp = false;
-                foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+                if (AssetDatabase.LoadMainAssetAtPath(path) == null)
                 {
-                    var mat = asset as Material;
-                    if (mat != null && mat.shader != null && mat.shader.name.StartsWith("Shader Graphs/"))
-                        urp = true;
+                    Debug.LogWarning("Hollowmere: skipping GLB that failed to import: " + path);
+                    continue;
                 }
-                if (urp) continue;
-                Debug.Log("Hollowmere: reimporting " + path + " so its materials match URP.");
-                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                if (!NeedsPipelineReimport(path)) continue;
+                try
+                {
+                    Debug.Log("Hollowmere: reimporting " + path + " so its materials match URP.");
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning("Hollowmere: skipping GLB that failed to import: " + path + " (" + e.GetType().Name + ": " + e.Message + ")");
+                    continue;
+                }
+                if (AssetDatabase.LoadMainAssetAtPath(path) == null)
+                    Debug.LogWarning("Hollowmere: skipping GLB that failed to import: " + path);
             }
+        }
+
+        static bool NeedsPipelineReimport(string path)
+        {
+            var sawMaterial = false;
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
+            {
+                var mat = asset as Material;
+                if (mat == null || mat.shader == null) continue;
+                sawMaterial = true;
+                var n = mat.shader.name;
+                if (n.StartsWith("Shader Graphs/") || n.StartsWith("Universal Render Pipeline/") || n.StartsWith("Hollowmere/"))
+                    return false;
+            }
+            return sawMaterial;
         }
     }
 }

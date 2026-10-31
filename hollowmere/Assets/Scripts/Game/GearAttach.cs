@@ -5,8 +5,9 @@ namespace Hollowmere
 {
     /// <summary>
     /// Helm, chest, and weapon on the class body. Helms and chests are skinned to the
-    /// hero's 24-bone rig: bones[] is remapped by name, rootBone is Hips, and the copy
-    /// of the skeleton that came in the gear file is dropped. Chest overlays are pauldrons
+    /// hero's rig. The gear file's joint list is shorter than the hero's (helms 6 joints,
+    /// chests 10–15) and is not in the same order, so bones[] is remapped by name and
+    /// rootBone is Hips. The copied skeleton is then dropped. Chest overlays are pauldrons
     /// plus a tabard, cape, or front plate. The tabard primitives sit on the class hips
     /// (within 2 mm); they are not given an extra sideways offset.
     /// A weapon's origin is the grip. It is parented to RightHand with a zero local
@@ -88,8 +89,7 @@ namespace Hollowmere
                 Art.AdoptShaders(smr.gameObject);
             }
             Object.Destroy(inst);
-            if (missed > 0)
-                Debug.LogWarning("Hollowmere gear " + key + " missed " + missed + " bones");
+            Debug.Log("Hollowmere gear " + key + " skinned by name root=Hips missed=" + missed);
             return true;
         }
 

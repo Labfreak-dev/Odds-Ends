@@ -44,7 +44,7 @@ namespace Hollowmere.Core
     [Serializable]
     public sealed class GameState
     {
-        public int version = 2;
+        public int version = 3;
         public long seed;          // long, not ulong: JsonUtility round-trips it reliably
         public Hero hero = new Hero();
         public PetState pet = new PetState();
@@ -64,7 +64,22 @@ namespace Hollowmere.Core
         public static GameState NewGame(HeroClass cls, string heroName, PetSpecies pet, string petName, ulong seed)
         {
             var rng = new Rng(seed);
-            var s = new GameState { seed = (long)seed, hero = Hero.Create(cls, heroName, rng) };
+            var s = new GameState { version = 3, seed = (long)seed, hero = Hero.Create(cls, heroName, rng) };
+            s.pet.species = pet;
+            s.pet.name = petName;
+            Town.RefreshQuests(s, rng);
+            return s;
+        }
+
+        public static GameState NewCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, ulong seed)
+        {
+            var rng = new Rng(seed);
+            var s = new GameState
+            {
+                version = 3,
+                seed = (long)seed,
+                hero = Hero.CreateCustom(heroName, body, skin, hair, face, r, g, b, rng),
+            };
             s.pet.species = pet;
             s.pet.name = petName;
             Town.RefreshQuests(s, rng);
@@ -77,6 +92,11 @@ namespace Hollowmere.Core
             // and System.Text.Json drop it on load. Writing the save again omits it.
             if (version < 2) version = 2;
             hero.Normalize();
+            if (version < 3)
+            {
+                hero.GrantFormerClass();
+                version = 3;
+            }
             stash.RemoveAll(Item.IsNone);
             pet.pack.RemoveAll(Item.IsNone);
             quests.RemoveAll(q => string.IsNullOrEmpty(q.id));

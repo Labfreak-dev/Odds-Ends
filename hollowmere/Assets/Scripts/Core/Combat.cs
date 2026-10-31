@@ -29,7 +29,7 @@ namespace Hollowmere.Core
             var s = c.stats;
             var (lo, hi, _) = c.hero.WeaponDamage(s);
             float baseDmg = rng.Range(lo, hi) * cast.weaponDamage;
-            float main = s[StatInfo.MainStat(c.hero.heroClass)];
+            float main = s[c.hero.DamageStat()];
             float dmg = baseDmg * (1 + main / 100f) * (1 + (s[Stat.DamagePercent] + c.buffDamagePercent) / 100f);
             dmg *= 1 + s[StatInfo.ElementStat(cast.element)] / 100f;
             if (targetIsElite) dmg *= 1 + s[Stat.EliteDamage] / 100f;

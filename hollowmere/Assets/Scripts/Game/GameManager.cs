@@ -49,6 +49,13 @@ namespace Hollowmere
             EnterTown(false);
         }
 
+        public void NewGameCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName)
+        {
+            State = GameState.NewCustom(heroName, body, skin, hair, face, r, g, b, pet, petName, (ulong)DateTime.UtcNow.Ticks);
+            Save();
+            EnterTown(false);
+        }
+
         public bool Continue()
         {
             try
@@ -302,7 +309,16 @@ namespace Hollowmere
             var hero = HeroActor.I;
             int lvl = State.hero.level;
             var names = new System.Collections.Generic.List<string>();
-            foreach (var sk in SkillDb.ForClass(State.hero.heroClass))
+            if (State.hero.classless)
+            {
+                foreach (var sk in SkillDb.All)
+                {
+                    if (State.hero.skills.Rank(sk.id) == 0 || sk.runes == null) continue;
+                    foreach (var r in sk.runes)
+                        if (r.unlockLevel == lvl) names.Add(r.name);
+                }
+            }
+            else foreach (var sk in SkillDb.ForClass(State.hero.heroClass))
             {
                 if (sk.reqLevel == lvl) names.Add(sk.name);
                 if (sk.runes == null) continue;
@@ -342,6 +358,26 @@ namespace Hollowmere
                 Toast($"<color={ItemText.RarityColor(it.rarity)}>{it.name}</color>");
             }
             else if (it.kind != ItemKind.Equipment) Toast($"+{it.stack} {it.name}");
+        }
+
+        /// <summary>A tome or rune teaches its skill. A rune also sockets itself when the hero is high enough.</summary>
+        public void GrantSkillItem(Item it)
+        {
+            var sk = SkillDb.Get(it.skillId);
+            if (sk == null) { Toast("The pages are blank."); return; }
+            bool learned = State.hero.Learn(it.skillId);
+            if (it.kind == ItemKind.Rune)
+            {
+                var rune = sk.runes.FirstOrDefault(r => r.id == it.baseId);
+                if (rune != null && State.hero.skills.SetRune(sk, rune.id, State.hero.level))
+                    Toast($"{rune.name} — {sk.name}");
+                else if (learned)
+                    Toast(rune == null ? $"Learned {sk.name}" : $"Learned {sk.name}. {rune.name} needs level {rune.unlockLevel}.");
+                else
+                    Toast($"Already known: {sk.name}");
+                return;
+            }
+            Toast(learned ? $"Learned {sk.name}" : $"Already known: {sk.name}");
         }
 
         public void OnHeroDied()
@@ -544,10 +580,27 @@ namespace Hollowmere
 
         public void OnEquipmentChanged()
         {
+            var hero = State?.hero;
+            if (hero != null && hero.classless)
+            {
+                var basic = hero.BasicAttack();
+                if (basic != null) hero.skills.bar[0] = basic.id;
+                foreach (var (def, _) in hero.EquippedLegendaries())
+                {
+                    if (def == null || string.IsNullOrEmpty(def.skillId)) continue;
+                    if (hero.Learn(def.skillId))
+                    {
+                        var taught = SkillDb.Get(def.skillId);
+                        if (taught != null) Toast($"Learned {taught.name}");
+                    }
+                }
+            }
             var h = HeroActor.I;
             if (h == null) return;
             h.RefreshStats();
             h.RefreshWeapon();
+            if (hero != null && hero.classless && hero.AttackFamily() != WeaponFamily.Melee && h.resource <= 0)
+                h.resource = h.maxResource;
             PetActor.I?.RefreshLife(false);
         }
 

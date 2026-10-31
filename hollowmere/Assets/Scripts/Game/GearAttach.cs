@@ -10,18 +10,22 @@ namespace Hollowmere
     /// rootBone is Hips. The copied skeleton is then dropped. Chest overlays are pauldrons
     /// plus a tabard, cape, or front plate. The tabard primitives sit on the class hips
     /// (within 2 mm); they are not given an extra sideways offset.
-    /// A weapon's origin is the grip. It is parented to RightHand with a zero local
-    /// transform and world scale 1, then fitted along that axis to the grip length.
+    /// A weapon's origin is the grip. It is parented to the hand bone at world scale 1,
+    /// with a per-weapon offset that seats that grip in the palm.
     /// </summary>
     public static class GearAttach
     {
         public static void Apply(Transform body, Hero hero)
         {
             if (body == null || hero == null) return;
+            StripClassHeld(body);
             Clear(body);
             var weapon = hero.Equipped(EquipSlot.MainHand);
             if (!Item.IsNone(weapon))
-                Weapon(body, DesignTable.WeaponKey(hero.heroClass, weapon.baseId), "gear_weapon", weapon);
+                Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
+            var off = hero.Equipped(EquipSlot.OffHand);
+            if (!Item.IsNone(off))
+                Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
             Armor(body, hero, EquipSlot.Head, "helm");
             Armor(body, hero, EquipSlot.Chest, "chest");
         }
@@ -37,22 +41,22 @@ namespace Hollowmere
             if (!on) return;
             var hand = Hand(body);
             if (hand == null) return;
-            Grip(hand, "fishing_rod", "gear_rod");
+            Grip(hand, "fishing_rod", "gear_rod", true);
         }
 
         static void Armor(Transform body, Hero hero, EquipSlot slot, string part)
         {
             var it = hero.Equipped(slot);
             if (Item.IsNone(it)) return;
-            string key = DesignTable.ArmorKey(hero.heroClass, part, it.rarity);
+            string key = DesignTable.ArmorKey(hero.PresentationClass, part, it.rarity);
             if (!Skin(body, key, "gear_" + part))
                 Primitive(body, part, it);
         }
 
-        static void Weapon(Transform body, string key, string name, Item it)
+        static void Weapon(Transform body, string key, string name, Item it, bool main)
         {
-            var hand = Hand(body);
-            if (hand != null && Grip(hand, key, name)) return;
+            var hand = main ? Hand(body) : FindBone(body, "LeftHand");
+            if (hand != null && Grip(hand, key, name, main)) return;
             if (hand != null)
                 Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
         }
@@ -93,15 +97,16 @@ namespace Hollowmere
             return true;
         }
 
-        /// <summary>Grip at the hand origin, world scale 1, then the manifest length along local Z.</summary>
-        static bool Grip(Transform hand, string key, string name)
+        /// <summary>Grip in the palm, world scale 1. The mesh haft is local +Z; the hand bone's +Y runs wrist to fingers.</summary>
+        static bool Grip(Transform hand, string key, string name, bool main)
         {
             var prefab = Art.LoadModel(key);
             if (prefab == null) return false;
             var go = Object.Instantiate(prefab, hand);
             go.name = name;
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.identity;
+            Pose(key, main, out var pos, out var rot);
+            go.transform.localRotation = rot;
+            go.transform.localPosition = pos;
             var s = hand.lossyScale;
             go.transform.localScale = new Vector3(
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.x)),
@@ -109,46 +114,186 @@ namespace Hollowmere
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
-            if (DesignTable.TryGrip(key, out var grip))
-            {
-                float span = LengthZ(go.transform);
-                float target = grip.LengthMm / 1000f;
-                if (span > 0.02f && target > 0.02f)
-                {
-                    float k = target / span;
-                    if (k < 0.97f || k > 1.03f)
-                    {
-                        go.transform.localScale *= k;
-                        Debug.Log("Hollowmere weapon " + key + " length " + span.ToString("0.00")
-                            + " fitted to " + target.ToString("0.00"));
-                    }
-                }
-            }
             return true;
         }
 
-        /// <summary>Extent along local Z, which is the grip axis (above + below the origin).</summary>
-        static float LengthZ(Transform root)
+        /// <summary>Measured from each weapon's grip slice (vertices within 4 cm of z = 0 sit on the origin)
+        /// and from the hand bone, whose palm is a few centimetres along +Y.</summary>
+        static void Pose(string key, bool main, out Vector3 pos, out Quaternion rot)
         {
-            float z0 = float.MaxValue, z1 = float.MinValue;
-            bool any = false;
-            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            float palm;
+            switch (key)
             {
-                var mesh = mf.sharedMesh;
-                if (mesh == null) continue;
-                var b = mesh.bounds;
-                var c = b.center;
-                var e = b.extents;
-                for (int i = 0; i < 8; i++)
+                case "ironclad_weapon_1": palm = 0.038f; break;
+                case "ironclad_weapon_2": palm = 0.046f; break;
+                case "ironclad_weapon_3": palm = 0.042f; break;
+                case "stalker_weapon_1": palm = 0.030f; break;
+                case "stalker_weapon_2": palm = 0.035f; break;
+                case "stalker_weapon_3": palm = 0.025f; break;
+                case "hexweaver_weapon_1": palm = 0.040f; break;
+                case "hexweaver_weapon_2": palm = 0.020f; break;
+                case "hexweaver_weapon_3": palm = 0.030f; break;
+                case "fishing_rod": palm = 0.035f; break;
+                case "drop_shield": palm = 0.030f; break;
+                case "drop_orb": palm = 0.028f; break;
+                case "drop_quiver": palm = 0.020f; break;
+                default: palm = main ? 0.040f : 0.030f; break;
+            }
+            bool shield = key == "drop_shield";
+            bool orb = key == "drop_orb";
+            rot = shield ? Quaternion.Euler(90f, 0f, 0f)
+                : orb ? Quaternion.identity
+                : Quaternion.Euler(-90f, 0f, 0f);
+            pos = new Vector3(0f, palm, 0f);
+        }
+
+        /// <summary>Distance from the weapon origin (the grip) to the palm bone. Logs idle, walk, and attack. Over 5 cm fails.</summary>
+        public static void AuditGrip(Transform body)
+        {
+            if (body == null) return;
+            var hand = Hand(body);
+            var weapon = Find(body, "gear_weapon");
+            if (hand == null || weapon == null)
+            {
+                Debug.LogError("Hollowmere grip missing hand or weapon");
+                return;
+            }
+            var anim = body.GetComponentInChildren<Animation>();
+            SampleGrip(anim, "idle", hand, weapon);
+            SampleGrip(anim, "walk", hand, weapon);
+            SampleGrip(anim, "attack", hand, weapon);
+        }
+
+        static void SampleGrip(Animation anim, string key, Transform hand, Transform weapon)
+        {
+            AnimationState st = null;
+            if (anim != null)
+            {
+                foreach (AnimationState s in anim)
                 {
-                    var corner = c + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
-                    float z = root.InverseTransformPoint(mf.transform.TransformPoint(corner)).z;
-                    if (z < z0) z0 = z;
-                    if (z > z1) z1 = z;
-                    any = true;
+                    string n = s.name.ToLowerInvariant();
+                    if (n == key || n.EndsWith("|" + key) || n.Contains("|" + key + "|") || n.Contains(key))
+                    {
+                        st = s;
+                        break;
+                    }
                 }
             }
-            return any ? z1 - z0 : 0f;
+            if (st == null || st.clip == null)
+            {
+                Debug.Log("Hollowmere grip " + key + " no clip");
+                return;
+            }
+            float worst = 0f;
+            float len = Mathf.Max(0.05f, st.length);
+            for (int i = 0; i < 3; i++)
+            {
+                foreach (AnimationState s in anim)
+                {
+                    s.weight = 0f;
+                    s.enabled = false;
+                }
+                st.enabled = true;
+                st.weight = 1f;
+                st.time = len * (i / 2f);
+                anim.Sample();
+                float d = Vector3.Distance(weapon.position, hand.position);
+                if (d > worst) worst = d;
+            }
+            string cm = (worst * 100f).ToString("0.0");
+            Debug.Log("Hollowmere grip " + key + " " + cm + "cm");
+            if (worst > 0.05f)
+                Debug.LogError("Hollowmere grip " + key + " FAIL " + cm + "cm");
+        }
+
+        /// <summary>Class meshes bake a staff, sword, or shield into the hands. Drop triangles whose
+        /// vertices belong to a hand and sit more than 18 cm from that bone's bind point.</summary>
+        static void StripClassHeld(Transform body)
+        {
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var src = smr.sharedMesh;
+                if (src == null || !src.isReadable || src.vertexCount == 0) continue;
+                if (src.name.EndsWith("_held")) continue;
+                var next = StripHeldMesh(smr, src);
+                if (next == null) continue;
+                next.name = src.name + "_held";
+                smr.sharedMesh = next;
+            }
+        }
+
+        static Mesh StripHeldMesh(SkinnedMeshRenderer smr, Mesh src)
+        {
+            var weights = src.boneWeights;
+            var verts = src.vertices;
+            var bind = src.bindposes;
+            var bones = smr.bones;
+            if (weights == null || weights.Length != verts.Length || bind == null || bones == null) return null;
+            int left = -1, right = -1;
+            for (int i = 0; i < bones.Length && i < bind.Length; i++)
+            {
+                if (bones[i] == null) continue;
+                if (BoneName(bones[i].name, "LeftHand")) left = i;
+                else if (BoneName(bones[i].name, "RightHand")) right = i;
+            }
+            if (left < 0 && right < 0) return null;
+            Vector3 leftPalm = left >= 0 ? bind[left].inverse.MultiplyPoint3x4(Vector3.zero) : Vector3.zero;
+            Vector3 rightPalm = right >= 0 ? bind[right].inverse.MultiplyPoint3x4(Vector3.zero) : Vector3.zero;
+            var prop = new bool[verts.Length];
+            int propCount = 0;
+            for (int i = 0; i < verts.Length; i++)
+            {
+                var w = weights[i];
+                int bone = Dominant(w);
+                Vector3 palm;
+                if (bone == left) palm = leftPalm;
+                else if (bone == right) palm = rightPalm;
+                else continue;
+                if (Vector3.Distance(verts[i], palm) > 0.18f)
+                {
+                    prop[i] = true;
+                    propCount++;
+                }
+            }
+            if (propCount == 0) return null;
+            var tris = src.triangles;
+            var keep = new System.Collections.Generic.List<int>(tris.Length);
+            int dropped = 0;
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int n = (prop[tris[i]] ? 1 : 0) + (prop[tris[i + 1]] ? 1 : 0) + (prop[tris[i + 2]] ? 1 : 0);
+                if (n >= 2) { dropped++; continue; }
+                keep.Add(tris[i]);
+                keep.Add(tris[i + 1]);
+                keep.Add(tris[i + 2]);
+            }
+            if (dropped == 0) return null;
+            var dst = new Mesh { name = src.name };
+            dst.vertices = verts;
+            dst.normals = src.normals;
+            dst.uv = src.uv;
+            dst.boneWeights = weights;
+            dst.bindposes = bind;
+            dst.triangles = keep.ToArray();
+            dst.RecalculateBounds();
+            Debug.Log("Hollowmere strip class held tris=" + dropped + " verts=" + propCount);
+            return dst;
+        }
+
+        static int Dominant(BoneWeight w)
+        {
+            float best = w.weight0;
+            int bone = w.boneIndex0;
+            if (w.weight1 > best) { best = w.weight1; bone = w.boneIndex1; }
+            if (w.weight2 > best) { best = w.weight2; bone = w.boneIndex2; }
+            if (w.weight3 > best) bone = w.boneIndex3;
+            return bone;
+        }
+
+        static bool BoneName(string bone, string want)
+        {
+            if (string.IsNullOrEmpty(bone)) return false;
+            return bone == want || bone.EndsWith(":" + want) || bone.EndsWith(want);
         }
 
         static void Primitive(Transform body, string part, Item it)
@@ -170,7 +315,25 @@ namespace Hollowmere
                 world.z / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
         }
 
-        static Transform Hand(Transform body) => Find(body, "RightHand") ?? Find(body, "hand");
+        static Transform Hand(Transform body) => FindBone(body, "RightHand") ?? FindBone(body, "hand");
+
+        static Transform FindBone(Transform root, string name)
+        {
+            var exact = Find(root, name);
+            if (exact != null) return exact;
+            return FindSuffix(root, name);
+        }
+
+        static Transform FindSuffix(Transform root, string name)
+        {
+            if (BoneName(root.name, name)) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var hit = FindSuffix(root.GetChild(i), name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
 
         static void Clear(Transform body)
         {

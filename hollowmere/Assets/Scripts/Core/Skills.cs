@@ -22,6 +22,7 @@ namespace Hollowmere.Core
     {
         public string id, name, text;
         public HeroClass cls;
+        public WeaponFamily family;
         public SkillShape shape;
         public int reqLevel;
         public int maxRank = 5;
@@ -55,8 +56,8 @@ namespace Hollowmere.Core
     {
         public List<SkillRank> ranks = new List<SkillRank>();
         public int unspent;
-        /// <summary>Slot 0 = primary attack button, 1..4 = skill buttons.</summary>
-        public string[] bar = new string[5];
+        /// <summary>Slot 0 = primary attack. 1..5 = the other five slots (six total).</summary>
+        public string[] bar = new string[6];
 
         public int Rank(string id) => ranks.FirstOrDefault(r => r.id == id)?.rank ?? 0;
         public string Rune(string id) => ranks.FirstOrDefault(r => r.id == id)?.rune;
@@ -102,7 +103,7 @@ namespace Hollowmere.Core
         public void Reset(int heroLevel)
         {
             ranks.Clear();
-            bar = new string[5];
+            bar = new string[6];
             unspent = SkillDb.PointsAtLevel(heroLevel);
         }
     }
@@ -226,12 +227,17 @@ namespace Hollowmere.Core
 
         static void Add(SkillDef s, params RuneDef[] runes)
         {
+            s.family = s.cls == HeroClass.Stalker ? WeaponFamily.Ranged : s.cls == HeroClass.Hexweaver ? WeaponFamily.Magic : WeaponFamily.Melee;
             s.runes.AddRange(runes);
             All.Add(s);
         }
 
         static void Passive(string id, string name, HeroClass c, int lvl, Stat stat, float perRank, string text, float pct = 0)
-            => All.Add(new SkillDef { id = id, name = name, cls = c, shape = SkillShape.Passive, reqLevel = lvl, passiveStat = stat, passiveValue = perRank, weaponDamage = pct, text = text });
+        {
+            var s = new SkillDef { id = id, name = name, cls = c, shape = SkillShape.Passive, reqLevel = lvl, passiveStat = stat, passiveValue = perRank, weaponDamage = pct, text = text };
+            s.family = c == HeroClass.Stalker ? WeaponFamily.Ranged : c == HeroClass.Hexweaver ? WeaponFamily.Magic : WeaponFamily.Melee;
+            All.Add(s);
+        }
 
         static RuneDef R(string id, string name, int lvl, string text, Element? el = null, float damage = 1, float radius = 1, float cd = 1,
             float cost = 1, int proj = 0, int chains = 0, int pierce = 0, float slow = 0, float burn = 0, float heal = 0, float stun = 0, float duration = 1)

@@ -108,7 +108,7 @@ namespace Hollowmere.Core
                     sb.Append($"  Life {Pct(sim.MaxLife(s1), life0)}\n");
                 }
             }
-            if (b.classOnly != null && hero != null && b.classOnly != hero.heroClass)
+            if (b.classOnly != null && hero != null && !hero.classless && b.classOnly != hero.heroClass)
                 sb.Append($"\n<color=#ff5050>Your class cannot use this.</color>");
             sb.Append($"\n<color=#c9a14a>Sells for {it.SellValue()} gold</color>");
             if (it.enchantedAffix >= 0) sb.Append("  <color=#c080ff>(Enchanted)</color>");

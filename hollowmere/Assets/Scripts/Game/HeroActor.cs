@@ -52,11 +52,19 @@ namespace Hollowmere
             var b = new GameObject("body").transform;
             b.SetParent(transform, false);
             body = b;
-            var model = Art.Animated(Art.HeroModelKey(Hero.heroClass), 1.8f, b);
+            var model = Art.Animated(Art.HeroModelKey(Hero.PresentationClass), 1.8f, b);
             // A generated hero carries its own weapon, so no primitive weapon is attached (hand stays null).
-            if (model != null) { figure = model.transform; modelAnim = model.GetComponent<ModelAnim>(); }
-            else figure = Art.Humanoid(b, Art.ClassColor(Hero.heroClass), Art.ClassColor(Hero.heroClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
-            var ring = Art.ClassColor(Hero.heroClass);
+            if (model != null)
+            {
+                figure = model.transform;
+                modelAnim = model.GetComponent<ModelAnim>();
+                if (Hero.classless)
+                    Art.Tint(model, new Color(Mathf.Clamp01(Hero.armourR), Mathf.Clamp01(Hero.armourG), Mathf.Clamp01(Hero.armourB)));
+            }
+            else figure = Art.Humanoid(b, Art.ClassColor(Hero.PresentationClass), Art.ClassColor(Hero.PresentationClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
+            var ring = Hero.classless
+                ? new Color(Mathf.Clamp01(Hero.armourR), Mathf.Clamp01(Hero.armourG), Mathf.Clamp01(Hero.armourB))
+                : Art.ClassColor(Hero.heroClass);
             Art.GroundRing(transform, new Color(Mathf.Clamp01(ring.r + 0.45f), Mathf.Clamp01(ring.g + 0.25f), Mathf.Clamp01(ring.b + 0.45f)));
             // Fill from the camera side (default rig sits on -Z) so a dark robe still has an edge.
             var rim = new GameObject("rimLight").AddComponent<Light>();
@@ -114,7 +122,7 @@ namespace Hollowmere
             maxLife = Hero.MaxLife(stats);
             life = fill ? maxLife : Mathf.Clamp(frac * maxLife, 1, maxLife);
             maxResource = stats[Stat.MaxResource];
-            if (fill) resource = Hero.heroClass == HeroClass.Ironclad ? 0 : maxResource;
+            if (fill) resource = Hero.FuryStyle() ? 0 : maxResource;
             resource = Mathf.Min(resource, maxResource);
             ctx.hero = Hero; ctx.stats = stats;
         }
@@ -142,12 +150,12 @@ namespace Hollowmere
                 if (potionUntil > Time.time) Heal(potionHeal * k);
                 var form = State.pet.Form;
                 if (form != null && form.healPerSecondPct > 0 && !State.pet.Away) Heal(maxLife * form.healPerSecondPct * k);
-                if (Hero.heroClass == HeroClass.Ironclad)
+                if (Hero.FuryStyle())
                 {
                     if (combatTimer <= 0) resource = Mathf.Max(0, resource - 3 * k);
                 }
                 else resource = Mathf.Min(maxResource, resource + stats[Stat.ResourceRegen] * k);
-                if (Hero.heroClass == HeroClass.Ironclad) resource = Mathf.Min(maxResource, resource + stats[Stat.ResourceRegen] * k);
+                if (Hero.FuryStyle()) resource = Mathf.Min(maxResource, resource + stats[Stat.ResourceRegen] * k);
             }
             combatTimer -= dt;
             potionCd -= dt;
@@ -213,7 +221,7 @@ namespace Hollowmere
             target = PickTarget();
             if (attackHeld && !busy && !Stunned && !GameManager.I.InTown && Time.time >= nextAttack)
             {
-                var primary = SkillDb.Get(Hero.skills.bar[0]);
+                var primary = Hero.classless ? Hero.BasicAttack() : SkillDb.Get(Hero.skills.bar[0]);
                 if (primary != null) UseSkill(primary);
             }
 
@@ -253,12 +261,19 @@ namespace Hollowmere
 
         public bool UseSkill(SkillDef s)
         {
-            if (Dead || busy || Stunned || GameManager.I.Paused || Hero.skills.Rank(s.id) == 0) return false;
+            if (Dead || busy || Stunned || GameManager.I.Paused) return false;
+            bool starter = Hero.classless && s.primary && s.family == Hero.AttackFamily();
+            if (Hero.skills.Rank(s.id) == 0 && !starter) return false;
+            if (Hero.classless && s.family != Hero.AttackFamily())
+            {
+                GameManager.I.Toast($"Needs a {s.family.ToString().ToLowerInvariant()} weapon.");
+                return false;
+            }
             if (releaseIn >= 0f || CombatClock.Frozen) return false;
             if (CooldownLeft(s.id) > 0) return false;
             if (GameManager.I.InTown && s.shape != SkillShape.Dash) { GameManager.I.Toast("Not in town."); return false; }
             var cast = SkillDb.Resolve(s, Hero, stats);
-            if (resource < cast.cost) { GameManager.I.Toast($"Not enough {StatInfo.ResourceName(Hero.heroClass)}"); return false; }
+            if (resource < cast.cost) { GameManager.I.Toast($"Not enough {Hero.ResourceLabel()}"); return false; }
             resource -= cast.cost;
             if (cast.cooldown > 0) cooldownUntil[s.id] = Time.time + cast.cooldown;
             if (s.primary)

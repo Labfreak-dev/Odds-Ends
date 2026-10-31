@@ -188,11 +188,58 @@ static class Program
                 var c = SkillDb.Resolve(s, h, st);
                 Check(c.cost >= 0 && c.cooldown >= 0 && c.radius > 0, $"{s.id} resolves sanely");
             }
-            Check(h.skills.bar.Count(b => !string.IsNullOrEmpty(b)) == 5, $"{cls} bar auto-fills as skills are learned");
+            Check(h.skills.bar.Count(b => !string.IsNullOrEmpty(b)) == 6, $"{cls} bar auto-fills as skills are learned");
         }
+        Classless();
         // Level gate
         var low = Hero.Create(HeroClass.Hexweaver, "L", new Rng(6));
         Check(!low.skills.RankUp(SkillDb.Get("hx_meteor"), low.level), "ultimate is level-gated");
+    }
+
+    static void Classless()
+    {
+        var rng = new Rng(9);
+        var h = Hero.CreateCustom("Ada", 2, 1, 3, 0, 0.8f, 0.55f, 0.3f, rng);
+        Check(h.classless && h.body == 2 && h.Equipped(EquipSlot.MainHand).baseId == "sword", "custom hero starts with a sword");
+        Check(h.skills.Rank("ic_cleave") == 1 && h.BasicAttack().id == "ic_cleave" && h.AnimSet() == "melee", "a sword swings Cleave");
+        Check(h.DamageStat() == Stat.Strength, "melee scales with strength");
+        float bare = h.SheetDps(h.ComputeStats());
+        var dex = new Item { uid = "dex", kind = ItemKind.Equipment, baseId = "ring", name = "Fox", rarity = Rarity.Magic, affixes = new List<AffixRoll> { new AffixRoll { stat = Stat.Dexterity, value = 80 } } };
+        h.inventory.Add(dex);
+        Check(h.Equip(dex), "dexterity ring equips");
+        Check(Math.Abs(h.SheetDps(h.ComputeStats()) - bare) < 0.01f, "dexterity does not scale a sword");
+        var str = new Item { uid = "str", kind = ItemKind.Equipment, baseId = "ring", name = "Ox", rarity = Rarity.Magic, affixes = new List<AffixRoll> { new AffixRoll { stat = Stat.Strength, value = 100 } } };
+        h.inventory.Add(str);
+        Check(h.Equip(str), "strength ring equips");
+        Check(h.ComputeStats()[Stat.Strength] >= Balance.BaseOffStat(h.level) + 100, "strength comes from the affix");
+        Check(h.SheetDps(h.ComputeStats()) > bare * 1.5f, "strength scales the sword");
+
+        var axe = Loot.Generate(rng, 4, Rarity.Common, null, forceBase: "greataxe");
+        h.inventory.Add(axe);
+        Check(h.Equip(axe) && h.BasicAttack().id == "ic_slam" && h.AnimSet() == "melee2" && h.AttackFamily() == WeaponFamily.Melee, "a two-hander uses the slam set");
+        var bow = Loot.Generate(rng, 4, Rarity.Common, null, forceBase: "bow");
+        h.inventory.Add(bow);
+        Check(h.Equip(bow) && h.AttackFamily() == WeaponFamily.Ranged && h.BasicAttack().id == "st_twinshot" && h.DamageStat() == Stat.Dexterity, "a bow switches to Twin Shot");
+        var staff = Loot.Generate(rng, 4, Rarity.Common, null, forceBase: "staff");
+        h.inventory.Add(staff);
+        Check(h.Equip(staff) && h.AttackFamily() == WeaponFamily.Magic && h.BasicAttack().id == "hx_bolt" && h.AnimSet() == "magic", "a staff switches to Hex Bolt");
+        h.equipment[(int)EquipSlot.MainHand] = null;
+        var orb = Loot.Generate(rng, 4, Rarity.Common, null, forceBase: "orb");
+        h.inventory.Add(orb);
+        Check(h.Equip(orb) && h.AttackFamily() == WeaponFamily.Magic, "an orb alone is magic");
+
+        Check(h.Learn("st_volley") && h.skills.bar.Contains("st_volley"), "a tome grants Volley onto the bar");
+        Check(!h.Learn("st_volley"), "the same tome does not grant twice");
+        Check(h.Knows(SkillDb.Get("ic_cleave")) && h.Knows(SkillDb.Get("st_volley")), "a hybrid can know both families");
+
+        var old = GameState.NewGame(HeroClass.Stalker, "Mig", PetSpecies.Hound, "A", 3);
+        old.hero.GainXp(Balance.XpToNext(1) + Balance.XpToNext(2));
+        Check(old.hero.skills.RankUp(SkillDb.Get("st_volley"), old.hero.level), "the old stalker learned Volley");
+        string bowName = old.hero.Equipped(EquipSlot.MainHand).name;
+        old.version = 2;
+        old.Normalize();
+        Check(old.hero.classless && old.version == 3 && old.hero.Equipped(EquipSlot.MainHand).name == bowName, "migration keeps the bow and becomes one hero");
+        Check(old.hero.skills.Rank("st_twinshot") >= 1 && old.hero.skills.Rank("st_volley") >= 1, "former skills stay granted");
     }
 
     static void Dungeons()
@@ -331,7 +378,7 @@ static class Program
         s.quests.Add(fishQ);
         s.OnFish(FishDb.Get("minnow")); s.OnFish(FishDb.Get("minnow"));
         Check(fishQ.complete, "fish quest completes");
-        Check(s.version == 2, "new games are save version 2");
+        Check(s.version == 3, "new games are save version 3");
     }
 
     /// <summary>A bot clears floors 1..40: kills everything, keeps any item that raises sheet DPS
@@ -419,7 +466,8 @@ static class Program
         const string oldSave = "{\"version\":1,\"seed\":7,\"difficulty\":6,\"hero\":{\"name\":\"Old\",\"heroClass\":0,\"level\":12},\"depth\":4,\"deepest\":9}";
         var migrated = JsonSerializer.Deserialize<GameState>(oldSave, opts);
         migrated.Normalize();
-        Check(migrated.version == 2 && migrated.hero.level == 12 && migrated.depth == 4 && migrated.deepest == 9, "a version 1 save with a difficulty field still loads");
+        Check(migrated.version == 3 && migrated.hero.classless && migrated.hero.level == 12 && migrated.depth == 4 && migrated.deepest == 9, "a version 1 save with a difficulty field still loads");
+        Check(migrated.hero.skills.Rank("ic_cleave") == 1, "a migrated ironclad is granted Cleave");
         string rewritten = JsonSerializer.Serialize(migrated, opts);
         Check(!rewritten.Contains("difficulty"), "rewritten saves omit difficulty");
     }
@@ -583,6 +631,13 @@ static class Program
         Check(DesignTable.HopMm == 550 && DesignTable.CastMs == 700, "presentation anchors");
         Check(DesignTable.GemArt("cinder_1") == "gem_ruby_chipped" && DesignTable.GemArt("salt_5") == "gem_sapphire_royal", "gem art names");
         Check(DesignTable.WeaponKey(HeroClass.Hexweaver, "staff") == "hexweaver_weapon_1", "staff model");
+        foreach (var row in SpecRows("### T.attack"))
+        {
+            string sample = row[1].Split(',')[0].Trim();
+            var got = DesignTable.AttackFor(sample, null);
+            Check(got.Id == row[0] && got.BasicSkill == row[2] && got.AnimSet == row[3] && got.Scale.ToString() == row[4], "attack " + row[0]);
+        }
+        Check(DesignTable.AttackFor(null, "orb").Id == "magic", "an orb is a magic weapon");
         Check(DesignTable.BeamHex("legendary") == "#BF642F" && DesignTable.BeamRelMilli("common") == 350, "beam tint and height");
         foreach (var row in SpecRows("### T.grip"))
         {

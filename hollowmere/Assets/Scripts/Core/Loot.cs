@@ -208,6 +208,19 @@ namespace Hollowmere.Core
             }
         }
 
+        public static Item Tome(string skillId)
+        {
+            var s = SkillDb.Get(skillId);
+            return new Item { uid = "tome_" + skillId, kind = ItemKind.Tome, baseId = "tome", skillId = skillId, name = (s?.name ?? "Skill") + " Tome", stack = 1, rarity = Rarity.Magic };
+        }
+
+        public static Item RuneItem(string skillId, string runeId)
+        {
+            var s = SkillDb.Get(skillId);
+            var rune = s?.runes.FirstOrDefault(r => r.id == runeId);
+            return new Item { uid = "rune_" + runeId, kind = ItemKind.Rune, baseId = runeId, skillId = skillId, name = (rune?.name ?? "Rune") + " Rune", stack = 1, rarity = Rarity.Rare };
+        }
+
         public static Item Potion(int count = 1) => new Item { uid = "potion", kind = ItemKind.Potion, baseId = "potion", name = "Health Potion", stack = count };
         public static Item TownPortal(int count = 1) => new Item { uid = "portal", kind = ItemKind.TownPortal, baseId = "portal", name = "Town Portal Scroll", stack = count };
         public static Item Fish(string fishId, int count = 1)
@@ -244,6 +257,20 @@ namespace Hollowmere.Core
                 drop.gold = (int)Math.Round((3 + monsterLevel * 2.2f) * rng.Range(0.7f, 1.3f) * (1 + gf / 100f)
                     * (src == LootSource.Boss ? 12 : src == LootSource.Elite ? 4 : src == LootSource.Champion ? 2.5f : src == LootSource.Chest ? 3 : 1));
             if (rng.Chance(src == LootSource.Normal ? 0.03f : 0.3f)) drop.potions = 1;
+            if (src >= LootSource.Elite && rng.Chance(src == LootSource.Boss ? 0.35f : 0.12f))
+            {
+                var pool = SkillDb.All.Where(sk => sk.shape != SkillShape.Passive && !sk.primary).ToList();
+                if (pool.Count > 0) drop.items.Add(Tome(rng.Pick(pool).id));
+            }
+            if (src == LootSource.Boss && rng.Chance(0.2f))
+            {
+                var pool = SkillDb.All.Where(sk => sk.runes.Count > 0).ToList();
+                if (pool.Count > 0)
+                {
+                    var sk = rng.Pick(pool);
+                    drop.items.Add(RuneItem(sk.id, rng.Pick(sk.runes).id));
+                }
+            }
             return drop;
         }
 

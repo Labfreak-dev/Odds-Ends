@@ -55,91 +55,313 @@ namespace Hollowmere
         {
             var gm = GameManager.I;
             var h = gm.State.hero;
-            var body = ui.Modal("bag", $"{h.name} — {h.inventory.Count}/{Balance.InventorySize}", new Vector2(0.02f, 0.03f), new Vector2(0.98f, 0.97f), onClose: gm.OnEquipmentChanged);
+            var root = ui.Fullscreen("bag");
             if (selected != null && !h.inventory.Contains(selected) && !h.equipment.Contains(selected)) { selected = null; selectedSlot = null; }
 
-            // ---- paper doll
-            var doll = Ui.Rect(body, "doll", Vector2.zero, new Vector2(0.3f, 1), Vector2.zero, new Vector2(-8, 0));
-            var dg = Ui.Grid(doll, new Vector2(160, 104), 6);
-            foreach (EquipSlot es in Enum.GetValues(typeof(EquipSlot)))
+            var frame = ArtDrop.Sprite("inv_screen_frame");
+            if (frame != null)
             {
-                if (es == EquipSlot.Count) continue;
-                var e = es;
+                var plate = root.GetComponent<Image>() ?? root.gameObject.AddComponent<Image>();
+                plate.sprite = frame; plate.type = Image.Type.Simple; plate.color = Color.white; plate.raycastTarget = false;
+            }
+            else Ui.Box(root, new Color(0.04f, 0.035f, 0.03f, 0.97f), false);
+            var stageHolder = new GameObject("stageLink");
+            stageHolder.transform.SetParent(root, false);
+            var link = stageHolder.AddComponent<ReleaseWith>();
+
+            RectTransform At(string id)
+            {
+                var r = DesignTable.UiRect("inventory", id);
+                return Ui.Dp(root, id, r.X, r.Y, r.W, r.H);
+            }
+
+            var heroActor = HeroActor.I;
+            var st = heroActor != null ? heroActor.stats : gm.State.Stats();
+            Ui.Label(At("header"), $"<b>{h.name}</b>  Level {h.level}\n<color=#ffe25a>DPS {Fx.Short(h.SheetDps(st))}</color>  Life {Fx.Short(h.MaxLife(st))}  {h.gold:N0} gold", 22, TextAnchor.MiddleCenter, Ui.Gold);
+            PaintSlice(At("leftColumn"), "slot_column");
+            PaintSlice(At("rightColumn"), "slot_column");
+            var model = At("hero");
+            var rawGo = new GameObject("portrait", typeof(RectTransform));
+            rawGo.transform.SetParent(model, false);
+            var rawRt = (RectTransform)rawGo.transform;
+            rawRt.anchorMin = Vector2.zero; rawRt.anchorMax = Vector2.one;
+            rawRt.offsetMin = new Vector2(8, 8); rawRt.offsetMax = new Vector2(-8, -8);
+            var raw = rawGo.AddComponent<RawImage>();
+            raw.raycastTarget = false;
+            link.extra = InventoryStage.Build(h.heroClass, raw).gameObject;
+
+            foreach (var d in DesignTable.Doll)
+            {
+                var slotId = d.Id;
+                var es = SlotOf(slotId);
+                var cell = Ui.Dp(root, slotId, d.X, d.Y, d.W, d.H);
+                if (es == EquipSlot.Count)
+                {
+                    var locked = ItemUi.Cell(cell, null, false, () => ui.Toast("That slot is not open yet."), "");
+                    Stretch(locked);
+                    SkinGearSlot(locked, null, slotId);
+                    continue;
+                }
                 var it = h.Equipped(es);
-                ItemUi.Cell(dg, it, selectedSlot == es, () => { selected = h.Equipped(e); selectedSlot = e; Show(ui); }, es.ToString());
+                var slotBtn = ItemUi.Cell(cell, it, selectedSlot == es, () =>
+                {
+                    var worn = h.Equipped(es);
+                    selected = worn;
+                    selectedSlot = worn != null ? es : (EquipSlot?)null;
+                    Sfx.Bag("hover_tick");
+                    Show(ui);
+                }, "");
+                Stretch(slotBtn);
+                SkinGearSlot(slotBtn, it, slotId);
             }
-            var hero = HeroActor.I;
-            var st = hero != null ? hero.stats : gm.State.Stats();
-            var statBox = Ui.Rect(dg, "stats", Vector2.zero, Vector2.one);
-            Ui.Label(statBox, $"<color=#ffe25a>DPS {Fx.Short(h.SheetDps(st))}</color>\nLife {Fx.Short(h.MaxLife(st))}\nArmor {st[Stat.Armor]:0}", 20, TextAnchor.UpperLeft);
 
-            // ---- bag
-            var bag = Ui.Rect(body, "bag", new Vector2(0.3f, 0), new Vector2(0.64f, 1), new Vector2(8, 80), new Vector2(-8, 0));
-            var grid = Ui.Grid(bag, new Vector2(120, 104), 6);
-            foreach (var it in h.inventory)
+            var tabs = At("tabs");
+            var equipTab = Ui.Button(tabs, "Equipment", () => { }, Ui.ButtonHot, 22);
+            var cosTab = Ui.Button(tabs, "Cosmetics", () => ui.Toast("Cosmetics are not available yet."), Ui.ButtonC, 22);
+            SplitPair(equipTab, cosTab);
+
+            PaintSlice(At("bag"), "bag_panel");
+            var close = At("close");
+            var closeBtn = Ui.Button(close, "", () => { Sfx.Bag("bag_close"); ui.Close(root.gameObject); gm.OnEquipmentChanged(); }, new Color(0.45f, 0.15f, 0.12f), 28, UiSfx.Back);
+            Stretch(closeBtn);
+            var closeArt = ArtDrop.Sprite("close_x");
+            if (closeArt != null)
             {
-                var itx = it;
-                ItemUi.Cell(grid, it, it == selected, () => { selected = itx; selectedSlot = null; Show(ui); });
+                var ci = closeBtn.GetComponent<Image>();
+                ci.sprite = closeArt; ci.type = Image.Type.Simple; ci.color = Color.white;
             }
-            var bagBtns = Ui.Rect(body, "bagBtns", new Vector2(0.3f, 0), new Vector2(0.64f, 0), new Vector2(8, 0), new Vector2(-8, 70));
-            var hl = bagBtns.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.spacing = 8; hl.childControlWidth = true; hl.childControlHeight = true;
-            Ui.Button(bagBtns, "Sort", () => { h.inventory = h.inventory.OrderBy(i => i.kind).ThenByDescending(i => i.rarity).ThenBy(i => i.Base?.slot).ToList(); Show(ui); }, Ui.ButtonC, 24);
-            Ui.Button(bagBtns, $"Gold {h.gold:N0}", null, new Color(0.15f, 0.13f, 0.1f), 24).interactable = false;
 
-            // ---- tooltip + actions
-            var side = Ui.Rect(body, "side", new Vector2(0.64f, 0), Vector2.one, new Vector2(8, 0), Vector2.zero);
-            Ui.Box(side, Ui.PanelLight);
-            var tip = Ui.Rect(side, "tip", Vector2.zero, Vector2.one, new Vector2(10, 230), new Vector2(-10, -10));
-            if (selected == null)
+            var grid = DesignTable.UiRect("inventory", "grid");
+            var cellSize = DesignTable.UiRect("inventory", "gridCell");
+            int pitch = cellSize.W + DesignTable.BagGap;
+            int capacity = DesignTable.BagCapacity;
+            int n = DesignTable.BagColumns * DesignTable.BagRows;
+            for (int i = 0; i < n; i++)
             {
-                Ui.Label(tip, "Tap an item to inspect it.\n\nItems are compared against what you wear: <color=#4cff4c>green</color> is better.\n\nGive junk to your companion (Pet) to sell without leaving the dungeon.", 25, TextAnchor.UpperLeft, new Color(0.75f, 0.72f, 0.66f));
-                return;
+                int col = i % DesignTable.BagColumns;
+                int row = i / DesignTable.BagColumns;
+                int x = grid.X + col * pitch;
+                int y = grid.Y + row * pitch;
+                var cell = Ui.Dp(root, "cell" + i, x, y, cellSize.W, cellSize.H);
+                if (i >= capacity)
+                {
+                    Ui.Box(cell, new Color(0.05f, 0.05f, 0.05f, 0.85f), true);
+                    Ui.Label(cell, "<color=#555555>sealed</color>", 18, TextAnchor.MiddleCenter);
+                    continue;
+                }
+                if (i >= h.inventory.Count)
+                {
+                    Ui.Box(cell, new Color(0.1f, 0.09f, 0.08f, 0.9f), true);
+                    continue;
+                }
+                var itx = h.inventory[i];
+                Stretch(ItemUi.Cell(cell, itx, selectedSlot == null && itx == selected, () =>
+                {
+                    selected = itx;
+                    selectedSlot = null;
+                    Sfx.Bag("hover_tick");
+                    Show(ui);
+                }));
             }
-            ItemUi.Tooltip(tip, selected, h, selectedSlot == null);
-            var acts = Ui.Rect(side, "acts", Vector2.zero, new Vector2(1, 0), new Vector2(10, 10), new Vector2(-10, 220));
-            var ag = acts.gameObject.AddComponent<GridLayoutGroup>();
-            ag.cellSize = new Vector2(250, 66); ag.spacing = new Vector2(8, 8);
 
+            var bottom = At("bottom");
+            var sortBtn = Ui.Button(bottom, "Sort", () =>
+            {
+                h.inventory = h.inventory.OrderBy(i => i.kind).ThenByDescending(i => i.rarity).ThenBy(i => i.Base?.slot).ToList();
+                Sfx.Bag("item_move");
+                Show(ui);
+            }, Ui.ButtonC, 22);
+            var sortRt = (RectTransform)sortBtn.transform;
+            sortRt.anchorMin = Vector2.zero; sortRt.anchorMax = new Vector2(0.34f, 1f);
+            sortRt.offsetMin = Vector2.zero; sortRt.offsetMax = new Vector2(-4f, 0f);
+            var acts = Ui.Rect(bottom, "acts", new Vector2(0.34f, 0f), Vector2.one, new Vector2(4f, 0f), Vector2.zero);
+            var buttons = new List<(string label, Action fn, Color color)>();
             var sel = selected;
             if (selectedSlot != null)
             {
-                Ui.Button(acts, "Unequip", () => { if (!h.Unequip(selectedSlot.Value)) ui.Toast("Bag is full."); selectedSlot = null; gm.OnEquipmentChanged(); Show(ui); });
-                return;
+                buttons.Add(("Unequip", () =>
+                {
+                    if (!h.Unequip(selectedSlot.Value)) { ui.Toast("Bag is full."); Sfx.Bag("error_bag_full"); }
+                    else Sfx.Bag("item_move");
+                    selectedSlot = null;
+                    gm.OnEquipmentChanged();
+                    Show(ui);
+                }, Ui.ButtonC));
             }
-            switch (sel.kind)
+            else if (sel != null)
             {
-                case ItemKind.Equipment:
-                    if (h.CanEquip(sel))
-                    {
-                        if (sel.Base.slot == ItemSlot.Ring)
+                switch (sel.kind)
+                {
+                    case ItemKind.Equipment:
+                        if (h.CanEquip(sel))
                         {
-                            Ui.Button(acts, "Wear (ring 1)", () => { Equip(h, sel, EquipSlot.Ring1, ui); });
-                            Ui.Button(acts, "Wear (ring 2)", () => { Equip(h, sel, EquipSlot.Ring2, ui); });
+                            if (sel.Base.slot == ItemSlot.Ring)
+                            {
+                                buttons.Add(("Ring 1", () => Equip(h, sel, EquipSlot.Ring1, ui), new Color(0.25f, 0.45f, 0.2f)));
+                                buttons.Add(("Ring 2", () => Equip(h, sel, EquipSlot.Ring2, ui), new Color(0.25f, 0.45f, 0.2f)));
+                            }
+                            else buttons.Add(("Equip", () => Equip(h, sel, null, ui), new Color(0.25f, 0.45f, 0.2f)));
                         }
-                        else Ui.Button(acts, "Equip", () => Equip(h, sel, null, ui), new Color(0.25f, 0.45f, 0.2f));
-                    }
-                    Ui.Button(acts, sel.junk ? "Unmark junk" : "Mark junk", () => { sel.junk = !sel.junk; Show(ui); });
-                    Ui.Button(acts, "Give to pet", () => { if (!gm.GiveToPet(sel)) ui.Toast(gm.State.pet.Away ? "Your companion is away." : "Saddlebags are full."); selected = null; Show(ui); });
-                    break;
-                case ItemKind.Fish:
-                    var f = FishDb.Get(sel.fishId);
-                    Ui.Button(acts, f?.effect == FishEffect.PetForm ? "Feed to pet" : "Eat", () => { gm.UseFish(sel, true); Show(ui); }, new Color(0.25f, 0.4f, 0.55f));
-                    Ui.Button(acts, "Give to pet (sell)", () => { if (!gm.GiveToPet(sel)) ui.Toast("Can't right now."); selected = null; Show(ui); });
-                    break;
-                case ItemKind.Potion:
-                    Ui.Button(acts, "Drink", () => { HeroActor.I?.DrinkPotion(); Show(ui); });
-                    break;
-                case ItemKind.TownPortal:
-                    Ui.Button(acts, "Read", () => { ui.CloseAll(); gm.UseTownPortal(); });
-                    break;
+                        buttons.Add((sel.junk ? "Unmark" : "Junk", () => { sel.junk = !sel.junk; Show(ui); }, Ui.ButtonC));
+                        buttons.Add(("To pet", () =>
+                        {
+                            if (!gm.GiveToPet(sel)) ui.Toast(gm.State.pet.Away ? "Your companion is away." : "Saddlebags are full.");
+                            selected = null;
+                            Show(ui);
+                        }, Ui.ButtonC));
+                        break;
+                    case ItemKind.Fish:
+                        var fish = FishDb.Get(sel.fishId);
+                        buttons.Add((fish?.effect == FishEffect.PetForm ? "Feed" : "Eat", () => { gm.UseFish(sel, true); Show(ui); }, new Color(0.25f, 0.4f, 0.55f)));
+                        buttons.Add(("To pet", () => { if (!gm.GiveToPet(sel)) ui.Toast("Can't right now."); selected = null; Show(ui); }, Ui.ButtonC));
+                        break;
+                    case ItemKind.Potion:
+                        buttons.Add(("Drink", () => { HeroActor.I?.DrinkPotion(); Show(ui); }, new Color(0.45f, 0.16f, 0.16f)));
+                        break;
+                    case ItemKind.TownPortal:
+                        buttons.Add(("Read", () => { ui.CloseAll(); gm.UseTownPortal(); }, Ui.ButtonHot));
+                        break;
+                }
+                buttons.Add(("Drop", () =>
+                {
+                    h.inventory.Remove(sel);
+                    if (HeroActor.I != null) Pickup.DropItem(sel, HeroActor.I.Pos + HeroActor.I.transform.forward * 2);
+                    Sfx.Bag("item_discard");
+                    selected = null;
+                    Show(ui);
+                }, new Color(0.4f, 0.15f, 0.12f)));
             }
-            Ui.Button(acts, "Drop", () => { h.inventory.Remove(sel); if (HeroActor.I != null) Pickup.DropItem(sel, HeroActor.I.Pos + HeroActor.I.transform.forward * 2); selected = null; Show(ui); }, new Color(0.4f, 0.15f, 0.12f));
+            PlaceRow(acts, buttons);
+
+            if (sel != null)
+            {
+                var tip = At("tooltip");
+                PaintSlice(tip, "tooltip_frame");
+                var thead = Ui.At(tip, "thead", new Vector2(0f, 1f), new Vector2(16f, -12f), new Vector2(500f, 64f));
+                var thi = thead.gameObject.AddComponent<Image>();
+                var headerArt = ArtDrop.Sprite("tooltip_header");
+                if (headerArt != null) { thi.sprite = headerArt; thi.type = Image.Type.Sliced; }
+                thi.color = ArtDrop.RarityTint(sel.rarity.ToString());
+                var inner = Ui.Rect(tip, "inner", Vector2.zero, Vector2.one, new Vector2(20, 20), new Vector2(-20, -88));
+                ItemUi.Tooltip(inner, sel, h, selectedSlot == null);
+            }
         }
+
+        static void Stretch(Component c)
+        {
+            var rt = (RectTransform)c.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+        }
+
+        static void SplitPair(Button left, Button right)
+        {
+            var a = (RectTransform)left.transform;
+            var b = (RectTransform)right.transform;
+            a.anchorMin = new Vector2(0f, 0f); a.anchorMax = new Vector2(0.5f, 1f);
+            a.offsetMin = Vector2.zero; a.offsetMax = new Vector2(-4f, 0f);
+            b.anchorMin = new Vector2(0.5f, 0f); b.anchorMax = Vector2.one;
+            b.offsetMin = new Vector2(4f, 0f); b.offsetMax = Vector2.zero;
+        }
+
+        static void PlaceRow(RectTransform row, List<(string label, Action fn, Color color)> buttons)
+        {
+            int n = buttons.Count;
+            if (n == 0) return;
+            float gap = 8f;
+            for (int i = 0; i < n; i++)
+            {
+                var b = buttons[i];
+                var btn = Ui.Button(row, b.label, b.fn, b.color, 20);
+                var rt = (RectTransform)btn.transform;
+                float u0 = i / (float)n;
+                float u1 = (i + 1) / (float)n;
+                rt.anchorMin = new Vector2(u0, 0f);
+                rt.anchorMax = new Vector2(u1, 1f);
+                rt.offsetMin = new Vector2(i == 0 ? 0f : gap * 0.5f, 0f);
+                rt.offsetMax = new Vector2(i == n - 1 ? 0f : -gap * 0.5f, 0f);
+            }
+        }
+
+        static void PaintSlice(RectTransform rt, string sprite)
+        {
+            var s = ArtDrop.Sprite(sprite);
+            var img = rt.GetComponent<Image>() ?? rt.gameObject.AddComponent<Image>();
+            if (s == null) { img.color = new Color(0.07f, 0.06f, 0.05f, 0.85f); return; }
+            img.sprite = s; img.type = Image.Type.Sliced; img.color = Color.white; img.raycastTarget = false;
+        }
+
+        static void SkinGearSlot(Button b, Item it, string slotId)
+        {
+            var img = b.GetComponent<Image>();
+            var plate = !Item.IsNone(it) ? ArtDrop.Sprite("slot_" + it.rarity.ToString().ToLowerInvariant()) : ArtDrop.Sprite("slot_normal");
+            plate = plate ?? ArtDrop.Sprite("slot_normal");
+            if (plate != null && img != null) { img.sprite = plate; img.type = Image.Type.Sliced; img.color = Color.white; }
+            if (Item.IsNone(it) && slotId != null)
+            {
+                string ghostId = slotId == "belt" ? "belt" : slotId == "mainhand" ? "mainhand" : slotId == "ring_l" || slotId == "ring_r" ? "ring" : slotId;
+                var ghost = ArtDrop.Sprite("ghost_" + ghostId);
+                if (ghost != null)
+                {
+                    var g = Ui.At(b.transform, "ghost", new Vector2(0.5f, 0.58f), Vector2.zero, new Vector2(68f, 68f));
+                    var gi = g.gameObject.AddComponent<Image>();
+                    gi.sprite = ghost; gi.color = new Color(0.9f, 0.86f, 0.78f, 0.92f); gi.raycastTarget = false; gi.preserveAspect = true;
+                }
+                var txt = b.GetComponentInChildren<Text>();
+                if (txt != null)
+                {
+                    txt.alignment = TextAnchor.LowerCenter;
+                    txt.fontSize = 18;
+                    txt.color = new Color(0.95f, 0.9f, 0.8f, 1f);
+                    txt.text = SlotLabel(slotId);
+                }
+            }
+        }
+
+        static string SlotLabel(string id) => id switch
+        {
+            "head" => "Head",
+            "shoulders" => "Shoulders",
+            "chest" => "Chest",
+            "wrists" => "Wrists",
+            "hands" => "Hands",
+            "belt" => "Belt",
+            "legs" => "Legs",
+            "amulet" => "Amulet",
+            "ring_l" => "Ring",
+            "ring_r" => "Ring",
+            "cloak" => "Cloak",
+            "feet" => "Feet",
+            "mainhand" => "Weapon",
+            "offhand" => "Off-hand",
+            _ => id ?? "",
+        };
+
+        static EquipSlot SlotOf(string id) => id switch
+        {
+            "head" => EquipSlot.Head,
+            "shoulders" => EquipSlot.Shoulders,
+            "chest" => EquipSlot.Chest,
+            "hands" => EquipSlot.Hands,
+            "wrists" => EquipSlot.Wrists,
+            "belt" => EquipSlot.Waist,
+            "legs" => EquipSlot.Legs,
+            "feet" => EquipSlot.Feet,
+            "amulet" => EquipSlot.Amulet,
+            "ring_l" => EquipSlot.Ring1,
+            "ring_r" => EquipSlot.Ring2,
+            "mainhand" => EquipSlot.MainHand,
+            "offhand" => EquipSlot.OffHand,
+            _ => EquipSlot.Count,
+        };
 
         static void Equip(Hero h, Item it, EquipSlot? slot, UiRoot ui)
         {
-            if (!h.Equip(it, slot)) ui.Toast("No room in your bag for what comes off.");
-            else { AudioHub.Play("sfx_swing", 0.4f); selected = null; }
+            if (!h.Equip(it, slot)) { ui.Toast("No room in your bag for what comes off."); Sfx.Bag("error_bag_full"); }
+            else { Sfx.Bag("equip"); selected = null; }
             GameManager.I.OnEquipmentChanged();
             Show(ui);
         }
@@ -300,6 +522,97 @@ namespace Hollowmere
                 else b = Ui.Button(row, "Abandon", () => { s.quests.Remove(qq); Town.RefreshQuests(s, gm.Rng); Show(ui, TownTab.Quests); }, new Color(0.35f, 0.15f, 0.12f));
                 Ui.Size(b, -1, 220, 0);
             }
+        }
+    }
+
+    /// <summary>Destroys a world-space object when the modal that owns it goes away.</summary>
+    public sealed class ReleaseWith : MonoBehaviour
+    {
+        public GameObject extra;
+        void OnDestroy() { if (extra != null) Destroy(extra); }
+    }
+
+    /// <summary>A small stage, off the playfield, that renders the class model into the inventory.</summary>
+    public sealed class InventoryStage : MonoBehaviour
+    {
+        RenderTexture rt;
+        Transform pivot;
+        Camera cam;
+        int framed;
+
+        public static InventoryStage Build(HeroClass cls, RawImage target)
+        {
+            var root = new GameObject("InventoryStage");
+            root.transform.position = new Vector3(4000f, 0f, 4000f);
+            var stage = root.AddComponent<InventoryStage>();
+            var tex = new RenderTexture(512, 640, 16) { name = "invHero" };
+            stage.rt = tex;
+            var camGo = new GameObject("cam");
+            camGo.transform.SetParent(root.transform, false);
+            camGo.transform.localPosition = new Vector3(0f, 1.15f, -4.8f);
+            var cam = camGo.AddComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.05f, 0.045f, 0.055f, 1f);
+            cam.fieldOfView = 24f;
+            cam.nearClipPlane = 0.05f;
+            cam.farClipPlane = 16f;
+            cam.targetTexture = tex;
+            cam.depth = -10f;
+            cam.cullingMask = 1 << 9;
+            if (Camera.main != null) Camera.main.cullingMask &= ~(1 << 9);
+            var sun = new GameObject("invSun").AddComponent<Light>();
+            sun.transform.SetParent(root.transform, false);
+            sun.type = LightType.Directional;
+            sun.transform.rotation = Quaternion.Euler(36f, 8f, 0f);
+            sun.intensity = 1.15f;
+            sun.color = new Color(1f, 0.9f, 0.78f);
+            sun.cullingMask = 1 << 9;
+            var fill = new GameObject("invFill").AddComponent<Light>();
+            fill.transform.SetParent(root.transform, false);
+            fill.type = LightType.Directional;
+            fill.transform.rotation = Quaternion.Euler(12f, 190f, 0f);
+            fill.intensity = 0.28f;
+            fill.color = new Color(0.45f, 0.4f, 0.55f);
+            fill.cullingMask = 1 << 9;
+            var floorTint = new Color(0.2f, 0.17f, 0.15f);
+            var wallTint = new Color(0.1f, 0.09f, 0.1f);
+            Art.PlaceQuad(root.transform, "stageFloor", new Vector3(0f, 0f, 0.2f), Quaternion.identity, 4.4f, 3.6f, Art.GroundMat("cobble", floorTint), true);
+            Art.PlaceQuad(root.transform, "stageBackdrop", new Vector3(0f, 1.4f, 1.8f), Quaternion.identity, 4.8f, 3.4f, Art.GroundMat("crypt", wallTint), false);
+            var pivot = new GameObject("pivot").transform;
+            pivot.SetParent(root.transform, false);
+            stage.pivot = pivot;
+            Art.Animated(Art.HeroModelKey(cls), 1.8f, pivot);
+            foreach (var tr in root.GetComponentsInChildren<Transform>(true))
+                tr.gameObject.layer = 9;
+            camGo.layer = 9;
+            cam.transform.LookAt(root.transform.TransformPoint(new Vector3(0f, 0.95f, 0.1f)));
+            stage.cam = cam;
+            target.texture = tex;
+            target.color = Color.white;
+            return stage;
+        }
+
+        void LateUpdate()
+        {
+            if (pivot != null) pivot.Rotate(0f, 12f * Time.unscaledDeltaTime, 0f, Space.Self);
+            if (framed < 6)
+            {
+                framed++;
+                if (framed == 6 && cam != null && pivot != null && Art.MeshWorldBounds(pivot, out var b) && b.size.y > 1.1f && b.size.y < 2.6f)
+                {
+                    float dist = Mathf.Clamp(b.size.y * 2.35f, 4.2f, 6.2f);
+                    var look = b.center;
+                    cam.transform.position = look + new Vector3(0f, b.size.y * 0.05f, -dist);
+                    cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);
+                }
+            }
+        }
+
+        void OnDestroy()
+        {
+            if (rt == null) return;
+            rt.Release();
+            Destroy(rt);
         }
     }
 }

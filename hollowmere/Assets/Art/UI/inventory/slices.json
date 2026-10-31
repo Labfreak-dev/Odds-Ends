@@ -1,0 +1,633 @@
+{
+ "inventory_frame": {
+  "size": [
+   768,
+   768
+  ],
+  "border": {
+   "left": 200,
+   "right": 200,
+   "top": 200,
+   "bottom": 200
+  },
+  "note": "main window; iron band 60px, ornate corners within 200px; content inset ~40px"
+ },
+ "stats_panel": {
+  "size": [
+   640,
+   640
+  ],
+  "border": {
+   "left": 172,
+   "right": 172,
+   "top": 172,
+   "bottom": 172
+  },
+  "note": "leather-lined stats window; content inset ~34px"
+ },
+ "tooltip_frame": {
+  "size": [
+   512,
+   512
+  ],
+  "border": {
+   "left": 116,
+   "right": 116,
+   "top": 116,
+   "bottom": 116
+  },
+  "note": "tooltip body; put tooltip_header strip at top inside ~28px inset"
+ },
+ "slot_normal": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "112px grid cell"
+ },
+ "slot_hover": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "112px grid cell"
+ },
+ "slot_selected": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "112px grid cell"
+ },
+ "slot_locked": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "112px grid cell"
+ },
+ "tooltip_header": {
+  "size": [
+   512,
+   72
+  ],
+  "border": {
+   "left": 30,
+   "right": 30,
+   "top": 0,
+   "bottom": 0
+  },
+  "note": "GREYSCALE: multiply-tint by rarity colour in code (Image.color)"
+ },
+ "divider": {
+  "size": [
+   480,
+   32
+  ],
+  "border": {
+   "left": 40,
+   "right": 40,
+   "top": 0,
+   "bottom": 0
+  },
+  "note": "centre gem: use Sliced with large L/R so centre stays; or Simple"
+ },
+ "stats_row": {
+  "size": [
+   480,
+   44
+  ],
+  "border": {
+   "left": 12,
+   "right": 12,
+   "top": 6,
+   "bottom": 6
+  }
+ },
+ "stats_row_alt": {
+  "size": [
+   480,
+   44
+  ],
+  "border": {
+   "left": 12,
+   "right": 12,
+   "top": 6,
+   "bottom": 6
+  }
+ },
+ "panel_header": {
+  "size": [
+   560,
+   88
+  ],
+  "border": {
+   "left": 48,
+   "right": 48,
+   "top": 0,
+   "bottom": 0
+  },
+  "note": "title banner for inventory/stats/equipment"
+ },
+ "tab_active": {
+  "size": [
+   200,
+   84
+  ],
+  "border": {
+   "left": 28,
+   "right": 28,
+   "top": 24,
+   "bottom": 8
+  }
+ },
+ "tab_inactive": {
+  "size": [
+   200,
+   84
+  ],
+  "border": {
+   "left": 28,
+   "right": 28,
+   "top": 24,
+   "bottom": 8
+  }
+ },
+ "corner_tl": {
+  "size": [
+   128,
+   128
+  ],
+  "note": "overlay on panel corners"
+ },
+ "corner_tr": {
+  "size": [
+   128,
+   128
+  ],
+  "note": "overlay on panel corners"
+ },
+ "corner_bl": {
+  "size": [
+   128,
+   128
+  ],
+  "note": "overlay on panel corners"
+ },
+ "corner_br": {
+  "size": [
+   128,
+   128
+  ],
+  "note": "overlay on panel corners"
+ },
+ "crest_top": {
+  "size": [
+   560,
+   132
+  ],
+  "note": "overlay centred on top edge of inventory/paper-doll frame"
+ },
+ "paperdoll_panel": {
+  "size": [
+   720,
+   1040
+  ],
+  "note": "Simple (not sliced). Slot centres/sizes in slots; place slot_* sprite + ghost/ghost_<type>.png (96px, alpha ~0.5) when empty",
+  "slots": {
+   "head": {
+    "cx": 360,
+    "cy": 150,
+    "size": 112
+   },
+   "shoulders": {
+    "cx": 190,
+    "cy": 200,
+    "size": 112
+   },
+   "amulet": {
+    "cx": 530,
+    "cy": 200,
+    "size": 96
+   },
+   "cloak": {
+    "cx": 110,
+    "cy": 330,
+    "size": 112
+   },
+   "chest": {
+    "cx": 360,
+    "cy": 330,
+    "size": 128
+   },
+   "wrists": {
+    "cx": 610,
+    "cy": 330,
+    "size": 112
+   },
+   "hands": {
+    "cx": 110,
+    "cy": 480,
+    "size": 112
+   },
+   "belt": {
+    "cx": 360,
+    "cy": 500,
+    "size": 112
+   },
+   "ring_l": {
+    "cx": 610,
+    "cy": 470,
+    "size": 88
+   },
+   "ring_r": {
+    "cx": 610,
+    "cy": 580,
+    "size": 88
+   },
+   "legs": {
+    "cx": 360,
+    "cy": 650,
+    "size": 112
+   },
+   "feet": {
+    "cx": 360,
+    "cy": 800,
+    "size": 112
+   },
+   "mainhand": {
+    "cx": 140,
+    "cy": 820,
+    "size": 128
+   },
+   "offhand": {
+    "cx": 580,
+    "cy": 820,
+    "size": 128
+   }
+  }
+ },
+ "_meta": {
+  "units": "px",
+  "unity_border_order": "L,B,R,T in Sprite Editor",
+  "reference_resolution": [
+   2400,
+   1080
+  ],
+  "tint": "tooltip_header is greyscale: set Image.color to rarity colour. Suggested: common #D8D8D8, magic #6E9BFF, rare #FFD84A, legendary #FF8C28, set #4CE06A, unique #3CDCD2, mythic #E8403A",
+  "rarity_colors": {
+   "common": "#FFFFFF",
+   "magic": "#6969FF",
+   "rare": "#FFFF00",
+   "legendary": "#BF642F",
+   "set": "#00FF00",
+   "unique": "#3CDCD2",
+   "mythic": "#E8403A"
+  }
+ },
+ "button_red": {
+  "size": [
+   420,
+   128
+  ],
+  "border": {
+   "left": 48,
+   "right": 48,
+   "top": 40,
+   "bottom": 40
+  },
+  "note": "button plate, no text; label in Cinzel; pressed = darken + 1-2px down"
+ },
+ "button_dark": {
+  "size": [
+   420,
+   128
+  ],
+  "border": {
+   "left": 48,
+   "right": 48,
+   "top": 40,
+   "bottom": 40
+  },
+  "note": "button plate, no text; label in Cinzel; pressed = darken + 1-2px down"
+ },
+ "close_x": {
+  "size": [
+   96,
+   96
+  ],
+  "note": "close button, 96px"
+ },
+ "slot_rarity_wash": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "white radial wash, overlay on slot_normal below the icon, Image.color = rarity colour (alpha ~0.6)"
+ },
+ "slot_common": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "pre-tinted filled slot (common)"
+ },
+ "slot_magic": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "pre-tinted filled slot (magic)"
+ },
+ "slot_rare": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "pre-tinted filled slot (rare)"
+ },
+ "slot_legendary": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "pre-tinted filled slot (legendary)"
+ },
+ "slot_set": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "pre-tinted filled slot (set)"
+ },
+ "slot_unique": {
+  "size": [
+   112,
+   112
+  ],
+  "border": {
+   "left": 22,
+   "right": 22,
+   "top": 22,
+   "bottom": 22
+  },
+  "note": "pre-tinted filled slot (unique)"
+ },
+ "slot_column": {
+  "size": [
+   240,
+   800
+  ],
+  "border": {
+   "left": 104,
+   "right": 104,
+   "top": 104,
+   "bottom": 104
+  },
+  "note": "vertical gear column behind 5-7 slots"
+ },
+ "bag_panel": {
+  "size": [
+   900,
+   900
+  ],
+  "border": {
+   "left": 184,
+   "right": 184,
+   "top": 184,
+   "bottom": 184
+  },
+  "note": "right-hand bag grid panel"
+ },
+ "inv_screen_frame": {
+  "size": [
+   2340,
+   1080
+  ],
+  "note": "Simple full-screen overlay, transparent centre; draw above the 3D hero RenderTexture, below panels"
+ },
+ "layout_2340x1080": {
+  "note": "Immortal-style: hero centre, gear columns left/right of hero, bag panel at right. Rects are [x,y,w,h] from top-left at 2340x1080 reference",
+  "regions": {
+   "screen": [
+    0,
+    0,
+    2340,
+    1080
+   ],
+   "hero_view": [
+    300,
+    110,
+    1080,
+    930
+   ],
+   "hero_model_anchor": [
+    840,
+    1000
+   ],
+   "left_column": [
+    90,
+    110,
+    220,
+    880
+   ],
+   "right_column": [
+    1400,
+    110,
+    220,
+    880
+   ],
+   "bag_panel": [
+    1640,
+    60,
+    660,
+    960
+   ],
+   "bag_grid": [
+    1690,
+    210,
+    560,
+    700
+   ],
+   "bag_grid_cell": 112,
+   "bag_grid_cols": 5,
+   "bag_grid_rows": 6,
+   "bag_tabs": [
+    1690,
+    120,
+    560,
+    72
+   ],
+   "bag_bottom_bar": [
+    1690,
+    930,
+    560,
+    64
+   ],
+   "header": [
+    600,
+    40,
+    480,
+    80
+   ],
+   "close_x": [
+    2214,
+    40,
+    96,
+    96
+   ],
+   "tooltip_card": [
+    800,
+    140,
+    540,
+    800
+   ]
+  },
+  "gear_slots": {
+   "head": {
+    "x": 144,
+    "y": 134,
+    "w": 112,
+    "h": 112
+   },
+   "shoulders": {
+    "x": 144,
+    "y": 254,
+    "w": 112,
+    "h": 112
+   },
+   "chest": {
+    "x": 144,
+    "y": 374,
+    "w": 112,
+    "h": 112
+   },
+   "wrists": {
+    "x": 144,
+    "y": 494,
+    "w": 112,
+    "h": 112
+   },
+   "hands": {
+    "x": 144,
+    "y": 614,
+    "w": 112,
+    "h": 112
+   },
+   "belt": {
+    "x": 144,
+    "y": 734,
+    "w": 112,
+    "h": 112
+   },
+   "legs": {
+    "x": 144,
+    "y": 854,
+    "w": 112,
+    "h": 112
+   },
+   "amulet": {
+    "x": 1454,
+    "y": 134,
+    "w": 112,
+    "h": 112
+   },
+   "ring_l": {
+    "x": 1454,
+    "y": 254,
+    "w": 112,
+    "h": 112
+   },
+   "ring_r": {
+    "x": 1454,
+    "y": 374,
+    "w": 112,
+    "h": 112
+   },
+   "cloak": {
+    "x": 1454,
+    "y": 494,
+    "w": 112,
+    "h": 112
+   },
+   "feet": {
+    "x": 1454,
+    "y": 614,
+    "w": 112,
+    "h": 112
+   },
+   "mainhand": {
+    "x": 1454,
+    "y": 734,
+    "w": 112,
+    "h": 112
+   },
+   "offhand": {
+    "x": 1454,
+    "y": 854,
+    "w": 112,
+    "h": 112
+   }
+  }
+ }
+}

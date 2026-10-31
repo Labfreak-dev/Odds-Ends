@@ -11,6 +11,7 @@ namespace Hollowmere
         static readonly List<Pickup> all = new List<Pickup>();
         public Item item;
         public int gold;
+        public bool globe;
         float bob, age;
 
         public static void DropItem(Item it, Vector3 at)
@@ -19,19 +20,28 @@ namespace Hollowmere
             p.item = it;
             var c = it.kind == ItemKind.Equipment ? Art.Rarity(it.rarity) : it.kind == ItemKind.Potion ? new Color(0.9f, 0.2f, 0.25f) : Art.Hex("#c9a14a");
             Art.Cube(p.transform, new Vector3(0, 0.25f, 0), new Vector3(0.45f, 0.18f, 0.3f), Art.Mat(c, it.rarity >= Rarity.Rare ? 1.2f : 0.3f), Quaternion.Euler(0, Random.Range(0, 360), 0));
-            if (it.rarity >= Rarity.Legendary)
+            if (it.kind == ItemKind.Equipment)
             {
-                Art.Cylinder(p.transform, new Vector3(0, 4, 0), new Vector3(0.25f, 4, 0.25f), Art.Mat(c, 2.5f));
+                float beam = (float)DesignTable.BeamHeight;
+                Art.Cylinder(p.transform, new Vector3(0, beam * 0.5f, 0), new Vector3(0.22f, beam * 0.5f, 0.22f), Art.Mat(c, 2.5f));
                 var l = new GameObject("glow").AddComponent<Light>();
                 l.transform.SetParent(p.transform, false);
                 l.transform.localPosition = Vector3.up;
                 l.color = c; l.range = 6; l.intensity = 2;
-                AudioHub.Play("sfx_legendary");
+                Fx.WorldLabel(p.transform, new Vector3(0, 1.2f, 0), it.name, c, 48, 0.04f);
+                if (it.rarity >= Rarity.Legendary) AudioHub.Play("sfx_legendary");
             }
-            if (it.rarity >= Rarity.Rare || it.kind != ItemKind.Equipment)
+            else if (it.kind != ItemKind.Equipment)
             {
-                Fx.WorldLabel(p.transform, new Vector3(0, 0.9f, 0), it.name, c, 48, 0.04f);
+                Fx.WorldLabel(p.transform, new Vector3(0, 1.2f, 0), it.name, c, 48, 0.04f);
             }
+        }
+
+        public static void DropGlobe(Vector3 at)
+        {
+            var p = Make(at);
+            p.globe = true;
+            Art.Sphere(p.transform, new Vector3(0, 0.35f, 0), Vector3.one * 0.35f, Art.Mat(new Color(0.85f, 0.12f, 0.14f), 1.6f));
         }
 
         public static void DropGold(int amount, Vector3 at)
@@ -69,7 +79,7 @@ namespace Hollowmere
                 var p = all[i];
                 if (p == null || p.age < 0.4f) continue;
                 float d = (p.transform.position - h.Pos).Flat().magnitude;
-                bool vacuum = p.gold > 0 || (p.item != null && p.item.kind != ItemKind.Equipment);
+                bool vacuum = p.gold > 0 || p.globe || (p.item != null && p.item.kind != ItemKind.Equipment);
                 if (d > (vacuum ? radius * 1.2f : 1.3f)) continue;
                 if (p.gold > 0)
                 {
@@ -80,13 +90,24 @@ namespace Hollowmere
                     float heal = h.Hero.LegendaryTotal(LegendaryEffect.GoldToLife);
                     if (heal > 0) h.Heal(h.maxLife * heal / 100f);
                 }
+                else if (p.globe)
+                {
+                    h.Heal(h.maxLife * (float)DesignTable.GlobeHealFraction);
+                    Fx.Text(p.transform.position, "Globe", new Color(1f, 0.35f, 0.3f), 0.8f);
+                    AudioHub.Play("sfx_gold", 0.35f);
+                }
                 else if (p.item != null)
                 {
                     if (!state.hero.AddItem(p.item))
                     {
-                        if (Time.frameCount % 120 == 0) GameManager.I.Toast("Inventory full! Send your companion to sell, or use a portal.");
+                        if (Time.frameCount % 120 == 0)
+                        {
+                            GameManager.I.Toast("Inventory full! Send your companion to sell, or use a portal.");
+                            Sfx.Bag("error_bag_full");
+                        }
                         continue;
                     }
+                    Sfx.Bag("item_pickup");
                     GameManager.I.OnPickedUp(p.item);
                 }
                 all.RemoveAt(i);
@@ -210,7 +231,7 @@ namespace Hollowmere
                         InteractKind.Merchant => "npc_merchant", InteractKind.Blacksmith => "npc_smith",
                         InteractKind.Mystic => "npc_mystic", InteractKind.Fisherman => "npc_fisher", _ => null,
                     };
-                    var model = npc != null ? Art.Model(npc, 1.75f, t) : null;
+                    var model = npc != null ? Art.Animated(npc, 1.75f, t) : null;
                     if (model == null && kind == InteractKind.QuestBoard)
                     {
                         Art.Cube(t, new Vector3(0, 1.2f, 0), new Vector3(1.8f, 1.2f, 0.12f), Art.Mat(new Color(0.55f, 0.4f, 0.25f)));
@@ -231,14 +252,19 @@ namespace Hollowmere
                             InteractKind.Mystic => new Color(0.5f, 0.25f, 0.6f), InteractKind.Gambler => new Color(0.2f, 0.45f, 0.35f),
                             _ => new Color(0.85f, 0.75f, 0.2f),
                         };
-                        Art.Humanoid(t, c, c * 0.6f, 1.75f, out var hand);
+                        var fig = Art.Humanoid(t, c, c * 0.6f, 1.75f, out var hand);
+                        fig.transform.localRotation = Quaternion.identity;
+                        var fit = fig.AddComponent<ModelFit>();
+                        fit.biped = true;
+                        fit.targetHeight = 1.75f;
+                        fig.AddComponent<PoseUpright>();
                         if (kind == InteractKind.Fisherman) Art.Weapon(hand, "rod", new Color(0.6f, 0.45f, 0.3f));
                         if (kind == InteractKind.Blacksmith) Art.Weapon(hand, "mace", Color.gray);
                     }
                     break;
             }
             if (!string.IsNullOrEmpty(label))
-                Fx.WorldLabel(t, new Vector3(0, 2.6f, 0), label, new Color(1f, 0.92f, 0.7f), 48, 0.05f);
+                Fx.WorldLabel(t, new Vector3(0.85f, 2.05f, 0), label, new Color(1f, 0.92f, 0.7f), 48, 0.05f);
         }
 
         void Glow(Color c)
@@ -251,12 +277,26 @@ namespace Hollowmere
     }
 
     /// <summary>Fixed-angle isometric-style follow camera, the classic dungeon crawler view.</summary>
+    [DefaultExecutionOrder(120)]
     public sealed class CameraRig : MonoBehaviour
     {
         public static float Yaw = 0f;
         public Transform follow;
         public float distance = 15f, pitch = 55f;
         Camera cam;
+        readonly List<Renderer> hidden = new List<Renderer>();
+        bool locked;
+        Vector3 lockedPos;
+        Quaternion lockedRot;
+
+        /// <summary>Stop following so a QA pass can watch the hero cross a fixed frame.</summary>
+        public void Lock(Vector3 pos, Quaternion rot)
+        {
+            locked = true;
+            lockedPos = pos;
+            lockedRot = rot;
+            transform.SetPositionAndRotation(pos, rot);
+        }
 
         public static CameraRig Create()
         {
@@ -275,14 +315,88 @@ namespace Hollowmere
 
         void LateUpdate()
         {
+            if (locked)
+            {
+                transform.SetPositionAndRotation(lockedPos, lockedRot);
+                return;
+            }
             if (follow == null) return;
             // Pull in on narrow (portrait-ish) screens so the hero stays readable.
             float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
             float d = distance * (aspect < 1.5f ? 1.15f : 1f);
             var rot = Quaternion.Euler(pitch, Yaw, 0);
             var targetPos = follow.position + Vector3.up * 1f - rot * Vector3.forward * d;
-            transform.position = Vector3.Lerp(transform.position, targetPos, 1 - Mathf.Exp(-10 * Time.unscaledDeltaTime));
+            transform.position = Vector3.Lerp(transform.position, targetPos, 1 - Mathf.Exp(-10 * Time.unscaledDeltaTime))
+                + CombatClock.Offset(Time.deltaTime);
             transform.rotation = rot;
+            HideOccluders();
+        }
+
+        /// <summary>Props that sit between the lens and the hero are hidden for the frame.
+        /// Characters, the floor and the bolt stay. A mesh the camera is inside of is hidden too.</summary>
+        void HideOccluders()
+        {
+            for (int i = 0; i < hidden.Count; i++)
+                if (hidden[i] != null) hidden[i].enabled = true;
+            hidden.Clear();
+            Vector3 eye = transform.position;
+            Vector3 chest = follow.position + Vector3.up * 1.15f;
+            foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (r == null || !r.enabled) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (KeepVisible(r)) continue;
+                var b = r.bounds;
+                if (!b.Contains(eye) && !SegmentHits(eye, chest, b, 0.35f)) continue;
+                r.enabled = false;
+                hidden.Add(r);
+            }
+        }
+
+        static bool KeepVisible(Renderer r)
+        {
+            if (r.GetComponent<TextMesh>() != null) return true;
+            Transform t = r.transform;
+            while (t != null)
+            {
+                string n = t.name;
+                if (n == "floor" || n == "walls" || n == "water" || n == "skirt" || n == "waterBlock" || n == "heroRing") return true;
+                if (t.GetComponent<HeroActor>() != null || t.GetComponent<PetActor>() != null) return true;
+                if (t.GetComponent<Projectile>() != null || t.GetComponent<FxLife>() != null) return true;
+                if (n.StartsWith("npc_") || n.StartsWith("hero_") || n.StartsWith("pet_") || n.StartsWith("mon_") || n.StartsWith("boss_"))
+                    return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        static bool SegmentHits(Vector3 a, Vector3 b, Bounds box, float pad)
+        {
+            var min = box.min - Vector3.one * pad;
+            var max = box.max + Vector3.one * pad;
+            var d = b - a;
+            float t0 = 0f, t1 = 1f;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                float origin = axis == 0 ? a.x : axis == 1 ? a.y : a.z;
+                float dir = axis == 0 ? d.x : axis == 1 ? d.y : d.z;
+                float bmin = axis == 0 ? min.x : axis == 1 ? min.y : min.z;
+                float bmax = axis == 0 ? max.x : axis == 1 ? max.y : max.z;
+                if (Mathf.Abs(dir) < 1e-6f)
+                {
+                    if (origin < bmin || origin > bmax) return false;
+                    continue;
+                }
+                float inv = 1f / dir;
+                float ta = (bmin - origin) * inv;
+                float tb = (bmax - origin) * inv;
+                if (ta > tb) { float s = ta; ta = tb; tb = s; }
+                if (ta > t0) t0 = ta;
+                if (tb < t1) t1 = tb;
+                if (t0 > t1) return false;
+            }
+            // Ignore a graze at the hero's chest so the ring and nearby ground stay up.
+            return t0 < 0.92f;
         }
 
         public void Snap()

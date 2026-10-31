@@ -35,7 +35,10 @@ namespace Hollowmere
             DontDestroyOnLoad(ui.gameObject);
         }
 
-        void Start() => UiRoot.I.ShowTitle();
+        void Start()
+        {
+            if (!QaShot.RunIfRequested(this) && !QaFrames.RunIfRequested(this)) UiRoot.I.ShowTitle();
+        }
 
         // ====================== save / load ======================
 
@@ -78,6 +81,7 @@ namespace Hollowmere
         void ClearWorld()
         {
             UiRoot.I.CloseFishing();
+            FloorNav.Clear();
             Pickup.ClearAll();
             foreach (var a in Actor.All.ToList()) if (a != null) Destroy(a.gameObject);
             Actor.All.Clear();
@@ -109,16 +113,25 @@ namespace Hollowmere
             fishSpot.pool = map.pools[0];
             fishSpot.range = 3.2f;
             // Scenery
-            Art.Model("prop_well", 1.5f, root)?.transform.SetPositionAndRotation(World.ToWorld(new Int2(18, 7)), Quaternion.identity);
+            // North of the hero, off the camera-to-hero line. The old south-east tile sat in the
+            // foreground and a blown-up well mesh covered the top-right of the town shot.
+            Art.Model("prop_well", 1.5f, root)?.transform.SetPositionAndRotation(World.ToWorld(new Int2(24, 10)), Quaternion.identity);
             // A little dock out into the lake beside the Old Angler.
             var dock = Art.Model("prop_dock", 0.5f, root);
             if (dock != null) dock.transform.SetPositionAndRotation(World.ToWorld(marks['F']) + new Vector3(-World.T, -0.2f, 0), Quaternion.Euler(0, 90, 0));
-            for (int i = 0; i < 6; i++)
+            // Small canopies on the north wall, off the NPC tiles. The old row of 2 m green
+            // spheres sat on the mystic and the dealer and read as a figure lying at the top.
+            int[] treeX = { 6, 12, 18, 27 };
+            for (int i = 0; i < treeX.Length; i++)
             {
-                var tp = World.ToWorld(new Int2(2 + i * 5, 13)) + new Vector3(0, 0, 0.6f);
-                Art.Cylinder(root, tp + Vector3.up * 0.8f, new Vector3(0.35f, 0.8f, 0.35f), Art.Mat(new Color(0.4f, 0.28f, 0.16f)));
-                Art.Sphere(root, tp + Vector3.up * 2.4f, new Vector3(2.2f, 2f, 2.2f), Art.Mat(new Color(0.25f, 0.45f, 0.2f)));
+                var tp = World.ToWorld(new Int2(treeX[i], 13)) + new Vector3(0, 0, 0.4f);
+                Art.Cylinder(root, tp + Vector3.up * 0.7f, new Vector3(0.28f, 0.7f, 0.28f), Art.Mat(new Color(0.4f, 0.28f, 0.16f)));
+                Art.Sphere(root, tp + Vector3.up * 1.7f, new Vector3(1.15f, 0.9f, 1.15f), Art.Mat(new Color(0.25f, 0.45f, 0.2f)));
             }
+            var blocked = new System.Collections.Generic.List<Int2>();
+            foreach (var kv in marks) blocked.Add(kv.Value);
+            blocked.Add(new Int2(24, 10));
+            Dressing.Scatter(map, root, blocked, (int)State.seed);
 
             Vector3 spawn = World.ToWorld(map.entry);
             if (viaPortal && State.portalDepth > 0) spawn = World.ToWorld(marks['D']) + new Vector3(-3, 0, 0);
@@ -147,7 +160,7 @@ namespace Hollowmere
             foreach (var s in map.spawns)
             {
                 var def = MonsterDb.Get(s.monsterId);
-                var ms = MonsterDb.Create(def, mlvl, s.rank, State.difficulty, rng);
+                var ms = MonsterDb.Create(def, mlvl, s.rank, rng, depth);
                 if (s.rank == MonsterRank.Elite) packAffixes[s.pack] = ms.affixes;
                 else if (s.rank == MonsterRank.Minion && packAffixes.TryGetValue(s.pack, out var aff)) ms.affixes.AddRange(aff.Where(a => a != EliteAffix.Extra));
                 if (bounty != null && s.rank == MonsterRank.Elite) { ms.displayName = bounty.eliteName; bounty = null; }
@@ -157,13 +170,14 @@ namespace Hollowmere
             {
                 // No elite pack rolled: the bounty gets its own.
                 var room = map.rooms.OrderByDescending(r => r.Center.Chebyshev(map.entry)).First();
-                var ms = MonsterDb.Create(MonsterDb.ForDepth(depth)[0], mlvl, MonsterRank.Elite, State.difficulty, rng);
+                var ms = MonsterDb.Create(MonsterDb.ForDepth(depth)[0], mlvl, MonsterRank.Elite, rng, depth);
                 ms.displayName = bounty.eliteName;
                 MonsterActor.Spawn(ms, World.ToWorld(room.Center), 9999);
             }
 
             stairsDown = Interactable.Create(InteractKind.StairsDown, World.ToWorld(map.exit), root, $"Floor {depth + 1}");
-            Interactable.Create(InteractKind.StairsUp, World.ToWorld(map.entry) + new Vector3(0, 0, -World.T), root, depth == 1 ? "Hollowmere" : $"Floor {depth - 1}");
+            // No floating town name over the spawn. The Ascend prompt is the interact button.
+            Interactable.Create(InteractKind.StairsUp, World.ToWorld(map.entry) + new Vector3(0, 0, -World.T), root);
             foreach (var c in map.chests) Interactable.Create(InteractKind.Chest, World.ToWorld(c), root);
             foreach (var s in map.shrines) Interactable.Create(InteractKind.Shrine, World.ToWorld(s), root);
             foreach (var p in map.pools)
@@ -181,6 +195,11 @@ namespace Hollowmere
                 State.portalDepth = 0;
             }
             SpawnHeroAndPet(World.ClampToFloor(spawn));
+            var floorBlocked = new System.Collections.Generic.List<Int2> { map.entry, map.exit };
+            floorBlocked.AddRange(map.chests);
+            floorBlocked.AddRange(map.shrines);
+            foreach (var s in map.spawns) floorBlocked.Add(s.pos);
+            Dressing.Scatter(map, root, floorBlocked, (int)State.seed ^ (depth * 997));
             AudioHub.Music(map.bossFloor ? "mus_boss" : "mus_dungeon");
             AudioHub.Play("sfx_stairs", 0.6f);
             string where = map.theme switch { Theme.Crypt => "Crypts", Theme.Caverns => "Caverns", Theme.SunkenHalls => "Sunken Halls", _ => "Ember Depths" };
@@ -192,7 +211,8 @@ namespace Hollowmere
         void SpawnHeroAndPet(Vector3 at)
         {
             var hero = HeroActor.Spawn(at);
-            PetActor.Spawn(at + new Vector3(-1.5f, 0, -1f));
+            // Beside the hero, toward the camera, so the companion is in frame instead of a speck behind it.
+            PetActor.Spawn(at + new Vector3(1.35f, 0, -0.85f));
             cam.follow = hero.transform;
             cam.Snap();
             UiRoot.I.Hud.Bind(hero);
@@ -213,7 +233,7 @@ namespace Hollowmere
                     State.hero.gold += gold;
                     State.counters.goldEarned += gold;
                     Toast($"{State.pet.name} is back with {gold} gold!");
-                    AudioHub.Play("sfx_dog_bark");
+                    Sfx.Pet("happy");
                 }
             }
             if ((autosave += Time.unscaledDeltaTime) > 30f) { autosave = 0; Save(); }
@@ -249,10 +269,18 @@ namespace Hollowmere
                 MonsterRank.Boss => LootSource.Boss, MonsterRank.Elite => LootSource.Elite,
                 MonsterRank.Champion => LootSource.Champion, _ => LootSource.Normal,
             };
-            var drop = Loot.Roll(rng, src, s.level, State.difficulty, hero != null ? hero.stats : State.Stats(), State.hero.heroClass);
-            foreach (var it in drop.items) Pickup.DropItem(it, m.Pos);
+            var drop = Loot.Roll(rng, src, s.level, hero != null ? hero.stats : State.Stats(), State.hero.heroClass, State.depth);
+            float ring = s.rank == MonsterRank.Boss ? 1.5f : 0f;
+            for (int i = 0; i < drop.items.Count; i++)
+            {
+                float ang = drop.items.Count <= 1 ? 0f : i * Mathf.PI * 2f / drop.items.Count;
+                var at = m.Pos + new Vector3(Mathf.Cos(ang) * ring, 0f, Mathf.Sin(ang) * ring);
+                Pickup.DropItem(drop.items[i], at);
+            }
             Pickup.DropGold(drop.gold, m.Pos);
             if (drop.potions > 0) Pickup.DropItem(Loot.Potion(drop.potions), m.Pos);
+            if (s.rank == MonsterRank.Normal && rng.Chance((float)DesignTable.GlobeNormalChance))
+                Pickup.DropGlobe(m.Pos);
 
             if (s.rank == MonsterRank.Elite) Toast($"{s.displayName} slain!");
             if (s.rank == MonsterRank.Boss)
@@ -267,12 +295,30 @@ namespace Hollowmere
         void OnLevelUp(int levels)
         {
             var hero = HeroActor.I;
-            Toast($"Level {State.hero.level}! +{levels} skill point{(levels > 1 ? "s" : "")}");
+            int lvl = State.hero.level;
+            var names = new System.Collections.Generic.List<string>();
+            foreach (var sk in SkillDb.ForClass(State.hero.heroClass))
+            {
+                if (sk.reqLevel == lvl) names.Add(sk.name);
+                if (sk.runes == null) continue;
+                foreach (var r in sk.runes)
+                    if (r.unlockLevel == lvl) names.Add(r.name);
+            }
+            string extra = names.Count > 0 ? " — " + string.Join(", ", names) : "";
+            Toast($"Level {lvl}{extra}");
             AudioHub.Play("sfx_levelup");
             if (hero != null)
             {
                 hero.RefreshStats(true);
-                Fx.Ring(hero.Pos, 4f, new Color(1f, 0.9f, 0.4f), 0.8f);
+                var pillar = new GameObject("levelPillar");
+                pillar.transform.position = hero.Pos + Vector3.up * 1.2f;
+                var light = pillar.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.color = Art.Hex("#e8c77a");
+                light.range = 8f;
+                light.intensity = 6f;
+                pillar.AddComponent<LightFade>().Init((float)DesignTable.LevelUpSeconds, 6f);
+                Fx.Ring(hero.Pos, 4f, new Color(1f, 0.9f, 0.4f), (float)DesignTable.LevelUpSeconds);
                 PetActor.I?.RefreshLife(true);
             }
         }
@@ -342,7 +388,7 @@ namespace Hollowmere
                 {
                     it.used = true;
                     int mlvl = Balance.MonsterLevel(State.depth, State.hero.level);
-                    var drop = Loot.Roll(rng, LootSource.Chest, mlvl, State.difficulty, hero.stats, State.hero.heroClass);
+                    var drop = Loot.Roll(rng, LootSource.Chest, mlvl, hero.stats, State.hero.heroClass, State.depth);
                     foreach (var x in drop.items) Pickup.DropItem(x, it.transform.position);
                     Pickup.DropGold(drop.gold, it.transform.position);
                     if (drop.potions > 0) Pickup.DropItem(Loot.Potion(1), it.transform.position);
@@ -410,7 +456,7 @@ namespace Hollowmere
             hero.busy = true;
             float window = State.hero.LegendaryTotal(LegendaryEffect.FishingBiteWindow);
             var session = new FishingSession(rng, InTown, Math.Max(1, State.depth), hero.stats[Stat.FishingLuck], window,
-                Balance.MonsterLevel(Math.Max(1, State.depth), State.hero.level), State.hero.heroClass, State.difficulty);
+                Balance.MonsterLevel(Math.Max(1, State.depth), State.hero.level), State.hero.heroClass);
             UiRoot.I.OpenFishing(session, World.ToWorld(pool.center), () => FinishFishing(session, spot));
         }
 
@@ -431,7 +477,7 @@ namespace Hollowmere
             {
                 case CatchKind.Fish:
                     State.OnFish(r.fish);
-                    if (!State.hero.AddItem(Loot.Fish(r.fish.id))) Toast("No room for the fish!");
+                    if (!State.hero.AddItem(Loot.Fish(r.fish.id))) { Toast("No room for the fish!"); Sfx.Bag("error_bag_full"); }
                     break;
                 case CatchKind.Gold:
                     State.hero.gold += r.gold;
@@ -457,7 +503,7 @@ namespace Hollowmere
                 case FishEffect.PetForm:
                     State.pet.Feed(f, State.hero.LegendaryTotal(LegendaryEffect.PetFormDuration));
                     Toast($"{State.pet.name} becomes a {State.pet.Form?.name}!");
-                    AudioHub.Play("sfx_dog_bark");
+                    Sfx.Pet("summon");
                     break;
                 case FishEffect.Heal:
                     hero?.Heal(hero.maxLife * f.healPct);
@@ -486,7 +532,7 @@ namespace Hollowmere
             if (State.pet.SendToTown())
             {
                 Toast($"{State.pet.name} trots off to town to sell. Back in {PetState.TripLength:0}s.");
-                AudioHub.Play("sfx_dog_bark");
+                Sfx.Pet("happy");
             }
         }
 
@@ -497,12 +543,6 @@ namespace Hollowmere
             h.RefreshStats();
             h.RefreshWeapon();
             PetActor.I?.RefreshLife(false);
-        }
-
-        public void ChangeDifficulty(Difficulty d)
-        {
-            if (Town.SetDifficulty(State, d)) Toast($"Difficulty: {Balance.DifficultyNames[(int)d]}");
-            else Toast($"Requires level {Balance.MinLevelFor(d)}");
         }
 
         public Rng Rng => rng;

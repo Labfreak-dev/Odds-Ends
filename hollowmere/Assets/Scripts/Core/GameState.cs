@@ -44,15 +44,14 @@ namespace Hollowmere.Core
     [Serializable]
     public sealed class GameState
     {
-        public int version = 1;
+        public int version = 2;
         public long seed;          // long, not ulong: JsonUtility round-trips it reliably
         public Hero hero = new Hero();
         public PetState pet = new PetState();
         public List<Item> stash = new List<Item>();
         public Materials materials = new Materials();
         public Counters counters = new Counters();
-        public Difficulty difficulty = Difficulty.Normal;
-        public int depth;            // 0 = town
+        public int depth;            // 0 = town. Floor depth is the only difficulty.
         public int deepest;
         public int portalDepth;      // floor an open town portal leads back to (0 = none)
         public int portalX, portalY; // tile the portal stands on
@@ -74,6 +73,9 @@ namespace Hollowmere.Core
 
         public void Normalize()
         {
+            // version 1 saves carried a difficulty enum. The field is gone, so both JsonUtility
+            // and System.Text.Json drop it on load. Writing the save again omits it.
+            if (version < 2) version = 2;
             hero.Normalize();
             stash.RemoveAll(Item.IsNone);
             pet.pack.RemoveAll(Item.IsNone);
@@ -203,7 +205,7 @@ namespace Hollowmere.Core
             int cost = Loot.GambleCost(s.hero.level);
             if (s.hero.gold < cost || s.hero.FreeSlots <= 0) return null;
             s.hero.gold -= cost;
-            var r = Loot.RollRarity(rng, 0, s.difficulty, LootSource.Gamble);
+            var r = Loot.RollRarity(rng, 0, LootSource.Gamble);
             var it = Loot.Generate(rng, s.hero.level, r, s.hero.heroClass, slot);
             s.hero.AddItem(it);
             if (it.rarity >= Rarity.Legendary) s.counters.legendaries++;
@@ -221,13 +223,6 @@ namespace Hollowmere.Core
         {
             if (s.hero.FreeSlots <= 0 || !s.stash.Remove(it)) return false;
             s.hero.inventory.Add(it);
-            return true;
-        }
-
-        public static bool SetDifficulty(GameState s, Difficulty d)
-        {
-            if (s.hero.level < Balance.MinLevelFor(d)) return false;
-            s.difficulty = d;
             return true;
         }
 

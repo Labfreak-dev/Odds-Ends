@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Hollowmere.Core;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Hollowmere
 {
@@ -15,6 +16,22 @@ namespace Hollowmere
         public static Vector3 ToWorld(Int2 p) => new Vector3(p.x * T, 0, p.y * T);
         public static Int2 ToTile(Vector3 w) => new Int2(Mathf.RoundToInt(w.x / T), Mathf.RoundToInt(w.z / T));
         public static bool Walkable(Vector3 w) => Map != null && Map.Walkable(ToTile(w));
+
+        /// <summary>Footstep surface: grass, dirt, stone, or wood.</summary>
+        public static string FootSurface(Vector3 w)
+        {
+            if (Map == null) return "stone";
+            if (Map.theme == Theme.Town)
+            {
+                var t = ToTile(w);
+                for (int dy = -1; dy <= 1; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                        if (Map.Get(t.x + dx, t.y + dy) == Tile.Water) return "wood";
+                return (t.x + t.y) % 2 == 0 ? "stone" : "grass";
+            }
+            if (Map.theme == Theme.Caverns || Map.theme == Theme.EmberDepths) return "dirt";
+            return "stone";
+        }
         public static bool Solid(Vector3 w) => Map == null || Map.Get(ToTile(w)) == Tile.Wall;
         public static bool Sight(Vector3 a, Vector3 b) => Map == null || Pathfinder.LineOfSight(Map, ToTile(a), ToTile(b));
 
@@ -82,7 +99,11 @@ namespace Hollowmere
                     }
                     else if (tile == Tile.Water)
                     {
-                        float wy = -0.25f;
+                        // A solid bed in the included shader, then the water sheet on top. A hole
+                        // here used to show the black skirt (and a pink edge where a stripped
+                        // material failed).
+                        Quad(fv, fn, (x + y) % 2 == 0 ? ta : tb, c + new Vector3(-half, 0, -half), c + new Vector3(-half, 0, half), c + new Vector3(half, 0, half), c + new Vector3(half, 0, -half), Vector3.up, fuv);
+                        float wy = -0.08f;
                         Quad(av, an, at, c + new Vector3(-half, wy, -half), c + new Vector3(-half, wy, half), c + new Vector3(half, wy, half), c + new Vector3(half, wy, -half), Vector3.up);
                         Box(bv, bt, c, half, 1.5f);
                     }
@@ -111,7 +132,22 @@ namespace Hollowmere
             fm.subMeshCount = 2;
             fm.SetTriangles(ta, 0);
             fm.SetTriangles(tb, 1);
-            floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { Art.Mat(fa), Art.Mat(fb) };
+            var floorMats = new[] { Art.Mat(fa), Art.Mat(fb) };
+            if (map.theme == Theme.Town)
+            {
+                var cobble = ArtDrop.Ground("cobble");
+                var grass = ArtDrop.Ground("grass");
+                if (cobble != null) PaintGround(floorMats[0], cobble);
+                if (grass != null) PaintGround(floorMats[1], grass);
+            }
+            else
+            {
+                var groundName = map.theme == Theme.Crypt ? "crypt" : map.theme == Theme.Caverns ? "cave" : map.theme == Theme.SunkenHalls ? "flag" : "cracked";
+                var groundTex = ArtDrop.Ground(groundName);
+                if (groundTex != null)
+                    for (int gi = 0; gi < floorMats.Length; gi++) PaintGround(floorMats[gi], groundTex);
+            }
+            floor.GetComponent<MeshRenderer>().sharedMaterials = floorMats;
 
             var walls = MakeMesh("walls", root, wv, wn, wt, Art.Mat(wallC));
             walls.AddComponent<MeshCollider>().sharedMesh = walls.GetComponent<MeshFilter>().sharedMesh;
@@ -124,24 +160,41 @@ namespace Hollowmere
                 bm.SetVertices(bv); bm.SetTriangles(bt, 0);
                 block.AddComponent<MeshCollider>().sharedMesh = bm;
             }
-            // A dark skirt under everything so the void below never shows.
-            Art.Cube(root, new Vector3(map.width * T / 2, -0.6f, map.height * T / 2), new Vector3(map.width * T + 20, 1, map.height * T + 20), Art.Mat(Color.black));
+            // A skirt in the floor colour. Pure black read as a missing mesh once the camera
+            // looked past the last tile.
+            var skirt = Color.Lerp(fa, Color.black, 0.35f);
+            var skirtGo = Art.Cube(root, new Vector3(map.width * T / 2, -1.2f, map.height * T / 2), new Vector3(map.width * T + 40, 1, map.height * T + 40), Art.Mat(skirt));
+            skirtGo.name = "skirt";
+            root.gameObject.AddComponent<BoundsGuard>();
+            Art.AdoptShaders(root.gameObject);
 
             // ---------- lighting
+            bool town = map.theme == Theme.Town;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = ambient * (map.theme == Theme.Town ? 1.3f : 1.6f);
-            RenderSettings.fog = map.theme != Theme.Town;
-            RenderSettings.fogColor = ambient * 0.5f;
+            RenderSettings.ambientLight = ambient * (town ? 1.35f : 1.45f);
+            RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogStartDistance = 18; RenderSettings.fogEndDistance = 42;
+            if (town)
+            {
+                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.78f, 0.84f, 0.8f), 0.35f);
+                RenderSettings.fogStartDistance = 24f;
+                RenderSettings.fogEndDistance = 78f;
+            }
+            else
+            {
+                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.55f, 0.5f, 0.48f), 0.25f);
+                RenderSettings.fogStartDistance = 22f;
+                RenderSettings.fogEndDistance = 64f;
+            }
             var sun = new GameObject("sun").AddComponent<Light>();
             sun.transform.SetParent(root, false);
             sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(55, -30, 0);
-            sun.intensity = map.theme == Theme.Town ? 1.1f : 0.35f;
-            sun.color = map.theme == Theme.Town ? new Color(1f, 0.95f, 0.85f) : lightC;
-            if (Camera.main != null) Camera.main.backgroundColor = ambient * 0.35f;
+            sun.transform.rotation = Quaternion.Euler(50, -30, 0);
+            sun.intensity = town ? 1.15f : 1.05f;
+            sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
+            if (Camera.main != null) Camera.main.backgroundColor = Color.Lerp(fa, ambient, 0.4f);
 
+            FloorNav.Build(map);
             if (map.theme != Theme.Town)
             {
                 // Torches in a few rooms (vertex-lit beyond the pixel light budget, which is fine).
@@ -159,7 +212,18 @@ namespace Hollowmere
                     l.type = LightType.Point; l.color = lightC; l.range = 12; l.intensity = 1.6f;
                 }
             }
+            Dressing.Mood(map);
             return root;
+        }
+
+        static void PaintGround(Material m, Texture tex)
+        {
+            if (m == null || tex == null) return;
+            m.mainTexture = tex;
+            if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
+            if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
+            if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 1f);
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
         }
 
         static void Quad(List<Vector3> v, List<Vector3> n, List<int> t, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, List<Vector2> uv = null)
@@ -194,6 +258,61 @@ namespace Hollowmere
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = m;
             return go;
+        }
+    }
+
+    /// <summary>Runtime navmesh over the walkable floor tiles. Rebuilt with each level.</summary>
+    public static class FloorNav
+    {
+        static NavMeshDataInstance inst;
+        public static bool Ready { get; private set; }
+
+        public static void Clear()
+        {
+            if (inst.valid) NavMesh.RemoveNavMeshData(inst);
+            inst = default;
+            Ready = false;
+        }
+
+        public static void Build(DungeonMap map)
+        {
+            Clear();
+            if (map == null) return;
+            var sources = new List<NavMeshBuildSource>();
+            float t = World.T;
+            for (int y = 0; y < map.height; y++)
+                for (int x = 0; x < map.width; x++)
+                {
+                    if (!map.Walkable(x, y)) continue;
+                    sources.Add(new NavMeshBuildSource
+                    {
+                        shape = NavMeshBuildSourceShape.Box,
+                        // A hair of overlap so neighbouring tiles voxelize as one surface.
+                        size = new Vector3(t + 0.08f, 0.25f, t + 0.08f),
+                        transform = Matrix4x4.TRS(new Vector3(x * t, -0.12f, y * t), Quaternion.identity, Vector3.one),
+                        area = 0,
+                    });
+                }
+            if (sources.Count == 0) return;
+            var settings = NavMesh.GetSettingsByID(0);
+            settings.agentRadius = 0.28f;
+            settings.agentHeight = 1.2f;
+            settings.agentSlope = 15f;
+            settings.agentClimb = 0.2f;
+            var bounds = new Bounds(
+                new Vector3(map.width * t * 0.5f, 0f, map.height * t * 0.5f),
+                new Vector3(map.width * t + 4f, 6f, map.height * t + 4f));
+            var data = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
+            if (data == null)
+            {
+                Debug.LogWarning("Hollowmere navmesh: build returned nothing");
+                return;
+            }
+            inst = NavMesh.AddNavMeshData(data);
+            var tri = NavMesh.CalculateTriangulation();
+            int n = tri.indices != null ? tri.indices.Length / 3 : 0;
+            Ready = inst.valid && n > 0;
+            Debug.Log("Hollowmere navmesh: tiles " + sources.Count + " tris " + n + " ready " + Ready);
         }
     }
 }

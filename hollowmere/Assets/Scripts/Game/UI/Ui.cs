@@ -72,6 +72,10 @@ namespace Hollowmere
             return rt;
         }
 
+        /// <summary>Design-dp rectangle. Origin is the parent's top-left, +y down, matching DESIGN_SPEC.</summary>
+        public static RectTransform Dp(Transform parent, string name, int x, int y, int w, int h)
+            => At(parent, name, new Vector2(0f, 1f), new Vector2(x, -y), new Vector2(w, h));
+
         /// <summary>A rect at a fixed pixel size anchored to a point (pivot = anchor).</summary>
         public static RectTransform At(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size)
         {
@@ -308,7 +312,15 @@ namespace Hollowmere
         {
             var rt = Ui.At(parent, name, anchor, pos, new Vector2(size, size));
             var img = rt.gameObject.AddComponent<Image>();
-            img.sprite = Ui.Circle; img.color = c;
+            var plate = UiArt.Catalog != null ? UiArt.Catalog.iconButton : null;
+            if (plate != null)
+            {
+                img.sprite = plate;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+                img.pixelsPerUnitMultiplier = 1f;
+            }
+            else { img.sprite = Ui.Circle; img.color = c; }
             var hb = rt.gameObject.AddComponent<HoldButton>();
             hb.image = img;
             var cd = Ui.Rect(rt, "cooldown", Vector2.zero, new Vector2(1, 0));

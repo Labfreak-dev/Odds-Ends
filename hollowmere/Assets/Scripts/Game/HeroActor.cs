@@ -25,9 +25,14 @@ namespace Hollowmere
         readonly Rng rng = new Rng();
         Transform hand, figure;
         ModelAnim modelAnim;
-        float nextAttack, potionUntil, potionHeal, potionCd, swing, combatTimer, spinUntil, spinTick;
-        SkillCast spinCast;
-        float regenAcc, castPose;
+        float nextAttack, potionUntil, potionHeal, potionCd, combatTimer, spinUntil, spinTick;
+        float releaseIn = -1f;
+        SkillCast spinCast, pendingCast;
+        Vector3 pendingDir;
+        Actor pendingTarget;
+        float regenAcc;
+        readonly Locomotion loco = new Locomotion();
+        float stepDebt;
 
         public static HeroActor Spawn(Vector3 at)
         {
@@ -51,6 +56,16 @@ namespace Hollowmere
             // A generated hero carries its own weapon, so no primitive weapon is attached (hand stays null).
             if (model != null) { figure = model.transform; modelAnim = model.GetComponent<ModelAnim>(); }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.heroClass), Art.ClassColor(Hero.heroClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
+            var ring = Art.ClassColor(Hero.heroClass);
+            Art.GroundRing(transform, new Color(Mathf.Clamp01(ring.r + 0.45f), Mathf.Clamp01(ring.g + 0.25f), Mathf.Clamp01(ring.b + 0.45f)));
+            // Fill from the camera side (default rig sits on -Z) so a dark robe still has an edge.
+            var rim = new GameObject("rimLight").AddComponent<Light>();
+            rim.transform.SetParent(transform, false);
+            rim.transform.localPosition = new Vector3(0.35f, 1.45f, -1.35f);
+            rim.type = LightType.Point;
+            rim.range = 5.5f;
+            rim.intensity = 2.6f;
+            rim.color = new Color(0.82f, 0.72f, 1f);
             RefreshWeapon();
             // A torch-light that follows the hero keeps dark floors readable on small screens.
             var l = new GameObject("heroLight").AddComponent<Light>();
@@ -80,6 +95,7 @@ namespace Hollowmere
 
         public override int Level => Hero.level;
         public float MoveSpeed => 6f * (1 + Mathf.Min(stats[Stat.MoveSpeed], 50) / 100f) * SpeedMult;
+        public float GroundSpeed => loco.groundSpeed;
 
         protected override void Update()
         {
@@ -109,9 +125,13 @@ namespace Hollowmere
             }
             combatTimer -= dt;
             potionCd -= dt;
+            if (CombatClock.Frozen) return;
+            ReleaseCast(dt);
 
             // ---- spin (Whirling Steel) ticks while moving
-            if (spinUntil > Time.time)
+            bool spinning = spinUntil > Time.time;
+            bool clipSpin = modelAnim != null && modelAnim.PlayingSkill;
+            if (spinning && figure != null && !clipSpin)
             {
                 figure.Rotate(0, 1080 * dt, 0, Space.Self);
                 if ((spinTick -= dt) <= 0)
@@ -122,40 +142,46 @@ namespace Hollowmere
                     SkillRunner.OnHits(this, spinCast, hits.Count);
                 }
             }
-            else if (castPose > 0 && figure != null)
-            {
-                castPose -= dt * 2.6f;
-                float k = Mathf.Sin(Mathf.Clamp01(castPose) * Mathf.PI);
-                figure.localRotation = Quaternion.Euler(-24f * k, 32f * k, 0);
-                figure.localPosition = new Vector3(0, 0.04f * k, -0.12f * k);
-            }
-            else if (figure != null)
-            {
-                figure.localRotation = Quaternion.Slerp(figure.localRotation, Quaternion.identity, dt * 12);
-                if (swing <= 0) figure.localPosition = Vector3.Lerp(figure.localPosition, Vector3.zero, dt * 10);
-            }
 
-            // ---- movement
-            var before = transform.position;
-            var inputHeld = false;
+            // ---- movement: accelerate into the stick, turn toward it, report real ground speed
+            Vector3 wishDir = Vector3.zero;
+            float wish = 0f;
             if (!busy && !Stunned)
             {
                 var input = new Vector3(moveInput.x, 0, moveInput.y);
-                // Camera looks along +Z rotated; map joystick to camera-relative directions.
-                var cam = CameraRig.Yaw;
-                input = Quaternion.Euler(0, cam, 0) * input;
-                inputHeld = input.sqrMagnitude > 0.02f;
-                if (inputHeld)
+                input = Quaternion.Euler(0, CameraRig.Yaw, 0) * input;
+                if (input.sqrMagnitude > 0.02f)
                 {
-                    Move(input * MoveSpeed * dt);
-                    if (spinUntil <= Time.time) Face(input);
-                    aim = input.normalized;
+                    wishDir = input.normalized;
+                    wish = MoveSpeed * Mathf.Clamp01(input.magnitude);
+                    aim = wishDir;
                 }
             }
-            float spd = dt > 0.0001f ? (transform.position - before).magnitude / dt : 0f;
-            // Idle the moment the stick is released, or when a held stick produces almost no speed (wall).
-            bool walking = spinUntil > Time.time || (inputHeld && spd > 0.35f);
-            modelAnim?.SetMoving(walking);
+            bool attacking = modelAnim != null && modelAnim.Attacking;
+            var face = attacking ? aim : wishDir;
+            loco.Step(this, wishDir, wish, dt, face, attacking, false, spinning);
+            modelAnim?.Tick(loco.groundSpeed, dt);
+            Footstep(attacking);
+
+            // A missing attack clip eases a lean in and out. A real clip owns the body instead.
+            if (!spinning && figure != null)
+            {
+                float k = 0f;
+                bool cast = false;
+                if (modelAnim != null && modelAnim.Attacking && !modelAnim.HasAttackClip)
+                {
+                    k = Mathf.Sin(modelAnim.AttackUnit * Mathf.PI);
+                    cast = modelAnim.Casting;
+                }
+                var pos = cast ? new Vector3(0f, 0.04f * k, -0.12f * k) : new Vector3(0f, 0f, k * 0.35f);
+                var rot = cast ? Quaternion.Euler(-24f * k, 32f * k, 0f) : Quaternion.identity;
+                float blend = Mathf.Max(0.05f, Feel.Active.attackBlend);
+                float t = 1f - Mathf.Exp(-dt / blend);
+                figure.localPosition = Vector3.Lerp(figure.localPosition, pos, t);
+                figure.localRotation = Quaternion.Slerp(figure.localRotation, rot, t);
+                if (hand != null)
+                    hand.localRotation = Quaternion.Slerp(hand.localRotation, Quaternion.Euler(k * -110f, 0f, 0f), t);
+            }
 
             // ---- auto-target and primary attack
             target = PickTarget();
@@ -165,17 +191,23 @@ namespace Hollowmere
                 if (primary != null) UseSkill(primary);
             }
 
-            // ---- swing animation
-            if (swing > 0)
-            {
-                swing -= dt * 4;
-                float k = Mathf.Sin(Mathf.Clamp01(swing) * Mathf.PI);
-                if (hand != null) hand.localRotation = Quaternion.Euler(k * -110, 0, 0);
-                else if (figure != null && spinUntil <= Time.time) figure.localPosition = new Vector3(0, 0, k * 0.35f);  // lunge
-            }
-
             // ---- pickups
             Pickup.Collect(this, stats[Stat.PickupRadius]);
+        }
+
+        /// <summary>The walk take is 1.067s with two plants. Distance, not a timer, keeps the boots on the feet.</summary>
+        void Footstep(bool attacking)
+        {
+            if (attacking || loco.groundSpeed < Feel.Active.idle)
+            {
+                stepDebt = 0f;
+                return;
+            }
+            stepDebt += loco.groundSpeed * Time.deltaTime;
+            float stride = Feel.Active.clipWalk * 1.067f * 0.5f;
+            if (stepDebt < stride) return;
+            stepDebt = 0f;
+            Sfx.Step(World.FootSurface(Pos));
         }
 
         Actor PickTarget()
@@ -196,6 +228,7 @@ namespace Hollowmere
         public bool UseSkill(SkillDef s)
         {
             if (Dead || busy || Stunned || GameManager.I.Paused || Hero.skills.Rank(s.id) == 0) return false;
+            if (releaseIn >= 0f || CombatClock.Frozen) return false;
             if (CooldownLeft(s.id) > 0) return false;
             if (GameManager.I.InTown && s.shape != SkillShape.Dash) { GameManager.I.Toast("Not in town."); return false; }
             var cast = SkillDb.Resolve(s, Hero, stats);
@@ -211,12 +244,39 @@ namespace Hollowmere
 
             Vector3 dir = aim;
             if (target != null && s.shape != SkillShape.Dash) dir = (target.Pos - Pos).normalized;
-            if (s.shape != SkillShape.Dash || dir.sqrMagnitude > 0) Face(dir);
-            if (s.id == "hx_bolt") { castPose = 1f; swing = 0f; }
-            else { swing = 1; castPose = 0f; }
+            if (dir.sqrMagnitude > 0.0001f) aim = dir.normalized;
+            if (s.shape == SkillShape.Dash && dir.sqrMagnitude > 0.0001f) Face(dir);
+            var timing = DesignTable.CastFor(DesignTable.CastKind(s.id));
+            string clip = DesignTable.ClipFor(s.id);
+            float seconds = (timing.Windup + timing.Strike + timing.Recover) / 1000f;
+            if (!string.IsNullOrEmpty(clip) && DesignTable.TryTrim(clip, out int frameA, out int frameB, out _))
+                seconds = (frameB - frameA) / 24f;
+            modelAnim?.BeginAttack(s.shape != SkillShape.MeleeArc, seconds, clip);
+            Sfx.Cast(this, s.id);
+            SkillVfx.CastGlyph(this, s.id);
+            pendingCast = cast;
+            pendingDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
+            pendingTarget = target;
+            releaseIn = timing.Windup / 1000f;
+            if (releaseIn <= 0f) releaseIn = 0.0001f;
             combatTimer = 4;
-            SkillRunner.Execute(this, cast, dir, target);
             return true;
+        }
+
+        void ReleaseCast(float dt)
+        {
+            if (releaseIn < 0f) return;
+            releaseIn -= dt;
+            if (releaseIn > 0f || pendingCast == null) return;
+            releaseIn = -1f;
+            if (Dead) return;
+            var fired = pendingCast;
+            pendingCast = null;
+            SkillRunner.Execute(this, fired, pendingDir, pendingTarget);
+            var shape = fired.skill.shape;
+            if (shape == SkillShape.MeleeArc || shape == SkillShape.Projectile || fired.skill.id == "ic_whirl"
+                || fired.skill.id == "ic_earthsplit" || fired.skill.id == "ic_slam")
+                TrailHold.Arm(this, fired);
         }
 
         public void StartSpin(SkillCast c)
@@ -224,6 +284,8 @@ namespace Hollowmere
             spinCast = c;
             spinUntil = Time.time + Mathf.Max(0.5f, c.duration);
             spinTick = 0;
+            if (modelAnim != null && modelAnim.HasNamedSkill) modelAnim.LoopSkill(Mathf.Max(0.5f, c.duration));
+            else modelAnim?.CancelAttack();
         }
 
         public void AddSkillBuff(Stat stat, float value, float seconds, string id)
@@ -244,9 +306,11 @@ namespace Hollowmere
         {
             if (potionCd > 0 || Dead) return false;
             if (!Hero.Consume(ItemKind.Potion)) { GameManager.I.Toast("No potions"); return false; }
-            potionCd = 5f;
-            potionHeal = maxLife * 0.3f;   // 60% over 2s
-            potionUntil = Time.time + 2f;
+            potionCd = (float)DesignTable.PotionCooldownSeconds;
+            CombatNumbers.Spawn(Pos, "+" + Mathf.RoundToInt(maxLife * (float)DesignTable.PotionHealFraction), "heal", Color.white);
+            // The regen tick multiplies this by elapsed seconds, so the rate is the total heal divided by the window.
+            potionHeal = maxLife * (float)(DesignTable.PotionHealFraction / DesignTable.PotionDurationSeconds);
+            potionUntil = Time.time + (float)DesignTable.PotionDurationSeconds;
             Fx.Ring(Pos, 1.5f, new Color(1f, 0.3f, 0.3f));
             AudioHub.Play("sfx_gold", 0.4f);
             return true;
@@ -261,6 +325,11 @@ namespace Hollowmere
             float extra = HasBuff("rn_warcry_iron") ? 0.3f : 0;
             var h = Combat.MonsterHit(raw, el, stats, from != null ? from.Level : Hero.level, rng, extra);
             if (h.blocked) Fx.Text(Pos, "Block", Color.white, 0.8f);
+            else
+            {
+                CombatClock.Punch("hurt");
+                AudioHub.Vary("player_hurt", 0.8f);
+            }
             TakeDamage(h, from);
             combatTimer = 4;
             if (melee && from != null && stats[Stat.Thorns] > 0)

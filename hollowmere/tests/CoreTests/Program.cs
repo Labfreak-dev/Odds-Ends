@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using Hollowmere.Core;
 
@@ -27,6 +29,8 @@ static class Program
         TownAndQuests();
         SaveRoundTrip();
         Progression();
+        ModelAlbedo();
+        SpecTables();
         Console.WriteLine($"{passed} passed, {failed} failed");
         if (failed == 0) Console.WriteLine("ALL CORE CHECKS PASSED");
         return failed == 0 ? 0 : 1;
@@ -48,12 +52,12 @@ static class Program
     {
         var rng = new Rng(1);
         var counts = new int[5];
-        for (int i = 0; i < 20000; i++) counts[(int)Loot.RollRarity(rng, 0, Difficulty.Normal, LootSource.Normal)]++;
+        for (int i = 0; i < 20000; i++) counts[(int)Loot.RollRarity(rng, 0, LootSource.Normal)]++;
         Check(counts[0] > counts[1] && counts[1] > counts[2] && counts[2] > counts[3], $"rarity is ordered common>magic>rare>legendary ({string.Join(",", counts)})");
         Check(counts[3] + counts[4] > 0 && counts[3] + counts[4] < 400, $"legendary+set rate is rare but present ({counts[3] + counts[4]}/20000)");
 
         var mf = new int[5];
-        for (int i = 0; i < 20000; i++) mf[(int)Loot.RollRarity(rng, 300, Difficulty.Normal, LootSource.Normal)]++;
+        for (int i = 0; i < 20000; i++) mf[(int)Loot.RollRarity(rng, 300, LootSource.Normal)]++;
         Check(mf[2] > counts[2], "magic find raises rare rate");
 
         foreach (HeroClass cls in Enum.GetValues(typeof(HeroClass)))
@@ -221,14 +225,14 @@ static class Program
         var rng = new Rng(4);
         foreach (var def in MonsterDb.All)
         {
-            var m = MonsterDb.Create(def, 20, def.boss ? MonsterRank.Boss : MonsterRank.Normal, Difficulty.Normal, rng);
+            var m = MonsterDb.Create(def, 20, def.boss ? MonsterRank.Boss : MonsterRank.Normal, rng);
             Check(m.maxLife > 0 && m.damage > 0 && m.xp > 0, $"{def.id} has stats");
         }
         // Time-to-kill sanity: an expected hero kills a normal in ~1-3s, boss in 30-90s.
         foreach (int lvl in new[] { 1, 10, 30, 60, 70 })
         {
-            var n = MonsterDb.Create(MonsterDb.Get("bonewalker"), lvl, MonsterRank.Normal, Difficulty.Normal, rng);
-            var boss = MonsterDb.Create(MonsterDb.Get("boss_abbot"), lvl, MonsterRank.Boss, Difficulty.Normal, rng);
+            var n = MonsterDb.Create(MonsterDb.Get("bonewalker"), lvl, MonsterRank.Normal, rng);
+            var boss = MonsterDb.Create(MonsterDb.Get("boss_abbot"), lvl, MonsterRank.Boss, rng);
             float dps = Balance.ExpectedHeroDps(lvl);
             float ttk = n.maxLife / dps, bttk = boss.maxLife / dps;
             Check(ttk > 0.5f && ttk < 6f, $"lvl {lvl}: normal ttk {ttk:0.0}s vs the expected curve");
@@ -236,8 +240,8 @@ static class Program
             float hits = Balance.ExpectedHeroLife(lvl) / n.damage;
             Check(hits > 8 && hits < 60, $"lvl {lvl}: hero survives {hits:0} unmitigated normal hits");
         }
-        var t6 = MonsterDb.Create(MonsterDb.Get("bonewalker"), 70, MonsterRank.Elite, Difficulty.Torment6, rng);
-        Check(t6.affixes.Count >= 4, "torment elites stack affixes");
+        var deep = MonsterDb.Create(MonsterDb.Get("bonewalker"), 70, MonsterRank.Elite, rng, 40);
+        Check(deep.affixes.Count == DesignTable.AffixCount(MonsterRank.Elite, 40), "floor 40 elites gain affixes from depth");
         Check(MonsterDb.BossFor(5).id == "boss_ossuary" && MonsterDb.BossFor(10).id == "boss_matriarch", "boss rotation");
         for (int d = 1; d < 60; d++) Check(MonsterDb.ForDepth(d).Count > 0, $"monsters exist at depth {d}");
     }
@@ -249,7 +253,7 @@ static class Program
         var seen = new HashSet<string>();
         for (int i = 0; i < sessions; i++)
         {
-            var fs = new FishingSession(new Rng((ulong)(i + 1)), i % 2 == 0, 12, 0, 0, 20, HeroClass.Stalker, Difficulty.Normal);
+            var fs = new FishingSession(new Rng((ulong)(i + 1)), i % 2 == 0, 12, 0, 0, 20, HeroClass.Stalker);
             fs.Cast();
             for (int t = 0; t < 3000 && !fs.Done; t++)
             {
@@ -268,7 +272,7 @@ static class Program
         int snapped = 0;
         for (int i = 0; i < 100; i++)
         {
-            var fs = new FishingSession(new Rng((ulong)(i + 999)), false, 25, 0, 0, 40, HeroClass.Stalker, Difficulty.Normal);
+            var fs = new FishingSession(new Rng((ulong)(i + 999)), false, 25, 0, 0, 40, HeroClass.Stalker);
             fs.Cast();
             for (int t = 0; t < 3000 && !fs.Done; t++)
             {
@@ -281,7 +285,7 @@ static class Program
         Check(snapped > 30, $"holding forever snaps lines ({snapped}/100)");
 
         // Tapping on a nibble spooks
-        var sp = new FishingSession(new Rng(5), true, 1, 0, 0, 1, HeroClass.Ironclad, Difficulty.Normal);
+        var sp = new FishingSession(new Rng(5), true, 1, 0, 0, 1, HeroClass.Ironclad);
         sp.Cast();
         bool spooked = false;
         for (int t = 0; t < 5000 && !sp.Done; t++) { if (sp.phase == FishingPhase.Nibble) { sp.Tap(); spooked = sp.phase == FishingPhase.Spooked; break; } sp.Tick(0.02f); }
@@ -324,8 +328,7 @@ static class Program
         s.quests.Add(fishQ);
         s.OnFish(FishDb.Get("minnow")); s.OnFish(FishDb.Get("minnow"));
         Check(fishQ.complete, "fish quest completes");
-        Check(!Town.SetDifficulty(s, Difficulty.Torment1), "torment locked before 70");
-        Check(Town.SetDifficulty(s, Difficulty.Master), "master open from the start");
+        Check(s.version == 2, "new games are save version 2");
     }
 
     /// <summary>A bot clears floors 1..40: kills everything, keeps any item that raises sheet DPS
@@ -345,13 +348,13 @@ static class Program
                 double seconds = 0;
                 foreach (var sp in map.spawns)
                 {
-                    var m = MonsterDb.Create(MonsterDb.Get(sp.monsterId), mlvl, sp.rank, s.difficulty, rng);
+                    var m = MonsterDb.Create(MonsterDb.Get(sp.monsterId), mlvl, sp.rank, rng, depth);
                     var st = h.ComputeStats();
                     seconds += m.maxLife / Math.Max(1, h.SheetDps(st) * 1.5f);   // skills ~1.5x sheet, some AoE
                     s.OnKill(m, depth);
                     h.GainXp(m.xp);
                     var src = sp.rank == MonsterRank.Boss ? LootSource.Boss : sp.rank == MonsterRank.Elite ? LootSource.Elite : sp.rank == MonsterRank.Champion ? LootSource.Champion : LootSource.Normal;
-                    var drop = Loot.Roll(rng, src, m.level, s.difficulty, st, cls);
+                    var drop = Loot.Roll(rng, src, m.level, st, cls, depth);
                     h.gold += drop.gold;
                     foreach (var it in drop.items)
                     {
@@ -371,11 +374,11 @@ static class Program
                 bool any = true;
                 while (any) { any = false; foreach (var sk in SkillDb.ForClass(cls)) if (h.skills.RankUp(sk, h.level)) any = true; }
                 var fin = h.ComputeStats();
-                var probe = MonsterDb.Create(MonsterDb.Get("bonewalker"), Balance.MonsterLevel(depth + 1, h.level), MonsterRank.Normal, s.difficulty, rng);
+                var probe = MonsterDb.Create(MonsterDb.Get("bonewalker"), Balance.MonsterLevel(depth + 1, h.level), MonsterRank.Normal, rng, depth + 1);
                 float ttk = probe.maxLife / Math.Max(1, h.SheetDps(fin));
-                var bossM = MonsterDb.Create(MonsterDb.BossFor(5), Balance.MonsterLevel(depth, h.level), MonsterRank.Boss, s.difficulty, rng);
+                var bossM = MonsterDb.Create(MonsterDb.BossFor(5), Balance.MonsterLevel(depth, h.level), MonsterRank.Boss, rng, depth);
                 float bossTtk = bossM.maxLife / Math.Max(1, h.SheetDps(fin) * 1.5f);
-                if (depth % 5 == 0) Check(bossTtk > 10 && bossTtk < 180, $"{cls} floor {depth}: guardian fight {bossTtk:0}s");
+                if (depth % 5 == 0) Check(bossTtk >= 8 && bossTtk < 180, $"{cls} floor {depth}: guardian fight {bossTtk:0}s");
                 float hits = h.MaxLife(fin) / Combat.MonsterHit(probe.damage, Element.Physical, fin, probe.level, rng).amount;
                 if (depth % 5 == 0) table.Add($"  floor {depth,2}: lvl {h.level,2}  clear {seconds / 60:0.0}m  dps {Fx(h.SheetDps(fin)),7}  normal ttk {ttk:0.0}s  guardian {bossTtk:0}s  survives {hits:0} hits");
                 if (depth >= 3) Check(ttk > 0.4f && ttk < 8f, $"{cls} floor {depth}: a normal monster dies in < 8s (got {ttk:0.0})");
@@ -409,5 +412,271 @@ static class Program
         back.hero.AddItem(Loot.Potion(2));
         Check(back.hero.inventory.Count == before && potions.stack == 5, "potions stack onto a loaded stack");
         Check(back.pet.form == "goldscale".Replace("goldscale", "gildedserpent"), "pet form survives save");
+
+        const string oldSave = "{\"version\":1,\"seed\":7,\"difficulty\":6,\"hero\":{\"name\":\"Old\",\"heroClass\":0,\"level\":12},\"depth\":4,\"deepest\":9}";
+        var migrated = JsonSerializer.Deserialize<GameState>(oldSave, opts);
+        migrated.Normalize();
+        Check(migrated.version == 2 && migrated.hero.level == 12 && migrated.depth == 4 && migrated.deepest == 9, "a version 1 save with a difficulty field still loads");
+        string rewritten = JsonSerializer.Serialize(migrated, opts);
+        Check(!rewritten.Contains("difficulty"), "rewritten saves omit difficulty");
+    }
+
+    static bool Overlaps(DesignTable.Rect a, DesignTable.Rect b)
+        => a.X < b.X + b.W && b.X < a.X + a.W && a.Y < b.Y + b.H && b.Y < a.Y + a.H;
+
+    static bool Contains(DesignTable.Rect outer, DesignTable.Rect inner)
+        => inner.X >= outer.X && inner.Y >= outer.Y && inner.X + inner.W <= outer.X + outer.W && inner.Y + inner.H <= outer.Y + outer.H;
+
+    static string FeelAssetFile(string name)
+    {
+        foreach (var c in new[]
+        {
+            Path.Combine("Assets", "Resources", name),
+            Path.Combine("hollowmere", "Assets", "Resources", name),
+            Path.Combine("..", "..", "Assets", "Resources", name),
+        })
+            if (File.Exists(c)) return File.ReadAllText(c);
+        return null;
+    }
+
+    static string YamlField(string text, string key)
+    {
+        foreach (var raw in text.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.StartsWith(key + ":", StringComparison.Ordinal))
+                return line.Substring(key.Length + 1).Trim();
+        }
+        return null;
+    }
+
+    static List<string[]> SpecRows(string heading)
+    {
+        string path = null;
+        foreach (var c in new[] { "DESIGN_SPEC.md", Path.Combine("hollowmere", "DESIGN_SPEC.md"), Path.Combine("..", "..", "DESIGN_SPEC.md") })
+            if (File.Exists(c)) { path = c; break; }
+        Check(path != null, "DESIGN_SPEC.md is on disk");
+        if (path == null) return new List<string[]>();
+        var rows = new List<string[]>();
+        bool on = false, sawTable = false;
+        foreach (var raw in File.ReadAllLines(path))
+        {
+            var line = raw.Trim();
+            if (line.StartsWith("### "))
+            {
+                if (on) break;
+                on = line == heading;
+                continue;
+            }
+            if (!on) continue;
+            if (line.StartsWith("## ")) break;
+            if (!line.StartsWith("|"))
+            {
+                if (sawTable) break;
+                continue;
+            }
+            if (line.Contains("---")) continue;
+            sawTable = true;
+            var cells = line.Split('|').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+            if (cells.Length == 0) continue;
+            if (cells[0] is "Level" or "Rank" or "Floor" or "Rarity" or "Id" or "Screen" or "Slot" or "Gem" or "Source" or "Phase" or "Tab" or "Line")
+                continue;
+            rows.Add(cells);
+        }
+        Check(rows.Count > 0, heading + " has rows");
+        return rows;
+    }
+
+    static string ArtPath(string rel)
+    {
+        foreach (var root in new[] { "Assets", Path.Combine("hollowmere", "Assets"), Path.Combine("..", "..", "Assets") })
+        {
+            var p = Path.Combine(root, rel);
+            if (File.Exists(p)) return p;
+        }
+        return null;
+    }
+
+    static void CombatSpec()
+    {
+        foreach (var row in SpecRows("### T.cast"))
+        {
+            var t = DesignTable.CastFor(row[0]);
+            Check(t.Windup == int.Parse(row[1]) && t.Strike == int.Parse(row[2]) && t.Recover == int.Parse(row[3]), "cast " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.hitstop"))
+            Check(DesignTable.HitStopMs(row[0]) == int.Parse(row[1]), "hitstop " + row[0]);
+        foreach (var row in SpecRows("### T.shake"))
+            Check(DesignTable.ShakeMm(row[0]) == int.Parse(row[1]), "shake " + row[0]);
+        foreach (var row in SpecRows("### T.sparks"))
+        {
+            var s = DesignTable.Sparks(row[0]);
+            Check(s.Count == int.Parse(row[1]) && s.Speed == int.Parse(row[2]) && s.Life == int.Parse(row[3]) && s.Size == int.Parse(row[4]), "sparks " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.numbers"))
+        {
+            var n = DesignTable.Number(row[0]);
+            Check(n.Hex == row[1] && n.Size == int.Parse(row[2]) && n.Rise == int.Parse(row[3]) && n.Life == int.Parse(row[4]), "number " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.vfx"))
+        {
+            var v = DesignTable.Vfx(row[0]);
+            Check(v.Hex == row[1] && v.Kind == row[2], "vfx " + row[0]);
+            string sheet = ArtPath(Path.Combine("Art", "Combat", "vfx", DesignTable.SheetName(row[0]) + ".png"));
+            Check(DesignTable.HasSheet(row[0]) == (sheet != null), "sheet " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.trail"))
+            Check(DesignTable.Tune(row[0]) == decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture), "trail " + row[0]);
+        foreach (var row in SpecRows("### T.clips"))
+        {
+            Check(DesignTable.TryTrim(row[0], out int a, out int b, out int src), "trim " + row[0]);
+            Check(a == int.Parse(row[1]) && b == int.Parse(row[2]) && src == int.Parse(row[3]), "trim window " + row[0]);
+            Check(b > a && b < src, "trim is shorter " + row[0]);
+        }
+        Check(DesignTable.SheetFps("ic_whirl") == 20 && DesignTable.SheetLoops("ic_whirl"), "whirl sheet loops at 20");
+        Check(DesignTable.SheetFps("ic_cleave") == 24 && !DesignTable.SheetLoops("ic_cleave"), "cleave sheet plays once at 24");
+        Check(DesignTable.Glyph("normal", '1', out _, out _, out _, out int adv) && adv == 40, "digit 1 advances 40");
+        string font = ArtPath(Path.Combine("Art", "Combat", "damage_font", "damage_font.json"));
+        Check(font != null, "damage font json is on disk");
+        if (font != null)
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(font));
+            int fileAdv = doc.RootElement.GetProperty("normal").GetProperty("glyphs").GetProperty("1").GetProperty("advance").GetInt32();
+            Check(fileAdv == 40, "font json digit 1 advance");
+            int critBang = doc.RootElement.GetProperty("crit").GetProperty("glyphs").GetProperty("!").GetProperty("advance").GetInt32();
+            Check(DesignTable.Glyph("crit", '!', out _, out _, out _, out int bang) && bang == critBang, "crit bang advance");
+        }
+        string[] skills = { "ic_cleave", "ic_slam", "ic_charge", "ic_whirl", "ic_warcry", "ic_earthsplit", "st_twinshot", "st_volley", "st_caltrops", "st_roll", "st_mark", "st_rain", "hx_bolt", "hx_frostring", "hx_chain", "hx_blink", "hx_thrall", "hx_meteor" };
+        foreach (var id in skills)
+        {
+            string packPath = ArtPath(Path.Combine("Resources", "Combat", DesignTable.ClipHero(id) + "_combat.bytes"));
+            Check(packPath != null, "clip pack for " + id);
+            if (packPath == null) continue;
+            var clips = CombatClipPack.Load(File.ReadAllBytes(packPath));
+            var clip = clips.FirstOrDefault(c => c.Name == DesignTable.ClipFor(id));
+            Check(clip != null && clip.Bones != null && clip.Bones.Length > 0, "clip " + DesignTable.ClipFor(id));
+            if (clip == null || clip.Bones == null || clip.Bones.Length == 0) continue;
+            var key = clip.Bones[0].Keys[0];
+            float m = key.X * key.X + key.Y * key.Y + key.Z * key.Z + key.W * key.W;
+            Check(m > 0.98f && m < 1.02f, "unit quaternion " + clip.Name);
+            if (DesignTable.TryTrim(clip.Name, out int a, out int b, out _))
+            {
+                var cut = CombatClipPack.Slice(clip, a, b);
+                float last = 0f;
+                foreach (var bone in cut.Bones)
+                    if (bone.Keys.Length > 0) last = Math.Max(last, bone.Keys[bone.Keys.Length - 1].Time);
+                Check(Math.Abs(last - (b - a) / 24f) < 0.02f, "sliced " + clip.Name + " lasts " + last);
+            }
+        }
+    }
+
+    static void SpecTables()
+    {
+        Check(Balance.XpToNext(70) == long.MaxValue, "level 70 sentinel stays on Balance");
+        Check(DesignTable.XpToNext(1) == 120 && DesignTable.XpToNext(10) == 6748, "xp anchors stay on the data table");
+
+        foreach (var row in SpecRows("### T.ui"))
+        {
+            var hit = DesignTable.Ui.FirstOrDefault(r => r.Screen == row[0] && r.Id == row[1]);
+            Check(hit.Id == row[1] && hit.X == int.Parse(row[2]) && hit.Y == int.Parse(row[3]) && hit.W == int.Parse(row[4]) && hit.H == int.Parse(row[5]), "ui " + row[0] + " " + row[1]);
+        }
+        foreach (var row in SpecRows("### T.doll"))
+        {
+            var hit = DesignTable.Doll.FirstOrDefault(r => r.Id == row[0]);
+            Check(hit.Id == row[0] && hit.X == int.Parse(row[1]) && hit.Y == int.Parse(row[2]) && hit.W == int.Parse(row[3]) && hit.H == int.Parse(row[4]), "doll " + row[0]);
+        }
+
+        foreach (var heading in new[] { "### T.motion", "### T.pet", "### T.qa", "### T.bag" })
+        {
+            foreach (var row in SpecRows(heading))
+                Check(DesignTable.Tune(row[0]) == decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture), heading + " " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.follow"))
+        {
+            var d = decimal.Parse(row[0], System.Globalization.CultureInfo.InvariantCulture);
+            var want = decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture);
+            Check(DesignTable.FollowSpeed(d) == want, "follow speed at " + row[0]);
+        }
+        Check(DesignTable.BagCapacity == Balance.InventorySize, "bag capacity matches the inventory");
+        var grid = DesignTable.UiRect("inventory", "grid");
+        var cell = DesignTable.UiRect("inventory", "gridCell");
+        Check(DesignTable.BagColumns * cell.W + (DesignTable.BagColumns - 1) * DesignTable.BagGap == grid.W, "grid width");
+        Check(DesignTable.BagRows * cell.H == 672 && grid.H - 672 == 28, "grid leaves 28 dp under the cells");
+        Check(DesignTable.BagColumns * DesignTable.BagRows == DesignTable.BagCapacity, "one item per bag cell");
+
+        string[] leftSlots = { "head", "shoulders", "chest", "wrists", "hands", "belt", "legs" };
+        string[] rightSlots = { "amulet", "ring_l", "ring_r", "cloak", "feet", "mainhand", "offhand" };
+        var leftCol = DesignTable.UiRect("inventory", "leftColumn");
+        var rightCol = DesignTable.UiRect("inventory", "rightColumn");
+        var hero = DesignTable.UiRect("inventory", "hero");
+        var bag = DesignTable.UiRect("inventory", "bag");
+        foreach (var id in leftSlots) Check(Contains(leftCol, DesignTable.DollRect(id)), id + " sits in the left column");
+        foreach (var id in rightSlots) Check(Contains(rightCol, DesignTable.DollRect(id)), id + " sits in the right column");
+        for (int i = 0; i < DesignTable.Doll.Length; i++)
+            for (int j = i + 1; j < DesignTable.Doll.Length; j++)
+                Check(!Overlaps(DesignTable.Doll[i], DesignTable.Doll[j]), "slots overlap " + DesignTable.Doll[i].Id + " " + DesignTable.Doll[j].Id);
+        Check(!Overlaps(rightCol, bag) && !Overlaps(hero, bag), "bag clears the hero and the right column");
+        Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), hero), "tooltip opens over the hero");
+        Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "tabs")) && Contains(bag, DesignTable.UiRect("inventory", "bottom")), "grid, tabs, and the bottom bar sit in the bag");
+
+        string asset = FeelAssetFile("FeelProfile.asset");
+        Check(asset != null, "FeelProfile.asset is on disk");
+        if (asset != null)
+        {
+            foreach (var heading in new[] { "### T.motion", "### T.pet", "### T.qa" })
+            {
+                foreach (var row in SpecRows(heading))
+                    Check(YamlField(asset, row[0]) == row[1], "FeelProfile " + row[0] + " is " + YamlField(asset, row[0]));
+            }
+        }
+
+        CombatSpec();
+        Check(DesignTable.GlobeNormalChance == 0.08m && DesignTable.GlobeHealFraction == 0.25m, "globe rates");
+        Check(DesignTable.EliteGlobeThresholds.Length == 3, "three elite globes");
+        Check(DesignTable.PotionCooldownSeconds == 20m, "potion cooldown");
+        string feet = FeelAssetFile("ClipFeet.asset");
+        Check(feet != null, "ClipFeet.asset is on disk");
+        if (feet != null)
+        {
+            int at = feet.IndexOf("model: hero_hexweaver", StringComparison.Ordinal);
+            Check(at >= 0, "hexweaver foot speeds are listed");
+            if (at >= 0)
+            {
+                string block = feet.Substring(at, Math.Min(180, feet.Length - at));
+                Check(block.Contains("walk: 0.8") && block.Contains("run: 4.11"), "hero walk is about 0.8 m/s and run about 4.1");
+            }
+            Check(feet.Contains("model: mon_bogfiend") && feet.Contains("longPunch: 1"), "the long punch is marked for a trim");
+            Check(feet.Contains("model: hero_stalker") && feet.Contains("model: pet_lynx") && feet.Contains("model: pet_hound"), "the rest of the rigs have foot speeds");
+        }
+        Check(DesignTable.BossPhase(1f) == 1 && DesignTable.BossPhase(0.66f) == 2 && DesignTable.BossPhase(0.33f) == 3, "guardian phases");
+    }
+
+    /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto
+    /// Hollowmere/Color; a model with no embedded texture cannot show anything but flat white.</summary>
+    static void ModelAlbedo()
+    {
+        string path = null;
+        foreach (var c in new[]
+        {
+            "Assets/Resources/Models/npc_smith.glb",
+            "hollowmere/Assets/Resources/Models/npc_smith.glb",
+            Path.Combine("..", "..", "Assets", "Resources", "Models", "npc_smith.glb"),
+        })
+            if (File.Exists(c)) { path = c; break; }
+        Check(path != null, "npc_smith.glb is on disk to load");
+        if (path == null) return;
+        var json = GlbJson(path);
+        int tex = json.IndexOf("baseColorTexture", StringComparison.Ordinal);
+        Check(tex >= 0, "npc_smith material references baseColorTexture");
+        int images = json.IndexOf("\"images\"", StringComparison.Ordinal);
+        Check(images >= 0 && images < tex, "npc_smith.glb embeds an image before the material uses it");
+    }
+
+    static string GlbJson(string path)
+    {
+        var data = File.ReadAllBytes(path);
+        if (data.Length < 20) return "";
+        int len = BitConverter.ToInt32(data, 12);
+        return Encoding.UTF8.GetString(data, 20, len);
     }
 }

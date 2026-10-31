@@ -14,6 +14,7 @@ namespace Hollowmere
         {
             var s = c.skill;
             var col = Art.Element(c.element);
+            SkillVfx.Play(h, c, dir, target);
             Sound(c);
             switch (s.shape)
             {
@@ -96,6 +97,7 @@ namespace Hollowmere
                         OnHits(h, c, hits.Count);
                     }
                     h.Teleport(to);
+                    SkillVfx.Landing(h, c);
                     Fx.Beam(from + Vector3.up, to + Vector3.up, col, 0.5f, 0.25f);
                     if (c.healPct > 0) h.Heal(h.maxLife * c.healPct);
                     if (c.slow > 0) { foreach (var a in Actor.InRadius(Team.Hero, from, 3.5f)) { a.Slow(c.slow, 3); if (s.id == "hx_blink") HitEnemy(h, c, a, 1.5f); } Fx.Ring(from, 3.5f, col); }
@@ -158,6 +160,10 @@ namespace Hollowmere
             if (a == null || !a.Targetable) return;
             var hit = Combat.HeroHit(h.Ctx, c, a.IsElite, h.Rng, mult);
             a.TakeDamage(hit, h);
+            Sfx.Strike(h, c.skill.id, a, hit.crit);
+            string punch = a.Dead ? "kill" : hit.crit ? "crit" : c.skill.primary ? "normal" : "skill";
+            CombatClock.Punch(punch);
+            CombatSparks.Burst(a.Pos + Vector3.up * 0.8f, Art.Element(c.element), hit.crit ? "crit" : c.skill.primary ? "normal" : "skill");
             if (c.slow > 0) a.Slow(c.slow, 2.5f);
             if (c.stun > 0) a.Stun(c.stun);
             if (c.burnPct > 0) a.Burn(hit.amount * c.burnPct, 3f, c.element, h);
@@ -178,22 +184,17 @@ namespace Hollowmere
         public static void OnHits(HeroActor h, SkillCast c, int count)
         {
             if (count <= 0) return;
-            h.Heal(Combat.LifeOnHit(h.stats, count));
+            float healed = Combat.LifeOnHit(h.stats, count);
+            h.Heal(healed);
+            if (healed >= 1f) CombatNumbers.Spawn(h.Pos, "+" + Mathf.RoundToInt(healed), "heal", Color.white);
             if (c.rune?.id == "rn_whirl_blood") h.Heal(h.maxLife * c.healPct * count);
             if (c.skill.primary && c.skill.shape != SkillShape.MeleeArc) { }
         }
 
         static void Sound(SkillCast c)
         {
-            if (c.skill.id == "hx_bolt") { AudioHub.Play("hexbolt_cast", 0.9f); return; }
-            switch (c.element)
-            {
-                case Element.Fire: AudioHub.Play("sfx_fire", 0.6f); return;
-                case Element.Frost: AudioHub.Play("sfx_frost", 0.6f); return;
-                case Element.Lightning: AudioHub.Play("sfx_zap", 0.6f); return;
-                case Element.Arcane: case Element.Poison: AudioHub.Play("sfx_spell", 0.6f); return;
-            }
-            AudioHub.Play(c.skill.shape == SkillShape.Projectile || c.skill.shape == SkillShape.Cone ? "sfx_arrow" : "sfx_swing", 0.6f);
+            // The cast cue already played when the button went down. A skill with no take still needs a swing.
+            if (c == null || c.skill == null) return;
         }
     }
 
@@ -205,7 +206,6 @@ namespace Hollowmere
         int pierce;
         bool hexBolt;
         Color tint;
-        float trail;
         Vector3 baseScale;
         Light glow;
         HeroActor hero; SkillCast cast;
@@ -216,21 +216,46 @@ namespace Hollowmere
         {
             bool bolt = c.skill.id == "hx_bolt";
             var tint = Art.Element(c.element);
-            var core = bolt ? Color.Lerp(tint, Color.white, 0.4f) : tint;
-            var p = Make(from, core, bolt ? Vector3.one * 0.55f : c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            Projectile p;
+            if (bolt)
+            {
+                // No opaque core. The included additive glow is the bolt; a hard quad read as a pink square.
+                var g = new GameObject("hexBolt");
+                g.transform.position = from + Vector3.up * 0.55f;
+                p = g.AddComponent<Projectile>();
+                p.baseScale = Vector3.one;
+                Art.GlowSprite(g.transform, 1.15f, tint);
+            }
+            else
+            {
+                var core = tint;
+                p = Make(from, core, c.skill.cls == HeroClass.Stalker ? new Vector3(0.12f, 0.12f, 0.9f) : Vector3.one * 0.4f);
+            }
             p.team = Team.Hero; p.hero = h; p.cast = c; p.dir = dir.normalized; p.speed = speed; p.rangeLeft = range; p.mult = mult; p.pierce = c.pierce;
             p.hexBolt = bolt; p.tint = tint;
             p.transform.rotation = Quaternion.LookRotation(p.dir);
             if (bolt)
             {
-                Fx.Burst(from, tint, 0.45f, 0.12f);
-                var rend = p.GetComponent<Renderer>();
-                if (rend != null) rend.sharedMaterial = Art.Mat(core, 4.5f);
+                var trail = p.gameObject.AddComponent<TrailRenderer>();
+                trail.time = 0.45f;
+                trail.startWidth = 0.55f;
+                trail.endWidth = 0.04f;
+                trail.minVertexDistance = 0.04f;
+                trail.numCornerVertices = 2;
+                trail.alignment = LineAlignment.View;
+                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                trail.receiveShadows = false;
+                trail.material = Art.GlowMat(Color.white, true);
+                var grad = new Gradient();
+                grad.SetKeys(
+                    new[] { new GradientColorKey(tint, 0f), new GradientColorKey(new Color(0.45f, 0.15f, 0.95f), 1f) },
+                    new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
+                trail.colorGradient = grad;
                 var glow = p.gameObject.AddComponent<Light>();
                 glow.type = LightType.Point;
                 glow.color = tint;
-                glow.range = 4.5f;
-                glow.intensity = 2.4f;
+                glow.range = 12f;
+                glow.intensity = 7f;
                 p.glow = glow;
             }
         }
@@ -256,27 +281,16 @@ namespace Hollowmere
             rangeLeft -= step;
             if (hexBolt)
             {
-                float pulse = 1f + 0.14f * Mathf.Sin(Time.time * 32f);
+                float pulse = 1f + 0.1f * Mathf.Sin(Time.time * 32f);
                 transform.localScale = baseScale * pulse;
-                if (glow != null) glow.intensity = 2.1f + 0.7f * Mathf.Sin(Time.time * 28f);
-                trail -= Time.deltaTime;
-                if (trail <= 0f)
-                {
-                    trail = 0.028f;
-                    var side = Vector3.Cross(dir, Vector3.up);
-                    if (side.sqrMagnitude < 0.01f) side = Vector3.right;
-                    side.Normalize();
-                    var jitter = side * Mathf.Sin(Time.time * 40f) * 0.08f + Vector3.up * Mathf.Cos(Time.time * 33f) * 0.06f;
-                    var mote = Art.Sphere(null, transform.position - dir * 0.35f + jitter, Vector3.one * 0.22f, Art.Mat(tint, 3.5f));
-                    mote.AddComponent<FxLife>().Init(0.22f, Vector3.one * 0.22f, Vector3.zero);
-                }
+                if (glow != null) glow.intensity = 6.5f + 1.2f * Mathf.Sin(Time.time * 28f);
             }
             if (rangeLeft <= 0 || World.Solid(transform.position))
             {
                 if (hexBolt)
                 {
-                    Fx.Impact(transform.position, tint, null);
-                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.55f);
+                    Fx.HexImpact(transform.position, tint, null);
+                    Sfx.ImpactOnly("hx_bolt");
                 }
                 Destroy(gameObject);
                 return;
@@ -298,10 +312,7 @@ namespace Hollowmere
                     if (slow > 0) a.Slow(slow, 2);
                 }
                 if (hexBolt)
-                {
-                    Fx.Impact(transform.position, tint, a);
-                    AudioHub.PlayAlternating("hexbolt_impact", "hexbolt_impact_2", 0.85f);
-                }
+                    Fx.HexImpact(transform.position, tint, a);
                 else Fx.Burst(transform.position, GetComponent<Renderer>() != null ? GetComponent<Renderer>().sharedMaterial.color : tint, 0.7f, 0.15f);
                 if (pierce-- <= 0) { Destroy(gameObject); return; }
             }

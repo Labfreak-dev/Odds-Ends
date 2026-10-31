@@ -44,6 +44,8 @@ namespace Hollowmere.Core
         public string fishId;
         public bool junk;          // flagged for the pet to sell
         public int enchantedAffix = -1;  // mystic: only this affix may be re-rolled again
+        public int sockets;
+        public string gemId;
 
         public static bool IsNone(Item i) => i == null || string.IsNullOrEmpty(i.baseId);
 
@@ -117,7 +119,7 @@ namespace Hollowmere.Core
             float t = Math.Clamp((ilvl - 1) / 69f, 0f, 1f);
             float lo = lo1 + (lo70 - lo1) * t, hi = hi1 + (hi70 - hi1) * t;
             float v = rng.Range(lo, hi);
-            if (ancient) v *= 1.3f;
+            if (ancient) v *= (float)DesignTable.DeepwroughtScale;
             return IsInteger(stat) ? (float)Math.Round(v) : (float)Math.Round(v * 10) / 10f;
         }
 

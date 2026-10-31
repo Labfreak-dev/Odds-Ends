@@ -1,0 +1,19 @@
+{
+ "skill_id": "hx_meteor",
+ "skill": "Meteor",
+ "class": "hexweaver",
+ "sheet": "hexweaver_hx_meteor.png",
+ "frame_w": 256,
+ "frame_h": 256,
+ "columns": 4,
+ "rows": 3,
+ "frame_count": 12,
+ "fps": 24,
+ "loop": false,
+ "pivot": [
+  0.5,
+  0.5
+ ],
+ "blend": "additive (alpha also valid)",
+ "use": "ultimate meteor fall + fire explosion"
+}

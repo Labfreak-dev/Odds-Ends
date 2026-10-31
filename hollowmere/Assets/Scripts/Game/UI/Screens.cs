@@ -52,17 +52,10 @@ namespace Hollowmere
             var body = ui.Modal("menu", "Menu", new Vector2(0.18f, 0.08f), new Vector2(0.82f, 0.92f));
             var left = Ui.Rect(body, "left", Vector2.zero, new Vector2(0.5f, 1), Vector2.zero, new Vector2(-10, 0));
             var list = Ui.Scroll(left);
-            Ui.Size(Ui.Label(Ui.Rect(list, "h", Vector2.zero, Vector2.one), "<b>Difficulty</b>  (higher = tougher monsters, more XP, gold and legendaries)", 24, TextAnchor.MiddleLeft, Ui.Gold), 70);
-            foreach (Difficulty d in Enum.GetValues(typeof(Difficulty)))
-            {
-                var dd = d;
-                bool locked = s.hero.level < Balance.MinLevelFor(d);
-                var b = Ui.Button(list, $"{Balance.DifficultyNames[(int)d]}{(locked ? $"  (level {Balance.MinLevelFor(d)})" : $"   +{Balance.XpBonus(d) * 100:0}% XP")}",
-                    () => { gm.ChangeDifficulty(dd); Show(ui); }, d == s.difficulty ? Ui.ButtonHot : Ui.ButtonC, 26);
-                b.interactable = !locked && gm.InTown;
-                Ui.Size(b, 64);
-            }
-            if (!gm.InTown) Ui.Size(Ui.Label(Ui.Rect(list, "n", Vector2.zero, Vector2.one), "Difficulty can be changed in town.", 22, TextAnchor.MiddleLeft, Color.gray), 40);
+            int floor = Math.Max(1, s.depth);
+            Ui.Size(Ui.Label(Ui.Rect(list, "h", Vector2.zero, Vector2.one),
+                $"<b>Depth</b>\nFloor {floor}. Deepest {Math.Max(floor, s.deepest)}.\nEach floor is harder than the one above it.",
+                24, TextAnchor.UpperLeft, Ui.Gold), 140);
 
             var right = Ui.Rect(body, "right", new Vector2(0.5f, 0), Vector2.one, new Vector2(10, 0), Vector2.zero);
             var rl = Ui.Scroll(right);

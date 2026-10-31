@@ -4,8 +4,8 @@ A mobile dungeon crawler for Unity. The structure follows the old *Fate* games: 
 lakeside town, a dungeon that goes down floor after floor, a companion who fights beside
 you and runs back to town to sell your junk, and fishing holes whose catch transforms
 that companion. The loot and skills follow *Diablo III*: rarity tiers with affixes,
-legendary powers, set bonuses, smart loot, a mystic and a blacksmith, Torment
-difficulties, and skills whose runes change how they work.
+legendary powers, set bonuses, smart loot, a mystic and a blacksmith, and skills
+whose runes change how they work. Deeper floors are the only difficulty.
 
 Everything here (names, classes, monsters, items, fish, places) is original.
 
@@ -94,8 +94,8 @@ Only CC0 or MIT recordings. `Hollowmere/Bind title drop-in art` attaches new fil
   legendaries at max level. Primary and secondary affixes scale by item level. 16
   legendary powers change skills, elements, the companion or fishing. There are 4 sets
   with 2- and 4-piece bonuses (one per class, plus *The Old Angler's Kit*). Tooltips
-  compare against what you wear and show the change in damage, toughness and life. Ten
-  difficulties run from Normal to Torment VI, and Torment unlocks at 70.
+  compare against what you wear and show the change in damage, toughness and life.
+  There is one difficulty: deeper floors are harder.
 - **Fishing.** Cast, wait, and ignore the nibbles. Strike when the bobber goes under.
   Then hold to reel and let go when the line gets tight. Twelve species. Some heal, some
   give buffs, and some transform the companion: Cinder Drake, Frost Wyrm, Thunder Hound,
@@ -109,7 +109,7 @@ Only CC0 or MIT recordings. `Hollowmere/Bind title drop-in art` attaches new fil
 
 ```
 Assets/Scripts/Core/   engine-free C# (no UnityEngine): all rules, tables and formulas
-  Balance.cs           every tuning curve: XP, monster scaling, difficulty multipliers
+  Balance.cs           every tuning curve: XP and monster scaling by floor depth
   Items.cs ItemDb.cs   item model, bases, affixes, legendary powers, sets
   Loot.cs              rarity rolls, smart loot, affix rolling, naming, mystic enchant
   Hero.cs              level/XP, inventory, equip rules (rings, two-handers, quivers), stats

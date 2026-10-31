@@ -38,6 +38,38 @@ namespace Hollowmere
             if (target != null) target.PunchFlash(c);
         }
 
+        /// <summary>Hex Bolt's hit: the additive impact sheet, a soft glow, and a fading point light.</summary>
+        public static void HexImpact(Vector3 at, Color c, Actor target)
+        {
+            var host = new GameObject("hexImpact");
+            host.transform.position = at + Vector3.up * 1.05f;
+            var tex = CombatDrop.Tex("hexweaver_hx_bolt");
+            if (tex != null)
+            {
+                var quad = Art.GlowSprite(host.transform, 2.4f, Color.white);
+                var mr = quad.GetComponent<MeshRenderer>();
+                var mat = Art.GlowMat(Color.white, false, tex);
+                if (mr != null) mr.sharedMaterial = mat;
+                var play = quad.AddComponent<SheetPlay>();
+                play.mat = mat;
+                play.fps = 24;
+                play.loop = false;
+                play.life = 12f / 24f;
+            }
+            else
+            {
+                var sprite = Art.GlowSprite(host.transform, 1.7f, c);
+                sprite.AddComponent<FxLife>().Init(0.4f, Vector3.one * 1.7f, Vector3.one * 2.6f);
+            }
+            var l = host.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = c;
+            l.range = 11f;
+            l.intensity = 8f;
+            host.AddComponent<LightFade>().Init(0.42f, 8f);
+            if (target != null) target.PunchFlash(c);
+        }
+
         public static void Burst(Vector3 at, Color c, float size = 0.6f, float seconds = 0.25f)
         {
             var g = Art.Sphere(null, at, Vector3.one * size * 0.3f, Art.Mat(c, 2f));
@@ -99,8 +131,10 @@ namespace Hollowmere
 
         public static void Damage(Vector3 at, Hit h, bool onHero)
         {
-            var c = onHero ? new Color(1f, 0.3f, 0.3f) : h.crit ? new Color(1f, 0.85f, 0.2f) : Art.Element(h.element);
-            Text(at, (h.crit ? "!" : "") + Short(h.amount), c, h.crit ? 1.5f : 1f);
+            string style = onHero ? "hurt" : h.crit ? "crit" : "normal";
+            var spec = DesignTable.Number(style);
+            var c = Art.Hex("#" + spec.Hex);
+            CombatNumbers.Spawn(at, (h.crit ? "!" : "") + Short(h.amount), style, c);
         }
 
         public static string Short(float v)
@@ -133,6 +167,27 @@ namespace Hollowmere
             if (tm == null) transform.localScale = Vector3.Lerp(from, to, k);
             if (rise != 0) transform.position += Vector3.up * rise * Time.deltaTime;
             if (tm != null) { var c = tm.color; c.a = 1 - k * k; tm.color = c; }
+            if (t >= life) Destroy(gameObject);
+        }
+    }
+
+    /// <summary>Point light that dims and then removes its object. Used by Hex Bolt's impact.</summary>
+    public sealed class LightFade : MonoBehaviour
+    {
+        float t, life, intensity;
+        Light light;
+
+        public void Init(float seconds, float from)
+        {
+            life = Mathf.Max(0.05f, seconds);
+            intensity = from;
+            light = GetComponent<Light>();
+        }
+
+        void Update()
+        {
+            t += Time.deltaTime;
+            if (light != null) light.intensity = intensity * (1f - Mathf.Clamp01(t / life));
             if (t >= life) Destroy(gameObject);
         }
     }

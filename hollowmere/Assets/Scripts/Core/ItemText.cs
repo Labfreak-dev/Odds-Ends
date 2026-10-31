@@ -53,7 +53,7 @@ namespace Hollowmere.Core
 
             var b = it.Base;
             string rarityWord = it.rarity == Rarity.Common ? "" : it.rarity + " ";
-            sb.Append($"<color={rc}>{(it.ancient ? "Ancient " : "")}{rarityWord}{SlotLabel(it)}</color>   <color=#999999>ilvl {it.itemLevel}</color>\n");
+            sb.Append($"<color={rc}>{(it.ancient ? "Deepwrought " : "")}{rarityWord}{SlotLabel(it)}</color>   <color=#999999>ilvl {it.itemLevel}</color>\n");
             if (b.classOnly != null) sb.Append($"<color=#bbbbbb>{b.classOnly} only</color>\n");
 
             if (it.IsWeapon)

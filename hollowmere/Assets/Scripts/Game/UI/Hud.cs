@@ -42,9 +42,9 @@ namespace Hollowmere
             var lvi = lv.gameObject.AddComponent<Image>();
             lvi.sprite = Ui.Circle; lvi.color = new Color(0.15f, 0.12f, 0.1f, 0.9f);
             levelText = Ui.Label(lv, "1", 44, TextAnchor.MiddleCenter, Ui.Gold);
-            lifeFill = Ui.Bar(Ui.At(tl, "life", new Vector2(0, 1), new Vector2(112, 0), new Vector2(480, 60)), new Color(0, 0, 0, 0.6f), new Color(0.75f, 0.12f, 0.12f), out lifeText, 24, "health");
-            resFill = Ui.Bar(Ui.At(tl, "res", new Vector2(0, 1), new Vector2(112, -68), new Vector2(480, 48)), new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.4f, 0.9f), out resText, 20, "mana");
-            xpFill = Ui.Bar(Ui.At(tl, "xp", new Vector2(0, 1), new Vector2(112, -122), new Vector2(480, 36)), new Color(0, 0, 0, 0.6f), new Color(0.85f, 0.7f, 0.25f), out xpText, 16, "xp");
+            lifeFill = Ui.Bar(Ui.At(tl, "life", new Vector2(0, 1), new Vector2(112, 0), new Vector2(360, 52)), new Color(0, 0, 0, 0.6f), new Color(0.75f, 0.12f, 0.12f), out lifeText, 22, "health");
+            resFill = Ui.Bar(Ui.At(tl, "res", new Vector2(0, 1), new Vector2(112, -58), new Vector2(360, 40)), new Color(0, 0, 0, 0.6f), new Color(0.3f, 0.4f, 0.9f), out resText, 18, "mana");
+            xpFill = Ui.Bar(Ui.At(tl, "xp", new Vector2(0, 1), new Vector2(112, -104), new Vector2(360, 36)), new Color(0, 0, 0, 0.6f), new Color(0.85f, 0.7f, 0.25f), out xpText, 14, "xp");
             goldText = Ui.Label(Ui.At(tl, "gold", new Vector2(0, 1), new Vector2(0, -166), new Vector2(620, 40)), "", 28, TextAnchor.MiddleLeft, Ui.Gold);
             petFill = Ui.Bar(Ui.At(tl, "pet", new Vector2(0, 1), new Vector2(0, -210), new Vector2(360, 36)), new Color(0, 0, 0, 0.6f), new Color(0.4f, 0.75f, 0.35f), out petText, 18);
             buffText = Ui.Label(Ui.At(r, "buffs", new Vector2(0, 1), new Vector2(20, -300), new Vector2(560, 120)), "", 22, TextAnchor.UpperLeft, new Color(0.7f, 0.9f, 1f));
@@ -144,7 +144,9 @@ namespace Hollowmere
             var st = GameManager.I.State;
             var h = st.hero;
             Keys();
-            hero.moveInput = stick.Value + KeyMove();
+            // -qaFrames owns the stick. Overwriting it here left speed at 0 for the whole clip.
+            if (string.IsNullOrEmpty(QaFrames.Requested))
+                hero.moveInput = stick.Value + KeyMove();
 
             levelText.text = h.level.ToString();
             float lifeFrac = hero.LifeFraction;
@@ -161,7 +163,7 @@ namespace Hollowmere
             resText.text = $"{StatInfo.ResourceName(h.heroClass)} {Mathf.FloorToInt(hero.resource)}";
             long need = Balance.XpToNext(h.level);
             Ui.SetBar(xpFill, h.level >= Balance.MaxLevel ? 1 : h.xp / (float)need);
-            goldText.text = $"{h.gold:N0} gold   <color=#bbbbbb>{Balance.DifficultyNames[(int)st.difficulty]}</color>";
+            goldText.text = st.depth <= 0 ? $"{h.gold:N0} gold" : $"{h.gold:N0} gold   <color=#bbbbbb>Floor {st.depth}</color>";
             var pet = PetActor.I;
             if (pet != null)
             {
@@ -183,7 +185,12 @@ namespace Hollowmere
             if (boss != null)
             {
                 if (boss.Dead) SetBoss(null);
-                else { Ui.SetBar(bossFill, boss.LifeFraction); bossText.text = $"<b>{boss.stats.displayName}</b>"; }
+                else
+                {
+                    Ui.SetBar(bossFill, boss.LifeFraction);
+                    string aff = boss.stats.affixes.Count > 0 ? "\n<size=18><color=#e8d7a8>" + string.Join(" · ", boss.stats.affixes.Select(MonsterDb.AffixName)) + "</color></size>" : "";
+                    bossText.text = $"<b>{boss.stats.displayName}</b>{aff}";
+                }
             }
 
             // skills
@@ -202,7 +209,7 @@ namespace Hollowmere
             var prim = SkillDb.Get(h.skills.bar[0]);
             primary.label.text = prim != null ? prim.name : "Attack";
             potion.label.text = $"Potion\n{h.Count(ItemKind.Potion)}";
-            potion.SetCooldown(hero.PotionCooldown / 5f);
+            potion.SetCooldown(hero.PotionCooldown / (float)DesignTable.PotionCooldownSeconds);
             portal.gameObject.SetActive(!GameManager.I.InTown);
             portal.label.text = $"Portal\n{h.Count(ItemKind.TownPortal)}";
             skillsBtn.GetComponentInChildren<Text>().text = h.skills.unspent > 0 ? $"Skills <color=#ffe25a>+{h.skills.unspent}</color>" : "Skills";

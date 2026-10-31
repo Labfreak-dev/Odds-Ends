@@ -51,6 +51,7 @@ MonoBehaviour:
   iconSword: {fileID: 21300000, guid: 3c35db397b27884091d032a5a80cb9e1, type: 3}
   iconShield: {fileID: 21300000, guid: 66d6eda267f650548d40492a4b414c1b, type: 3}
   iconSettings: {fileID: 21300000, guid: 466383ed7ae253114af1c9f036c3fa0d, type: 3}
+  iconGem: {fileID: 21300000, guid: 60dd8b0c11b78cb44cd4d9b1309db54a, type: 3}
   hexboltCast: {fileID: 8300000, guid: b11c0d0e1f2a4034b5c6d7e8f9011122, type: 3}
   hexboltImpact: {fileID: 8300000, guid: b22c0d0e1f2a4034b5c6d7e8f9022233, type: 3}
   hexboltImpact2: {fileID: 8300000, guid: b33c0d0e1f2a4034b5c6d7e8f9033344, type: 3}

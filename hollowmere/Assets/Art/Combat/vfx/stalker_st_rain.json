@@ -1,0 +1,19 @@
+{
+ "skill_id": "st_rain",
+ "skill": "Rain of Arrows",
+ "class": "stalker",
+ "sheet": "stalker_st_rain.png",
+ "frame_w": 256,
+ "frame_h": 256,
+ "columns": 4,
+ "rows": 3,
+ "frame_count": 12,
+ "fps": 24,
+ "loop": false,
+ "pivot": [
+  0.5,
+  0.5
+ ],
+ "blend": "additive (alpha also valid)",
+ "use": "ultimate, arrows fall and splash in area"
+}

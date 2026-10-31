@@ -1,5 +1,6 @@
 using Hollowmere.Core;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace Hollowmere
 {
@@ -13,9 +14,10 @@ namespace Hollowmere
         string builtForm = "?";
         Actor foe;
         ModelAnim anim;
-        Vector3 followVel;
-        float gaitPhase;
-        bool gaitMoving, clipDriven;
+        NavMeshAgent agent;
+        readonly Locomotion loco = new Locomotion();
+        float gaitPhase, stuckFor;
+        bool clipDriven;
         readonly Rng rng = new Rng();
 
         public bool Taunting => P.Form?.taunt > 0;
@@ -30,10 +32,22 @@ namespace Hollowmere
             var p = go.AddComponent<PetActor>();
             p.team = Team.Hero;
             p.SetupController(0.35f, 0.9f);
-            p.cc.enabled = false; // the companion slips past monsters; walls are handled by World.Sweep
+            p.cc.enabled = false; // the companion slips past monsters; the navmesh keeps it on the floor
+            p.agent = go.AddComponent<NavMeshAgent>();
+            p.agent.radius = 0.3f;
+            p.agent.height = 0.8f;
+            p.agent.baseOffset = 0f;
+            p.agent.angularSpeed = 0f;
+            p.agent.updateRotation = false;
+            p.agent.updatePosition = false;
+            p.agent.autoBraking = false;
+            p.agent.stoppingDistance = 0.05f;
+            p.agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
             I = p;
             p.Rebuild();
             p.RefreshLife(true);
+            if (FloorNav.Ready && p.agent != null) p.agent.Warp(go.transform.position);
+            Sfx.Pet("summon");
             return p;
         }
 
@@ -79,7 +93,7 @@ namespace Hollowmere
         protected override void Update()
         {
             base.Update();
-            if (GameManager.I.Paused) return;
+            if (GameManager.I.Paused || CombatClock.Frozen) return;
             var hero = HeroActor.I;
             if (hero == null) return;
             if (builtForm != P.form) Rebuild();
@@ -88,30 +102,34 @@ namespace Hollowmere
             if (body.gameObject.activeSelf != show)
             {
                 body.gameObject.SetActive(show);
-                if (show) { Teleport(hero.Pos - hero.transform.forward * 1.5f); life = maxLife; }
+                if (show)
+                {
+                    // Reappearing beside the hero is a warp, and the player is looking at that spot.
+                    WarpTo(Slot(hero), true);
+                    life = maxLife;
+                    Sfx.Pet("summon");
+                }
             }
             if (!show) return;
 
             if (cc != null) cc.enabled = false;
             float dt = Time.deltaTime;
             var form = P.Form;
-            float speed = 7.5f * (form?.speedMult ?? 1);
+            float speedMult = form?.speedMult ?? 1f;
 
-            if (GameManager.I.InTown) Follow(hero, speed, dt);
-            else
+            if (!GameManager.I.InTown)
             {
                 if (foe == null || !foe.Targetable || (foe.Pos - hero.Pos).magnitude > 12) foe = Nearest(Team.Hero, hero.Pos, 10f);
                 if (foe != null)
                 {
                     var to = foe.Pos - Pos; to.y = 0;
-                    if (to.magnitude > 1.6f + foe.radius) Chase(to, speed, dt);
+                    if (to.magnitude > 1.6f + foe.radius) Seek(foe.Pos, 7.5f * speedMult, dt, false);
                     else
                     {
-                        SetMoving(false);
+                        loco.Step(this, Vector3.zero, 0f, dt, to, false, true, false);
                         if (Time.time >= nextAttack && !Stunned)
                         {
                             nextAttack = Time.time + 0.9f;
-                            Face(to);
                             var hit = Combat.PetHit(hero.Ctx, 0.35f * (form?.damageMult ?? 1), form?.element ?? Element.Physical, rng);
                             foe.TakeDamage(hit, hero);
                             if (form != null && form.aoeRadius > 0)
@@ -121,116 +139,160 @@ namespace Hollowmere
                                 Fx.Ring(foe.Pos, form.aoeRadius, Art.Hex(form.color), 0.25f);
                             }
                             if (form != null && form.slow > 0) foe.Slow(form.slow, 2);
-                            body.localPosition = transform.InverseTransformDirection(to.normalized) * 0.3f;
+                            anim?.BeginAttack(false);
+                            Sfx.Pet("attack");
                         }
                     }
+                    Pose(dt);
+                    return;
                 }
-                else Follow(hero, speed, dt);
             }
+            var slot = Slot(hero);
+            float dist = Flat(slot - Pos).magnitude;
+            float follow = (float)DesignTable.FollowSpeed((decimal)dist) * speedMult;
+            float cap = Feel.Active.maxSpeed * Mathf.Max(1f, speedMult);
+            Seek(slot, Mathf.Min(cap, follow), dt, true);
             Pose(dt);
         }
 
-        void Follow(HeroActor hero, float speed, float dt)
+        static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
+
+        Vector3 Slot(HeroActor hero)
         {
-            if (World.Map == null) { SetMoving(false); return; }
+            var f = Feel.Active;
             var back = hero.transform.forward;
-            back.y = 0;
+            back.y = 0f;
             if (back.sqrMagnitude < 0.01f) back = Vector3.forward;
             back.Normalize();
             var side = hero.transform.right;
-            side.y = 0;
+            side.y = 0f;
             if (side.sqrMagnitude > 0.01f) side.Normalize();
-            var slot = hero.Pos - back * 1.75f + side * 0.55f;
+            var slot = hero.Pos - back * f.trailBack + side * f.trailSide;
             if (!World.Walkable(slot)) slot = World.ClampToFloor(slot);
-            if (!World.Walkable(Pos))
-            {
-                Teleport(World.Walkable(slot) ? slot : World.ClampToFloor(hero.Pos));
-                followVel = Vector3.zero;
-                SetMoving(false);
-                return;
-            }
-            var to = slot - Pos;
-            to.y = 0;
-            float dist = to.magnitude;
-            if (dist > 14f)
-            {
-                Teleport(slot);
-                followVel = Vector3.zero;
-                SetMoving(false);
-                return;
-            }
-            if (dist < 0.4f)
-            {
-                followVel = Vector3.Lerp(followVel, Vector3.zero, dt * 8f);
-                SetMoving(false);
-                return;
-            }
-            var smoothed = Vector3.SmoothDamp(Pos, slot, ref followVel, 0.16f, speed, dt);
-            var delta = smoothed - Pos;
-            delta.y = 0;
-            Step(delta, speed, dt);
+            return slot;
         }
 
-        void Chase(Vector3 to, float speed, float dt)
+        /// <summary>Path toward a point. Warp only when stuck, or off the mesh past the spec distance.</summary>
+        void Seek(Vector3 goal, float wishSpeed, float dt, bool followSlot)
         {
-            if (World.Map == null) { SetMoving(false); return; }
-            var delta = Vector3.ClampMagnitude(to, speed * dt);
-            Step(delta, speed, dt);
+            var f = Feel.Active;
+            Vector3 steer = Flat(goal - Pos);
+            float dist = steer.magnitude;
+            bool onMesh = false;
+            if (agent != null && FloorNav.Ready)
+            {
+                if (!agent.isOnNavMesh)
+                {
+                    if (NavMesh.SamplePosition(Pos, out var near, f.sample, NavMesh.AllAreas))
+                    {
+                        // A short slide onto the mesh is not a warp.
+                        if (Flat(near.position - Pos).magnitude > 0.05f) Teleport(near.position);
+                        agent.Warp(transform.position);
+                    }
+                    else if (dist > f.warp)
+                    {
+                        WarpTo(goal, false);
+                        return;
+                    }
+                }
+                if (agent.isOnNavMesh)
+                {
+                    onMesh = true;
+                    agent.nextPosition = transform.position;
+                    agent.speed = Mathf.Max(wishSpeed, 0.1f);
+                    agent.SetDestination(goal);
+                    if (agent.hasPath)
+                    {
+                        var s = Flat(agent.steeringTarget - Pos);
+                        if (s.sqrMagnitude > 0.01f) steer = s;
+                    }
+                }
+            }
+            if (!onMesh && dist > f.warp && !World.Walkable(Pos))
+            {
+                WarpTo(goal, false);
+                return;
+            }
+            float wish = wishSpeed;
+            if (followSlot && dist < f.arrive) wish = 0f;
+            var face = steer.sqrMagnitude > 0.01f ? steer : Vector3.zero;
+            loco.Step(this, face, wish, dt, face, false, !onMesh, false);
+            if (agent != null && agent.isOnNavMesh) agent.nextPosition = transform.position;
+
+            bool trying = wish > f.idle;
+            if (trying && loco.groundSpeed < f.idle) stuckFor += dt;
+            else stuckFor = 0f;
+            if (stuckFor >= f.stuck) WarpTo(goal, false);
         }
 
-        void Step(Vector3 delta, float speed, float dt)
+        void WarpTo(Vector3 dest, bool forcePoof)
         {
-            if (delta.sqrMagnitude < 0.000001f) { SetMoving(false); return; }
-            var dir = delta.normalized;
-            float stepLen = Mathf.Min(delta.magnitude, speed * dt);
-            var swept = World.Sweep(Pos, dir, stepLen);
-            var step = swept - Pos;
-            step.y = 0;
-            if (step.sqrMagnitude < 0.000001f)
+            var f = Feel.Active;
+            if (NavMesh.SamplePosition(dest, out var hit, f.sample, NavMesh.AllAreas))
+                dest = hit.position;
+            else if (World.Map != null) dest = World.ClampToFloor(dest);
+            Vector3 from = Pos;
+            bool seen = forcePoof || OnScreen(from) || OnScreen(dest);
+            bool warped = agent != null && agent.isOnNavMesh && agent.Warp(dest);
+            if (!warped)
             {
-                var side = Vector3.Cross(Vector3.up, dir);
-                swept = World.Sweep(Pos, side, Mathf.Min(0.7f, speed * dt));
-                if ((swept - Pos).sqrMagnitude < 0.000001f)
-                    swept = World.Sweep(Pos, -side, Mathf.Min(0.7f, speed * dt));
-                step = swept - Pos;
-                step.y = 0;
+                Teleport(dest);
+                if (agent != null && FloorNav.Ready) agent.Warp(transform.position);
             }
-            float spd = dt > 0.0001f ? step.magnitude / dt : 0f;
-            bool moving = spd > 0.3f;
-            if (moving)
-            {
-                Move(step);
-                Face(step);
-            }
-            SetMoving(moving);
+            else transform.position = new Vector3(dest.x, 0f, dest.z);
+            if (agent != null) agent.nextPosition = transform.position;
+            loco.velocity = Vector3.zero;
+            stuckFor = 0f;
+            if (!seen) return;
+            var puff = new Color(0.75f, 0.88f, 1f);
+            Fx.Burst(from + Vector3.up * 0.45f, puff, 1.15f, 0.4f);
+            Fx.Burst(transform.position + Vector3.up * 0.45f, puff, 1.15f, 0.4f);
         }
 
-        void SetMoving(bool moving)
+        static bool OnScreen(Vector3 p)
         {
-            gaitMoving = moving;
-            anim?.SetMoving(moving);
+            var cam = Camera.main;
+            if (cam == null) return true;
+            var v = cam.WorldToViewportPoint(p + Vector3.up * 0.5f);
+            return v.z > 0f && v.x > -0.05f && v.x < 1.05f && v.y > -0.05f && v.y < 1.05f;
         }
 
         /// <summary>The shipped pet meshes are a single static node, so a trot versus a breathe stands in
-        /// for walk and idle. A pet_*_walk clip, when one is imported, takes over and this holds still.</summary>
+        /// for walk and idle. A pet clip, when one is imported, takes over and this holds still.</summary>
         void Pose(float dt)
         {
             if (body == null) return;
+            if (clipDriven && anim != null)
+            {
+                anim.Tick(loco.groundSpeed, dt);
+                body.localPosition = Vector3.Lerp(body.localPosition, Vector3.zero, dt * 10f);
+                body.localRotation = Quaternion.Slerp(body.localRotation, Quaternion.identity, dt * 10f);
+                return;
+            }
+            float speed = loco.groundSpeed;
+            bool moving = speed > Feel.Active.idle;
+            float rate = moving ? Mathf.Lerp(6f, 14f, Mathf.Clamp01(speed / Mathf.Max(0.1f, Feel.Active.clipWalk))) : 1.8f;
+            gaitPhase += dt * rate;
             var target = Vector3.zero;
             var rot = Quaternion.identity;
-            if (!clipDriven)
+            if (moving)
             {
-                gaitPhase += dt * (gaitMoving ? 12f : 1.8f);
-                if (gaitMoving)
-                {
-                    float s = Mathf.Sin(gaitPhase);
-                    target = new Vector3(0f, Mathf.Abs(s) * 0.08f, 0f);
-                    rot = Quaternion.Euler(s * 8f, 0f, Mathf.Sin(gaitPhase * 0.5f) * 6f);
-                }
-                else target = new Vector3(0f, Mathf.Sin(gaitPhase) * 0.015f, 0f);
+                float s = Mathf.Sin(gaitPhase);
+                target = new Vector3(0f, Mathf.Abs(s) * 0.08f, 0f);
+                rot = Quaternion.Euler(s * 8f, 0f, Mathf.Sin(gaitPhase * 0.5f) * 6f);
             }
+            else target = new Vector3(0f, Mathf.Sin(gaitPhase) * 0.015f, 0f);
+            if (anim != null && anim.Attacking && !anim.HasAttackClip)
+                target.z += 0.22f * Mathf.Sin(anim.AttackUnit * Mathf.PI);
             body.localPosition = Vector3.Lerp(body.localPosition, target, dt * 10f);
             body.localRotation = Quaternion.Slerp(body.localRotation, rot, dt * 10f);
+        }
+
+        public override void TakeDamage(Hit h, Actor source)
+        {
+            if (Dead || h.amount <= 0f) return;
+            base.TakeDamage(h, source);
+            Sfx.Pet("hurt");
         }
 
         protected override void Die(Actor killer)
@@ -268,7 +330,7 @@ namespace Hollowmere
         protected override void Update()
         {
             base.Update();
-            if (GameManager.I.Paused) return;
+            if (GameManager.I.Paused || CombatClock.Frozen) return;
             if (Time.time > until || owner == null || owner.Dead) { Die(null); return; }
             float dt = Time.deltaTime;
             if (foe == null || !foe.Targetable) foe = Nearest(Team.Hero, Pos, 12f);

@@ -7,9 +7,10 @@ using UnityEngine;
 namespace Hollowmere
 {
     /// <summary>
-    /// Frame sequences for locomotion and pet follow:
+    /// Frame sequences for locomotion, pet follow, and a combat swing:
     ///   Hollowmere -qaFrames move
     ///   Hollowmere -qaFrames pet
+    ///   Hollowmere -qaFrames combat
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -36,7 +37,7 @@ namespace Hollowmere
 
         static IEnumerator Run(GameManager gm, string mode)
         {
-            if (mode != "move" && mode != "pet")
+            if (mode != "move" && mode != "pet" && mode != "combat")
             {
                 Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
                 Application.Quit();
@@ -44,7 +45,8 @@ namespace Hollowmere
             }
             var f = Feel.Active;
             gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
-            gm.EnterTown(false);
+            if (mode == "combat") gm.EnterFloor(1);
+            else gm.EnterTown(false);
             yield return new WaitForSeconds(0.6f);
             Art.TameOversized(Camera.main);
             var hero = HeroActor.I;
@@ -63,6 +65,15 @@ namespace Hollowmere
             drive.mode = mode;
             drive.forward = Longest(hero.Pos);
             drive.right = Quaternion.Euler(0f, 90f, 0f) * drive.forward;
+            if (mode == "combat")
+            {
+                var def = MonsterDb.Get("bonewalker");
+                if (def != null)
+                {
+                    var ms = MonsterDb.Create(def, 1, MonsterRank.Normal, new Rng(3), 1);
+                    MonsterActor.Spawn(ms, hero.Pos + drive.forward * 2.4f, 7);
+                }
+            }
             Debug.Log("Hollowmere QA frames: " + mode + " nav=" + FloorNav.Ready
                 + " open=" + Clear(hero.Pos, drive.forward).ToString("0.0") + "m"
                 + " screen=" + Screen.width + "x" + Screen.height);
@@ -134,11 +145,24 @@ namespace Hollowmere
         public Vector3 forward = Vector3.forward;
         public Vector3 right = Vector3.right;
         public float elapsed;
+        bool stamped;
 
         void Update()
         {
             if (hero == null) return;
             elapsed += Time.deltaTime;
+            if (mode == "combat")
+            {
+                hero.moveInput = Vector2.zero;
+                hero.attackHeld = elapsed >= 0.45f && elapsed <= 2.6f;
+                if (!stamped && elapsed >= 1.15f)
+                {
+                    stamped = true;
+                    Fx.Damage(hero.Pos + forward * 2.2f + Vector3.up, new Hit { amount = 128f, crit = true, element = Element.Physical }, false);
+                    CombatClock.Punch("crit");
+                }
+                return;
+            }
             float mag;
             Vector3 dir;
             if (mode == "pet")

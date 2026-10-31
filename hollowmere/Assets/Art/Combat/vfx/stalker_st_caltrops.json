@@ -1,0 +1,19 @@
+{
+ "skill_id": "st_caltrops",
+ "skill": "Caltrop Field",
+ "class": "stalker",
+ "sheet": "stalker_st_caltrops.png",
+ "frame_w": 256,
+ "frame_h": 256,
+ "columns": 4,
+ "rows": 3,
+ "frame_count": 12,
+ "fps": 24,
+ "loop": false,
+ "pivot": [
+  0.5,
+  0.5
+ ],
+ "blend": "additive (alpha also valid)",
+ "use": "scattered caltrops land on ground area"
+}

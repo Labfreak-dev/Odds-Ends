@@ -1,0 +1,625 @@
+{
+ "phase": "P1 Combat",
+ "game": "Hollowmere",
+ "created": "2026-10-30",
+ "license": "All files original: procedural (numpy/PIL, code in no repo dump) or Meshy-generated animation from the user's paid Meshy account; font glyphs rendered from Cinzel (SIL OFL 1.1). No third-party/free assets used. No Blizzard reference traced or copied.",
+ "meshy_credits_spent": 54,
+ "files": [
+  {
+   "file": "vfx/ironclad_ic_cleave.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/ironclad_ic_cleave.json",
+   "skill": "ic_cleave",
+   "class_": "ironclad",
+   "use": "melee arc slash, plays over swing",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/ironclad_ic_cleave.json",
+   "type": "frame_json",
+   "use": "frame data for ironclad_ic_cleave.png"
+  },
+  {
+   "file": "vfx/ironclad_ic_slam.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/ironclad_ic_slam.json",
+   "skill": "ic_slam",
+   "class_": "ironclad",
+   "use": "ground nova shockwave + rock debris; lay flat or billboard",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/ironclad_ic_slam.json",
+   "type": "frame_json",
+   "use": "frame data for ironclad_ic_slam.png"
+  },
+  {
+   "file": "vfx/ironclad_ic_whirl.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 20,
+    "loop": true
+   },
+   "frame_json": "vfx/ironclad_ic_whirl.json",
+   "skill": "ic_whirl",
+   "class_": "ironclad",
+   "use": "looping spin blades around hero (loop)",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/ironclad_ic_whirl.json",
+   "type": "frame_json",
+   "use": "frame data for ironclad_ic_whirl.png"
+  },
+  {
+   "file": "vfx/ironclad_ic_earthsplit.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/ironclad_ic_earthsplit.json",
+   "skill": "ic_earthsplit",
+   "class_": "ironclad",
+   "use": "ultimate fissure line, oriented up=forward",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/ironclad_ic_earthsplit.json",
+   "type": "frame_json",
+   "use": "frame data for ironclad_ic_earthsplit.png"
+  },
+  {
+   "file": "vfx/stalker_st_twinshot.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/stalker_st_twinshot.json",
+   "skill": "st_twinshot",
+   "class_": "stalker",
+   "use": "arrow impact burst",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/stalker_st_twinshot.json",
+   "type": "frame_json",
+   "use": "frame data for stalker_st_twinshot.png"
+  },
+  {
+   "file": "vfx/stalker_st_volley.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/stalker_st_volley.json",
+   "skill": "st_volley",
+   "class_": "stalker",
+   "use": "fan of 5 arrow streaks + impacts, origin left",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/stalker_st_volley.json",
+   "type": "frame_json",
+   "use": "frame data for stalker_st_volley.png"
+  },
+  {
+   "file": "vfx/stalker_st_caltrops.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/stalker_st_caltrops.json",
+   "skill": "st_caltrops",
+   "class_": "stalker",
+   "use": "scattered caltrops land on ground area",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/stalker_st_caltrops.json",
+   "type": "frame_json",
+   "use": "frame data for stalker_st_caltrops.png"
+  },
+  {
+   "file": "vfx/stalker_st_rain.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/stalker_st_rain.json",
+   "skill": "st_rain",
+   "class_": "stalker",
+   "use": "ultimate, arrows fall and splash in area",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/stalker_st_rain.json",
+   "type": "frame_json",
+   "use": "frame data for stalker_st_rain.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_bolt.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_bolt.json",
+   "skill": "hx_bolt",
+   "class_": "hexweaver",
+   "use": "arcane bolt impact with orbiting rune motes",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/hexweaver_hx_bolt.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_bolt.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_frostring.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_frostring.json",
+   "skill": "hx_frostring",
+   "class_": "hexweaver",
+   "use": "expanding ice nova with shard spikes",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/hexweaver_hx_frostring.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_frostring.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_chain.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_chain.json",
+   "skill": "hx_chain",
+   "class_": "hexweaver",
+   "use": "lightning chaining between targets, left to right",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/hexweaver_hx_chain.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_chain.png"
+  },
+  {
+   "file": "vfx/hexweaver_hx_meteor.png",
+   "type": "vfx_sprite_sheet",
+   "frames": {
+    "w": 256,
+    "h": 256,
+    "columns": 4,
+    "rows": 3,
+    "count": 12,
+    "fps": 24,
+    "loop": false
+   },
+   "frame_json": "vfx/hexweaver_hx_meteor.json",
+   "skill": "hx_meteor",
+   "class_": "hexweaver",
+   "use": "ultimate meteor fall + fire explosion",
+   "format": "8-bit palettized PNG w/ alpha",
+   "source": "procedural"
+  },
+  {
+   "file": "vfx/hexweaver_hx_meteor.json",
+   "type": "frame_json",
+   "use": "frame data for hexweaver_hx_meteor.png"
+  },
+  {
+   "file": "trails/trail_sword.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "sword/dagger thin bright edge. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "sword"
+  },
+  {
+   "file": "trails/trail_axe.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "axe: heavy wedge with ragged tail. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "axe"
+  },
+  {
+   "file": "trails/trail_mace.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "mace/warhammer: wide soft blunt smear. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "mace"
+  },
+  {
+   "file": "trails/trail_greataxe.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "great axe two-hand wide arc. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "greataxe"
+  },
+  {
+   "file": "trails/trail_dagger.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "dagger: short fast thin streak. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "dagger"
+  },
+  {
+   "file": "trails/trail_staff.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "staff/wand: arcane ribbon with wavy core. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "staff"
+  },
+  {
+   "file": "trails/trail_bow.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "bow/crossbow string-release & arrow trail. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "bow"
+  },
+  {
+   "file": "trails/trail_fist.png",
+   "type": "trail_texture",
+   "size": [
+    512,
+    64
+   ],
+   "use": "unarmed / shield bash smear. Tint via material colour/vertex colour. U=0 at weapon (newest), U=1 tail; V across; wrap clamp. Unity TrailRenderer textureMode=Stretch.",
+   "weapon_type": "fist"
+  },
+  {
+   "file": "damage_font/dmg_normal.png",
+   "type": "sprite_font",
+   "cell": [
+    57,
+    83
+   ],
+   "glyphs": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "+",
+    "-"
+   ],
+   "data": "damage_font/damage_font.json",
+   "use": "damage numbers (normal)"
+  },
+  {
+   "file": "damage_font/dmg_crit.png",
+   "type": "sprite_font",
+   "cell": [
+    86,
+    124
+   ],
+   "glyphs": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "+",
+    "-",
+    "!"
+   ],
+   "data": "damage_font/damage_font.json",
+   "use": "damage numbers (crit)"
+  },
+  {
+   "file": "damage_font/dmg_player.png",
+   "type": "sprite_font",
+   "cell": [
+    57,
+    83
+   ],
+   "glyphs": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "+",
+    "-"
+   ],
+   "data": "damage_font/damage_font.json",
+   "use": "damage numbers (player_hit)"
+  },
+  {
+   "file": "damage_font/dmg_heal.png",
+   "type": "sprite_font",
+   "cell": [
+    57,
+    83
+   ],
+   "glyphs": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "+",
+    "-"
+   ],
+   "data": "damage_font/damage_font.json",
+   "use": "damage numbers (heal)"
+  },
+  {
+   "file": "damage_font/damage_font.json",
+   "type": "json",
+   "use": "glyph rects/advances for all 4 damage-number fonts"
+  },
+  {
+   "file": "anims/hero_ironclad_combat_anims.glb",
+   "type": "animation_glb (armature + clips, no mesh)",
+   "clips": {
+    "ic_whirl": {
+     "frames": 61,
+     "fps": 30,
+     "seconds": 2.03
+    },
+    "ic_attack_earthsplit": {
+     "frames": 185,
+     "fps": 30,
+     "seconds": 6.17
+    },
+    "ic_attack_slam": {
+     "frames": 73,
+     "fps": 30,
+     "seconds": 2.43
+    },
+    "ic_cast_warcry": {
+     "frames": 65,
+     "fps": 30,
+     "seconds": 2.17
+    },
+    "ic_attack_cleave": {
+     "frames": 44,
+     "fps": 30,
+     "seconds": 1.47
+    },
+    "ic_charge": {
+     "frames": 16,
+     "fps": 30,
+     "seconds": 0.53
+    }
+   },
+   "rig": "Meshy rig task of hero_ironclad (same skeleton as the other worker's rigged hero_ironclad with idle/walk/run/attack/hit) - import as Generic or Humanoid and retarget onto that model; clips only, no mesh.",
+   "use": "Ironclad skill/cast clips that complement existing attack+hit clips",
+   "source": "Meshy Animation API (3 credits/clip)"
+  },
+  {
+   "file": "anims/hero_ironclad_combat_anims.clips.json",
+   "type": "json",
+   "use": "clip frame ranges"
+  },
+  {
+   "file": "anims/hero_stalker_combat_anims.glb",
+   "type": "animation_glb (armature + clips, no mesh)",
+   "clips": {
+    "st_aim_rain": {
+     "frames": 121,
+     "fps": 30,
+     "seconds": 4.03
+    },
+    "st_attack_twinshot": {
+     "frames": 121,
+     "fps": 30,
+     "seconds": 4.03
+    },
+    "st_cast_caltrops": {
+     "frames": 140,
+     "fps": 30,
+     "seconds": 4.67
+    },
+    "st_attack_volley": {
+     "frames": 189,
+     "fps": 30,
+     "seconds": 6.3
+    },
+    "st_roll_fire": {
+     "frames": 81,
+     "fps": 30,
+     "seconds": 2.7
+    },
+    "st_cast_mark": {
+     "frames": 55,
+     "fps": 30,
+     "seconds": 1.83
+    }
+   },
+   "rig": "Meshy rig task of hero_stalker (same skeleton as the other worker's rigged hero_stalker with idle/walk/run/attack/hit) - import as Generic or Humanoid and retarget onto that model; clips only, no mesh.",
+   "use": "Stalker skill/cast clips that complement existing attack+hit clips",
+   "source": "Meshy Animation API (3 credits/clip)"
+  },
+  {
+   "file": "anims/hero_stalker_combat_anims.clips.json",
+   "type": "json",
+   "use": "clip frame ranges"
+  },
+  {
+   "file": "anims/hero_hexweaver_combat_anims.glb",
+   "type": "animation_glb (armature + clips, no mesh)",
+   "clips": {
+    "hx_cast_meteor": {
+     "frames": 104,
+     "fps": 30,
+     "seconds": 3.47
+    },
+    "hx_cast_frostring": {
+     "frames": 85,
+     "fps": 30,
+     "seconds": 2.83
+    },
+    "hx_cast_chain": {
+     "frames": 73,
+     "fps": 30,
+     "seconds": 2.43
+    },
+    "hx_cast_blink": {
+     "frames": 53,
+     "fps": 30,
+     "seconds": 1.77
+    },
+    "hx_cast_thrall": {
+     "frames": 56,
+     "fps": 30,
+     "seconds": 1.87
+    },
+    "hx_cast_bolt": {
+     "frames": 55,
+     "fps": 30,
+     "seconds": 1.83
+    }
+   },
+   "rig": "Meshy rig task of hero_hexweaver (same skeleton as the other worker's rigged hero_hexweaver with idle/walk/run/attack/hit) - import as Generic or Humanoid and retarget onto that model; clips only, no mesh.",
+   "use": "Hexweaver skill/cast clips that complement existing attack+hit clips",
+   "source": "Meshy Animation API (3 credits/clip)"
+  },
+  {
+   "file": "anims/hero_hexweaver_combat_anims.clips.json",
+   "type": "json",
+   "use": "clip frame ranges"
+  },
+  {
+   "file": "preview/contact_sheet.png",
+   "type": "preview",
+   "use": "review only, not shipped"
+  },
+  {
+   "file": "preview/vfx_preview.gif",
+   "type": "preview",
+   "use": "review only: slam, rain, chain spark, meteor"
+  },
+  {
+   "file": "manifest.json",
+   "type": "manifest"
+  }
+ ]
+}

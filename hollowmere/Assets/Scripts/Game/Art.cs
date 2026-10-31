@@ -181,6 +181,7 @@ namespace Hollowmere
             var ma = holder.AddComponent<ModelAnim>();
             ma.anim = anim;
             ma.animator = go.GetComponentInChildren<Animator>();
+            if (key.StartsWith("hero_")) CombatClipPlayer.Attach(ma, key);
             return holder;
         }
 
@@ -651,22 +652,45 @@ namespace Hollowmere
         {
             get
             {
-                float total = Mathf.Max(0.05f, Feel.Active.attackSeconds);
-                return Mathf.Clamp01(1f - attackLeft / total);
+            float total = attackTotal > 0.05f ? attackTotal : Mathf.Max(0.05f, Feel.Active.attackSeconds);
+            return Mathf.Clamp01(1f - attackLeft / total);
             }
         }
 
-        AnimationState idle, walk, run, attack, current;
-        float attackLeft;
-        bool cached, attackEdge;
+        AnimationState idle, walk, run, attack, skill, current;
+        float attackLeft, attackTotal;
+        bool cached, attackEdge, skillLoop;
         bool HasAttackTrigger;
+        public bool HasNamedSkill => skill != null;
+        public bool PlayingSkill => skill != null && attackLeft > 0f;
 
-        public void BeginAttack(bool cast)
+        public void Forget() { cached = false; }
+
+        public void BeginAttack(bool cast, float seconds = -1f, string clipName = null)
         {
             Ensure();
             Casting = cast;
-            attackLeft = Feel.Active.attackSeconds;
+            attackTotal = seconds > 0.05f ? seconds : Feel.Active.attackSeconds;
+            attackLeft = attackTotal;
             attackEdge = true;
+            skillLoop = false;
+            skill = null;
+            if (anim != null && !string.IsNullOrEmpty(clipName))
+            {
+                var st = anim[clipName];
+                if (st != null && st.clip != null) skill = st;
+            }
+            if (skill == null) skill = attack;
+        }
+
+        public void LoopSkill(float seconds)
+        {
+            if (skill == null) { CancelAttack(); return; }
+            skillLoop = true;
+            attackTotal = Mathf.Max(0.2f, seconds);
+            attackLeft = attackTotal;
+            skill.wrapMode = WrapMode.Loop;
+            skill.speed = 1f;
         }
 
         public void CancelAttack()
@@ -674,6 +698,8 @@ namespace Hollowmere
             attackLeft = 0f;
             Casting = false;
             attackEdge = false;
+            skillLoop = false;
+            skill = null;
         }
 
         /// <summary>Binary helper for callers that only know moving or still. Prefer Tick.</summary>
@@ -686,19 +712,21 @@ namespace Hollowmere
             var f = Feel.Active;
             if (anim != null && (walk != null || idle != null))
             {
-                var clip = attackLeft > 0f && attack != null ? attack : Loco(groundSpeed, f.idle, f.walkRun);
+                var posed = skill != null ? skill : attack;
+                bool striking = attackLeft > 0f && posed != null;
+                var clip = striking ? posed : Loco(groundSpeed, f.idle, f.walkRun);
                 if (clip != null)
                 {
-                    float rate = Rate(clip, groundSpeed, f.idle, f.clipWalk);
-                    float blend = attackLeft > 0f && clip == attack ? f.attackBlend : f.locoBlend;
+                    float rate = striking ? 1f : Rate(clip, groundSpeed, f.idle, f.clipWalk);
+                    float blend = striking ? f.attackBlend : f.locoBlend;
                     if (clip != current)
                     {
                         current = clip;
-                        clip.wrapMode = clip == attack ? WrapMode.Once : WrapMode.Loop;
+                        clip.wrapMode = striking ? (skillLoop ? WrapMode.Loop : WrapMode.Once) : WrapMode.Loop;
                         clip.speed = rate;
                         anim.CrossFade(clip.name, Mathf.Max(0.02f, blend));
                     }
-                    else clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
+                    else if (!striking) clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
                 }
             }
             DriveAnimator(groundSpeed, f);

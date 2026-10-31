@@ -70,6 +70,10 @@ namespace Hollowmere.Core
         public const int BagGap = 0;
         public const int BagCapacity = 30;
 
+        public const int TrailWidth = 60;
+        public const int TrailLife = 140;
+        public const int TrailHold = 180;
+
         public static readonly decimal[] EliteGlobeThresholds = { EliteGlobeFirst, EliteGlobeSecond, EliteGlobeThird };
 
         public readonly struct Rect
@@ -184,6 +188,9 @@ namespace Hollowmere.Core
             "rows" => BagRows,
             "gap" => BagGap,
             "capacity" => BagCapacity,
+            "trailWidth" => TrailWidth,
+            "trailLife" => TrailLife,
+            "trailHold" => TrailHold,
             _ => 0m,
         };
 
@@ -452,6 +459,234 @@ namespace Hollowmere.Core
             EliteAffix.Jailer => "A ring at the hero's feet for 0.5 s, then a 2 s root if they are still inside.",
             _ => "",
         };
+
+        public readonly struct CastTiming
+        {
+            public readonly int Windup, Strike, Recover;
+            public CastTiming(int windup, int strike, int recover)
+            {
+                Windup = windup; Strike = strike; Recover = recover;
+            }
+        }
+
+        public readonly struct SparkStyle
+        {
+            public readonly int Count, Speed, Life, Size;
+            public SparkStyle(int count, int speed, int life, int size)
+            {
+                Count = count; Speed = speed; Life = life; Size = size;
+            }
+        }
+
+        public readonly struct NumberStyle
+        {
+            public readonly string Hex;
+            public readonly int Size, Rise, Life;
+            public NumberStyle(string hex, int size, int rise, int life)
+            {
+                Hex = hex; Size = size; Rise = rise; Life = life;
+            }
+        }
+
+        public readonly struct VfxStyle
+        {
+            public readonly string Hex, Kind;
+            public VfxStyle(string hex, string kind) { Hex = hex; Kind = kind; }
+        }
+
+        public static CastTiming CastFor(string kind) => kind switch
+        {
+            "melee" => new CastTiming(80, 100, 140),
+            "projectile" => new CastTiming(100, 60, 140),
+            "nova" => new CastTiming(160, 80, 180),
+            "cone" => new CastTiming(140, 80, 160),
+            "dash" => new CastTiming(60, 80, 60),
+            "buff" => new CastTiming(180, 40, 180),
+            "channel" => new CastTiming(0, 330, 0),
+            "ground" => new CastTiming(200, 250, 200),
+            "chain" => new CastTiming(120, 80, 140),
+            "summon" => new CastTiming(200, 200, 200),
+            _ => new CastTiming(80, 100, 140),
+        };
+
+        public static string CastKind(string skillId) => skillId switch
+        {
+            "ic_cleave" => "melee",
+            "ic_slam" => "nova",
+            "ic_charge" => "dash",
+            "ic_whirl" => "channel",
+            "ic_warcry" => "buff",
+            "ic_earthsplit" => "cone",
+            "st_twinshot" => "projectile",
+            "st_volley" => "cone",
+            "st_caltrops" => "ground",
+            "st_roll" => "dash",
+            "st_mark" => "buff",
+            "st_rain" => "ground",
+            "hx_bolt" => "projectile",
+            "hx_frostring" => "nova",
+            "hx_chain" => "chain",
+            "hx_blink" => "dash",
+            "hx_thrall" => "summon",
+            "hx_meteor" => "ground",
+            _ => "melee",
+        };
+
+        public static int HitStopMs(string id) => id switch
+        {
+            "normal" => 40,
+            "crit" => 70,
+            "skill" => 55,
+            "kill" => 90,
+            "hurt" => 50,
+            _ => 0,
+        };
+
+        public static int ShakeMm(string id) => id switch
+        {
+            "normal" => 30,
+            "crit" => 70,
+            "skill" => 50,
+            "kill" => 90,
+            "hurt" => 60,
+            "decay" => 9,
+            "cap" => 120,
+            _ => 0,
+        };
+
+        public static SparkStyle Sparks(string id) => id switch
+        {
+            "crit" => new SparkStyle(12, 3600, 400, 120),
+            "skill" => new SparkStyle(8, 3000, 320, 100),
+            _ => new SparkStyle(6, 2400, 280, 80),
+        };
+
+        public static NumberStyle Number(string id) => id switch
+        {
+            "crit" => new NumberStyle("ffe25a", 82, 1900, 900),
+            "hurt" => new NumberStyle("ff5a4a", 55, 1400, 700),
+            "heal" => new NumberStyle("3ce650", 50, 1400, 700),
+            _ => new NumberStyle("f4f1ea", 50, 1400, 700),
+        };
+
+        static readonly VfxStyle[] VfxRows =
+        {
+            new VfxStyle("e8e0d0", "arc"),
+            new VfxStyle("c4a574", "nova"),
+            new VfxStyle("d8d2c8", "dash"),
+            new VfxStyle("f0e6c8", "spin"),
+            new VfxStyle("e07040", "buff"),
+            new VfxStyle("a86830", "line"),
+            new VfxStyle("d8c8a0", "bolt"),
+            new VfxStyle("c8b888", "fan"),
+            new VfxStyle("8a9a60", "ground"),
+            new VfxStyle("6a6a72", "dash"),
+            new VfxStyle("e8d060", "buff"),
+            new VfxStyle("9ab0c8", "ground"),
+            new VfxStyle("d08aff", "bolt"),
+            new VfxStyle("9fd8f0", "nova"),
+            new VfxStyle("e8e070", "chain"),
+            new VfxStyle("c8b0ff", "dash"),
+            new VfxStyle("b0a0d8", "summon"),
+            new VfxStyle("e0603a", "meteor"),
+        };
+
+        static readonly string[] VfxIds =
+        {
+            "ic_cleave", "ic_slam", "ic_charge", "ic_whirl", "ic_warcry", "ic_earthsplit",
+            "st_twinshot", "st_volley", "st_caltrops", "st_roll", "st_mark", "st_rain",
+            "hx_bolt", "hx_frostring", "hx_chain", "hx_blink", "hx_thrall", "hx_meteor",
+        };
+
+        public static VfxStyle Vfx(string skillId)
+        {
+            for (int i = 0; i < VfxIds.Length; i++)
+                if (VfxIds[i] == skillId) return VfxRows[i];
+            return new VfxStyle("ffffff", "burst");
+        }
+
+        public static bool HasSheet(string skillId)
+        {
+            if (skillId == "ic_charge" || skillId == "ic_warcry" || skillId == "st_roll"
+                || skillId == "st_mark" || skillId == "hx_blink" || skillId == "hx_thrall")
+                return false;
+            return VfxIdsHas(skillId);
+        }
+
+        static bool VfxIdsHas(string skillId)
+        {
+            for (int i = 0; i < VfxIds.Length; i++)
+                if (VfxIds[i] == skillId) return true;
+            return false;
+        }
+
+        public static int SheetFps(string skillId) => skillId == "ic_whirl" ? 20 : 24;
+
+        public static bool SheetLoops(string skillId) => skillId == "ic_whirl";
+
+        public static string SheetName(string skillId)
+        {
+            string cls = skillId.StartsWith("ic_") ? "ironclad" : skillId.StartsWith("st_") ? "stalker" : "hexweaver";
+            return cls + "_" + skillId;
+        }
+
+        public static string ClipFor(string skillId) => skillId switch
+        {
+            "ic_cleave" => "ic_attack_cleave",
+            "ic_slam" => "ic_attack_slam",
+            "ic_charge" => "ic_charge",
+            "ic_whirl" => "ic_whirl",
+            "ic_warcry" => "ic_cast_warcry",
+            "ic_earthsplit" => "ic_attack_earthsplit",
+            "st_twinshot" => "st_attack_twinshot",
+            "st_volley" => "st_attack_volley",
+            "st_caltrops" => "st_cast_caltrops",
+            "st_roll" => "st_roll_fire",
+            "st_mark" => "st_cast_mark",
+            "st_rain" => "st_aim_rain",
+            "hx_bolt" => "hx_cast_bolt",
+            "hx_frostring" => "hx_cast_frostring",
+            "hx_chain" => "hx_cast_chain",
+            "hx_blink" => "hx_cast_blink",
+            "hx_thrall" => "hx_cast_thrall",
+            "hx_meteor" => "hx_cast_meteor",
+            _ => null,
+        };
+
+        public static string ClipHero(string skillId)
+        {
+            if (skillId != null && skillId.StartsWith("ic_")) return "hero_ironclad";
+            if (skillId != null && skillId.StartsWith("st_")) return "hero_stalker";
+            return "hero_hexweaver";
+        }
+
+        /// <summary>Inclusive 24 fps window. Only the three long takes are shortened.</summary>
+        public static bool TryTrim(string clipId, out int start, out int end, out int source)
+        {
+            start = end = source = 0;
+            if (clipId == "st_attack_twinshot") { start = 12; end = 36; source = 120; return true; }
+            if (clipId == "st_attack_volley") { start = 0; end = 36; source = 188; return true; }
+            if (clipId == "ic_attack_earthsplit") { start = 84; end = 120; source = 184; return true; }
+            return false;
+        }
+
+        const string GlyphOrder = "0123456789+-";
+        const string CritOrder = "0123456789+-!";
+        static readonly int[] NormalAdvance = { 57, 40, 55, 52, 55, 51, 56, 50, 54, 56, 44, 37 };
+        static readonly int[] CritAdvance = { 86, 61, 83, 78, 83, 77, 85, 75, 81, 85, 66, 56, 48 };
+
+        public static bool Glyph(string style, char ch, out int cellW, out int cellH, out int x, out int advance)
+        {
+            bool crit = style == "crit";
+            string order = crit ? CritOrder : GlyphOrder;
+            int i = order.IndexOf(ch);
+            cellW = crit ? 86 : 57;
+            cellH = crit ? 124 : 83;
+            if (i < 0) { x = 0; advance = 0; return false; }
+            x = i * cellW;
+            advance = (crit ? CritAdvance : NormalAdvance)[i];
+            return true;
+        }
 
         static decimal Clamp01(decimal t) => t < 0m ? 0m : t > 1m ? 1m : t;
 

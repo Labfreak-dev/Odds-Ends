@@ -177,6 +177,10 @@ A cast releases when its windup ends. Whirling Steel uses the channel row: the s
 | skill | 50 |
 | kill | 90 |
 | hurt | 60 |
+| decay | 9 |
+| cap | 120 |
+
+Shake is added in millimetres and then decays by `decay` per second, never past `cap`.
 
 ### T.sparks
 
@@ -194,7 +198,27 @@ A cast releases when its windup ends. Whirling Steel uses the channel row: the s
 | crit | ffe25a | 82 | 1900 | 900 |
 | hurt | ff5a4a | 55 | 1400 | 700 |
 
-Sheets in `Assets/Art/Combat/vfx/` are 4×3 frames. `charge`, `roll`, `mark`, `blink`, and `thrall` have no sheet, so they use a short placeholder. Trails are white and tint by weapon. Damage glyphs are the sprite font in that folder.
+Sheets in `Assets/Art/Combat/vfx/` are 4×3 frames. Whirling Steel is 20 fps and loops. The others are 24 fps and play once. `charge`, `roll`, `mark`, `blink`, `thrall`, and `warcry` have no sheet, so they use a short placeholder. Trails are white and tint by weapon. Damage glyphs are the sprite font in that folder. A heal uses the green sheet.
+
+### T.trail
+
+| Id | Value |
+| --- | --- |
+| trailWidth | 60 |
+| trailLife | 140 |
+| trailHold | 180 |
+
+Width and life are millimetres and milliseconds on the ribbon. `trailHold` is how long it keeps emitting.
+
+### T.clips
+
+Twin Shot, Volley, and Earthsplitter are the long Meshy takes. Playback keeps the strike and drops the hold. Frames are 24 fps, inclusive. `Source` is the last frame of the take.
+
+| Id | Start | End | Source |
+| --- | --- | --- | --- |
+| st_attack_twinshot | 12 | 36 | 120 |
+| st_attack_volley | 0 | 36 | 188 |
+| ic_attack_earthsplit | 84 | 120 | 184 |
 
 ### T.vfx
 

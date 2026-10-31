@@ -58,7 +58,7 @@ namespace Hollowmere
         protected override void Update()
         {
             base.Update();
-            if (Dead || GameManager.I.Paused) return;
+            if (Dead || GameManager.I.Paused || CombatClock.Frozen) return;
             float dt = Time.deltaTime;
             var hero = HeroActor.I;
             if (hero == null || hero.Dead) { Halt(dt); return; }

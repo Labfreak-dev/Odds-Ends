@@ -487,6 +487,89 @@ static class Program
         return rows;
     }
 
+    static string ArtPath(string rel)
+    {
+        foreach (var root in new[] { "Assets", Path.Combine("hollowmere", "Assets"), Path.Combine("..", "..", "Assets") })
+        {
+            var p = Path.Combine(root, rel);
+            if (File.Exists(p)) return p;
+        }
+        return null;
+    }
+
+    static void CombatSpec()
+    {
+        foreach (var row in SpecRows("### T.cast"))
+        {
+            var t = DesignTable.CastFor(row[0]);
+            Check(t.Windup == int.Parse(row[1]) && t.Strike == int.Parse(row[2]) && t.Recover == int.Parse(row[3]), "cast " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.hitstop"))
+            Check(DesignTable.HitStopMs(row[0]) == int.Parse(row[1]), "hitstop " + row[0]);
+        foreach (var row in SpecRows("### T.shake"))
+            Check(DesignTable.ShakeMm(row[0]) == int.Parse(row[1]), "shake " + row[0]);
+        foreach (var row in SpecRows("### T.sparks"))
+        {
+            var s = DesignTable.Sparks(row[0]);
+            Check(s.Count == int.Parse(row[1]) && s.Speed == int.Parse(row[2]) && s.Life == int.Parse(row[3]) && s.Size == int.Parse(row[4]), "sparks " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.numbers"))
+        {
+            var n = DesignTable.Number(row[0]);
+            Check(n.Hex == row[1] && n.Size == int.Parse(row[2]) && n.Rise == int.Parse(row[3]) && n.Life == int.Parse(row[4]), "number " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.vfx"))
+        {
+            var v = DesignTable.Vfx(row[0]);
+            Check(v.Hex == row[1] && v.Kind == row[2], "vfx " + row[0]);
+            string sheet = ArtPath(Path.Combine("Art", "Combat", "vfx", DesignTable.SheetName(row[0]) + ".png"));
+            Check(DesignTable.HasSheet(row[0]) == (sheet != null), "sheet " + row[0]);
+        }
+        foreach (var row in SpecRows("### T.trail"))
+            Check(DesignTable.Tune(row[0]) == decimal.Parse(row[1], System.Globalization.CultureInfo.InvariantCulture), "trail " + row[0]);
+        foreach (var row in SpecRows("### T.clips"))
+        {
+            Check(DesignTable.TryTrim(row[0], out int a, out int b, out int src), "trim " + row[0]);
+            Check(a == int.Parse(row[1]) && b == int.Parse(row[2]) && src == int.Parse(row[3]), "trim window " + row[0]);
+            Check(b > a && b < src, "trim is shorter " + row[0]);
+        }
+        Check(DesignTable.SheetFps("ic_whirl") == 20 && DesignTable.SheetLoops("ic_whirl"), "whirl sheet loops at 20");
+        Check(DesignTable.SheetFps("ic_cleave") == 24 && !DesignTable.SheetLoops("ic_cleave"), "cleave sheet plays once at 24");
+        Check(DesignTable.Glyph("normal", '1', out _, out _, out _, out int adv) && adv == 40, "digit 1 advances 40");
+        string font = ArtPath(Path.Combine("Art", "Combat", "damage_font", "damage_font.json"));
+        Check(font != null, "damage font json is on disk");
+        if (font != null)
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(font));
+            int fileAdv = doc.RootElement.GetProperty("normal").GetProperty("glyphs").GetProperty("1").GetProperty("advance").GetInt32();
+            Check(fileAdv == 40, "font json digit 1 advance");
+            int critBang = doc.RootElement.GetProperty("crit").GetProperty("glyphs").GetProperty("!").GetProperty("advance").GetInt32();
+            Check(DesignTable.Glyph("crit", '!', out _, out _, out _, out int bang) && bang == critBang, "crit bang advance");
+        }
+        string[] skills = { "ic_cleave", "ic_slam", "ic_charge", "ic_whirl", "ic_warcry", "ic_earthsplit", "st_twinshot", "st_volley", "st_caltrops", "st_roll", "st_mark", "st_rain", "hx_bolt", "hx_frostring", "hx_chain", "hx_blink", "hx_thrall", "hx_meteor" };
+        foreach (var id in skills)
+        {
+            string packPath = ArtPath(Path.Combine("Resources", "Combat", DesignTable.ClipHero(id) + "_combat.bytes"));
+            Check(packPath != null, "clip pack for " + id);
+            if (packPath == null) continue;
+            var clips = CombatClipPack.Load(File.ReadAllBytes(packPath));
+            var clip = clips.FirstOrDefault(c => c.Name == DesignTable.ClipFor(id));
+            Check(clip != null && clip.Bones != null && clip.Bones.Length > 0, "clip " + DesignTable.ClipFor(id));
+            if (clip == null || clip.Bones == null || clip.Bones.Length == 0) continue;
+            var key = clip.Bones[0].Keys[0];
+            float m = key.X * key.X + key.Y * key.Y + key.Z * key.Z + key.W * key.W;
+            Check(m > 0.98f && m < 1.02f, "unit quaternion " + clip.Name);
+            if (DesignTable.TryTrim(clip.Name, out int a, out int b, out _))
+            {
+                var cut = CombatClipPack.Slice(clip, a, b);
+                float last = 0f;
+                foreach (var bone in cut.Bones)
+                    if (bone.Keys.Length > 0) last = Math.Max(last, bone.Keys[bone.Keys.Length - 1].Time);
+                Check(Math.Abs(last - (b - a) / 24f) < 0.02f, "sliced " + clip.Name + " lasts " + last);
+            }
+        }
+    }
+
     static void SpecTables()
     {
         Check(Balance.XpToNext(70) == long.MaxValue, "level 70 sentinel stays on Balance");
@@ -547,6 +630,7 @@ static class Program
             }
         }
 
+        CombatSpec();
         Check(DesignTable.GlobeNormalChance == 0.08m && DesignTable.GlobeHealFraction == 0.25m, "globe rates");
         Check(DesignTable.EliteGlobeThresholds.Length == 3, "three elite globes");
         Check(DesignTable.PotionCooldownSeconds == 20m, "potion cooldown");

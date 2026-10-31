@@ -92,7 +92,7 @@ namespace Hollowmere
         protected override void Update()
         {
             base.Update();
-            if (GameManager.I.Paused) return;
+            if (GameManager.I.Paused || CombatClock.Frozen) return;
             var hero = HeroActor.I;
             if (hero == null) return;
             if (builtForm != P.form) Rebuild();
@@ -320,7 +320,7 @@ namespace Hollowmere
         protected override void Update()
         {
             base.Update();
-            if (GameManager.I.Paused) return;
+            if (GameManager.I.Paused || CombatClock.Frozen) return;
             if (Time.time > until || owner == null || owner.Dead) { Die(null); return; }
             float dt = Time.deltaTime;
             if (foe == null || !foe.Targetable) foe = Nearest(Team.Hero, Pos, 12f);

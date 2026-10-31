@@ -1,0 +1,19 @@
+{
+ "skill_id": "ic_slam",
+ "skill": "Ground Slam",
+ "class": "ironclad",
+ "sheet": "ironclad_ic_slam.png",
+ "frame_w": 256,
+ "frame_h": 256,
+ "columns": 4,
+ "rows": 3,
+ "frame_count": 12,
+ "fps": 24,
+ "loop": false,
+ "pivot": [
+  0.5,
+  0.5
+ ],
+ "blend": "additive (alpha also valid)",
+ "use": "ground nova shockwave + rock debris; lay flat or billboard"
+}

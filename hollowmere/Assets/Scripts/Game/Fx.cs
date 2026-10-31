@@ -117,8 +117,10 @@ namespace Hollowmere
 
         public static void Damage(Vector3 at, Hit h, bool onHero)
         {
-            var c = onHero ? new Color(1f, 0.3f, 0.3f) : h.crit ? new Color(1f, 0.85f, 0.2f) : Art.Element(h.element);
-            Text(at, (h.crit ? "!" : "") + Short(h.amount), c, h.crit ? 1.5f : 1f);
+            string style = onHero ? "hurt" : h.crit ? "crit" : "normal";
+            var spec = DesignTable.Number(style);
+            var c = Art.Hex("#" + spec.Hex);
+            CombatNumbers.Spawn(at, (h.crit ? "!" : "") + Short(h.amount), style, c);
         }
 
         public static string Short(float v)

@@ -26,7 +26,10 @@ namespace Hollowmere
         Transform hand, figure;
         ModelAnim modelAnim;
         float nextAttack, potionUntil, potionHeal, potionCd, combatTimer, spinUntil, spinTick;
-        SkillCast spinCast;
+        float releaseIn = -1f;
+        SkillCast spinCast, pendingCast;
+        Vector3 pendingDir;
+        Actor pendingTarget;
         float regenAcc;
         readonly Locomotion loco = new Locomotion();
 
@@ -120,10 +123,13 @@ namespace Hollowmere
             }
             combatTimer -= dt;
             potionCd -= dt;
+            if (CombatClock.Frozen) return;
+            ReleaseCast(dt);
 
             // ---- spin (Whirling Steel) ticks while moving
             bool spinning = spinUntil > Time.time;
-            if (spinning && figure != null)
+            bool clipSpin = modelAnim != null && modelAnim.PlayingSkill;
+            if (spinning && figure != null && !clipSpin)
             {
                 figure.Rotate(0, 1080 * dt, 0, Space.Self);
                 if ((spinTick -= dt) <= 0)
@@ -204,6 +210,7 @@ namespace Hollowmere
         public bool UseSkill(SkillDef s)
         {
             if (Dead || busy || Stunned || GameManager.I.Paused || Hero.skills.Rank(s.id) == 0) return false;
+            if (releaseIn >= 0f || CombatClock.Frozen) return false;
             if (CooldownLeft(s.id) > 0) return false;
             if (GameManager.I.InTown && s.shape != SkillShape.Dash) { GameManager.I.Toast("Not in town."); return false; }
             var cast = SkillDb.Resolve(s, Hero, stats);
@@ -220,20 +227,45 @@ namespace Hollowmere
             Vector3 dir = aim;
             if (target != null && s.shape != SkillShape.Dash) dir = (target.Pos - Pos).normalized;
             if (dir.sqrMagnitude > 0.0001f) aim = dir.normalized;
-            // A dash leaves on this heading. Everything else turns through the motor.
-            if (s.shape == SkillShape.Dash) { if (dir.sqrMagnitude > 0.0001f) Face(dir); }
-            else modelAnim?.BeginAttack(s.id == "hx_bolt");
+            if (s.shape == SkillShape.Dash && dir.sqrMagnitude > 0.0001f) Face(dir);
+            var timing = DesignTable.CastFor(DesignTable.CastKind(s.id));
+            string clip = DesignTable.ClipFor(s.id);
+            float seconds = (timing.Windup + timing.Strike + timing.Recover) / 1000f;
+            if (!string.IsNullOrEmpty(clip) && DesignTable.TryTrim(clip, out int frameA, out int frameB, out _))
+                seconds = (frameB - frameA) / 24f;
+            modelAnim?.BeginAttack(s.shape != SkillShape.MeleeArc, seconds, clip);
+            pendingCast = cast;
+            pendingDir = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
+            pendingTarget = target;
+            releaseIn = timing.Windup / 1000f;
+            if (releaseIn <= 0f) releaseIn = 0.0001f;
             combatTimer = 4;
-            SkillRunner.Execute(this, cast, dir, target);
             return true;
+        }
+
+        void ReleaseCast(float dt)
+        {
+            if (releaseIn < 0f) return;
+            releaseIn -= dt;
+            if (releaseIn > 0f || pendingCast == null) return;
+            releaseIn = -1f;
+            if (Dead) return;
+            var fired = pendingCast;
+            pendingCast = null;
+            SkillRunner.Execute(this, fired, pendingDir, pendingTarget);
+            var shape = fired.skill.shape;
+            if (shape == SkillShape.MeleeArc || shape == SkillShape.Projectile || fired.skill.id == "ic_whirl"
+                || fired.skill.id == "ic_earthsplit" || fired.skill.id == "ic_slam")
+                TrailHold.Arm(this, fired);
         }
 
         public void StartSpin(SkillCast c)
         {
             spinCast = c;
-            modelAnim?.CancelAttack();
             spinUntil = Time.time + Mathf.Max(0.5f, c.duration);
             spinTick = 0;
+            if (modelAnim != null && modelAnim.HasNamedSkill) modelAnim.LoopSkill(Mathf.Max(0.5f, c.duration));
+            else modelAnim?.CancelAttack();
         }
 
         public void AddSkillBuff(Stat stat, float value, float seconds, string id)
@@ -255,6 +287,7 @@ namespace Hollowmere
             if (potionCd > 0 || Dead) return false;
             if (!Hero.Consume(ItemKind.Potion)) { GameManager.I.Toast("No potions"); return false; }
             potionCd = (float)DesignTable.PotionCooldownSeconds;
+            CombatNumbers.Spawn(Pos, "+" + Mathf.RoundToInt(maxLife * (float)DesignTable.PotionHealFraction), "heal", Color.white);
             // The regen tick multiplies this by elapsed seconds, so the rate is the total heal divided by the window.
             potionHeal = maxLife * (float)(DesignTable.PotionHealFraction / DesignTable.PotionDurationSeconds);
             potionUntil = Time.time + (float)DesignTable.PotionDurationSeconds;
@@ -272,6 +305,7 @@ namespace Hollowmere
             float extra = HasBuff("rn_warcry_iron") ? 0.3f : 0;
             var h = Combat.MonsterHit(raw, el, stats, from != null ? from.Level : Hero.level, rng, extra);
             if (h.blocked) Fx.Text(Pos, "Block", Color.white, 0.8f);
+            else CombatClock.Punch("hurt");
             TakeDamage(h, from);
             combatTimer = 4;
             if (melee && from != null && stats[Stat.Thorns] > 0)

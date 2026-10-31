@@ -143,11 +143,14 @@ namespace Hollowmere
             Ui.Size(sound, 120);
             var music = Ui.Button(col, MusicLabel(), ToggleMusic, null, 32);
             Ui.Size(music, 120);
+            var shake = Ui.Button(col, ShakeLabel(), ToggleShake, null, 32);
+            Ui.Size(shake, 120);
             return card;
         }
 
         static string SoundLabel() => AudioHub.I != null && AudioHub.I.sfxVolume <= 0f ? "SOUND: OFF" : "SOUND: ON";
         static string MusicLabel() => AudioHub.I != null && AudioHub.I.musicVolume <= 0f ? "MUSIC: OFF" : "MUSIC: ON";
+        static string ShakeLabel() => CombatClock.ShakeEnabled ? "SHAKE: ON" : "SHAKE: OFF";
 
         static void ToggleSound()
         {
@@ -163,6 +166,12 @@ namespace Hollowmere
             RefreshSettings();
         }
 
+        static void ToggleShake()
+        {
+            CombatClock.ShakeEnabled = !CombatClock.ShakeEnabled;
+            RefreshSettings();
+        }
+
         static void RefreshSettings()
         {
             if (settingsPage == null) return;
@@ -173,6 +182,7 @@ namespace Hollowmere
                 if (text == null) continue;
                 if (text.text.StartsWith("SOUND")) text.text = SoundLabel();
                 else if (text.text.StartsWith("MUSIC")) text.text = MusicLabel();
+                else if (text.text.StartsWith("SHAKE")) text.text = ShakeLabel();
             }
         }
 

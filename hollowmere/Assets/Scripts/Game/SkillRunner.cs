@@ -14,6 +14,7 @@ namespace Hollowmere
         {
             var s = c.skill;
             var col = Art.Element(c.element);
+            SkillVfx.Play(h, c, dir, target);
             Sound(c);
             switch (s.shape)
             {
@@ -158,6 +159,9 @@ namespace Hollowmere
             if (a == null || !a.Targetable) return;
             var hit = Combat.HeroHit(h.Ctx, c, a.IsElite, h.Rng, mult);
             a.TakeDamage(hit, h);
+            string punch = a.Dead ? "kill" : hit.crit ? "crit" : c.skill.primary ? "normal" : "skill";
+            CombatClock.Punch(punch);
+            CombatSparks.Burst(a.Pos + Vector3.up * 0.8f, Art.Element(c.element), hit.crit ? "crit" : c.skill.primary ? "normal" : "skill");
             if (c.slow > 0) a.Slow(c.slow, 2.5f);
             if (c.stun > 0) a.Stun(c.stun);
             if (c.burnPct > 0) a.Burn(hit.amount * c.burnPct, 3f, c.element, h);
@@ -178,7 +182,9 @@ namespace Hollowmere
         public static void OnHits(HeroActor h, SkillCast c, int count)
         {
             if (count <= 0) return;
-            h.Heal(Combat.LifeOnHit(h.stats, count));
+            float healed = Combat.LifeOnHit(h.stats, count);
+            h.Heal(healed);
+            if (healed >= 1f) CombatNumbers.Spawn(h.Pos, "+" + Mathf.RoundToInt(healed), "heal", Color.white);
             if (c.rune?.id == "rn_whirl_blood") h.Heal(h.maxLife * c.healPct * count);
             if (c.skill.primary && c.skill.shape != SkillShape.MeleeArc) { }
         }

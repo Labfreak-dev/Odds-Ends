@@ -347,8 +347,35 @@ namespace Hollowmere
             AudioHub.Vary("monster_death", 0.8f);
             Fx.Burst(Pos + Vector3.up, Art.Hex(stats.def.color), 1.6f, 0.3f);
             enabled = false;
-            if (body != null) body.localRotation = Quaternion.Euler(-85, 0, 0);
-            Destroy(gameObject, 1.5f);
+            bool played = modelAnim != null && modelAnim.PlayClip("death", 2.2f);
+            bool beast = stats.def.model == "hm_rat" || stats.def.model == "hm_bat" || stats.def.model == "hm_spider";
+            if (beast && modelAnim != null)
+            {
+                var drop = modelAnim.gameObject.AddComponent<BeastDeath>();
+                float y = modelAnim.transform.localPosition.y;
+                drop.floorY = stats.def.model == "hm_bat" ? 0f : y - 0.35f;
+            }
+            if (!played && body != null) body.localRotation = Quaternion.Euler(-85, 0, 0);
+            Destroy(gameObject, played ? 2.4f : 1.5f);
+        }
+    }
+
+    /// <summary>Beast death clips roll in place. Ease the body down onto the floor while the clip plays.</summary>
+    public sealed class BeastDeath : MonoBehaviour
+    {
+        public float floorY;
+        Vector3 from;
+        float t;
+
+        void Start() { from = transform.localPosition; }
+
+        void Update()
+        {
+            t += Time.deltaTime;
+            float u = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 1.15f));
+            var p = from;
+            p.y = Mathf.Lerp(from.y, floorY, u);
+            transform.localPosition = p;
         }
     }
 

@@ -15,6 +15,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot gearclose
     ///   Hollowmere -qaShot npcs
     ///   Hollowmere -qaShot npcs-close
+    ///   Hollowmere -qaShot monsters
     ///   Hollowmere -qaShot creator
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
@@ -60,6 +61,7 @@ namespace Hollowmere
             bool fishing = scene == "fishing" || scene == "fish";
             bool npcs = scene == "npcs" || scene == "npc" || scene == "npcs-close" || scene == "npcclose";
             bool npcsClose = scene == "npcs-close" || scene == "npcclose";
+            bool monsters = scene == "monsters" || scene == "monster";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
@@ -97,7 +99,8 @@ namespace Hollowmere
                     Application.Quit();
                     yield break;
                 }
-                if (npcs) FrameNpcs();
+                if (monsters) FrameMonsters();
+                else if (npcs) FrameNpcs();
                 Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
                 if (albedo == null)
@@ -313,6 +316,41 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere QA shot failed: " + e.Message);
             }
             UnityEngine.Object.Destroy(tex);
+        }
+
+        /// <summary>Every Meshy monster, in a row, so the lineup and the held props can be checked.</summary>
+        static void FrameMonsters()
+        {
+            string[] keys =
+            {
+                "hm_skel_warrior", "hm_skel_archer", "hm_ghoul", "hm_zombie", "hm_cultist",
+                "hm_demon_brute", "hm_ossuary_king", "hm_demon_lord", "hm_rat", "hm_bat", "hm_spider",
+            };
+            Vector3 origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            float x = -16f;
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var go = Art.Animated(keys[i], 1.8f, null);
+                if (go == null)
+                {
+                    Debug.LogError("Hollowmere QA monster missing " + keys[i]);
+                    continue;
+                }
+                float gap = keys[i].Contains("demon") || keys[i].Contains("king") || keys[i].Contains("brute") ? 3.6f : 2.3f;
+                go.transform.position = origin + new Vector3(x, 0f, 6f);
+                go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                Debug.Log("Hollowmere QA monster " + keys[i] + " at " + go.transform.position.ToString("0.0"));
+                x += gap;
+            }
+            var look = origin + new Vector3(0f, 1.4f, 6f);
+            var camPos = look + new Vector3(0f, 2.2f, -18f);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 40f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
         }
 
         /// <summary>Line the service NPCs up and frame them from a few metres, so props and faces read.</summary>

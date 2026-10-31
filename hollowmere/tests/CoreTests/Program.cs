@@ -32,6 +32,7 @@ static class Program
         Progression();
         ModelAlbedo();
         PostVolumeLevel();
+        HeroFitLevel();
         SpecTables();
         P2P5();
         Console.WriteLine($"{passed} passed, {failed} failed");
@@ -739,6 +740,26 @@ static class Program
             Check(feet.Contains("model: hero_stalker") && feet.Contains("model: pet_lynx") && feet.Contains("model: pet_hound"), "the rest of the rigs have foot speeds");
         }
         Check(DesignTable.BossPhase(1f) == 1 && DesignTable.BossPhase(0.66f) == 2 && DesignTable.BossPhase(0.33f) == 3, "guardian phases");
+    }
+
+    /// <summary>Gear must leave the v5 hero about 1.8 m tall in town, in the dungeon, and on the gear screen.
+    /// 0.06 m is the collapsed body. 84.9 m is the old chest overlay.</summary>
+    static void HeroFitLevel()
+    {
+        foreach (var mode in HeroFit.Modes)
+        {
+            Check(HeroFit.AfterGear(mode, HeroFit.Height), mode + " hero stays about 1.8 m after gear");
+            Check(HeroFit.AfterGear(mode, 1.80f), mode + " accepts a 1.80 m body");
+            Check(!HeroFit.AfterGear(mode, 0.06f), mode + " rejects a collapsed 0.06 m hero");
+            Check(!HeroFit.HeightOk(0.06f), mode + " height 0.06 m is not about 1.8 m");
+            Check(!HeroFit.SkinnedGear(true), mode + " v5 hero does not wear skinned gear");
+        }
+        Check(HeroFit.SkinnedGear(false), "pre-v5 rigs can still skin gear");
+        Check(HeroFit.PreserveBoneScale, "hero bone scale is left alone");
+        Check(!HeroFit.GearSizeOk(84.90f), "an 84.9 m chest is rejected");
+        Check(HeroFit.GearSizeOk(0.34f), "a body-sized piece is accepted");
+        Check(!HeroFit.AfterGear("town", 84.90f), "town rejects an 85 m hero");
+        Check(!HeroFit.AfterGear("", 1.8f), "a gear check names its mode");
     }
 
     /// <summary>The character glbs carry a base-color image. AdoptShaders copies that onto

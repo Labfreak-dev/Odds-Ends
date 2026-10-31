@@ -4,30 +4,47 @@ using UnityEngine;
 namespace Hollowmere
 {
     /// <summary>
-    /// Helm, chest, and weapon on the class body. Helms and chests are skinned to the
-    /// hero's rig. The gear file's joint list is shorter than the hero's (helms 6 joints,
-    /// chests 10–15) and is not in the same order, so bones[] is remapped by name and
-    /// rootBone is Hips. The copied skeleton is then dropped. Chest overlays are pauldrons
-    /// plus a tabard, cape, or front plate. The tabard primitives sit on the class hips
-    /// (within 2 mm); they are not given an extra sideways offset.
+    /// Helm, chest, and weapon on the class body. A v5 hero keeps the tint mask on the
+    /// body and wears rigid pieces only: helm on Head, pauldrons on the arms, weapon
+    /// and shield on the hands. The old skinned helm and chest were bound to another
+    /// skeleton; remapping them onto the Meshy rig inflated the chest and, once the
+    /// bounds pass scaled the holder to match, collapsed the body. Those meshes stay
+    /// off on v5. Pre-v5 rigs still skin by bone name.
+    /// Nothing in this path writes the hero bones' localScale.
     /// A weapon's origin is the grip. It is parented to the hand bone at world scale 1,
     /// with a per-weapon offset that seats that grip in the palm.
     /// </summary>
     public static class GearAttach
     {
+        struct BoneScale
+        {
+            public Transform bone;
+            public Vector3 scale;
+        }
+
         public static void Apply(Transform body, Hero hero)
         {
             if (body == null || hero == null) return;
-            StripClassHeld(body);
-            Clear(body);
-            var weapon = hero.Equipped(EquipSlot.MainHand);
-            if (!Item.IsNone(weapon))
-                Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
-            var off = hero.Equipped(EquipSlot.OffHand);
-            if (!Item.IsNone(off))
-                Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
-            Armor(body, hero, EquipSlot.Head, "helm");
-            Armor(body, hero, EquipSlot.Chest, "chest");
+            var saved = SnapshotBones(body);
+            try
+            {
+                bool v5 = V5Hero(body);
+                if (HeroFit.SkinnedGear(v5)) StripClassHeld(body);
+                Clear(body);
+                var weapon = hero.Equipped(EquipSlot.MainHand);
+                if (!Item.IsNone(weapon))
+                    Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
+                var off = hero.Equipped(EquipSlot.OffHand);
+                if (!Item.IsNone(off))
+                    Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+                Armor(body, hero, EquipSlot.Head, "helm");
+                Armor(body, hero, EquipSlot.Chest, "chest");
+            }
+            finally
+            {
+                RestoreBones(saved);
+            }
+            Art.LogHeroBounds(body.gameObject, Art.PlayMode());
         }
 
         /// <summary>The fishing rod uses the same grip as a weapon and hides the equipped one.</summary>
@@ -48,9 +65,79 @@ namespace Hollowmere
         {
             var it = hero.Equipped(slot);
             if (Item.IsNone(it)) return;
+            if (!HeroFit.SkinnedGear(V5Hero(body)))
+            {
+                RigidArmor(body, hero, part, it);
+                return;
+            }
             string key = DesignTable.ArmorKey(hero.PresentationClass, part, it.rarity);
             if (!Skin(body, key, "gear_" + part))
                 Primitive(body, part, it);
+        }
+
+        /// <summary>The v5 holder is named hero or hero_plate. A rig node covers a clone passed in directly.</summary>
+        static bool V5Hero(Transform body)
+        {
+            if (body == null) return false;
+            if (Art.V5Body(body.name)) return true;
+            return Art.Bone(body, "hero_rig") != null;
+        }
+
+        /// <summary>Helm on the head, pauldrons on the upper arms. Scale lives on the piece, never on the bone.</summary>
+        static void RigidArmor(Transform body, Hero hero, string part, Item it)
+        {
+            var tint = new Color(Mathf.Clamp01(hero.armourR), Mathf.Clamp01(hero.armourG), Mathf.Clamp01(hero.armourB));
+            var col = Color.Lerp(Art.Rarity(it.rarity), tint, 0.45f);
+            var mat = Art.Mat(col, 0.85f);
+            if (part == "helm")
+                PinRigid(body, "Head", "gear_helm", true, new Vector3(0f, 0.11f, 0.02f), new Vector3(0.28f, 0.24f, 0.30f), mat);
+            else
+            {
+                PinRigid(body, "LeftArm", "gear_pauldron_l", false, new Vector3(-0.06f, 0.02f, 0f), new Vector3(0.22f, 0.14f, 0.20f), mat);
+                PinRigid(body, "RightArm", "gear_pauldron_r", false, new Vector3(0.06f, 0.02f, 0f), new Vector3(0.22f, 0.14f, 0.20f), mat);
+            }
+        }
+
+        static void PinRigid(Transform body, string bone, string name, bool sphere, Vector3 localPos, Vector3 worldSize, Material mat)
+        {
+            var parent = Art.Bone(body, bone) ?? body;
+            var host = new GameObject(name).transform;
+            host.SetParent(parent, false);
+            host.localPosition = localPos;
+            host.localRotation = Quaternion.identity;
+            host.localScale = Vector3.one;
+            var piece = sphere
+                ? Art.Sphere(host, Vector3.zero, Vector3.one, mat)
+                : Art.Cube(host, Vector3.zero, Vector3.one, mat);
+            var s = host.lossyScale;
+            piece.transform.localScale = new Vector3(
+                worldSize.x / Mathf.Max(0.0001f, Mathf.Abs(s.x)),
+                worldSize.y / Mathf.Max(0.0001f, Mathf.Abs(s.y)),
+                worldSize.z / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
+        }
+
+        /// <summary>Every transform already on the hero, including bones and the body mesh. Gear added later is not in this list.</summary>
+        static System.Collections.Generic.List<BoneScale> SnapshotBones(Transform body)
+        {
+            var list = new System.Collections.Generic.List<BoneScale>();
+            foreach (var t in body.GetComponentsInChildren<Transform>(true))
+                list.Add(new BoneScale { bone = t, scale = t.localScale });
+            return list;
+        }
+
+        static void RestoreBones(System.Collections.Generic.List<BoneScale> saved)
+        {
+            if (!HeroFit.PreserveBoneScale || saved == null) return;
+            for (int i = 0; i < saved.Count; i++)
+            {
+                var row = saved[i];
+                if (row.bone == null) continue;
+                var now = row.bone.localScale;
+                if ((now - row.scale).sqrMagnitude <= 1e-8f) continue;
+                Debug.LogError("Hollowmere hero bone scale changed on " + row.bone.name
+                    + " " + row.scale.ToString("0.###") + " -> " + now.ToString("0.###"));
+                row.bone.localScale = row.scale;
+            }
         }
 
         static void Weapon(Transform body, string key, string name, Item it, bool main)
@@ -322,7 +409,11 @@ namespace Hollowmere
             var doomed = new System.Collections.Generic.List<GameObject>();
             foreach (var t in body.GetComponentsInChildren<Transform>(true))
                 if (t.name.StartsWith("gear_") || t.name == "weapon") doomed.Add(t.gameObject);
-            for (int i = 0; i < doomed.Count; i++) Object.Destroy(doomed[i]);
+            for (int i = 0; i < doomed.Count; i++)
+            {
+                foreach (var r in doomed[i].GetComponentsInChildren<Renderer>(true)) r.enabled = false;
+                Object.Destroy(doomed[i]);
+            }
         }
 
         static void RemoveNamed(Transform body, string name)

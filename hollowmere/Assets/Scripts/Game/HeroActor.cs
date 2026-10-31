@@ -59,7 +59,7 @@ namespace Hollowmere
                 figure = model.transform;
                 modelAnim = model.GetComponent<ModelAnim>();
                 if (Hero.classless) Art.PaintHero(model, Hero);
-                Art.LogHeroBounds(model);
+                Art.LogHeroBounds(model, Art.PlayMode());
             }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.PresentationClass), Art.ClassColor(Hero.PresentationClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
             var ring = Hero.classless
@@ -92,7 +92,12 @@ namespace Hollowmere
 
         public void RefreshWeapon()
         {
-            if (figure != null) GearAttach.Apply(figure, Hero);
+            if (figure == null) return;
+            if (Hero != null && Hero.classless) Art.PaintHero(figure.gameObject, Hero);
+            GearAttach.Apply(figure, Hero);
+            // Equipment changes are checked again as the gear mode. Town and dungeon
+            // are checked inside Apply from the current floor.
+            Art.LogHeroBounds(figure.gameObject, "gear");
         }
 
         public void BeginFishing()
@@ -111,7 +116,7 @@ namespace Hollowmere
         public void EndFishing()
         {
             if (modelAnim != null) modelAnim.CancelAttack();
-            if (figure != null) GearAttach.Apply(figure, Hero);
+            RefreshWeapon();
         }
 
         public void RefreshStats(bool fill = false)

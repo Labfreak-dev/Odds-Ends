@@ -105,8 +105,12 @@ namespace Hollowmere
                 else
                     Debug.Log("Hollowmere QA: hero albedo " + albedo.name + " " + albedo.width + "x" + albedo.height
                         + (albedo is Texture2D t && t.isReadable ? " readable" : ""));
-                if (HeroActor.I != null && Art.UnionBounds(HeroActor.I.gameObject, out var hb))
-                    Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
+                if (HeroActor.I != null)
+                {
+                    Art.LogHeroBounds(HeroActor.I.gameObject, dungeon ? "dungeon" : "town");
+                    if (Art.UnionBounds(HeroActor.I.gameObject, out var hb))
+                        Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
+                }
                 if (loot && HeroActor.I != null)
                 {
                     var rng = new Rng(9);
@@ -120,6 +124,7 @@ namespace Hollowmere
                 else if (gear || gearClose)
                 {
                     EquipShowcase(gm);
+                    if (HeroActor.I != null) Art.LogHeroBounds(HeroActor.I.gameObject, "gear");
                     if (gearClose && HeroActor.I != null)
                         FrameGear(HeroActor.I);
                     yield return new WaitForSeconds(0.35f);
@@ -271,7 +276,7 @@ namespace Hollowmere
             }
             if (HeroActor.I != null)
             {
-                Art.LogHeroBounds(HeroActor.I.gameObject);
+                Art.LogHeroBounds(HeroActor.I.gameObject, "town");
                 FrameClose(HeroActor.I.transform.position, HeroActor.I.transform.forward, 1.2f, 2.5f);
                 yield return new WaitForEndOfFrame();
                 SaveShot("npcclose-hero");

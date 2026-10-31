@@ -397,7 +397,7 @@ namespace Hollowmere
             }
             float max = MaxAxis(b.size);
             Debug.Log("Hollowmere prop " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
-            if (max > 2.5f)
+            if (max > HeroFit.GearMaxAxis)
                 Debug.LogError("Hollowmere prop " + key + " FAIL " + max.ToString("0.00") + "m");
         }
 
@@ -412,18 +412,59 @@ namespace Hollowmere
             }
         }
 
-        public static void LogHeroBounds(GameObject go)
+        /// <summary>Town when the save is in town, dungeon on a floor. Gear is a separate check after equipment changes.</summary>
+        public static string PlayMode()
+        {
+            var gm = GameManager.I;
+            if (gm != null && gm.State != null && gm.State.depth > 0) return "dungeon";
+            return "town";
+        }
+
+        /// <summary>
+        /// Body mesh only: attached gear is measured on its own. The v5 body is about 1.8 m.
+        /// 0.06 m is a collapsed rig. A piece over 2.5 m is the inflated chest.
+        /// </summary>
+        public static void LogHeroBounds(GameObject go, string mode = "town")
         {
             if (go == null) return;
             ReadySkin(go);
-            if (!MeshWorldBounds(go.transform, out var b))
+            if (!WorldMeshBounds(go.transform, out var b, true))
             {
                 Debug.LogError("Hollowmere hero has no world bounds");
                 return;
             }
-            Debug.Log("Hollowmere hero bounds size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
-            if (b.size.y < 0.4f || b.size.y > 3.2f)
+            Debug.Log("Hollowmere hero bounds " + mode + " size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
+            if (!HeroFit.AfterGear(mode, b.size.y))
                 Debug.LogError("Hollowmere hero bounds FAIL height " + b.size.y.ToString("0.00") + "m");
+            AuditGearPieces(go.transform);
+        }
+
+        static void AuditGearPieces(Transform root)
+        {
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("gear_")) continue;
+                if (t.parent != null && UnderGear(t.parent)) continue;
+                bool live = false;
+                foreach (var r in t.GetComponentsInChildren<Renderer>(true))
+                    if (r.enabled) live = true;
+                if (!live) continue;
+                if (!WorldMeshBounds(t, out var b)) continue;
+                float max = MaxAxis(b.size);
+                Debug.Log("Hollowmere gear bounds " + t.name + " size=" + b.size.ToString("0.00"));
+                if (!HeroFit.GearSizeOk(max))
+                    Debug.LogError("Hollowmere gear bounds FAIL " + t.name + " " + max.ToString("0.00") + "m");
+            }
+        }
+
+        static bool UnderGear(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name.StartsWith("gear_") || t.name == "weapon") return true;
+                t = t.parent;
+            }
+            return false;
         }
 
         public static Transform Bone(Transform root, string name)
@@ -622,12 +663,13 @@ namespace Hollowmere
 
         public static bool MeshWorldBounds(Transform root, out Bounds world) => WorldMeshBounds(root, out world);
 
-        static bool WorldMeshBounds(Transform root, out Bounds world)
+        static bool WorldMeshBounds(Transform root, out Bounds world, bool bodyOnly = false)
         {
             world = new Bounds(root.position, Vector3.zero);
             bool any = false;
             foreach (var r in root.GetComponentsInChildren<Renderer>())
             {
+                if (bodyOnly && UnderGear(r.transform)) continue;
                 Mesh mesh = null;
                 var skin = r as SkinnedMeshRenderer;
                 if (skin != null) mesh = skin.sharedMesh;
@@ -987,6 +1029,11 @@ namespace Hollowmere
                 if (max > 10f || near)
                     Debug.LogWarning("Hollowmere bounds: " + PathOf(r.transform) + " size=" + b.size + " center=" + b.center + (near ? " near-camera" : "") + (level ? " level" : ""));
                 if (level || max <= 10f) continue;
+                if (OnAuthoredRig(r.transform))
+                {
+                    Debug.LogError("Hollowmere bounds: refused to scale " + PathOf(r.transform) + " (" + max.ToString("0.00") + "m)");
+                    continue;
+                }
                 var root = ScalableRoot(r.transform);
                 if (root == null || !seen.Add(root)) continue;
                 var fit = root.GetComponent<ModelFit>();
@@ -995,6 +1042,19 @@ namespace Hollowmere
                 root.localScale *= factor;
                 Debug.LogWarning("Hollowmere: shrunk " + root.name + " x" + factor.ToString("0.###") + " (was " + max.ToString("0.#") + " m)");
             }
+        }
+
+        /// <summary>v5 characters stay at the size they were authored. A bad gear mesh must not scale the rig.</summary>
+        public static bool OnAuthoredRig(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name == "hero_rig" || V5Body(t.name)) return true;
+                var fit = t.GetComponent<ModelFit>();
+                if (fit != null && fit.freeze) return true;
+                t = t.parent;
+            }
+            return false;
         }
 
         public static bool IsLevelMesh(Transform t)

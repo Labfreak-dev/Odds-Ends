@@ -417,6 +417,7 @@ namespace Hollowmere
                 baked = true;
                 TipKeepChildren();
                 FlattenChildren();
+                LayOnBack();
                 ShrinkIfThick();
                 shaped = true;
             }
@@ -573,6 +574,29 @@ namespace Hollowmere
             }
             for (int i = 0; i < n; i++)
                 transform.GetChild(i).rotation = bestDelta * bases[i];
+        }
+
+        /// <summary>The brute's death clip ends face-down on its hands, and the rat's sits up.
+        /// A half turn lays them on their back without changing the floor height.</summary>
+        void LayOnBack()
+        {
+            if (!CorpseNamed("demon_brute") && !CorpseNamed("hm_rat")) return;
+            var hips = Art.Bone(transform, "Hips") ?? Art.Bone(transform, "body");
+            if (hips != null && hips.forward.y > -0.35f) return;
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                var c = transform.GetChild(i);
+                c.rotation = Quaternion.Euler(0f, 0f, 180f) * c.rotation;
+            }
+        }
+
+        bool CorpseNamed(string key)
+        {
+            if (name.IndexOf(key, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            for (int i = 0; i < transform.childCount; i++)
+                if (transform.GetChild(i).name.IndexOf(key, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            return false;
         }
 
         /// <summary>Demon and spider poses are still thicker than 0.95 m. Scale the mesh, not the check.</summary>

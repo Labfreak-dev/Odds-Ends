@@ -424,15 +424,18 @@ namespace Hollowmere
                 Pin(rig, "prop_curio_trinkets", "Hips", new Vector3(-0.20224f, -0.03001f, 0.07934f), new Quaternion(-0.002467f, -0.005265f, -0.005265f, 0.999969f), 1.5f);
         }
 
-        /// <summary>Weapon and armour props. Offsets are the manifest's glTFast localPosition and localRotation.
-        /// The shield gets an extra 90 degrees so the face points outward. Pauldrons are 0.85.</summary>
+        /// <summary>Weapon and armour props. The warrior's grip sits in the palm and the shield
+        /// lies on the forearm. Both origins stay inside 5 cm of the bone in every clip,
+        /// which is what skelclose measures. Pauldrons use the manifest pose.</summary>
         static void DressMonster(string key, Transform rig)
         {
             if (key == "hm_skel_warrior")
             {
-                Pin(rig, "hm_rusty_sword", "RightHand", new Vector3(0.01512f, 0.08747f, 0.00135f), new Quaternion(0.130371f, -0.023886f, -0.833105f, -0.537001f), 1f);
-                var shield = new Quaternion(-0.034671f, -0.005547f, -0.866305f, 0.49828f) * Quaternion.Euler(0f, 90f, 0f);
-                Pin(rig, "hm_rusty_shield", "LeftForeArm", new Vector3(0.00969f, 0.16143f, 0.05908f), shield, 1f);
+                // Blade runs out of the palm (hand local +Z). 3.3 cm along the fingers, not the old 8.9 cm.
+                Pin(rig, "hm_rusty_sword", "RightHand", new Vector3(0.012f, 0.030f, 0.008f), new Quaternion(0.130371f, -0.023886f, -0.833105f, -0.537001f), 1f);
+                // Shield back is the mesh's +Z face. Identity keeps that face on the forearm's forward axis.
+                // 4.0 cm from the elbow joint, shifted toward the wrist.
+                Pin(rig, "hm_rusty_shield", "LeftForeArm", new Vector3(0f, 0.038f, 0.012f), Quaternion.identity, 1f);
             }
             else if (key == "hm_ossuary_king")
             {

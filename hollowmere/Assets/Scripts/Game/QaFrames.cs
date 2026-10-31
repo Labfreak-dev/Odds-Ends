@@ -304,7 +304,7 @@ namespace Hollowmere
                 float sd = rh != null ? Vector3.Distance(swordT.position, rh.position) : 99f;
                 float hd = arm != null ? Vector3.Distance(shieldT.position, arm.position) : 99f;
                 Debug.Log("Hollowmere QA skelclose sword=" + (sd * 100f).ToString("0.0") + "cm shield=" + (hd * 100f).ToString("0.0") + "cm");
-                if (sd > 0.10f || hd > 0.10f)
+                if (sd > 0.05f || hd > 0.05f)
                     Debug.LogError("Hollowmere QA skelclose FAIL prop off the bone");
             }
             SaveNamed("skelclose");

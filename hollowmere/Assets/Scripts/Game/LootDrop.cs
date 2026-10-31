@@ -135,9 +135,26 @@ namespace Hollowmere
         public static Sprite For(Item it)
         {
             if (Item.IsNone(it)) return null;
-            if (it.kind == ItemKind.Fish) return Get("fish_" + it.fishId);
-            if (it.kind == ItemKind.Gem) return Get(DesignTable.GemArt(it.baseId) ?? it.baseId);
-            return Get(it.baseId);
+            // Stacks (potion x3, portal x2) have no icon_<id> file. A missing lookup was
+            // coming back as the pink error texture, so prefer a real sprite already in the repo.
+            if (it.kind == ItemKind.Potion) return Real("health_orb", "spell_set1_heal-jade-1");
+            if (it.kind == ItemKind.TownPortal) return Real("spell_set3_runes-sky-1");
+            if (it.kind == ItemKind.Fish) return Real("fish_" + it.fishId, "spell_set1_heal-sky-1");
+            if (it.kind == ItemKind.Gem) return Real(DesignTable.GemArt(it.baseId), it.baseId);
+            return Real("icon_" + it.baseId, it.baseId);
+        }
+
+        static Sprite Real(params string[] names)
+        {
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (string.IsNullOrEmpty(names[i])) continue;
+                var direct = ArtDrop.Sprite(names[i]);
+                if (direct != null && direct.texture != null) return direct;
+                var prefixed = ArtDrop.Sprite("icon_" + names[i]);
+                if (prefixed != null && prefixed.texture != null) return prefixed;
+            }
+            return Get(string.IsNullOrEmpty(names[0]) ? "item" : names[0]);
         }
 
         public static Sprite Get(string id)

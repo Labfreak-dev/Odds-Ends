@@ -53,7 +53,9 @@ namespace Hollowmere
             var fit = go.GetComponent<ModelFit>();
             if (fit != null) fit.freeze = true;
             go.transform.SetPositionAndRotation(World.ToWorld(tile) + Vector3.up * 0.02f, rot);
-            var mat = Material(surface, emit);
+            var mat = surface == "iron_plates"
+                ? PbrKit.UrpLit(surface, 1.5f, new Color(0.78f, 0.74f, 0.7f), 0.4f, 0.38f)
+                : Material(surface, emit);
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;

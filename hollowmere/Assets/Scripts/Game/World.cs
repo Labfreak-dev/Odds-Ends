@@ -146,15 +146,18 @@ namespace Hollowmere
 
             var wallSide = town
                 ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.56f, 0.54f, 0.50f))
-                : biome != null
-                    ? PbrKit.Surface(biome.wallMaterial, 3f, Color.white)
-                    : PbrKit.Surface("crypt_wall", 3f, Color.white);
+                : biome != null && biome.id == "forge"
+                    ? PbrKit.UrpLit(biome.wallMaterial, 2f, new Color(0.72f, 0.7f, 0.68f), 0.45f, 0.42f)
+                    : biome != null
+                        ? PbrKit.Surface(biome.wallMaterial, 3f, Color.white)
+                        : PbrKit.Surface("crypt_wall", 3f, Color.white);
             var wallTop = town ? PbrKit.Surface("roof_tiles", 2.9f, Color.white) : wallSide;
             var walls = MakeMesh("walls", root, wv, wn, null, wallSide);
             var wm = walls.GetComponent<MeshFilter>().sharedMesh;
             wm.subMeshCount = 2;
             wm.SetTriangles(wt, 0);
             wm.SetTriangles(wtTop, 1);
+            wm.RecalculateTangents();
             walls.GetComponent<MeshRenderer>().sharedMaterials = new[] { wallSide, wallTop };
             walls.AddComponent<MeshCollider>().sharedMesh = wm;
             if (av.Count > 0)
@@ -238,12 +241,37 @@ namespace Hollowmere
                     var l = new GameObject("torch").AddComponent<Light>();
                     l.transform.SetParent(root, false);
                     l.transform.position = pos + Vector3.right;
-                    l.type = LightType.Point; l.color = torchC; l.range = 12; l.intensity = 1.6f;
+                    l.type = LightType.Point; l.color = torchC; l.range = 12; l.intensity = biome != null && biome.id == "forge" ? 2.4f : 1.6f;
+                    l.shadows = LightShadows.None;
                 }
+                if (biome != null && biome.id == "forge")
+                    ForgeGlow(map, root);
             }
             Dressing.Mood(map);
             ModularKit.Dress(map, root);
             return root;
+        }
+
+        /// <summary>Warm pools so the iron plates read as lit metal instead of a black shell.</summary>
+        static void ForgeGlow(DungeonMap map, Transform root)
+        {
+            var glow = new Color(1f, 0.55f, 0.22f);
+            int n = 0;
+            foreach (var r in map.rooms)
+            {
+                if (n >= 10) break;
+                var pos = World.ToWorld(r.Center) + new Vector3(0f, 2.2f, 0f);
+                var l = new GameObject("forgeGlow").AddComponent<Light>();
+                l.transform.SetParent(root, false);
+                l.transform.position = pos;
+                l.type = LightType.Point;
+                l.color = glow;
+                l.range = 9f;
+                l.intensity = 3.2f;
+                l.shadows = LightShadows.None;
+                n++;
+            }
+            Debug.Log("Hollowmere forge glow lights " + n);
         }
 
         /// <summary>A 2×2 dirt patch on about one street block in eight. The rest of town is cobble.</summary>

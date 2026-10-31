@@ -108,6 +108,45 @@ namespace Hollowmere
             color.colorFilter.Override(new Color(colorSpec.filterR, colorSpec.filterG, colorSpec.filterB, 1f));
         }
 
+        /// <summary>
+        /// URP Lit with the surface maps. Metal maps that are nearly white zero the diffuse
+        /// term and read as unlit black without a reflection probe, so metallic stays a scalar.
+        /// </summary>
+        public static Material UrpLit(string name, float tileMetres, Color tint, float metallic, float smoothness)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Hollowmere/Pbr");
+            if (shader == null) return Art.Mat(tint);
+            var m = new Material(shader);
+            var albedo = Load(name, "basecolor");
+            var normal = Load(name, "normal_gl");
+            m.SetColor("_BaseColor", tint);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", tint);
+            if (albedo != null)
+            {
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", albedo);
+                if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", albedo);
+                float rep = Mathf.Max(0.25f, 2f / Mathf.Max(0.5f, tileMetres));
+                if (m.HasProperty("_BaseMap")) m.SetTextureScale("_BaseMap", Vector2.one * rep);
+                if (m.HasProperty("_MainTex")) m.SetTextureScale("_MainTex", Vector2.one * rep);
+            }
+            if (normal != null && m.HasProperty("_BumpMap"))
+            {
+                m.SetTexture("_BumpMap", normal);
+                m.EnableKeyword("_NORMALMAP");
+                if (m.HasProperty("_BumpScale")) m.SetFloat("_BumpScale", 0.6f);
+            }
+            if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", metallic);
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", smoothness);
+            m.DisableKeyword("_METALLICSPECGLOSSMAP");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            if (albedo == null)
+                Debug.LogError("Hollowmere urp lit " + name + " FAIL missing base map");
+            else
+                Debug.Log("Hollowmere urp lit " + name + " base=" + albedo.name);
+            return m;
+        }
+
         static Texture2D Load(string folder, string suffix)
         {
             return Resources.Load<Texture2D>(Root + folder + "/" + folder + "_" + suffix);

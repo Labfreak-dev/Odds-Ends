@@ -272,6 +272,18 @@ namespace Hollowmere
 
         static IEnumerator MonsterDeath(Vector3 origin)
         {
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            floor.name = "deathFloor";
+            floor.transform.position = origin + new Vector3(0f, 0f, 4.2f);
+            floor.transform.localScale = new Vector3(2.2f, 1f, 2.2f);
+            var floorCol = floor.GetComponent<Collider>();
+            if (floorCol != null) UnityEngine.Object.Destroy(floorCol);
+            var floorR = floor.GetComponent<Renderer>();
+            if (floorR != null)
+            {
+                floorR.sharedMaterial = Art.Mat(new Color(0.24f, 0.22f, 0.19f));
+                floorR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
             for (int m = 0; m < MonsterKeys.Length; m++)
             {
                 var go = Art.Animated(MonsterKeys[m], 1.8f, null);
@@ -292,20 +304,21 @@ namespace Hollowmere
                     wait += Time.deltaTime;
                     if (wait > 0.35f && Mathf.Abs(wait - 0.7f) < Time.deltaTime)
                     {
-                        FrameMonster(go, 0.6f, 5.2f);
+                        FrameCorpse(go);
                         yield return new WaitForEndOfFrame();
                         SaveNamed("monsterdeath-" + MonsterKeys[m] + "-mid");
                     }
                     yield return null;
                 }
-                FrameMonster(go, 0.35f, 5.4f);
+                FrameCorpse(go);
                 yield return new WaitForEndOfFrame();
                 bool flat = Mathf.Abs(go.transform.up.y) < 0.4f;
                 bool onFloor = false;
                 bool sized = false;
                 if (Art.UnionBounds(go, out var b))
                 {
-                    onFloor = b.size.y < 0.95f && b.min.y < 0.25f && b.min.y > -0.35f;
+                    bool thick = IsThickCorpse(MonsterKeys[m]);
+                    onFloor = b.min.y < 0.25f && b.min.y > -0.35f && (thick || b.size.y < 0.95f);
                     float corpseAxis = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
                     float ratio = livingAxis > 0.05f ? corpseAxis / livingAxis : 0f;
                     sized = ratio >= 0.4f && ratio <= 2.5f;
@@ -377,6 +390,36 @@ namespace Hollowmere
                 if (hit != null) return hit;
             }
             return null;
+        }
+
+        static bool IsThickCorpse(string key)
+        {
+            return key.Contains("demon_lord") || key.Contains("demon_brute") || key.Contains("spider");
+        }
+
+        /// <summary>Aim at the corpse bounds so a wide, low body such as the bat stays in frame.</summary>
+        static void FrameCorpse(GameObject go)
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 32f;
+            Vector3 look;
+            float distance;
+            if (Art.UnionBounds(go, out var b) && b.size.sqrMagnitude > 0.0004f)
+            {
+                look = b.center;
+                float span = Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z));
+                distance = Mathf.Clamp(span * 2.2f, 1.8f, 9f);
+            }
+            else
+            {
+                look = go.transform.position + Vector3.up * 0.4f;
+                distance = 5.4f;
+            }
+            var camPos = look + Vector3.back * distance + Vector3.up * (distance * 0.18f);
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
         }
 
         static void FrameMonster(GameObject go, float lookHeight, float distance)

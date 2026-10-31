@@ -301,7 +301,13 @@ namespace Hollowmere
                 }
             }
             if (HeroActor.I != null) GearAttach.AuditGrip(HeroActor.I.transform);
+            if (monstersV6)
+            {
+                for (int i = 0; i < 4; i++)
+                    yield return null;
+            }
             yield return new WaitForEndOfFrame();
+            if (monstersV6) LogWraithHeight();
             var tex = ScreenCapture.CaptureScreenshotAsTexture();
             var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + scene + ".png");
             try
@@ -560,6 +566,26 @@ namespace Hollowmere
         }
 
         /// <summary>Every Meshy monster, in a row, so the lineup and the held props can be checked.</summary>
+        static void LogWraithHeight()
+        {
+            int found = 0;
+            foreach (var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            {
+                if (t == null || t.name != "hm_wraith") continue;
+                found++;
+                if (!Art.UnionBounds(t.gameObject, out var b))
+                {
+                    Debug.LogError("Hollowmere wraith height FAIL no mesh");
+                    continue;
+                }
+                Debug.Log("Hollowmere wraith height " + b.min.y.ToString("0.00") + "m");
+                if (b.min.y < 0.3f || b.min.y > 0.5f)
+                    Debug.LogError("Hollowmere wraith height FAIL " + b.min.y.ToString("0.00") + "m");
+            }
+            if (found == 0)
+                Debug.LogError("Hollowmere wraith height FAIL missing wraith");
+        }
+
         static void FrameMonsters()
         {
             string[] keys =

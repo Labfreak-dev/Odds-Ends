@@ -409,22 +409,28 @@ namespace Hollowmere
 
         void LateUpdate()
         {
+            var visual = transform.childCount > 0 ? transform.GetChild(0) : transform;
             Squash("LeftFoot");
             Squash("RightFoot");
             Squash("LeftToeBase");
             Squash("RightToeBase");
-            if (!Art.UnionBounds(gameObject, out var b) && !Art.MeshWorldBounds(transform, out b)) return;
+            if (!Art.UnionBounds(gameObject, out var b)) return;
             float dy = lift - b.min.y;
-            if (Mathf.Abs(dy) > 0.002f && Mathf.Abs(dy) < 4f)
-                transform.position += new Vector3(0f, dy, 0f);
-            if (logged == 2)
+            // Wait until the skin bounds include the spawn offset, then correct the instance.
+            if (logged >= 2 && Mathf.Abs(dy) > 0.02f && Mathf.Abs(dy) < 3f)
             {
-                float hem = b.min.y + dy;
-                Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m root=" + name);
+                var lp = visual.localPosition;
+                lp.y += dy;
+                visual.localPosition = lp;
+            }
+            if (logged == 4)
+            {
+                float hem = b.min.y;
+                Debug.Log("Hollowmere wraith height " + hem.ToString("0.00") + "m");
                 if (hem < 0.3f || hem > 0.5f)
                     Debug.LogError("Hollowmere wraith height FAIL " + hem.ToString("0.00") + "m");
             }
-            if (logged < 4) logged++;
+            if (logged < 8) logged++;
         }
 
         void Squash(string bone)
@@ -499,7 +505,6 @@ namespace Hollowmere
                 TipKeepChildren();
                 FlattenChildren();
                 LayOnBack();
-                ShrinkIfThick();
                 shaped = true;
             }
             else if (Mathf.Abs(transform.up.y) >= 0.35f)
@@ -713,22 +718,6 @@ namespace Hollowmere
                 if (transform.GetChild(i).name.IndexOf(key, System.StringComparison.OrdinalIgnoreCase) >= 0)
                     return true;
             return false;
-        }
-
-        /// <summary>Demon and spider poses are still thicker than 0.95 m. Scale the mesh, not the check.</summary>
-        void ShrinkIfThick()
-        {
-            for (int pass = 0; pass < 3; pass++)
-            {
-                if (!Art.UnionBounds(gameObject, out var b) || b.size.y < 0.88f) return;
-                float s = 0.78f / Mathf.Max(0.2f, b.size.y);
-                if (transform.childCount == 0) transform.localScale *= s;
-                else
-                    for (int i = 0; i < transform.childCount; i++)
-                        transform.GetChild(i).localScale *= s;
-                Debug.Log("Hollowmere death lay " + name + " scaled x" + s.ToString("0.00")
-                    + " was " + b.size.y.ToString("0.00") + "m tall");
-            }
         }
 
         void Ground()

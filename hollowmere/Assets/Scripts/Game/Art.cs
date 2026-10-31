@@ -356,7 +356,14 @@ namespace Hollowmere
                 // The file is 1.4 m across the wings and 0.13 m tall. 6× put a 7 m corpse off screen.
                 if (bodyKey == "hm_vampire_bat") holder.transform.localScale *= 1.6f;
                 if (bodyKey == "hm_bat") go.AddComponent<BatHover>();
-                if (bodyKey == "hm_wraith") holder.AddComponent<WraithFloat>();
+                if (bodyKey == "hm_wraith")
+                {
+                    holder.AddComponent<WraithFloat>();
+                    // On the spawned instance, not the prefab. The robe hem starts at the origin.
+                    var raised = go.transform.localPosition;
+                    raised.y += 0.4f;
+                    go.transform.localPosition = raised;
+                }
                 if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord"
                     || bodyKey == "hm_cultist_smith" || bodyKey == "hm_bone_golem"
                     || bodyKey == "hm_grave_eater" || bodyKey == "hm_drowned_husk" || bodyKey == "hm_imp")

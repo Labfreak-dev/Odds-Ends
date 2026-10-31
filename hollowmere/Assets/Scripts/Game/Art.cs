@@ -220,7 +220,9 @@ namespace Hollowmere
             if (bodyKey == "pet_lynx") FaceLynx(go);
             if (IsCharacter(key))
             {
-                if (IsBiped(key)) StandUp(go.transform);
+                // NPC rigs are already upright at yaw 0. The long-axis turn stands the
+                // smith's hammer up and lays the body down (holder ends at 90,180,0).
+                if (IsBiped(key) && !key.StartsWith("npc_")) StandUp(go.transform);
                 FitToHeight(go.transform, holder.transform, height);
             }
             foreach (var c in go.GetComponentsInChildren<Collider>()) Object.Destroy(c);
@@ -1085,8 +1087,9 @@ namespace Hollowmere
             enabled = false;
             if (applied) return;
             // Mesh-height fitting is NPC-only. Applying it to heroes and props hid the hero
-            // and brought the giant rock back.
-            if (biped) StandIfLying();
+            // and brought the giant rock back. NPCs are not rolled here: the smith's tool
+            // is longer than his body, and that pitch is the (90,180,0) pose.
+            if (biped && !name.StartsWith("npc_")) StandIfLying();
             if (!Art.UnionBounds(gameObject, out var b)) return;
             float max = Art.MaxAxis(b.size);
             if (max < 0.02f) return;
@@ -1154,70 +1157,47 @@ namespace Hollowmere
         }
     }
 
-    /// <summary>Stand an NPC whose head is not above the hips. Bone positions update
-    /// immediately, so this does not depend on a stale skinned box, and it does not rescale.</summary>
+    /// <summary>Clears pitch and roll on an NPC holder before NpcStand logs it.
+    /// A long-axis search left the smith at (90,180,0) with the head beside the hips.</summary>
     [DefaultExecutionOrder(50)]
     public sealed class PoseUpright : MonoBehaviour
     {
         int waited;
-        static readonly Vector3[] Turns =
-        {
-            Vector3.zero,
-            new Vector3(-90f, 0f, 0f),
-            new Vector3(90f, 0f, 0f),
-            new Vector3(0f, 0f, -90f),
-            new Vector3(0f, 0f, 90f),
-        };
 
         void LateUpdate()
         {
             if (waited++ < 2) return;
             enabled = false;
-            var head = FindBone(transform, "Head") ?? FindBone(transform, "head");
-            var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
-            if (head == null || hips == null) return;
-            var origin = transform.rotation;
-            var best = origin;
-            float bestRise = head.position.y - hips.position.y;
-            foreach (var e in Turns)
-            {
-                transform.rotation = origin * Quaternion.Euler(e);
-                float rise = head.position.y - hips.position.y;
-                if (rise > bestRise)
-                {
-                    bestRise = rise;
-                    best = transform.rotation;
-                }
-            }
-            transform.rotation = best;
-            bool above = bestRise > 0.25f;
-            Debug.Log("Hollowmere NPC " + name + " rot=" + transform.eulerAngles.ToString("0")
-                + " headAboveHips=" + above + " rise=" + bestRise.ToString("0.00"));
-            if (!above)
-                Debug.LogError("Hollowmere NPC " + name + " failed the head-above-hips check.");
-        }
-
-        static Transform FindBone(Transform root, string name)
-        {
-            if (root.name == name) return root;
-            for (int i = 0; i < root.childCount; i++)
-            {
-                var f = FindBone(root.GetChild(i), name);
-                if (f != null) return f;
-            }
-            return null;
+            NpcStand.ForceYaw(transform);
         }
     }
 
     /// <summary>
-    /// Stands every town NPC by rotating its model root, and logs each one.
-    /// Pitch and roll are tried once. The pose with the tallest mesh is kept,
-    /// so a figure that is already upright is not rolled onto its side.
+    /// Writes every town NPC root to (0, yaw, 0) and logs the head rise after that.
     /// </summary>
     [DefaultExecutionOrder(120)]
     public sealed class NpcStand : MonoBehaviour
     {
         int waited;
+
+        /// <summary>World yaw only. Pitch and roll on this root, and on the imported
+        /// child, are cleared. Bone local rotations under that child are left alone.</summary>
+        public static void ForceYaw(Transform root)
+        {
+            if (root == null) return;
+            float yaw = 0f;
+            var flat = root.parent != null ? root.parent.forward : root.forward;
+            flat.y = 0f;
+            if (flat.sqrMagnitude < 0.0001f) flat = Vector3.forward;
+            yaw = Quaternion.LookRotation(flat.normalized, Vector3.up).eulerAngles.y;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var c = root.GetChild(i);
+                var e = c.localEulerAngles;
+                c.localRotation = Quaternion.Euler(0f, e.y, 0f);
+            }
+            root.rotation = Quaternion.Euler(0f, yaw, 0f);
+        }
 
         void LateUpdate()
         {
@@ -1225,70 +1205,25 @@ namespace Hollowmere
             enabled = false;
             var who = GetComponentInParent<Interactable>();
             string label = who != null ? who.kind.ToString() : name;
+            // The head-rise search composed extra turns onto the current rotation.
+            // Once the holder was already (90,180,0), every sample stayed pitched and
+            // headAboveHips stayed false. Write (0, yaw, 0) and measure after that.
+            ForceYaw(transform);
             var head = FindBone(transform, "Head") ?? FindBone(transform, "head");
             var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
             if (head != null && hips != null)
             {
-                // Mesh bounds lie when a hammer or cloak is longer than the body.
-                // The smith's (90,180,0) pitch made the tool the tall axis and put
-                // the head beside the hips. Keep the root pose with the head highest.
-                var origin = transform.rotation;
-                var best = origin;
-                float bestRise = float.NegativeInfinity;
-                Quaternion[] turns =
-                {
-                    Quaternion.identity,
-                    Quaternion.Euler(-90f, 0f, 0f),
-                    Quaternion.Euler(90f, 0f, 0f),
-                    Quaternion.Euler(0f, 0f, -90f),
-                    Quaternion.Euler(0f, 0f, 90f),
-                };
-                for (int i = 0; i < turns.Length; i++)
-                {
-                    transform.rotation = origin * turns[i];
-                    float rise = head.position.y - hips.position.y;
-                    if (rise > bestRise)
-                    {
-                        bestRise = rise;
-                        best = transform.rotation;
-                    }
-                }
-                transform.rotation = best;
+                float rise = head.position.y - hips.position.y;
                 Debug.Log("Hollowmere NPC " + label + " object=" + name
                     + " rot=" + transform.eulerAngles.ToString("0")
-                    + " headAboveHips=" + (bestRise > 0.25f)
-                    + " rise=" + bestRise.ToString("0.00"));
+                    + " headAboveHips=" + (rise > 0.25f)
+                    + " rise=" + rise.ToString("0.00"));
                 return;
             }
-            if (!Art.MeshWorldBounds(transform, out var b))
-            {
-                Debug.Log("Hollowmere NPC " + label + " object=" + name
-                    + " rot=" + transform.eulerAngles.ToString("0") + " size=none");
-                return;
-            }
-            float upright = b.size.y;
-            var bestRot = transform.rotation;
-            var meshOrigin = transform.rotation;
-            Quaternion[] meshTurns =
-            {
-                Quaternion.identity,
-                Quaternion.Euler(-90f, 0f, 0f),
-                Quaternion.Euler(0f, 0f, 90f),
-            };
-            for (int i = 0; i < meshTurns.Length; i++)
-            {
-                transform.rotation = meshOrigin * meshTurns[i];
-                if (!Art.MeshWorldBounds(transform, out var nb)) continue;
-                if (nb.size.y > upright + 0.02f)
-                {
-                    upright = nb.size.y;
-                    bestRot = transform.rotation;
-                }
-            }
-            transform.rotation = bestRot;
+            Art.MeshWorldBounds(transform, out var b);
             Debug.Log("Hollowmere NPC " + label + " object=" + name
                 + " rot=" + transform.eulerAngles.ToString("0")
-                + " stood=" + upright.ToString("0.00"));
+                + " stood=" + b.size.y.ToString("0.00"));
         }
 
         static Transform FindBone(Transform root, string bone)

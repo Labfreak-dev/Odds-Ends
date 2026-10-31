@@ -259,57 +259,99 @@ namespace Hollowmere
     {
         public static void Arm(HeroActor h, SkillCast c)
         {
+            if (h == null || c == null || c.skill == null) return;
+            // Hex Bolt is a soft round glow. A wide trail with cap vertices draws as a
+            // yellow hexagon beside the hero for the first frames of the cast.
+            if (c.skill.id == "hx_bolt") return;
+            ArmSwing(h, 0.7f);
+        }
+
+        /// <summary>World-space swing ribbon. Not parented to the hand: the 0.01 armature
+        /// scale multiplies TrailRenderer width down to nothing.</summary>
+        public static void ArmSwing(HeroActor h, float life)
+        {
             if (h == null) return;
-            // World-space follower. Parenting the ribbon to the hand inherits the 0.01 armature
-            // and the swing disappears.
-            var go = new GameObject("weaponTrail");
+            life = Mathf.Max(0.25f, life);
             var origin = h.Pos;
             var forward = h.transform.forward;
             forward.y = 0f;
             if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
             forward.Normalize();
             var right = Vector3.Cross(Vector3.up, forward);
-            // The hand bone barely moves in world space, so a trail stuck to it
-            // draws no ribbon. Sweep an arc in front of the hero instead.
-            go.transform.position = origin + forward * 1.35f + Vector3.up * 1.15f;
+            var go = new GameObject("weaponTrail");
+            go.layer = 0;
+            var points = new Vector3[14];
+            for (int i = 0; i < points.Length; i++)
+                points[i] = ArcPoint(origin, forward, right, i / (float)(points.Length - 1));
+            go.transform.position = points[points.Length - 1];
+            var tr = go.AddComponent<TrailRenderer>();
+            tr.enabled = true;
+            tr.time = life;
+            tr.startWidth = 1.7f;
+            tr.endWidth = 1.5f;
+            tr.minVertexDistance = 0.01f;
+            tr.textureMode = LineTextureMode.Stretch;
+            tr.alignment = LineAlignment.View;
+            tr.numCornerVertices = 0;
+            tr.numCapVertices = 0;
+            tr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            tr.receiveShadows = false;
+            var col = new Color(1.7f, 1.45f, 0.85f, 1f);
+            tr.startColor = col;
+            tr.endColor = new Color(col.r, col.g, col.b, 0.85f);
+            tr.sharedMaterial = RibbonMat(col);
+            tr.emitting = true;
+            Seed(tr, points);
             var follow = go.AddComponent<TrailFollow>();
             follow.origin = origin;
             follow.forward = forward;
             follow.right = right;
-            follow.life = 0.8f;
-            var tr = go.AddComponent<TrailRenderer>();
-            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.65f);
-            col.a = 1f;
-            tr.time = 0.8f;
-            float width = 2.8f;
-            tr.startWidth = width;
-            tr.endWidth = width * 0.9f;
-            tr.minVertexDistance = 0.02f;
-            tr.textureMode = LineTextureMode.Stretch;
-            tr.numCornerVertices = 2;
-            tr.numCapVertices = 2;
-            tr.startColor = col;
-            tr.endColor = new Color(col.r, col.g, col.b, 0.85f);
-            // Solid ribbon. Vertex-colour multiply and the soft disc both ate the
-            // swing, and a dark trail cell did the same.
-            var ribbon = Art.GlowMat(new Color(2.2f, 1.5f, 0.45f, 1f), false, null);
-            if (ribbon.HasProperty("_Soft")) ribbon.SetFloat("_Soft", 0f);
-            if (ribbon.HasProperty("_UseVertexColor")) ribbon.SetFloat("_UseVertexColor", 0f);
-            if (ribbon.HasProperty("_HasMap")) ribbon.SetFloat("_HasMap", 0f);
-            if (ribbon.HasProperty("_BaseColor")) ribbon.SetColor("_BaseColor", new Color(2.2f, 1.5f, 0.45f, 1f));
-            if (ribbon.HasProperty("_EmissionColor")) ribbon.SetColor("_EmissionColor", new Color(2.2f, 1.5f, 0.45f, 1f));
-            tr.material = ribbon;
-            tr.emitting = true;
-            for (int i = 0; i < 5; i++)
-            {
-                float ang = Mathf.Lerp(-1.15f, 1.15f, i / 4f);
-                var puff = Art.GlowSprite(null, 1.8f, new Color(1f, 0.95f, 0.7f, 1f));
-                puff.transform.position = origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.7f + Vector3.up * 1.2f;
-                puff.AddComponent<FxLife>().Init(0.55f, Vector3.one * 1.4f, Vector3.one * 2.6f);
-            }
+            follow.life = life;
+            var seed = go.AddComponent<TrailSeed>();
+            seed.trail = tr;
+            seed.points = points;
             var hold = go.AddComponent<TrailStop>();
             hold.trail = tr;
-            hold.until = Time.time + 0.8f;
+            hold.until = Time.time + life;
+            var shader = tr.sharedMaterial != null && tr.sharedMaterial.shader != null ? tr.sharedMaterial.shader.name : "none";
+            Debug.Log("Hollowmere trail armed shader=" + shader
+                + " enabled=" + tr.enabled
+                + " layer=" + go.layer
+                + " width=" + tr.startWidth.ToString("0.00")
+                + " time=" + tr.time.ToString("0.00")
+                + " bounds=" + tr.bounds.size.ToString("0.00"));
+        }
+
+        static Vector3 ArcPoint(Vector3 origin, Vector3 forward, Vector3 right, float u)
+        {
+            float ang = Mathf.Lerp(-1.15f, 1.15f, u);
+            return origin + (forward * Mathf.Cos(ang) + right * Mathf.Sin(ang)) * 1.7f + Vector3.up * 1.25f;
+        }
+
+        static void Seed(TrailRenderer tr, Vector3[] points)
+        {
+            if (tr == null || points == null || points.Length == 0) return;
+            tr.Clear();
+            for (int i = 0; i < points.Length; i++) tr.AddPosition(points[i]);
+        }
+
+        /// <summary>A fresh Hollowmere/Glow instance. The shared glow cache turns _Soft on,
+        /// which punches a disc out of a trail strip and hides the ribbon.</summary>
+        static Material RibbonMat(Color c)
+        {
+            var src = Resources.Load<Material>("HollowmereGlow");
+            Material m = src != null ? new Material(src) : new Material(Art.GlowMat(c, false));
+            if (m.shader == null || m.shader.name != "Hollowmere/Glow")
+                Debug.LogError("Hollowmere trail shader missing: " + (m.shader != null ? m.shader.name : "null"));
+            m.color = c;
+            m.renderQueue = 3000;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", c);
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", c);
+            if (m.HasProperty("_UseVertexColor")) m.SetFloat("_UseVertexColor", 0f);
+            if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 0f);
+            if (m.HasProperty("_Soft")) m.SetFloat("_Soft", 0f);
+            return m;
         }
 
         public static string TrailFor(HeroActor h)
@@ -332,6 +374,24 @@ namespace Hollowmere
             }
         }
 
+    }
+
+    /// <summary>Re-seeds the arc if the trail drops its points before the first render.</summary>
+    public sealed class TrailSeed : MonoBehaviour
+    {
+        public TrailRenderer trail;
+        public Vector3[] points;
+        int frames;
+
+        void LateUpdate()
+        {
+            if (trail != null && trail.positionCount < 2 && points != null)
+            {
+                trail.Clear();
+                for (int i = 0; i < points.Length; i++) trail.AddPosition(points[i]);
+            }
+            if (++frames > 2) enabled = false;
+        }
     }
 
     /// <summary>Sweeps the ribbon through a world-space arc so the swing is visible.</summary>

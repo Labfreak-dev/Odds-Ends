@@ -76,6 +76,10 @@ namespace Hollowmere
                     var ms = MonsterDb.Create(def, 1, MonsterRank.Normal, new Rng(3), 1);
                     MonsterActor.Spawn(ms, hero.Pos + drive.forward * 2.4f, 7);
                 }
+                // The primary is Hex Bolt, which is a round glow and not a ribbon.
+                // The swing under test is this world-space trail, seeded before the first frame.
+                hero.Face(drive.forward);
+                TrailHold.ArmSwing(hero, 3.2f);
             }
             Debug.Log("Hollowmere QA frames: " + mode + " nav=" + FloorNav.Ready
                 + " open=" + Clear(hero.Pos, drive.forward).ToString("0.0") + "m"
@@ -91,6 +95,7 @@ namespace Hollowmere
                 while (i < f.frames && drive.elapsed + 0.0001f >= next)
                 {
                     AssertHeroVisible(hero);
+                    if (mode == "combat") LogTrails(i);
                     if (mode == "move")
                     {
                         var p = hero.Pos;
@@ -145,6 +150,37 @@ namespace Hollowmere
                 t = t.parent;
             }
             return false;
+        }
+
+        /// <summary>The ribbon has to be on, on a layer the camera draws, and using a shader
+        /// the build actually includes. Bounds are logged so an empty strip is obvious.</summary>
+        static void LogTrails(int index)
+        {
+            var cam = Camera.main;
+            int mask = cam != null ? cam.cullingMask : 0;
+            var trails = UnityEngine.Object.FindObjectsByType<TrailRenderer>(FindObjectsSortMode.None);
+            if (trails == null || trails.Length == 0)
+            {
+                Debug.Log("Hollowmere QA trail " + index.ToString("00") + " none");
+                return;
+            }
+            for (int t = 0; t < trails.Length; t++)
+            {
+                var tr = trails[t];
+                if (tr == null) continue;
+                string shader = tr.sharedMaterial != null && tr.sharedMaterial.shader != null
+                    ? tr.sharedMaterial.shader.name : "none";
+                int layer = tr.gameObject.layer;
+                bool rendered = tr.enabled && cam != null && (mask & (1 << layer)) != 0;
+                Debug.Log("Hollowmere QA trail " + index.ToString("00")
+                    + " name=" + tr.name
+                    + " enabled=" + tr.enabled
+                    + " layer=" + layer
+                    + " rendered=" + rendered
+                    + " shader=" + shader
+                    + " positions=" + tr.positionCount
+                    + " bounds=" + tr.bounds.center.ToString("0.00") + " size=" + tr.bounds.size.ToString("0.00"));
+            }
         }
 
         static void Save(string mode, int index)

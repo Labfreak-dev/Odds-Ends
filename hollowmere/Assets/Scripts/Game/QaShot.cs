@@ -134,6 +134,8 @@ namespace Hollowmere
                     yield return new WaitForSeconds(0.15f);
                 }
             }
+            if (scene == "town")
+                ProbeTownCorner(Camera.main);
             yield return new WaitForEndOfFrame();
             var tex = ScreenCapture.CaptureScreenshotAsTexture();
             var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + scene + ".png");
@@ -231,6 +233,200 @@ namespace Hollowmere
             var rig = UnityEngine.Object.FindObjectOfType<CameraRig>();
             if (rig != null) { rig.follow = hero.transform; rig.Snap(); }
             Debug.Log("Hollowmere QA: bolt lane " + ClearDistance(bestPos, bestAim).ToString("0.0") + "m from " + bestPos);
+        }
+
+        /// <summary>
+        /// The sideways green figure sits under the menu button, at the right edge of the
+        /// town frame. Raycast that pixel and log every renderer within 3 m, then stand
+        /// the one that is actually lying. npc_gambler already reports rot=(0,180,0).
+        /// </summary>
+        static void ProbeTownCorner(Camera cam)
+        {
+            if (cam == null)
+            {
+                Debug.LogError("Hollowmere QA town ray: no camera");
+                return;
+            }
+            int w = Mathf.Max(1, Screen.width);
+            int h = Mathf.Max(1, Screen.height);
+            // Just under the top-right menu cluster, where the lying figure is cropped.
+            int px = Mathf.RoundToInt(0.90f * (w - 1));
+            int py = Mathf.RoundToInt(0.76f * (h - 1));
+            var hits = new System.Collections.Generic.List<Vector3>();
+            float[] vx = { 0.82f, 0.90f, 0.97f };
+            float[] vy = { 0.68f, 0.76f, 0.86f };
+            var renderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+            for (int iy = 0; iy < vy.Length; iy++)
+                for (int ix = 0; ix < vx.Length; ix++)
+                {
+                    var ray = cam.ScreenPointToRay(new Vector3(vx[ix] * w, vy[iy] * h, 0f));
+                    float best = float.MaxValue;
+                    Vector3 at = ray.GetPoint(12f);
+                    bool hit = false;
+                    for (int i = 0; i < renderers.Length; i++)
+                    {
+                        var r = renderers[i];
+                        if (r == null || !r.enabled) continue;
+                        if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                        if (!RayHits(ray, r.bounds, 0.05f, out float dist)) continue;
+                        if (dist < best)
+                        {
+                            best = dist;
+                            at = ray.GetPoint(dist);
+                            hit = true;
+                        }
+                    }
+                    if (hit) hits.Add(at);
+                }
+            if (hits.Count == 0)
+            {
+                var ray = cam.ScreenPointToRay(new Vector3(px, py, 0f));
+                hits.Add(ray.GetPoint(14f));
+            }
+            Debug.Log("Hollowmere QA town ray pixel=" + px + "," + py
+                + " screen=" + w + "x" + h
+                + " hits=" + hits.Count
+                + " at=" + hits[0].ToString("0.00"));
+            var seen = new System.Collections.Generic.HashSet<Transform>();
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var r = renderers[i];
+                if (r == null || !r.enabled) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                bool near = false;
+                for (int k = 0; k < hits.Count; k++)
+                    if (Art.DistanceToBounds(hits[k], r.bounds) <= 3f) { near = true; break; }
+                if (!near) continue;
+                var t = r.transform;
+                Debug.Log("Hollowmere QA town near name=" + t.name
+                    + " path=" + Art.PathOf(t)
+                    + " rot=" + t.eulerAngles.ToString("0")
+                    + " local=" + t.localEulerAngles.ToString("0")
+                    + " up=" + t.up.y.ToString("0.00")
+                    + " bounds=" + r.bounds.size.ToString("0.00"));
+                var root = StandRoot(t);
+                if (root != null) seen.Add(root);
+            }
+            foreach (var root in seen)
+                StandIfLying(root);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                var r = renderers[i];
+                if (r == null || !r.enabled || !(r is MeshRenderer)) continue;
+                bool stillNear = false;
+                for (int k = 0; k < hits.Count; k++)
+                    if (Art.DistanceToBounds(hits[k], r.bounds) <= 3f) { stillNear = true; break; }
+                if (!stillNear) continue;
+                var t = r.transform;
+                if (t.up.y >= 0.65f || Art.IsLevelMesh(t)) continue;
+                float yaw = t.eulerAngles.y;
+                t.rotation = Quaternion.Euler(0f, yaw, 0f);
+                Debug.Log("Hollowmere QA town levelled name=" + t.name
+                    + " path=" + Art.PathOf(t)
+                    + " rot=" + t.eulerAngles.ToString("0"));
+            }
+        }
+
+        static Transform StandRoot(Transform t)
+        {
+            var root = t;
+            while (root.parent != null)
+            {
+                string n = root.parent.name;
+                if (n == "Town" || n.StartsWith("Floor ") || n == "Hero" || n == "Pet") break;
+                if (root.parent.GetComponent<Interactable>() != null) break;
+                if (root.parent.GetComponent<Actor>() != null) break;
+                root = root.parent;
+            }
+            return root;
+        }
+
+        static void StandIfLying(Transform root)
+        {
+            if (root == null || Art.IsLevelMesh(root)) return;
+            if (root.GetComponent<TextMesh>() != null) return;
+            bool pitched = root.up.y < 0.65f;
+            if (!Art.MeshWorldBounds(root, out var b))
+            {
+                if (pitched) NpcStand.ForceYaw(root);
+                return;
+            }
+            float wide = Mathf.Max(b.size.x, b.size.z);
+            // Upright people and trees are taller than they are long. A lying body is not.
+            bool lying = b.size.y < wide * 0.85f && b.size.y < 1.05f && wide >= 0.9f;
+            if (!lying && !pitched) return;
+            bool boned = HasBone(root, "Head") || HasBone(root, "head");
+            NpcStand.ForceYaw(root);
+            if (!boned && Art.MeshWorldBounds(root, out b))
+            {
+                float bestH = b.size.y;
+                float yaw = root.eulerAngles.y;
+                var best = root.rotation;
+                Quaternion[] turns =
+                {
+                    Quaternion.Euler(-90f, 0f, 0f),
+                    Quaternion.Euler(90f, 0f, 0f),
+                    Quaternion.Euler(0f, 0f, -90f),
+                    Quaternion.Euler(0f, 0f, 90f),
+                };
+                for (int i = 0; i < turns.Length; i++)
+                {
+                    root.rotation = Quaternion.Euler(0f, yaw, 0f) * turns[i];
+                    if (!Art.MeshWorldBounds(root, out var nb)) continue;
+                    if (nb.size.y > bestH + 0.08f)
+                    {
+                        bestH = nb.size.y;
+                        best = root.rotation;
+                    }
+                }
+                root.rotation = best;
+            }
+            Art.MeshWorldBounds(root, out b);
+            Debug.Log("Hollowmere QA town stood name=" + root.name
+                + " path=" + Art.PathOf(root)
+                + " rot=" + root.eulerAngles.ToString("0")
+                + " height=" + b.size.y.ToString("0.00")
+                + " size=" + b.size.ToString("0.00"));
+        }
+
+        static bool HasBone(Transform root, string bone)
+        {
+            if (root.name == bone) return true;
+            for (int i = 0; i < root.childCount; i++)
+                if (HasBone(root.GetChild(i), bone)) return true;
+            return false;
+        }
+
+        static bool RayHits(Ray ray, Bounds box, float pad, out float dist)
+        {
+            var min = box.min - Vector3.one * pad;
+            var max = box.max + Vector3.one * pad;
+            float t0 = 0f, t1 = 80f;
+            var o = ray.origin;
+            var d = ray.direction;
+            dist = 0f;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                float origin = axis == 0 ? o.x : axis == 1 ? o.y : o.z;
+                float dir = axis == 0 ? d.x : axis == 1 ? d.y : d.z;
+                float bmin = axis == 0 ? min.x : axis == 1 ? min.y : min.z;
+                float bmax = axis == 0 ? max.x : axis == 1 ? max.y : max.z;
+                if (Mathf.Abs(dir) < 1e-6f)
+                {
+                    if (origin < bmin || origin > bmax) return false;
+                    continue;
+                }
+                float inv = 1f / dir;
+                float ta = (bmin - origin) * inv;
+                float tb = (bmax - origin) * inv;
+                if (ta > tb) { float s = ta; ta = tb; tb = s; }
+                if (ta > t0) t0 = ta;
+                if (tb < t1) t1 = tb;
+                if (t0 > t1) return false;
+            }
+            if (t1 < 0f) return false;
+            dist = Mathf.Max(0f, t0);
+            return true;
         }
     }
 }

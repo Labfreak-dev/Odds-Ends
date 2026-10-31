@@ -259,10 +259,14 @@ namespace Hollowmere
                         head.localPosition = new Vector3(0f, 1.62f, 0f);
                         var green = new Color(0.2f, 0.55f, 0.32f);
                         var trim = new Color(0.85f, 0.75f, 0.4f);
-                        Art.Capsule(fig, new Vector3(0f, 0.95f, 0f), new Vector3(0.42f, 0.55f, 0.32f), Art.Mat(green));
-                        Art.Capsule(fig, new Vector3(-0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
-                        Art.Capsule(fig, new Vector3(0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
-                        Art.Sphere(head, Vector3.zero, Vector3.one * 0.36f, Art.Mat(new Color(0.93f, 0.8f, 0.68f)));
+                        var body = Art.Capsule(fig, new Vector3(0f, 0.95f, 0f), new Vector3(0.42f, 0.55f, 0.32f), Art.Mat(green));
+                        var legL = Art.Capsule(fig, new Vector3(-0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
+                        var legR = Art.Capsule(fig, new Vector3(0.12f, 0.32f, 0f), new Vector3(0.16f, 0.32f, 0.16f), Art.Mat(trim));
+                        var skull = Art.Sphere(head, Vector3.zero, Vector3.one * 0.36f, Art.Mat(new Color(0.93f, 0.8f, 0.68f)));
+                        body.transform.localRotation = Quaternion.identity;
+                        legL.transform.localRotation = Quaternion.identity;
+                        legR.transform.localRotation = Quaternion.identity;
+                        skull.transform.localRotation = Quaternion.identity;
                         // The north-east green figure. Its world label is "Curio Dealer"
                         // (the cropped '…eal…'). It is not one of the npc_*_walk models,
                         // so the model stand-up never sees it. Hold this root upright here.
@@ -305,15 +309,22 @@ namespace Hollowmere
     public sealed class DealerUpright : MonoBehaviour
     {
         int waited;
+        bool logged;
 
         void LateUpdate()
         {
-            transform.localRotation = Quaternion.identity;
-            if (waited++ < 4) return;
-            enabled = false;
+            // Keep the lock. A one-shot reset was logging an upright root while a
+            // later pass could still leave a child mesh on its side.
+            NpcStand.ForceYaw(transform);
+            if (logged || waited++ < 8) return;
+            logged = true;
             Debug.Log("Hollowmere NPC Curio Dealer object=" + name
                 + " rot=" + transform.eulerAngles.ToString("0")
                 + " local=" + transform.localEulerAngles.ToString("0"));
+            foreach (var r in GetComponentsInChildren<Renderer>())
+                Debug.Log("Hollowmere NPC Curio Dealer part=" + r.name
+                    + " path=" + Art.PathOf(r.transform)
+                    + " rot=" + r.transform.eulerAngles.ToString("0"));
         }
     }
 

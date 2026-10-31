@@ -14,6 +14,7 @@ namespace Hollowmere
     ///   Hollowmere -qaFrames monsteranim
     ///   Hollowmere -qaFrames monsterdeath
     ///   Hollowmere -qaFrames skelclose
+    ///   Hollowmere -qaFrames propclose
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -40,9 +41,9 @@ namespace Hollowmere
 
         static IEnumerator Run(GameManager gm, string mode)
         {
-            if (mode == "monsteranim" || mode == "monsterdeath" || mode == "skelclose")
+            if (mode == "monsteranim" || mode == "monsterdeath" || mode == "skelclose" || mode == "propclose")
             {
-                yield return MonsterModes(gm, mode);
+                yield return RunMonsterMode(gm, mode);
                 yield break;
             }
             if (mode != "move" && mode != "pet" && mode != "combat")
@@ -161,6 +162,17 @@ namespace Hollowmere
             "hm_demon_brute", "hm_ossuary_king", "hm_demon_lord", "hm_rat", "hm_bat", "hm_spider",
         };
 
+        public static IEnumerator RunMonsterMode(GameManager gm, string mode)
+        {
+            if (mode != "monsteranim" && mode != "monsterdeath" && mode != "skelclose" && mode != "propclose")
+            {
+                Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
+                Application.Quit();
+                yield break;
+            }
+            yield return MonsterModes(gm, mode);
+        }
+
         static IEnumerator MonsterModes(GameManager gm, string mode)
         {
             var f = Feel.Active;
@@ -177,6 +189,8 @@ namespace Hollowmere
                 yield return SkelClose(origin);
             else if (mode == "monsterdeath")
                 yield return MonsterDeath(origin);
+            else if (mode == "propclose")
+                yield return PropClose(origin);
             else
                 yield return MonsterAnim(origin);
             Application.Quit();
@@ -318,6 +332,68 @@ namespace Hollowmere
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static IEnumerator PropClose(Vector3 origin)
+        {
+            var warrior = Art.Animated("hm_skel_warrior", 1.8f, null);
+            if (warrior != null)
+            {
+                warrior.transform.position = origin + new Vector3(-2.2f, 0f, 4f);
+                warrior.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            }
+            var king = Art.Animated("hm_ossuary_king", 1.8f, null);
+            if (king != null)
+            {
+                king.transform.position = origin + new Vector3(2.4f, 0f, 4f);
+                king.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            }
+            yield return new WaitForEndOfFrame();
+            string[] names =
+            {
+                "hm_rusty_shield", "prop_mystic_staff", "prop_merchant_backpack",
+                "prop_jeweler_loupe", "prop_jeweler_tools", "prop_curio_trinkets",
+                "hm_king_pauldron_left", "hm_king_pauldron_right", "hm_king_ribcage",
+                "hm_king_crown_spikes", "king_mace",
+            };
+            for (int i = 0; i < names.Length; i++)
+            {
+                Transform search = warrior != null ? warrior.transform : king != null ? king.transform : null;
+                var prop = search != null ? FindNamed(search, names[i]) : null;
+                if (prop == null)
+                {
+                    foreach (var root in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                    {
+                        if (root.name == names[i] || root.name.StartsWith(names[i]))
+                        {
+                            prop = root;
+                            break;
+                        }
+                    }
+                }
+                if (prop == null)
+                {
+                    Debug.LogError("Hollowmere QA propclose missing " + names[i]);
+                    continue;
+                }
+                if (!Art.MeshWorldBounds(prop, out var b))
+                    b = new Bounds(prop.position, Vector3.one * 0.2f);
+                var look = b.center;
+                var camPos = look + Vector3.back * Mathf.Max(0.8f, b.size.magnitude) + Vector3.up * 0.15f;
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    cam.fieldOfView = 28f;
+                    var rig = cam.GetComponent<CameraRig>();
+                    if (rig != null)
+                        rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+                }
+                yield return new WaitForEndOfFrame();
+                SaveNamed("propclose-" + names[i]);
+                Debug.Log("Hollowmere QA propclose " + names[i] + " center=" + b.center.ToString("0.00") + " size=" + b.size.ToString("0.00"));
+            }
+            if (warrior != null) UnityEngine.Object.Destroy(warrior);
+            if (king != null) UnityEngine.Object.Destroy(king);
         }
 
         static void SampleMonster(GameObject go, string clip, float unit)

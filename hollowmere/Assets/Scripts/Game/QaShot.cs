@@ -16,6 +16,10 @@ namespace Hollowmere
     ///   Hollowmere -qaShot npcs
     ///   Hollowmere -qaShot npcs-close
     ///   Hollowmere -qaShot monsters
+    ///   Hollowmere -qaShot monsteranim
+    ///   Hollowmere -qaShot monsterdeath
+    ///   Hollowmere -qaShot skelclose
+    ///   Hollowmere -qaShot propclose
     ///   Hollowmere -qaShot creator
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
@@ -45,8 +49,68 @@ namespace Hollowmere
             return true;
         }
 
+        static bool KnownShot(string scene)
+        {
+            switch (scene)
+            {
+                case "town":
+                case "dungeon":
+                case "floor":
+                case "floor1":
+                case "1":
+                case "title":
+                case "newhero":
+                case "new-hero":
+                case "create":
+                case "creator":
+                case "weapon-melee":
+                case "melee":
+                case "weapon-ranged":
+                case "ranged":
+                case "weapon-magic":
+                case "magic":
+                case "inventory":
+                case "bag":
+                case "loot":
+                case "gear":
+                case "gearclose":
+                case "gear-close":
+                case "gems":
+                case "jeweler":
+                case "fishing":
+                case "fish":
+                case "npcs":
+                case "npc":
+                case "npcs-close":
+                case "npcclose":
+                case "monsters":
+                case "monster":
+                case "monsteranim":
+                case "monsterdeath":
+                case "skelclose":
+                case "skel-close":
+                case "propclose":
+                case "prop-close":
+                    return true;
+            }
+            return false;
+        }
+
         static IEnumerator Run(GameManager gm, string scene)
         {
+            if (!KnownShot(scene))
+            {
+                Debug.LogError("Hollowmere QA shot: unknown mode " + scene);
+                Application.Quit();
+                yield break;
+            }
+            if (scene == "monsteranim" || scene == "monsterdeath" || scene == "skelclose" || scene == "skel-close"
+                || scene == "propclose" || scene == "prop-close")
+            {
+                string mode = scene == "skel-close" ? "skelclose" : scene == "prop-close" ? "propclose" : scene;
+                yield return QaFrames.RunMonsterMode(gm, mode);
+                yield break;
+            }
             bool title = scene == "title";
             bool newHero = scene == "newhero" || scene == "new-hero" || scene == "create" || scene == "creator";
             bool weaponMelee = scene == "weapon-melee" || scene == "melee";

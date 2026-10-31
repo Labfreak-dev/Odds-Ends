@@ -353,7 +353,7 @@ namespace Hollowmere
                 fit.freeze = true;
                 DressMonster(bodyKey, go.transform);
                 if (bodyKey == "hm_rat") holder.transform.localScale *= 1.8f;
-                if (bodyKey == "hm_bat") holder.gameObject.AddComponent<BatHover>();
+                if (bodyKey == "hm_bat") go.AddComponent<BatHover>();
                 if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord")
                     go.AddComponent<BoneScaleLock>();
             }
@@ -463,7 +463,11 @@ namespace Hollowmere
             AuditAttach(prop.transform, joint, propKey);
         }
 
-        /// <summary>The prop root should sit on its bone. Manifest offsets are a few millimetres. Over 10 cm is a missed parent.</summary>
+        /// <summary>
+        /// Closest gap between the prop bounds and either the body mesh or the bone segment.
+        /// Manifest offsets put the prop origin several centimetres off the joint on purpose.
+        /// Over 5 cm means the mesh is floating off the body.
+        /// </summary>
         public static void AuditAttach(Transform prop, Transform bone, string key)
         {
             if (prop == null || bone == null)
@@ -471,11 +475,67 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere prop " + key + " FAIL missing bone");
                 return;
             }
-            float d = Vector3.Distance(prop.position, bone.position);
+            float d = AttachGap(prop, bone);
             string cm = (d * 100f).ToString("0.0");
-            Debug.Log("Hollowmere prop " + key + " bone=" + bone.name + " dist=" + cm + "cm");
-            if (d > 0.10f)
-                Debug.LogError("Hollowmere prop " + key + " FAIL " + cm + "cm from " + bone.name);
+            bool king = key.StartsWith("hm_king") || key == "king_mace";
+            string kind = king ? "king armour" : "prop";
+            Debug.Log("Hollowmere " + kind + " " + key + " bone=" + bone.name + " dist=" + cm + "cm");
+            if (d > 0.05f)
+                Debug.LogError("Hollowmere " + kind + " " + key + " FAIL " + cm + "cm from " + bone.name);
+        }
+
+        static float AttachGap(Transform prop, Transform bone)
+        {
+            if (!MeshWorldBounds(prop, out var box))
+                return Vector3.Distance(prop.position, bone.position);
+            float best = float.MaxValue;
+            var root = prop.root;
+            var anim = bone.GetComponentInParent<ModelAnim>();
+            if (anim != null) root = anim.transform;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (r.transform == prop || r.transform.IsChildOf(prop)) continue;
+                Bounds body;
+                var skin = r as SkinnedMeshRenderer;
+                if (skin != null && skin.sharedMesh != null)
+                {
+                    if (!MeshWorldBounds(r.transform, out body)) body = r.bounds;
+                }
+                else body = r.bounds;
+                best = Mathf.Min(best, BoundsGap(box, body));
+            }
+            best = Mathf.Min(best, SegmentGap(box, bone.position, bone.parent != null ? bone.parent.position : bone.position));
+            for (int i = 0; i < bone.childCount; i++)
+            {
+                var c = bone.GetChild(i);
+                if (c == prop || c.IsChildOf(prop)) continue;
+                if (c.name.StartsWith("prop_") || c.name.StartsWith("hm_") || c.name.StartsWith("gear_") || c.name == "king_mace")
+                    continue;
+                best = Mathf.Min(best, SegmentGap(box, bone.position, c.position));
+            }
+            return best == float.MaxValue ? Vector3.Distance(prop.position, bone.position) : best;
+        }
+
+        static float BoundsGap(Bounds a, Bounds b)
+        {
+            var p = b.ClosestPoint(a.center);
+            var q = a.ClosestPoint(p);
+            p = b.ClosestPoint(q);
+            q = a.ClosestPoint(p);
+            return Vector3.Distance(p, q);
+        }
+
+        static float SegmentGap(Bounds box, Vector3 a, Vector3 b)
+        {
+            float best = float.MaxValue;
+            for (int i = 0; i <= 8; i++)
+            {
+                var p = Vector3.Lerp(a, b, i / 8f);
+                best = Mathf.Min(best, Vector3.Distance(p, box.ClosestPoint(p)));
+            }
+            return best;
         }
 
         /// <summary>World size of a prop after it is parented. Anything over 2.5 m is a bad scale or a missed bone.</summary>

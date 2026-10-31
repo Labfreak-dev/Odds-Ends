@@ -361,11 +361,22 @@ namespace Hollowmere
         public float height = 1.2f;
         public float bob = 0.12f;
 
+        int logged;
+
         void LateUpdate()
         {
             var p = transform.localPosition;
             p.y = height + Mathf.Sin(Time.time * 2.4f) * bob;
             transform.localPosition = p;
+            if (logged == 2)
+            {
+                float feet = transform.position.y;
+                if (Art.MeshWorldBounds(transform, out var b)) feet = b.min.y;
+                Debug.Log("Hollowmere bat height " + feet.ToString("0.00") + "m root=" + name);
+                if (feet < 1.0f || feet > 1.55f)
+                    Debug.LogError("Hollowmere bat height FAIL " + feet.ToString("0.00") + "m");
+            }
+            if (logged < 4) logged++;
         }
     }
 

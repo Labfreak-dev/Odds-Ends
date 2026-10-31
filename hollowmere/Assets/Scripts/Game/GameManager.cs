@@ -108,6 +108,7 @@ namespace Hollowmere
             Svc('S', InteractKind.Stash, "Stash");
             Svc('Q', InteractKind.QuestBoard, "Quest Board");
             Svc('F', InteractKind.Fisherman, "Old Angler");
+            Svc('J', InteractKind.Jeweler, "Jeweler");
             Interactable.Create(InteractKind.DungeonEntrance, World.ToWorld(marks['D']), root, "The Hollow");
             var fishSpot = Interactable.Create(InteractKind.Fishing, World.ToWorld(map.pools[0].center), root);
             fishSpot.pool = map.pools[0];
@@ -411,6 +412,7 @@ namespace Hollowmere
                 case InteractKind.Gambler: UiRoot.I.OpenTown(TownTab.Gambler); break;
                 case InteractKind.Stash: UiRoot.I.OpenTown(TownTab.Stash); break;
                 case InteractKind.QuestBoard: UiRoot.I.OpenTown(TownTab.Quests); break;
+                case InteractKind.Jeweler: UiRoot.I.OpenTown(TownTab.Jeweler); break;
             }
         }
 

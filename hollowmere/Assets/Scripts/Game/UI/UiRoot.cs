@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace Hollowmere
 {
-    public enum TownTab { Merchant, Blacksmith, Mystic, Gambler, Stash, Quests }
+    public enum TownTab { Merchant, Blacksmith, Mystic, Gambler, Stash, Quests, Jeweler }
 
     /// <summary>Canvas, event system, HUD and every modal screen.</summary>
     public sealed class UiRoot : MonoBehaviour

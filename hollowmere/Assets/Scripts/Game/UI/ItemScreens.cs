@@ -28,6 +28,16 @@ namespace Hollowmere
             }
             string stack = it.stack > 1 ? $"\nx{it.stack}" : "";
             txt.text = $"<color={ItemText.RarityColor(it.rarity)}><b>{ItemText.SlotLabel(it)}</b></color>{stack}" + (it.ancient ? "\n<color=#ff8a1e>A</color>" : "");
+            if (it.sockets > 0)
+            {
+                int pip = (int)DesignTable.Present("pip");
+                int inset = (int)DesignTable.Present("pipInset");
+                var dot = Ui.At(b.transform, "socket", new Vector2(1f, 1f), new Vector2(-inset, -inset), new Vector2(pip, pip));
+                dot.pivot = new Vector2(1f, 1f);
+                var img = dot.gameObject.AddComponent<Image>();
+                img.raycastTarget = false;
+                img.color = string.IsNullOrEmpty(it.gemId) ? new Color(0.9f, 0.78f, 0.48f, 0.35f) : new Color(0.91f, 0.78f, 0.48f, 1f);
+            }
             // Rarity edge
             var edge = Ui.Rect(b.transform, "edge", new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 8));
             Ui.Box(edge, Art.Rarity(it.rarity), false).raycastTarget = false;
@@ -313,7 +323,7 @@ namespace Hollowmere
             string title = t switch
             {
                 TownTab.Merchant => "Merchant", TownTab.Blacksmith => "Blacksmith", TownTab.Mystic => "Mystic",
-                TownTab.Gambler => "Curio Dealer", TownTab.Stash => "Stash", _ => "Quest Board",
+                TownTab.Gambler => "Curio Dealer", TownTab.Stash => "Stash", TownTab.Jeweler => "Jeweler", _ => "Quest Board",
             };
             var body = ui.Modal("town", $"{title}   <size=28><color=#c9a14a>{h.gold:N0} gold</color>   <color=#bbbbbb>scrap {s.materials.scrap} · dust {s.materials.dust} · souls {s.materials.souls}</color></size>",
                 new Vector2(0.02f, 0.03f), new Vector2(0.98f, 0.97f), onClose: gm.OnEquipmentChanged);
@@ -321,6 +331,7 @@ namespace Hollowmere
 
             if (t == TownTab.Quests) { Quests(ui, body); return; }
             if (t == TownTab.Gambler) { Gamble(ui, body); return; }
+            if (t == TownTab.Jeweler) { Jeweler(ui, body); return; }
 
             // Left: bag (and stash on the stash tab). Right: tooltip + the service's actions.
             var left = Ui.Rect(body, "left", Vector2.zero, new Vector2(0.62f, 1), Vector2.zero, new Vector2(-8, 0));
@@ -405,6 +416,66 @@ namespace Hollowmere
                 case TownTab.Stash:
                     if (selected == null) Ui.Label(tip, "Tap items to move them between your bag and the stash.", 26, TextAnchor.UpperLeft);
                     break;
+            }
+        }
+
+        static void Jeweler(UiRoot ui, RectTransform body)
+        {
+            var gm = GameManager.I;
+            var h = gm.State.hero;
+            Ui.Clear(body);
+            RectTransform At(string id)
+            {
+                var r = DesignTable.UiRect("jeweler", id);
+                return Ui.Dp(body, id, r.X - 48, r.Y - 48, r.W, r.H);
+            }
+            var gems = At("gems");
+            Ui.Label(gems, "Gems — three of a rank combine", 22, TextAnchor.UpperLeft, Ui.Gold);
+            int y = 40;
+            foreach (var name in Gems.Names)
+            {
+                for (int rank = 1; rank <= 5; rank++)
+                {
+                    string id = name + "_" + rank;
+                    int have = Gems.Count(h, id);
+                    if (have <= 0 && rank > 1) continue;
+                    int cost = DesignTable.GemCombineGold(rank);
+                    string label = $"{id}  x{have}" + (rank < 5 ? $"   combine {cost}g" : "");
+                    int r = rank;
+                    string n = name;
+                    var b = Ui.Button(gems, label, () =>
+                    {
+                        if (!Gems.Combine(h, n, r)) ui.Toast(have < 3 ? "Need three." : "Not enough gold.");
+                        else { AudioHub.Play("sfx_gold"); gm.OnEquipmentChanged(); }
+                        Show(ui, TownTab.Jeweler);
+                    }, Ui.ButtonC, 20);
+                    var rt = (RectTransform)b.transform;
+                    rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
+                    rt.pivot = new Vector2(0f, 1f);
+                    rt.sizeDelta = new Vector2(680f, 48f);
+                    rt.anchoredPosition = new Vector2(0f, -y);
+                    y += 56;
+                }
+            }
+            var bench = At("bench");
+            Ui.Label(bench, "Tap a socketed item in the bag, then a gem, to set it.", 22, TextAnchor.UpperLeft);
+            if (selected != null && selected.kind == ItemKind.Gem)
+                Ui.Label(Ui.At(bench, "line", new Vector2(0f, 1f), new Vector2(0f, -80f), new Vector2(580f, 80f)), Gems.EffectLine(selected.baseId), 22, TextAnchor.UpperLeft, Ui.Gold);
+            var bag = At("bag");
+            var grid = Ui.Grid(bag, new Vector2(140f, 72f), 8);
+            foreach (var it in h.inventory)
+            {
+                var itx = it;
+                ItemUi.Cell(grid, it, it == selected, () =>
+                {
+                    if (itx.kind == ItemKind.Equipment && itx.sockets > 0 && selected != null && selected.kind == ItemKind.Gem)
+                    {
+                        if (!Gems.Socket(h, itx, selected.baseId)) ui.Toast("Can't socket that.");
+                        else { selected = null; gm.OnEquipmentChanged(); }
+                    }
+                    else selected = itx;
+                    Show(ui, TownTab.Jeweler);
+                });
             }
         }
 

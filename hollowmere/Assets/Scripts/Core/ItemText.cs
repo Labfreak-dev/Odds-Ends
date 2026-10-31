@@ -74,6 +74,8 @@ namespace Hollowmere.Core
                 sb.Append($"<color=#8fb0ff>{Line(a, it)}</color>\n");
             foreach (var a in it.affixes.Where(a => !a.primary))
                 sb.Append($"<color=#9a9ad0>{Line(a, it)}</color>\n");
+            if (it.sockets > 0)
+                sb.Append(string.IsNullOrEmpty(it.gemId) ? "<color=#e8c77a>Empty socket</color>\n" : $"<color=#e8c77a>{Gems.EffectLine(it.gemId)}</color>\n");
 
             if (!string.IsNullOrEmpty(it.legendaryId))
             {

@@ -31,6 +31,7 @@ static class Program
         Progression();
         ModelAlbedo();
         SpecTables();
+        GemBench();
         Console.WriteLine($"{passed} passed, {failed} failed");
         if (failed == 0) Console.WriteLine("ALL CORE CHECKS PASSED");
         return failed == 0 ? 0 : 1;
@@ -497,6 +498,34 @@ static class Program
         }
         Check(rows.Count > 0, heading + " has rows");
         return rows;
+    }
+
+    static void GemBench()
+    {
+        var hero = Hero.Create(HeroClass.Hexweaver, "Gem", new Rng(4));
+        hero.gold = 500;
+        hero.AddItem(Gems.Make("cinder", 1, 3));
+        Check(Gems.Combine(hero, "cinder", 1), "three rank-1 cinders combine");
+        Check(Gems.Count(hero, "cinder_2") == 1 && hero.gold == 400, "combine spends 100 gold and yields rank 2");
+        Check(!Gems.Combine(hero, "cinder", 5), "rank 5 does not combine");
+        var wand = hero.Equipped(EquipSlot.MainHand);
+        wand.sockets = 1;
+        hero.AddItem(Gems.Make("cinder", 3, 1));
+        Check(Gems.Socket(hero, wand, "cinder_3"), "socket the wand");
+        var stats = hero.ComputeStats();
+        DesignTable.GemRow(3, out _, out int mn, out int mx, out _, out _, out _, out _);
+        Check(stats[Stat.MinWeaponDamage] >= mn && stats[Stat.MaxWeaponDamage] >= mx, "cinder adds weapon damage");
+        var helm = Loot.Generate(new Rng(5), 10, Rarity.Magic, HeroClass.Hexweaver, ItemSlot.Head);
+        helm.sockets = 1;
+        hero.Equip(helm, EquipSlot.Head);
+        hero.AddItem(Gems.Make("cinder", 3, 1));
+        var wornHelm = hero.Equipped(EquipSlot.Head);
+        Check(wornHelm != null && Gems.Socket(hero, wornHelm, "cinder_3"), "socket the helm");
+        Check(Gems.HelmXpPercent(hero) == 3, "helm cinder is +3% XP");
+        long before = hero.xp;
+        hero.GainXp(100);
+        Check(hero.xp == before + 103, "3% XP bonus on the kill");
+        Check(Gems.EffectLine("thorn_2").Contains("Socket: Thorn 2"), "tooltip names the gem");
     }
 
     static void SpecTables()

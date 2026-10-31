@@ -687,6 +687,86 @@ namespace Hollowmere.Core
             return true;
         }
 
+        public const int HopMm = 550;
+        public const int HopMs = 280;
+        public const int SettleMs = 120;
+        public const int Pip = 14;
+        public const int PipInset = 6;
+        public const int IconPx = 64;
+        public const int TwoHandMm = 1050;
+        public const int CastMs = 700;
+        public const int WaitMinMs = 1500;
+        public const int WaitMaxMs = 4500;
+        public const int NibbleMs = 450;
+        public const int NibbleMax = 3;
+        public const int GapMinMs = 600;
+        public const int GapMaxMs = 1600;
+        public const int BiteMs = 750;
+        public const int BiteLuckMs = 2;
+        public const int HookTension = 300;
+        public const int HookProgress = 150;
+        public const int ReelHold = 350;
+        public const int ReelRun = 1100;
+        public const int ReelGain = 200;
+        public const int ReelRunCut = 100;
+        public const int ReelRelease = 550;
+        public const int DepthStep = 40;
+        public const int DepthCap = 2000;
+        public const int OtherMilli = 150;
+
+        public readonly struct MoteStyle
+        {
+            public readonly int Motes, Ring;
+            public MoteStyle(int motes, int ring) { Motes = motes; Ring = ring; }
+        }
+
+        public static MoteStyle Mote(string rarity) => rarity switch
+        {
+            "Magic" => new MoteStyle(4, 0),
+            "Rare" => new MoteStyle(8, 1),
+            "Legendary" or "Set" => new MoteStyle(12, 1),
+            _ => new MoteStyle(0, 0),
+        };
+
+        public readonly struct GroundShape
+        {
+            public readonly string Shape;
+            public readonly int X, Y, Z;
+            public GroundShape(string shape, int x, int y, int z) { Shape = shape; X = x; Y = y; Z = z; }
+        }
+
+        public static GroundShape GroundFor(string slot) => slot switch
+        {
+            "offhand" => new GroundShape("box", 280, 360, 60),
+            "head" => new GroundShape("sphere", 320, 320, 320),
+            "shoulders" => new GroundShape("box", 420, 80, 180),
+            "chest" => new GroundShape("box", 420, 380, 220),
+            "hands" => new GroundShape("box", 140, 80, 140),
+            "wrists" => new GroundShape("box", 120, 60, 120),
+            "waist" => new GroundShape("box", 280, 60, 80),
+            "legs" => new GroundShape("box", 220, 400, 160),
+            "feet" => new GroundShape("box", 180, 80, 260),
+            "amulet" => new GroundShape("sphere", 160, 160, 160),
+            "ring" => new GroundShape("sphere", 100, 100, 100),
+            _ => new GroundShape("box", 80, 700, 80),
+        };
+
+        public static GroundShape Socket(string id) => id switch
+        {
+            "helm" => new GroundShape("point", 0, 1720, 0),
+            "chest" => new GroundShape("point", 0, 1150, 80),
+            _ => new GroundShape("point", 150, 1050, 350),
+        };
+
+        /// <summary>Weight at floor F. Zero below the fish's minimum depth. Grows 4% per floor and caps at double.</summary>
+        public static float FishWeight(float baseWeight, int minDepth, int floor)
+        {
+            if (floor < minDepth) return 0f;
+            float grown = 1f + (DepthStep / 1000f) * (floor - minDepth);
+            if (grown > DepthCap / 1000f) grown = DepthCap / 1000f;
+            return baseWeight * grown;
+        }
+
         static decimal Clamp01(decimal t) => t < 0m ? 0m : t > 1m ? 1m : t;
 
         public static int BossPhase(float lifeFraction)

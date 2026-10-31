@@ -105,6 +105,7 @@ namespace Hollowmere
             Svc('B', InteractKind.Blacksmith, "Blacksmith");
             Svc('Y', InteractKind.Mystic, "Mystic");
             Svc('G', InteractKind.Gambler, "Curio Dealer");
+            Svc('J', InteractKind.Jeweler, "Jeweler");
             Svc('S', InteractKind.Stash, "Stash");
             Svc('Q', InteractKind.QuestBoard, "Quest Board");
             Svc('F', InteractKind.Fisherman, "Old Angler");
@@ -421,6 +422,7 @@ namespace Hollowmere
                 case InteractKind.Blacksmith: UiRoot.I.OpenTown(TownTab.Blacksmith); break;
                 case InteractKind.Mystic: UiRoot.I.OpenTown(TownTab.Mystic); break;
                 case InteractKind.Gambler: UiRoot.I.OpenTown(TownTab.Gambler); break;
+                case InteractKind.Jeweler: UiRoot.I.OpenJeweler(); break;
                 case InteractKind.Stash: UiRoot.I.OpenTown(TownTab.Stash); break;
                 case InteractKind.QuestBoard: UiRoot.I.OpenTown(TownTab.Quests); break;
             }

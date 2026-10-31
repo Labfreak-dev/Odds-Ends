@@ -40,7 +40,11 @@ namespace Hollowmere
             bool title = scene == "title";
             bool newHero = scene == "newhero" || scene == "new-hero" || scene == "create";
             bool inventory = scene == "inventory" || scene == "bag";
-            bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1";
+            bool loot = scene == "loot";
+            bool gear = scene == "gear";
+            bool gems = scene == "gems" || scene == "jeweler";
+            bool fishing = scene == "fishing" || scene == "fish";
+            bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
                 UiRoot.I.ShowTitle();
@@ -62,7 +66,42 @@ namespace Hollowmere
                         + (albedo is Texture2D t && t.isReadable ? " readable" : ""));
                 if (HeroActor.I != null && Art.UnionBounds(HeroActor.I.gameObject, out var hb))
                     Debug.Log("Hollowmere QA: hero bounds size " + hb.size + " center " + hb.center);
-                if (inventory)
+                if (loot && HeroActor.I != null)
+                {
+                    var rng = new Rng(9);
+                    var hero = gm.State.hero;
+                    Vector3 at = HeroActor.I.Pos + HeroActor.I.transform.forward * 2.2f;
+                    Pickup.DropItem(Loot.Generate(rng, 12, Rarity.Rare, hero.heroClass, floor: 8), at);
+                    Pickup.DropItem(Loot.Generate(rng, 20, Rarity.Legendary, hero.heroClass, floor: 12), at + new Vector3(1.1f, 0f, 0.4f));
+                    Pickup.DropGold(40, at + new Vector3(-0.8f, 0f, 0.3f));
+                    yield return new WaitForSeconds(0.45f);
+                }
+                else if (gear)
+                {
+                    var rng = new Rng(4);
+                    var hero = gm.State.hero;
+                    hero.Equip(Loot.Generate(rng, 8, Rarity.Rare, hero.heroClass, ItemSlot.Head, floor: 6));
+                    hero.Equip(Loot.Generate(rng, 8, Rarity.Magic, hero.heroClass, ItemSlot.Chest, floor: 6));
+                    gm.OnEquipmentChanged();
+                    yield return new WaitForSeconds(0.3f);
+                }
+                else if (gems)
+                {
+                    var hero = gm.State.hero;
+                    hero.AddItem(Gems.Make("cinder", 1, 3));
+                    hero.AddItem(Gems.Make("thorn", 2, 1));
+                    var chest = hero.Equipped(EquipSlot.Chest);
+                    if (!Item.IsNone(chest)) { chest.sockets = 1; Gems.Socket(hero, chest, "thorn_2"); }
+                    UiRoot.I.OpenJeweler();
+                    yield return new WaitForSecondsRealtime(0.35f);
+                }
+                else if (fishing)
+                {
+                    var s = new FishingSession(new Rng(3), true, 1, 0f, 0f, 1, HeroClass.Hexweaver);
+                    UiRoot.I.OpenFishing(s, HeroActor.I != null ? HeroActor.I.Pos + Vector3.forward * 3f : Vector3.forward * 4f, () => { });
+                    yield return new WaitForSecondsRealtime(0.35f);
+                }
+                else if (inventory)
                 {
                     InventoryScreen.Show(UiRoot.I);
                     yield return new WaitForSecondsRealtime(0.4f);

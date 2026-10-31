@@ -37,7 +37,7 @@ namespace Hollowmere
             cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.07f, 0.06f, 0.08f, 1f);
-            cam.fieldOfView = 28f;
+            cam.fieldOfView = 32f;
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 24f;
             cam.cullingMask = 1 << StageLayer;
@@ -69,10 +69,10 @@ namespace Hollowmere
 
             heroPivot = new GameObject("heroPivot").transform;
             heroPivot.SetParent(transform, false);
-            heroPivot.localPosition = new Vector3(-0.72f, 0f, 0.15f);
+            heroPivot.localPosition = new Vector3(-0.38f, 0f, 0.1f);
             petPivot = new GameObject("petPivot").transform;
             petPivot.SetParent(transform, false);
-            petPivot.localPosition = new Vector3(0.78f, 0f, 0.25f);
+            petPivot.localPosition = new Vector3(0.58f, 0f, 0.15f);
             AssignLayer(gameObject);
             if (target != null) target.texture = rt;
         }
@@ -130,12 +130,13 @@ namespace Hollowmere
                 Bounds piece;
                 bool sane = Art.MeshWorldBounds(pivot, out piece) && piece.size.y > 0.3f && piece.size.y < 3f;
                 if (!sane)
-                    piece = new Bounds(pivot.position + Vector3.up * 0.9f, new Vector3(0.7f, 1.8f, 0.7f));
+                    piece = new Bounds(pivot.position + Vector3.up * 0.9f, new Vector3(0.9f, 1.8f, 0.8f));
+                piece.Expand(new Vector3(0.55f, 0.2f, 0.3f));
                 if (!any) { b = piece; any = true; }
                 else b.Encapsulate(piece);
             }
             if (!any) return;
-            float dist = Mathf.Clamp(Mathf.Max(b.size.y * 2.6f, b.size.x * 2.3f), 5.2f, 8.5f);
+            float dist = Mathf.Clamp(Mathf.Max(b.size.y * 2.8f, b.size.x * 2.8f), 6.2f, 12f);
             var look = b.center;
             cam.transform.position = look + new Vector3(0f, b.size.y * 0.08f, -dist);
             cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);

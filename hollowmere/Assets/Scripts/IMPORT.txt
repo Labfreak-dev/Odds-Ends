@@ -1,0 +1,4 @@
+If a clean import says DesignTable does not exist, the script assembly cache is stale.
+From the hollowmere folder, delete it and let Unity rebuild:
+
+rm -rf Library/Bee Library/ScriptAssemblies

@@ -255,7 +255,11 @@ namespace Hollowmere
             {
                 if (s.Done) { Finish(); return; }
                 if (s.phase == FishingPhase.Reeling) s.Hold(true);
-                else { s.Tap(); if (s.phase == FishingPhase.Casting) AudioHub.Play("sfx_cast_line"); }
+                else
+                {
+                    s.Tap();
+                    if (s.phase == FishingPhase.Casting) { AudioHub.Vary("fish_cast", 0.8f); AudioHub.Play("sfx_cast_line"); }
+                }
             });
             big.onUp.AddListener(() => s.Hold(false));
             var leave = Ui.Button(panel, "Leave", Finish, new Color(0.4f, 0.15f, 0.12f), 28);
@@ -273,11 +277,13 @@ namespace Hollowmere
             s.Tick(Time.deltaTime);
             if (prev != s.phase)
             {
-                if (s.phase == FishingPhase.Bite) AudioHub.Play("sfx_bite");
-                if (s.phase == FishingPhase.Caught) AudioHub.Play("sfx_catch");
-                if (s.phase == FishingPhase.Snapped) AudioHub.Play("sfx_snap");
+                if (s.phase == FishingPhase.Waiting && prev == FishingPhase.Casting) AudioHub.Vary("fish_splash", 0.8f);
+                if (s.phase == FishingPhase.Bite) { AudioHub.Vary("fish_bite", 0.8f); AudioHub.Play("sfx_bite"); }
+                if (s.phase == FishingPhase.Caught) { AudioHub.Loop("fish_reel_loop_01", false); AudioHub.Vary("fish_catch", 0.8f); AudioHub.Play("sfx_catch"); }
+                if (s.phase == FishingPhase.Snapped || s.phase == FishingPhase.Escaped) { AudioHub.Loop("fish_reel_loop_01", false); AudioHub.Vary("fish_lost_line", 0.8f); if (s.phase == FishingPhase.Snapped) AudioHub.Play("sfx_snap"); }
             }
-            if (s.phase == FishingPhase.Reeling && s.holding && Time.frameCount % 20 == 0) AudioHub.Play("sfx_reel", 0.4f);
+            AudioHub.Loop("fish_reel_loop_01", s.phase == FishingPhase.Reeling && s.holding, 0.8f);
+            if (s.phase == FishingPhase.Reeling && s.holding && Time.frameCount % 20 == 0) AudioHub.Play("sfx_reel", 0.25f);
 
             bool showBars = s.phase == FishingPhase.Reeling;
             tensionFill.parent.gameObject.SetActive(showBars);
@@ -328,6 +334,7 @@ namespace Hollowmere
         {
             if (closed) return;
             closed = true;
+            AudioHub.Loop("fish_reel_loop_01", false);
             if (bobber != null) Destroy(bobber.gameObject);
             UiRoot.I.Close(gameObject);
             onDone?.Invoke();

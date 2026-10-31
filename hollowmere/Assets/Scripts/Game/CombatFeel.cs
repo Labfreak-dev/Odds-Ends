@@ -264,13 +264,13 @@ namespace Hollowmere
             go.transform.SetParent(hand != null ? hand : h.transform, false);
             go.transform.localPosition = hand != null ? new Vector3(0f, 0f, 0.15f) : new Vector3(0.35f, 1.15f, 0.45f);
             var tr = go.AddComponent<TrailRenderer>();
-            var col = Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex);
+            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.45f);
             tr.time = DesignTable.TrailLife / 1000f;
             // 60 mm is a few pixels at the isometric camera. Keep the spec as the minimum
             // and draw a ribbon wide enough to read in the combat frames.
-            float width = Mathf.Max(0.28f, DesignTable.TrailWidth / 1000f);
+            float width = Mathf.Max(0.72f, DesignTable.TrailWidth / 1000f);
             tr.startWidth = width;
-            tr.endWidth = width * 0.25f;
+            tr.endWidth = width * 0.35f;
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
@@ -345,8 +345,8 @@ namespace Hollowmere
             var s = DesignTable.Sparks(kind);
             float life = s.Life / 1000f;
             float speed = s.Speed / 1000f;
-            float size = Mathf.Max(0.42f, s.Size / 1000f * 4f);
-            var flash = Art.GlowSprite(null, size * 3.2f, col);
+            float size = Mathf.Max(0.9f, s.Size / 1000f * 8f);
+            var flash = Art.GlowSprite(null, size * 4.5f, Color.Lerp(col, Color.white, 0.35f));
             flash.transform.position = at;
             flash.AddComponent<FxLife>().Init(Mathf.Max(0.18f, life), Vector3.one * size * 2.2f, Vector3.one * size * 4.5f);
             for (int i = 0; i < s.Count; i++)

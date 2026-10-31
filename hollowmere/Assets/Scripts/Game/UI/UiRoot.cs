@@ -230,6 +230,7 @@ namespace Hollowmere
         public void OpenPet() => PetScreen.Show(this);
         public void OpenMenu() => MenuScreen.Show(this);
         public void OpenTown(TownTab tab) => TownScreen.Show(this, tab);
+        public void OpenJeweler() => JewelerScreen.Show(this);
         public void OpenFishing(FishingSession s, Vector3 bobberAt, Action onDone) => FishingScreen.Show(this, s, bobberAt, onDone);
     }
 

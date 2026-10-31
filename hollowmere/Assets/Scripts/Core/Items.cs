@@ -10,7 +10,7 @@ namespace Hollowmere.Core
 
     public enum Rarity { Common, Magic, Rare, Legendary, Set }
 
-    public enum ItemKind { Equipment, Fish, Potion, TownPortal }
+    public enum ItemKind { Equipment, Fish, Potion, TownPortal, Gem }
 
     [Serializable]
     public sealed class AffixRoll

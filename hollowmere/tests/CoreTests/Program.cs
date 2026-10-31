@@ -562,6 +562,7 @@ static class Program
                 Check(block.Contains("walk: 0.8") && block.Contains("run: 4.11"), "hero walk is about 0.8 m/s and run about 4.1");
             }
             Check(feet.Contains("model: mon_bogfiend") && feet.Contains("longPunch: 1"), "the long punch is marked for a trim");
+            Check(feet.Contains("model: hero_stalker") && feet.Contains("model: pet_lynx") && feet.Contains("model: pet_hound"), "the rest of the rigs have foot speeds");
         }
         Check(DesignTable.BossPhase(1f) == 1 && DesignTable.BossPhase(0.66f) == 2 && DesignTable.BossPhase(0.33f) == 3, "guardian phases");
     }

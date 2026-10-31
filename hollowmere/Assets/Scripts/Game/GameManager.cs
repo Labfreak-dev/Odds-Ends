@@ -165,6 +165,7 @@ namespace Hollowmere
         {
             ClearWorld();
             State.OnReachDepth(depth);
+            BiomeCatalog.Install(depth);
             var map = DungeonGenerator.Generate(depth, (ulong)State.seed);
             World.Map = map;
             World.Root = LevelBuilder.Build(map);
@@ -217,11 +218,13 @@ namespace Hollowmere
             floorBlocked.AddRange(map.shrines);
             foreach (var s in map.spawns) floorBlocked.Add(s.pos);
             Dressing.Scatter(map, root, floorBlocked, (int)State.seed ^ (depth * 997));
+            BiomeDress.Scatter(map, root, floorBlocked);
             AudioHub.Music(map.bossFloor ? "mus_boss" : "mus_dungeon");
             AudioHub.Ambience(map.bossFloor ? "amb_wind" : "amb_cave_drips", map.bossFloor ? 0.22f : 0.34f);
             AudioHub.Bed(null);
             AudioHub.Play("sfx_stairs", 0.6f);
-            string where = map.theme switch { Theme.Crypt => "Crypts", Theme.Caverns => "Caverns", Theme.SunkenHalls => "Sunken Halls", _ => "Ember Depths" };
+            var band = BiomeCatalog.ForTheme(map.theme);
+            string where = band != null ? band.displayName : map.theme.ToString();
             UiRoot.I.Hud.SetLocation($"Floor {depth} · {where}");
             Toast(map.bossFloor ? $"Floor {depth}: something large stirs below…" : $"Floor {depth}");
             Save();

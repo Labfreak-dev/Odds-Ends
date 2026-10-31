@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a91c4e70d2b84f6a8c3e5d1b7f09a642, type: 3}
+  m_Name: biome_infernal
+  m_EditorClassIdentifier: 
+  id: infernal
+  displayName: Infernal
+  theme: 3
+  minDepth: 16
+  maxDepth: 0
+  floorMaterial: lava
+  wallMaterial: rusted_iron
+  kitFloor: kit_dun_floor_lava_4m
+  lightColor: {r: 1, g: 0.45, b: 0.18, a: 1}
+  lightIntensity: 1.7
+  fogColor: {r: 0.32, g: 0.1, b: 0.05, a: 1}
+  fogStart: 20
+  fogEnd: 56
+  ambient: {r: 0.28, g: 0.1, b: 0.06, a: 1}
+  props:
+- cc0_firepit
+- cc0_boulder
+- cc0_deadtree
+- cc0_chandelier
+- cc0_caged
+  propDensity: 0.45
+  maxProps: 16
+  rooms:
+- name: caldera
+  minW: 12
+  maxW: 16
+  minH: 12
+  maxH: 16
+  weight: 1.2
+- name: bridge
+  minW: 16
+  maxW: 20
+  minH: 4
+  maxH: 6
+  weight: 1
+- name: pit
+  minW: 8
+  maxW: 11
+  minH: 8
+  maxH: 11
+  weight: 1
+- name: niche
+  minW: 4
+  maxW: 6
+  minH: 4
+  maxH: 7
+  weight: 0.7
+  minRooms: 5
+  sideRooms: 3
+  wideCorridor: 0.2

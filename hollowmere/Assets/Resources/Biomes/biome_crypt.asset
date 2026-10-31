@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a91c4e70d2b84f6a8c3e5d1b7f09a642, type: 3}
+  m_Name: biome_crypt
+  m_EditorClassIdentifier: 
+  id: crypt
+  displayName: Crypt
+  theme: 0
+  minDepth: 1
+  maxDepth: 5
+  floorMaterial: catacomb_floor
+  wallMaterial: crypt_wall
+  kitFloor: kit_dun_floor_blood_4m
+  lightColor: {r: 1, g: 0.78, b: 0.55, a: 1}
+  lightIntensity: 1.35
+  fogColor: {r: 0.22, g: 0.18, b: 0.16, a: 1}
+  fogStart: 22
+  fogEnd: 64
+  ambient: {r: 0.16, g: 0.14, b: 0.18, a: 1}
+  props:
+- cc0_candle
+- cc0_candles
+- cc0_bookshelf
+- cc0_chest
+- cc0_statue
+- cc0_chandelier
+  propDensity: 0.45
+  maxProps: 16
+  rooms:
+- name: chapel
+  minW: 8
+  maxW: 11
+  minH: 8
+  maxH: 11
+  weight: 1.2
+- name: nave
+  minW: 12
+  maxW: 16
+  minH: 5
+  maxH: 7
+  weight: 1
+- name: cell
+  minW: 5
+  maxW: 7
+  minH: 5
+  maxH: 7
+  weight: 1
+- name: ossuary
+  minW: 9
+  maxW: 13
+  minH: 6
+  maxH: 9
+  weight: 0.9
+  minRooms: 7
+  sideRooms: 3
+  wideCorridor: 0.25

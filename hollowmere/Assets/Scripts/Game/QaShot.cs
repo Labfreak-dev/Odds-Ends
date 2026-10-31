@@ -27,6 +27,10 @@ namespace Hollowmere
     ///   Hollowmere -qaShot inventory
     ///   Hollowmere -qaShot menus
     ///   Hollowmere -qaShot hud
+    ///   Hollowmere -qaShot biome-crypt
+    ///   Hollowmere -qaShot biome-caverns
+    ///   Hollowmere -qaShot biome-forge
+    ///   Hollowmere -qaShot biome-infernal
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
     /// Weapon shots equip one sword, bow, or staff on the classless hero and log the family.
@@ -77,6 +81,10 @@ namespace Hollowmere
                 case "menus":
                 case "menu":
                 case "hud":
+                case "biome-crypt":
+                case "biome-caverns":
+                case "biome-forge":
+                case "biome-infernal":
                 case "loot":
                 case "gear":
                 case "gearclose":
@@ -126,6 +134,7 @@ namespace Hollowmere
             bool inventory = scene == "inventory" || scene == "bag";
             bool menus = scene == "menus" || scene == "menu";
             bool hud = scene == "hud";
+            int biomeDepth = scene == "biome-crypt" ? 3 : scene == "biome-caverns" ? 8 : scene == "biome-forge" ? 13 : scene == "biome-infernal" ? 18 : 0;
             bool loot = scene == "loot";
             bool gear = scene == "gear";
             bool gearClose = scene == "gearclose" || scene == "gear-close";
@@ -162,7 +171,8 @@ namespace Hollowmere
             else
             {
                 gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
-                if (dungeon) gm.EnterFloor(1);
+                if (biomeDepth > 0) gm.EnterFloor(biomeDepth);
+                else if (dungeon) gm.EnterFloor(1);
                 else gm.EnterTown(false);
                 yield return new WaitForSeconds(0.8f);
                 if (npcsClose)
@@ -254,6 +264,18 @@ namespace Hollowmere
                         buttons = UiRoot.I.Hud.GetComponentsInChildren<UnityEngine.UI.Button>(true).Length;
                     Debug.Log("Hollowmere QA hud buttons " + buttons);
                     if (buttons < 4) Debug.LogError("Hollowmere QA hud FAIL missing menu buttons");
+                    yield return new WaitForSeconds(0.35f);
+                }
+                else if (biomeDepth > 0)
+                {
+                    var band = BiomeCatalog.ForDepth(biomeDepth);
+                    var theme = World.Map != null ? World.Map.theme.ToString() : "none";
+                    int rooms = World.Map != null ? World.Map.rooms.Count : 0;
+                    Debug.Log("Hollowmere QA biome " + (band != null ? band.id : "missing")
+                        + " depth=" + biomeDepth + " theme=" + theme + " rooms=" + rooms);
+                    if (band == null || World.Map == null || World.Map.theme != band.theme)
+                        Debug.LogError("Hollowmere QA biome FAIL " + scene);
+                    FrameBiome();
                     yield return new WaitForSeconds(0.35f);
                 }
                 else if (dungeon && HeroActor.I != null)
@@ -472,6 +494,18 @@ namespace Hollowmere
             var cam = Camera.main;
             if (cam == null) return;
             cam.fieldOfView = 40f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static void FrameBiome()
+        {
+            if (HeroActor.I == null || Camera.main == null) return;
+            var look = HeroActor.I.Pos + Vector3.up * 1.4f;
+            var camPos = look + new Vector3(0f, 7.5f, -14f);
+            var cam = Camera.main;
+            cam.fieldOfView = 42f;
             var rig = cam.GetComponent<CameraRig>();
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));

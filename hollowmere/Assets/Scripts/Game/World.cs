@@ -130,15 +130,12 @@ namespace Hollowmere
             Debug.Log("Hollowmere level " + map.theme + " " + map.width + "x" + map.height
                 + " floorVerts=" + fv.Count + " wallVerts=" + wv.Count + " depth=" + map.depth);
             bool town = map.theme == Theme.Town;
+            var biome = town ? null : BiomeCatalog.ForTheme(map.theme);
             var floorA = town
                 ? PbrKit.Surface("town_cobble", 2f, Color.white)
-                : map.theme == Theme.Caverns
-                    ? PbrKit.Surface("cave_rock", 3f, Color.white)
-                    : map.theme == Theme.EmberDepths
-                        ? PbrKit.Surface("lava", 4f, Color.white)
-                        : map.theme == Theme.SunkenHalls
-                            ? PbrKit.Surface("marble_floor", 2.5f, Color.white)
-                            : PbrKit.Surface("catacomb_floor", 2.5f, Color.white);
+                : biome != null
+                    ? PbrKit.Surface(biome.floorMaterial, 2.5f, Color.white)
+                    : PbrKit.Surface("catacomb_floor", 2.5f, Color.white);
             var floorB = town ? PbrKit.Surface("dirt_path", 4f, Color.white) : floorA;
             var floor = MakeMesh("floor", root, fv, fn, null, floorA, fuv);
             var fm = floor.GetComponent<MeshFilter>().sharedMesh;
@@ -149,8 +146,8 @@ namespace Hollowmere
 
             var wallSide = town
                 ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.56f, 0.54f, 0.50f))
-                : map.theme == Theme.Caverns
-                    ? PbrKit.Surface("cave_rock", 3f, Color.white)
+                : biome != null
+                    ? PbrKit.Surface(biome.wallMaterial, 3f, Color.white)
                     : PbrKit.Surface("crypt_wall", 3f, Color.white);
             var wallTop = town ? PbrKit.Surface("roof_tiles", 2.9f, Color.white) : wallSide;
             var walls = MakeMesh("walls", root, wv, wn, null, wallSide);
@@ -188,6 +185,13 @@ namespace Hollowmere
                 RenderSettings.fogStartDistance = 24f;
                 RenderSettings.fogEndDistance = 78f;
             }
+            else if (biome != null)
+            {
+                RenderSettings.ambientLight = biome.ambient * 1.45f;
+                RenderSettings.fogColor = biome.fogColor;
+                RenderSettings.fogStartDistance = biome.fogStart;
+                RenderSettings.fogEndDistance = biome.fogEnd;
+            }
             else
             {
                 RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.55f, 0.5f, 0.48f), 0.25f);
@@ -198,10 +202,10 @@ namespace Hollowmere
             sun.transform.SetParent(root, false);
             sun.type = LightType.Directional;
             sun.transform.rotation = Quaternion.Euler(50, -30, 0);
-            sun.intensity = town ? 1.85f : 1.45f;
+            sun.intensity = town ? 1.85f : biome != null ? biome.lightIntensity : 1.45f;
             sun.shadows = LightShadows.Soft;
             sun.shadowStrength = 0.8f;
-            sun.color = town ? new Color(1f, 0.95f, 0.85f) : Color.Lerp(lightC, Color.white, 0.35f);
+            sun.color = town ? new Color(1f, 0.95f, 0.85f) : biome != null ? biome.lightColor : Color.Lerp(lightC, Color.white, 0.35f);
             PbrKit.Grade(map);
             if (Camera.main != null)
             {
@@ -230,10 +234,11 @@ namespace Hollowmere
                     var torch = Art.Model("prop_torch", 1f, root);
                     if (torch != null) torch.transform.position = pos - Vector3.up;
                     else Art.Sphere(root, pos, Vector3.one * 0.3f, Art.Mat(lightC, 3f));
+                    var torchC = biome != null ? biome.lightColor : lightC;
                     var l = new GameObject("torch").AddComponent<Light>();
                     l.transform.SetParent(root, false);
                     l.transform.position = pos + Vector3.right;
-                    l.type = LightType.Point; l.color = lightC; l.range = 12; l.intensity = 1.6f;
+                    l.type = LightType.Point; l.color = torchC; l.range = 12; l.intensity = 1.6f;
                 }
             }
             Dressing.Mood(map);

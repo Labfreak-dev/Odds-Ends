@@ -36,16 +36,12 @@ namespace Hollowmere
         static void Dungeon(DungeonMap map, Transform root)
         {
             var at = map.entry;
-            Place("kit_dun_arch_4m", root, new Int2(at.x, at.y + 2), Quaternion.identity, "crypt_wall", false);
-            Place("kit_dun_pillar_stone_4m", root, new Int2(at.x + 2, at.y + 2), Quaternion.identity, "cave_rock", false);
-            string floor = map.theme == Theme.EmberDepths ? "kit_dun_floor_lava_4m"
-                : map.theme == Theme.SunkenHalls ? "kit_dun_floor_marble_4m"
-                : map.theme == Theme.Caverns ? "kit_dun_floor_grate_2m"
-                : "kit_dun_floor_blood_4m";
-            string surf = map.theme == Theme.EmberDepths ? "lava"
-                : map.theme == Theme.SunkenHalls ? "marble_floor"
-                : map.theme == Theme.Caverns ? "iron_grate"
-                : "blood_stained_stone";
+            var band = BiomeCatalog.ForTheme(map.theme);
+            string wall = band != null ? band.wallMaterial : "crypt_wall";
+            Place("kit_dun_arch_4m", root, new Int2(at.x, at.y + 2), Quaternion.identity, wall, false);
+            Place("kit_dun_pillar_stone_4m", root, new Int2(at.x + 2, at.y + 2), Quaternion.identity, wall, false);
+            string floor = band != null ? band.kitFloor : "kit_dun_floor_blood_4m";
+            string surf = band != null ? band.floorMaterial : "blood_stained_stone";
             Place(floor, root, new Int2(at.x, at.y + 3), Quaternion.identity, surf, surf == "lava");
         }
 

@@ -313,7 +313,7 @@ namespace Hollowmere
             // v5 meshes are already in metres. A stale skinned box reads as 1 cm or as a
             // giant, and fitting from that either hides the hero or blows a prop up.
             // CC0 props are already in metres. Fitting them from a bad box turned doors into giant slabs.
-            fit.freeze = v5 || key.StartsWith("npc_") || key.StartsWith("cc0_");
+            fit.freeze = v5 || key.StartsWith("npc_") || key.StartsWith("cc0_") || key.StartsWith("hm_");
             if (v5) ReadySkin(go);
             if (key.StartsWith("npc_"))
             {
@@ -333,7 +333,8 @@ namespace Hollowmere
             ma.walkFoot = foot.walk;
             ma.runFoot = foot.run;
             // v5 clips are in place. A run foot of 0 would keep the walk take forever.
-            if (v5) { ma.walkFoot = 1.4f; ma.runFoot = 3.6f; }
+            bool v5m = V5Monster(bodyKey);
+            if (v5 || v5m) { ma.walkFoot = 1.4f; ma.runFoot = 3.6f; }
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
             // Smith is oriented by SmithCorrection. The generic stand-up pitches the
@@ -347,6 +348,15 @@ namespace Hollowmere
             }
             if (v5) DressNpc(bodyKey, go.transform);
             if (key.StartsWith("cc0_")) AuditCc0(holder, key);
+            if (v5m)
+            {
+                fit.freeze = true;
+                DressMonster(bodyKey, go.transform);
+                if (bodyKey == "hm_rat") holder.transform.localScale *= 1.8f;
+                if (bodyKey == "hm_bat") go.AddComponent<BatHover>();
+                if (bodyKey == "hm_cultist" || bodyKey == "hm_demon_lord")
+                    go.AddComponent<BoneScaleLock>();
+            }
             return holder;
         }
 
@@ -368,9 +378,29 @@ namespace Hollowmere
             return false;
         }
 
+        public static bool V5Monster(string key)
+        {
+            switch (key)
+            {
+                case "hm_skel_warrior":
+                case "hm_skel_archer":
+                case "hm_ghoul":
+                case "hm_zombie":
+                case "hm_cultist":
+                case "hm_demon_brute":
+                case "hm_ossuary_king":
+                case "hm_demon_lord":
+                case "hm_rat":
+                case "hm_bat":
+                case "hm_spider":
+                    return true;
+            }
+            return false;
+        }
+
         public static GameObject Animated(string key, float height, Transform parent)
         {
-            if (V5Body(key))
+            if (V5Body(key) || V5Monster(key))
             {
                 var fresh = Model(key, height, parent);
                 if (fresh != null) return fresh;
@@ -394,6 +424,31 @@ namespace Hollowmere
                 Pin(rig, "prop_curio_trinkets", "Hips", new Vector3(-0.20224f, -0.03001f, 0.07934f), new Quaternion(-0.002467f, -0.005265f, -0.005265f, 0.999969f), 1.5f);
         }
 
+        /// <summary>Weapon and armour props. The warrior's grip sits in the palm and the shield
+        /// lies on the forearm. Both origins stay inside 5 cm of the bone in every clip,
+        /// which is what skelclose measures. Pauldrons use the manifest pose.</summary>
+        static void DressMonster(string key, Transform rig)
+        {
+            if (key == "hm_skel_warrior")
+            {
+                // Blade runs out of the palm (hand local +Z). 3.3 cm along the fingers, not the old 8.9 cm.
+                Pin(rig, "hm_rusty_sword", "RightHand", new Vector3(0.012f, 0.030f, 0.008f), new Quaternion(0.130371f, -0.023886f, -0.833105f, -0.537001f), 1f);
+                // Shield back is the mesh's +Z face. Identity keeps that face on the forearm's forward axis.
+                // 4.0 cm from the elbow joint, shifted toward the wrist.
+                Pin(rig, "hm_rusty_shield", "LeftForeArm", new Vector3(0f, 0.038f, 0.012f), Quaternion.identity, 1f);
+            }
+            else if (key == "hm_ossuary_king")
+            {
+                Pin(rig, "hm_king_pauldron_left", "LeftArm", new Vector3(-0.00007f, -0.00003f, 0.00017f), new Quaternion(0.312039f, -0.035651f, -0.92486f, 0.214464f), 1f);
+                Pin(rig, "hm_king_pauldron_right", "RightArm", new Vector3(0.00048f, 0.00014f, -0.00016f), new Quaternion(-0.285569f, -0.039112f, -0.926962f, -0.240129f), 1f);
+                Pin(rig, "hm_king_ribcage", "Spine2", new Vector3(0.00019f, -0.00054f, -0.00026f), new Quaternion(-0.124211f, -0.007048f, -0.007048f, 0.992206f), 1f);
+                Pin(rig, "hm_king_crown_spikes", "Head", new Vector3(0.00003f, 0.00043f, -0.00004f), new Quaternion(-0.06534f, -0.034902f, -0.034902f, 0.996642f), 1f);
+                var mace = Bone(rig, "king_mace");
+                var hand = Bone(rig, "RightHand");
+                AuditAttach(mace, hand, "king_mace");
+            }
+        }
+
         static void Pin(Transform rig, string propKey, string bone, Vector3 pos, Quaternion rot, float scale)
         {
             var joint = Bone(rig, bone);
@@ -408,6 +463,82 @@ namespace Hollowmere
             prop.transform.localRotation = rot;
             prop.transform.localScale = Vector3.one * scale;
             AuditProp(prop, propKey);
+            AuditAttach(prop.transform, joint, propKey);
+        }
+
+        /// <summary>
+        /// Closest gap between the prop bounds and either the body mesh or the bone segment.
+        /// Manifest offsets put the prop origin several centimetres off the joint on purpose.
+        /// Over 5 cm means the mesh is floating off the body.
+        /// </summary>
+        public static void AuditAttach(Transform prop, Transform bone, string key)
+        {
+            if (prop == null || bone == null)
+            {
+                Debug.LogError("Hollowmere prop " + key + " FAIL missing bone");
+                return;
+            }
+            float d = AttachGap(prop, bone);
+            string cm = (d * 100f).ToString("0.0");
+            bool king = key.StartsWith("hm_king") || key == "king_mace";
+            string kind = king ? "king armour" : "prop";
+            Debug.Log("Hollowmere " + kind + " " + key + " bone=" + bone.name + " dist=" + cm + "cm");
+            if (d > 0.05f)
+                Debug.LogError("Hollowmere " + kind + " " + key + " FAIL " + cm + "cm from " + bone.name);
+        }
+
+        static float AttachGap(Transform prop, Transform bone)
+        {
+            if (!MeshWorldBounds(prop, out var box))
+                return Vector3.Distance(prop.position, bone.position);
+            float best = float.MaxValue;
+            var root = prop.root;
+            var anim = bone.GetComponentInParent<ModelAnim>();
+            if (anim != null) root = anim.transform;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (r.transform == prop || r.transform.IsChildOf(prop)) continue;
+                Bounds body;
+                var skin = r as SkinnedMeshRenderer;
+                if (skin != null && skin.sharedMesh != null)
+                {
+                    if (!MeshWorldBounds(r.transform, out body)) body = r.bounds;
+                }
+                else body = r.bounds;
+                best = Mathf.Min(best, BoundsGap(box, body));
+            }
+            best = Mathf.Min(best, SegmentGap(box, bone.position, bone.parent != null ? bone.parent.position : bone.position));
+            for (int i = 0; i < bone.childCount; i++)
+            {
+                var c = bone.GetChild(i);
+                if (c == prop || c.IsChildOf(prop)) continue;
+                if (c.name.StartsWith("prop_") || c.name.StartsWith("hm_") || c.name.StartsWith("gear_") || c.name == "king_mace")
+                    continue;
+                best = Mathf.Min(best, SegmentGap(box, bone.position, c.position));
+            }
+            return best == float.MaxValue ? Vector3.Distance(prop.position, bone.position) : best;
+        }
+
+        static float BoundsGap(Bounds a, Bounds b)
+        {
+            var p = b.ClosestPoint(a.center);
+            var q = a.ClosestPoint(p);
+            p = b.ClosestPoint(q);
+            q = a.ClosestPoint(p);
+            return Vector3.Distance(p, q);
+        }
+
+        static float SegmentGap(Bounds box, Vector3 a, Vector3 b)
+        {
+            float best = float.MaxValue;
+            for (int i = 0; i <= 8; i++)
+            {
+                var p = Vector3.Lerp(a, b, i / 8f);
+                best = Mathf.Min(best, Vector3.Distance(p, box.ClosestPoint(p)));
+            }
+            return best;
         }
 
         /// <summary>World size of a prop after it is parented. Anything over 2.5 m is a bad scale or a missed bone.</summary>
@@ -1407,8 +1538,9 @@ namespace Hollowmere
             var m = Animated(def.model, h, parent);
             if (m != null)
             {
-                // KayKit skeletons are already about 1.75 m. Scale is the elite and boss multiplier.
-                if (def.model != null && def.model.StartsWith("kk_"))
+                // Authored Meshy bodies keep their metre size. Rank and boss scale still apply.
+                // The rat is small in the file, so it is already 1.8 times inside Model.
+                if (def.model != null && (def.model.StartsWith("kk_") || V5Monster(def.model)))
                     m.transform.localScale *= scale;
                 return m;
             }
@@ -1443,6 +1575,23 @@ namespace Hollowmere
             Theme.EmberDepths => (Hex("#4a3530"), Hex("#422f2a"), Hex("#2e1e1a"), Hex("#3a1a10"), Hex("#ff7a3a")),
             _ => (Hex("#6f8a4a"), Hex("#678244"), Hex("#6a5a48"), Hex("#8a8aa0"), Hex("#fff0d0")),
         };
+    }
+
+    /// <summary>Holds bone scale at 1. The cultist robe and the demon lord's wings stretch when a clip scales a limb.</summary>
+    public sealed class BoneScaleLock : MonoBehaviour
+    {
+        Transform[] bones;
+
+        void LateUpdate()
+        {
+            if (bones == null)
+            {
+                var skin = GetComponentInChildren<SkinnedMeshRenderer>();
+                bones = skin != null ? skin.bones : System.Array.Empty<Transform>();
+            }
+            for (int i = 0; i < bones.Length; i++)
+                if (bones[i] != null) bones[i].localScale = Vector3.one;
+        }
     }
 
     /// <summary>
@@ -1483,6 +1632,25 @@ namespace Hollowmere
         public bool PlayingSkill => skill != null && attackLeft > 0f;
 
         public void Forget() { cached = false; }
+
+        /// <summary>Play a named clip once (death, attack, hit). Returns false when the clip is missing.</summary>
+        public bool PlayClip(string clipName, float seconds)
+        {
+            Ensure();
+            if (anim == null || string.IsNullOrEmpty(clipName)) return false;
+            AnimationState st = null;
+            foreach (AnimationState s in anim)
+                if (string.Equals(s.name, clipName, System.StringComparison.OrdinalIgnoreCase)) { st = s; break; }
+            if (st == null || st.clip == null) return false;
+            st.wrapMode = WrapMode.Once;
+            st.speed = 1f;
+            st.weight = 1f;
+            anim.CrossFade(st.name, 0.08f);
+            skill = st;
+            attackLeft = Mathf.Max(0.2f, seconds);
+            attackTotal = attackLeft;
+            return true;
+        }
 
         public void BeginAttack(bool cast, float seconds = -1f, string clipName = null)
         {

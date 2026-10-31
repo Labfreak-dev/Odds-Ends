@@ -500,8 +500,17 @@ namespace Hollowmere
             if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", tex);
             if (mat.HasProperty("_Exposure")) mat.SetFloat("_Exposure", exposure);
             if (mat.HasProperty("_Mapping")) mat.SetFloat("_Mapping", 1f);
+            if (mat.HasProperty("_Rotation")) mat.SetFloat("_Rotation", 0f);
             RenderSettings.skybox = mat;
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            DynamicGI.UpdateEnvironment();
+            foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None))
+            {
+                if (cam == null || cam.targetTexture != null) continue;
+                cam.clearFlags = CameraClearFlags.Skybox;
+            }
             current = key;
+            Debug.Log("Hollowmere sky " + key + " exposure=" + exposure.ToString("0.00"));
         }
     }
 }

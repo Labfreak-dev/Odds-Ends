@@ -11,6 +11,10 @@ namespace Hollowmere
     ///   Hollowmere -qaFrames move
     ///   Hollowmere -qaFrames pet
     ///   Hollowmere -qaFrames combat
+    ///   Hollowmere -qaFrames monsteranim
+    ///   Hollowmere -qaFrames monsterdeath
+    ///   Hollowmere -qaFrames skelclose
+    ///   Hollowmere -qaFrames propclose
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -37,6 +41,11 @@ namespace Hollowmere
 
         static IEnumerator Run(GameManager gm, string mode)
         {
+            if (mode == "monsteranim" || mode == "monsterdeath" || mode == "skelclose" || mode == "propclose")
+            {
+                yield return RunMonsterMode(gm, mode);
+                yield break;
+            }
             if (mode != "move" && mode != "pet" && mode != "combat")
             {
                 Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
@@ -145,6 +154,296 @@ namespace Hollowmere
                 t = t.parent;
             }
             return false;
+        }
+
+        static readonly string[] MonsterKeys =
+        {
+            "hm_skel_warrior", "hm_skel_archer", "hm_ghoul", "hm_zombie", "hm_cultist",
+            "hm_demon_brute", "hm_ossuary_king", "hm_demon_lord", "hm_rat", "hm_bat", "hm_spider",
+        };
+
+        public static IEnumerator RunMonsterMode(GameManager gm, string mode)
+        {
+            if (mode != "monsteranim" && mode != "monsterdeath" && mode != "skelclose" && mode != "propclose")
+            {
+                Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
+                Application.Quit();
+                yield break;
+            }
+            yield return MonsterModes(gm, mode);
+        }
+
+        static IEnumerator MonsterModes(GameManager gm, string mode)
+        {
+            var f = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.5f);
+            if (Camera.main != null) Camera.main.clearFlags = CameraClearFlags.Skybox;
+            Screen.SetResolution(f.width, f.height, FullScreenMode.Windowed);
+            yield return null;
+            var origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 30f;
+            if (mode == "skelclose")
+                yield return SkelClose(origin);
+            else if (mode == "monsterdeath")
+                yield return MonsterDeath(origin);
+            else if (mode == "propclose")
+                yield return PropClose(origin);
+            else
+                yield return MonsterAnim(origin);
+            Application.Quit();
+        }
+
+        static IEnumerator MonsterAnim(Vector3 origin)
+        {
+            string[] clips = { "walk", "attack", "hit", "death" };
+            int shot = 0;
+            for (int m = 0; m < MonsterKeys.Length; m++)
+            {
+                var go = Art.Animated(MonsterKeys[m], 1.8f, null);
+                if (go == null)
+                {
+                    Debug.LogError("Hollowmere QA monster missing " + MonsterKeys[m]);
+                    continue;
+                }
+                go.transform.position = origin + new Vector3(0f, 0f, 4.2f);
+                go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                FrameMonster(go, 1.3f, 4.6f);
+                for (int c = 0; c < clips.Length; c++)
+                {
+                    for (int s = 0; s < 3; s++)
+                    {
+                        SampleMonster(go, clips[c], s / 2f);
+                        yield return new WaitForEndOfFrame();
+                        SaveNamed("monsteranim-" + MonsterKeys[m] + "-" + clips[c] + "-" + s);
+                        shot++;
+                    }
+                }
+                UnityEngine.Object.Destroy(go);
+            }
+            Debug.Log("Hollowmere QA monsteranim frames " + shot);
+        }
+
+        static IEnumerator MonsterDeath(Vector3 origin)
+        {
+            for (int m = 0; m < MonsterKeys.Length; m++)
+            {
+                var go = Art.Animated(MonsterKeys[m], 1.8f, null);
+                if (go == null) continue;
+                go.transform.position = origin + new Vector3(0f, 0f, 4.2f);
+                go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+                foreach (var hover in go.GetComponentsInChildren<BatHover>(true))
+                    hover.enabled = false;
+                var lay = go.AddComponent<DeathLay>();
+                SampleMonster(go, "death", 0.85f);
+                float wait = 0f;
+                while (!lay.Done && wait < 2.2f)
+                {
+                    wait += Time.deltaTime;
+                    if (wait > 0.35f && Mathf.Abs(wait - 0.7f) < Time.deltaTime)
+                    {
+                        FrameMonster(go, 0.6f, 5.2f);
+                        yield return new WaitForEndOfFrame();
+                        SaveNamed("monsterdeath-" + MonsterKeys[m] + "-mid");
+                    }
+                    yield return null;
+                }
+                FrameMonster(go, 0.35f, 5.4f);
+                yield return new WaitForEndOfFrame();
+                bool flat = Mathf.Abs(go.transform.up.y) < 0.4f;
+                bool onFloor = false;
+                if (Art.UnionBounds(go, out var b))
+                {
+                    onFloor = b.size.y < 0.95f && b.min.y < 0.25f && b.min.y > -0.35f;
+                    Debug.Log("Hollowmere QA death " + MonsterKeys[m]
+                        + " up=" + go.transform.up.ToString("0.00")
+                        + " size=" + b.size.ToString("0.00")
+                        + " minY=" + b.min.y.ToString("0.00"));
+                }
+                if (!flat || !onFloor)
+                    Debug.LogError("Hollowmere QA death " + MonsterKeys[m] + " FAIL not flat on the floor");
+                SaveNamed("monsterdeath-" + MonsterKeys[m] + "-flat");
+                UnityEngine.Object.Destroy(go);
+            }
+        }
+
+        static IEnumerator SkelClose(Vector3 origin)
+        {
+            var go = Art.Animated("hm_skel_warrior", 1.8f, null);
+            if (go == null)
+            {
+                Debug.LogError("Hollowmere QA skelclose missing warrior");
+                yield break;
+            }
+            go.transform.position = origin + new Vector3(0f, 0f, 3.2f);
+            go.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            SampleMonster(go, "idle", 0.2f);
+            yield return new WaitForEndOfFrame();
+            var hand = Art.Bone(go.transform, "RightHand");
+            var look = hand != null ? hand.position : go.transform.position + Vector3.up * 1.15f;
+            var camPos = look + go.transform.forward * 1.7f + Vector3.up * 0.25f;
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                cam.fieldOfView = 28f;
+                var rig = cam.GetComponent<CameraRig>();
+                if (rig != null)
+                    rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+            }
+            yield return new WaitForEndOfFrame();
+            var swordT = FindNamed(go.transform, "hm_rusty_sword");
+            var shieldT = FindNamed(go.transform, "hm_rusty_shield");
+            if (swordT == null || shieldT == null)
+                Debug.LogError("Hollowmere QA skelclose FAIL missing sword or shield");
+            else
+            {
+                var rh = Art.Bone(go.transform, "RightHand");
+                var arm = Art.Bone(go.transform, "LeftForeArm");
+                float sd = rh != null ? Vector3.Distance(swordT.position, rh.position) : 99f;
+                float hd = arm != null ? Vector3.Distance(shieldT.position, arm.position) : 99f;
+                Debug.Log("Hollowmere QA skelclose sword=" + (sd * 100f).ToString("0.0") + "cm shield=" + (hd * 100f).ToString("0.0") + "cm");
+                if (sd > 0.05f || hd > 0.05f)
+                    Debug.LogError("Hollowmere QA skelclose FAIL prop off the bone");
+            }
+            SaveNamed("skelclose");
+            UnityEngine.Object.Destroy(go);
+        }
+
+        static Transform FindNamed(Transform root, string name)
+        {
+            if (root.name == name || root.name.StartsWith(name)) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var hit = FindNamed(root.GetChild(i), name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
+
+        static void FrameMonster(GameObject go, float lookHeight, float distance)
+        {
+            var look = go.transform.position + Vector3.up * lookHeight;
+            var camPos = look + Vector3.back * distance + Vector3.up * 0.4f;
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 32f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static IEnumerator PropClose(Vector3 origin)
+        {
+            var warrior = Art.Animated("hm_skel_warrior", 1.8f, null);
+            if (warrior != null)
+            {
+                warrior.transform.position = origin + new Vector3(-2.2f, 0f, 4f);
+                warrior.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            }
+            var king = Art.Animated("hm_ossuary_king", 1.8f, null);
+            if (king != null)
+            {
+                king.transform.position = origin + new Vector3(2.4f, 0f, 4f);
+                king.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            }
+            yield return new WaitForEndOfFrame();
+            string[] names =
+            {
+                "hm_rusty_shield", "prop_mystic_staff", "prop_merchant_backpack",
+                "prop_jeweler_loupe", "prop_jeweler_tools", "prop_curio_trinkets",
+                "hm_king_pauldron_left", "hm_king_pauldron_right", "hm_king_ribcage",
+                "hm_king_crown_spikes", "king_mace",
+            };
+            for (int i = 0; i < names.Length; i++)
+            {
+                Transform search = warrior != null ? warrior.transform : king != null ? king.transform : null;
+                var prop = search != null ? FindNamed(search, names[i]) : null;
+                if (prop == null)
+                {
+                    foreach (var root in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                    {
+                        if (root.name == names[i] || root.name.StartsWith(names[i]))
+                        {
+                            prop = root;
+                            break;
+                        }
+                    }
+                }
+                if (prop == null)
+                {
+                    Debug.LogError("Hollowmere QA propclose missing " + names[i]);
+                    continue;
+                }
+                if (!Art.MeshWorldBounds(prop, out var b))
+                    b = new Bounds(prop.position, Vector3.one * 0.2f);
+                var look = b.center;
+                var camPos = look + Vector3.back * Mathf.Max(0.8f, b.size.magnitude) + Vector3.up * 0.15f;
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    cam.fieldOfView = 28f;
+                    var rig = cam.GetComponent<CameraRig>();
+                    if (rig != null)
+                        rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+                }
+                yield return new WaitForEndOfFrame();
+                SaveNamed("propclose-" + names[i]);
+                Debug.Log("Hollowmere QA propclose " + names[i] + " center=" + b.center.ToString("0.00") + " size=" + b.size.ToString("0.00"));
+            }
+            if (warrior != null) UnityEngine.Object.Destroy(warrior);
+            if (king != null) UnityEngine.Object.Destroy(king);
+        }
+
+        static void SampleMonster(GameObject go, string clip, float unit)
+        {
+            var anim = go.GetComponentInChildren<Animation>();
+            if (anim == null)
+            {
+                Debug.Log("Hollowmere QA " + go.name + " " + clip + " no animation");
+                return;
+            }
+            AnimationState st = null;
+            foreach (AnimationState s in anim)
+            {
+                string n = s.name.ToLowerInvariant();
+                if (n == clip || n.EndsWith("|" + clip) || n.EndsWith(clip))
+                {
+                    st = s;
+                    break;
+                }
+            }
+            if (st == null || st.clip == null)
+            {
+                Debug.Log("Hollowmere QA " + go.name + " " + clip + " no clip");
+                return;
+            }
+            foreach (AnimationState s in anim)
+            {
+                s.weight = 0f;
+                s.enabled = false;
+            }
+            st.enabled = true;
+            st.weight = 1f;
+            st.time = Mathf.Max(0.05f, st.length) * Mathf.Clamp01(unit);
+            anim.Sample();
+        }
+
+        static void SaveNamed(string name)
+        {
+            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + name + ".png");
+            try
+            {
+                File.WriteAllBytes(path, tex.EncodeToPNG());
+                Debug.Log("Hollowmere QA frame saved: " + path);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Hollowmere QA frame failed: " + e.Message);
+            }
+            UnityEngine.Object.Destroy(tex);
         }
 
         static void Save(string mode, int index)

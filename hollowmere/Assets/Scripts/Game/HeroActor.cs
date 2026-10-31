@@ -59,6 +59,7 @@ namespace Hollowmere
                 figure = model.transform;
                 modelAnim = model.GetComponent<ModelAnim>();
                 if (Hero.classless) Art.PaintHero(model, Hero);
+                Art.LogHeroBounds(model);
             }
             else figure = Art.Humanoid(b, Art.ClassColor(Hero.PresentationClass), Art.ClassColor(Hero.PresentationClass) * 0.6f + Color.gray * 0.3f, 1.8f, out hand).transform;
             var ring = Hero.classless

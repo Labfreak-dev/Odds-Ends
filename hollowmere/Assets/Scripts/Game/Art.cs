@@ -288,7 +288,10 @@ namespace Hollowmere
             // Heroes keep the fit from b75410d. NPC height is NpcMeasure, after the
             // renderer bounds exist. ModelFit's long-axis turn floats the smith's head.
             fit.biped = false;
-            fit.freeze = key.StartsWith("npc_");
+            // v5 meshes are already in metres. A stale skinned box reads as 1 cm or as a
+            // giant, and fitting from that either hides the hero or blows a prop up.
+            fit.freeze = v5 || key.StartsWith("npc_");
+            if (v5) ReadySkin(go);
             if (key.StartsWith("npc_"))
             {
                 var measure = holder.AddComponent<NpcMeasure>();
@@ -380,6 +383,47 @@ namespace Hollowmere
             prop.transform.localPosition = pos;
             prop.transform.localRotation = rot;
             prop.transform.localScale = Vector3.one * scale;
+            AuditProp(prop, propKey);
+        }
+
+        /// <summary>World size of a prop after it is parented. Anything over 2.5 m is a bad scale or a missed bone.</summary>
+        public static void AuditProp(GameObject prop, string key)
+        {
+            if (prop == null) return;
+            if (!MeshWorldBounds(prop.transform, out var b))
+            {
+                Debug.LogError("Hollowmere prop " + key + " has no bounds");
+                return;
+            }
+            float max = MaxAxis(b.size);
+            Debug.Log("Hollowmere prop " + key + " size=" + b.size.ToString("0.00") + " max=" + max.ToString("0.00") + "m");
+            if (max > 2.5f)
+                Debug.LogError("Hollowmere prop " + key + " FAIL " + max.ToString("0.00") + "m");
+        }
+
+        static void ReadySkin(GameObject go)
+        {
+            foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                smr.updateWhenOffscreen = true;
+                if (smr.sharedMesh == null) continue;
+                smr.sharedMesh.RecalculateBounds();
+                smr.localBounds = smr.sharedMesh.bounds;
+            }
+        }
+
+        public static void LogHeroBounds(GameObject go)
+        {
+            if (go == null) return;
+            ReadySkin(go);
+            if (!MeshWorldBounds(go.transform, out var b))
+            {
+                Debug.LogError("Hollowmere hero has no world bounds");
+                return;
+            }
+            Debug.Log("Hollowmere hero bounds size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
+            if (b.size.y < 0.4f || b.size.y > 3.2f)
+                Debug.LogError("Hollowmere hero bounds FAIL height " + b.size.y.ToString("0.00") + "m");
         }
 
         public static Transform Bone(Transform root, string name)
@@ -1540,7 +1584,7 @@ namespace Hollowmere
             if (step == 3)
             {
                 step = 4;
-                if (Art.UnionBounds(gameObject, out var b) && b.size.y > 0.001f)
+                if (Art.UnionBounds(gameObject, out var b) && b.size.y > 0.4f && b.size.y < 4f)
                 {
                     float factor = target / b.size.y;
                     if (factor < 0.85f || factor > 1.15f)
@@ -1552,6 +1596,8 @@ namespace Hollowmere
                         transform.position += new Vector3(anchor.x - b.center.x, ground - b.min.y, anchor.z - b.center.z);
                     }
                 }
+                else
+                    Debug.LogError("Hollowmere NPC bounds not ready " + (Art.UnionBounds(gameObject, out b) ? b.size.ToString("0.00") : "none"));
                 return;
             }
             enabled = false;
@@ -1561,6 +1607,11 @@ namespace Hollowmere
             Debug.Log("Hollowmere NPC " + label + " object=" + name
                 + " rot=" + transform.eulerAngles.ToString("0")
                 + " size=" + done.size.ToString("0.00"));
+            foreach (var t in GetComponentsInChildren<Transform>(true))
+            {
+                if (!t.name.StartsWith("prop_")) continue;
+                Art.AuditProp(t.gameObject, t.name);
+            }
         }
     }
 

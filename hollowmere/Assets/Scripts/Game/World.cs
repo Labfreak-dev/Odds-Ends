@@ -16,6 +16,22 @@ namespace Hollowmere
         public static Vector3 ToWorld(Int2 p) => new Vector3(p.x * T, 0, p.y * T);
         public static Int2 ToTile(Vector3 w) => new Int2(Mathf.RoundToInt(w.x / T), Mathf.RoundToInt(w.z / T));
         public static bool Walkable(Vector3 w) => Map != null && Map.Walkable(ToTile(w));
+
+        /// <summary>Footstep surface: grass, dirt, stone, or wood.</summary>
+        public static string FootSurface(Vector3 w)
+        {
+            if (Map == null) return "stone";
+            if (Map.theme == Theme.Town)
+            {
+                var t = ToTile(w);
+                for (int dy = -1; dy <= 1; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                        if (Map.Get(t.x + dx, t.y + dy) == Tile.Water) return "wood";
+                return "grass";
+            }
+            if (Map.theme == Theme.Caverns || Map.theme == Theme.EmberDepths) return "dirt";
+            return "stone";
+        }
         public static bool Solid(Vector3 w) => Map == null || Map.Get(ToTile(w)) == Tile.Wall;
         public static bool Sight(Vector3 a, Vector3 b) => Map == null || Pathfinder.LineOfSight(Map, ToTile(a), ToTile(b));
 

@@ -108,6 +108,7 @@ namespace Hollowmere
                     var worn = h.Equipped(es);
                     selected = worn;
                     selectedSlot = worn != null ? es : (EquipSlot?)null;
+                    Sfx.Bag("hover_tick");
                     Show(ui);
                 }, "");
                 Stretch(slotBtn);
@@ -121,7 +122,7 @@ namespace Hollowmere
 
             PaintSlice(At("bag"), "bag_panel");
             var close = At("close");
-            var closeBtn = Ui.Button(close, "", () => { ui.Close(root.gameObject); gm.OnEquipmentChanged(); }, new Color(0.45f, 0.15f, 0.12f), 28, UiSfx.Back);
+            var closeBtn = Ui.Button(close, "", () => { Sfx.Bag("bag_close"); ui.Close(root.gameObject); gm.OnEquipmentChanged(); }, new Color(0.45f, 0.15f, 0.12f), 28, UiSfx.Back);
             Stretch(closeBtn);
             var closeArt = ArtDrop.Sprite("close_x");
             if (closeArt != null)
@@ -158,6 +159,7 @@ namespace Hollowmere
                 {
                     selected = itx;
                     selectedSlot = null;
+                    Sfx.Bag("hover_tick");
                     Show(ui);
                 }));
             }
@@ -166,6 +168,7 @@ namespace Hollowmere
             var sortBtn = Ui.Button(bottom, "Sort", () =>
             {
                 h.inventory = h.inventory.OrderBy(i => i.kind).ThenByDescending(i => i.rarity).ThenBy(i => i.Base?.slot).ToList();
+                Sfx.Bag("item_move");
                 Show(ui);
             }, Ui.ButtonC, 22);
             var sortRt = (RectTransform)sortBtn.transform;
@@ -178,7 +181,8 @@ namespace Hollowmere
             {
                 buttons.Add(("Unequip", () =>
                 {
-                    if (!h.Unequip(selectedSlot.Value)) ui.Toast("Bag is full.");
+                    if (!h.Unequip(selectedSlot.Value)) { ui.Toast("Bag is full."); Sfx.Bag("error_bag_full"); }
+                    else Sfx.Bag("item_move");
                     selectedSlot = null;
                     gm.OnEquipmentChanged();
                     Show(ui);
@@ -222,6 +226,7 @@ namespace Hollowmere
                 {
                     h.inventory.Remove(sel);
                     if (HeroActor.I != null) Pickup.DropItem(sel, HeroActor.I.Pos + HeroActor.I.transform.forward * 2);
+                    Sfx.Bag("item_discard");
                     selected = null;
                     Show(ui);
                 }, new Color(0.4f, 0.15f, 0.12f)));
@@ -326,8 +331,8 @@ namespace Hollowmere
 
         static void Equip(Hero h, Item it, EquipSlot? slot, UiRoot ui)
         {
-            if (!h.Equip(it, slot)) ui.Toast("No room in your bag for what comes off.");
-            else { AudioHub.Play("sfx_swing", 0.4f); selected = null; }
+            if (!h.Equip(it, slot)) { ui.Toast("No room in your bag for what comes off."); Sfx.Bag("error_bag_full"); }
+            else { Sfx.Bag("equip"); selected = null; }
             GameManager.I.OnEquipmentChanged();
             Show(ui);
         }

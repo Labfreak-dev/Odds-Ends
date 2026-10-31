@@ -230,7 +230,7 @@ namespace Hollowmere
                     State.hero.gold += gold;
                     State.counters.goldEarned += gold;
                     Toast($"{State.pet.name} is back with {gold} gold!");
-                    AudioHub.Play("sfx_dog_bark");
+                    Sfx.Pet("happy");
                 }
             }
             if ((autosave += Time.unscaledDeltaTime) > 30f) { autosave = 0; Save(); }
@@ -474,7 +474,7 @@ namespace Hollowmere
             {
                 case CatchKind.Fish:
                     State.OnFish(r.fish);
-                    if (!State.hero.AddItem(Loot.Fish(r.fish.id))) Toast("No room for the fish!");
+                    if (!State.hero.AddItem(Loot.Fish(r.fish.id))) { Toast("No room for the fish!"); Sfx.Bag("error_bag_full"); }
                     break;
                 case CatchKind.Gold:
                     State.hero.gold += r.gold;
@@ -500,7 +500,7 @@ namespace Hollowmere
                 case FishEffect.PetForm:
                     State.pet.Feed(f, State.hero.LegendaryTotal(LegendaryEffect.PetFormDuration));
                     Toast($"{State.pet.name} becomes a {State.pet.Form?.name}!");
-                    AudioHub.Play("sfx_dog_bark");
+                    Sfx.Pet("summon");
                     break;
                 case FishEffect.Heal:
                     hero?.Heal(hero.maxLife * f.healPct);
@@ -529,7 +529,7 @@ namespace Hollowmere
             if (State.pet.SendToTown())
             {
                 Toast($"{State.pet.name} trots off to town to sell. Back in {PetState.TripLength:0}s.");
-                AudioHub.Play("sfx_dog_bark");
+                Sfx.Pet("happy");
             }
         }
 

@@ -100,9 +100,14 @@ namespace Hollowmere
                 {
                     if (!state.hero.AddItem(p.item))
                     {
-                        if (Time.frameCount % 120 == 0) GameManager.I.Toast("Inventory full! Send your companion to sell, or use a portal.");
+                        if (Time.frameCount % 120 == 0)
+                        {
+                            GameManager.I.Toast("Inventory full! Send your companion to sell, or use a portal.");
+                            Sfx.Bag("error_bag_full");
+                        }
                         continue;
                     }
+                    Sfx.Bag("item_pickup");
                     GameManager.I.OnPickedUp(p.item);
                 }
                 all.RemoveAt(i);

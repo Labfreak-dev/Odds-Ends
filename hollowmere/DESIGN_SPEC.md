@@ -784,7 +784,7 @@ Section 6 already sets the beam. A drop also hops `hopMm` millimetres up over `h
 | Legendary | 12 | 1 |
 | Set | 12 | 1 |
 
-Until a licensed mesh is dropped at `Assets/Resources/Models/item_{baseId}.glb`, the ground model is a primitive. Sizes are millimetres. A two-handed weapon uses `twoHandMm` for its length instead of the weapon row's length. The icon is a 64×64 image generated in code, one per base id, replaced when `Assets/Art/Icons/{baseId}.png` is present. Generated art is original.
+Until a licensed mesh is dropped at `Assets/Resources/Models/item_{baseId}.glb`, the ground model is a primitive. Sizes are millimetres. A two-handed weapon uses `twoHandMm` for its length instead of the weapon row's length. The icon is a 64×64 image generated in code, one per base id, replaced when `Assets/Resources/Icons/{baseId}.png` is present (that folder ships in the player). Generated art is original.
 
 ### T.ground
 

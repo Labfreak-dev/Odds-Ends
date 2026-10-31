@@ -72,6 +72,8 @@ namespace Hollowmere
             if (Dead) return;
             life -= h.amount;
             hitFlash = 0.12f;
+            var flinch = GetComponentInChildren<ModelAnim>();
+            if (flinch != null) flinch.BeginHit();
             Fx.Damage(Pos, h, team == Team.Hero && this is HeroActor);
             if (life <= 0) { life = 0; Die(source); }
         }

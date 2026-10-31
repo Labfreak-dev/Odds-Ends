@@ -39,8 +39,9 @@ namespace Hollowmere.Editor
         {
             if (string.IsNullOrEmpty(path)) return false;
             var p = path.Replace('\\', '/');
-            return p.EndsWith("_walk.glb", StringComparison.OrdinalIgnoreCase)
-                && p.IndexOf("/Resources/Models/", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool walk = p.EndsWith("_walk.glb", StringComparison.OrdinalIgnoreCase)
+                || p.EndsWith("_walk_v2.glb", StringComparison.OrdinalIgnoreCase);
+            return walk && p.IndexOf("/Resources/Models/", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         /// <summary>Mutates the importer instance that is about to run <c>OnImportAsset</c>. No reimport.</summary>

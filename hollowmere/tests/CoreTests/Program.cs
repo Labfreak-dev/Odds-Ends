@@ -427,13 +427,13 @@ static class Program
     static bool Contains(DesignTable.Rect outer, DesignTable.Rect inner)
         => inner.X >= outer.X && inner.Y >= outer.Y && inner.X + inner.W <= outer.X + outer.W && inner.Y + inner.H <= outer.Y + outer.H;
 
-    static string FeelAsset()
+    static string FeelAssetFile(string name)
     {
         foreach (var c in new[]
         {
-            Path.Combine("Assets", "Resources", "FeelProfile.asset"),
-            Path.Combine("hollowmere", "Assets", "Resources", "FeelProfile.asset"),
-            Path.Combine("..", "..", "Assets", "Resources", "FeelProfile.asset"),
+            Path.Combine("Assets", "Resources", name),
+            Path.Combine("hollowmere", "Assets", "Resources", name),
+            Path.Combine("..", "..", "Assets", "Resources", name),
         })
             if (File.Exists(c)) return File.ReadAllText(c);
         return null;
@@ -536,7 +536,7 @@ static class Program
         Check(Overlaps(DesignTable.UiRect("inventory", "tooltip"), hero), "tooltip opens over the hero");
         Check(Contains(bag, grid) && Contains(bag, DesignTable.UiRect("inventory", "tabs")) && Contains(bag, DesignTable.UiRect("inventory", "bottom")), "grid, tabs, and the bottom bar sit in the bag");
 
-        string asset = FeelAsset();
+        string asset = FeelAssetFile("FeelProfile.asset");
         Check(asset != null, "FeelProfile.asset is on disk");
         if (asset != null)
         {
@@ -550,6 +550,19 @@ static class Program
         Check(DesignTable.GlobeNormalChance == 0.08m && DesignTable.GlobeHealFraction == 0.25m, "globe rates");
         Check(DesignTable.EliteGlobeThresholds.Length == 3, "three elite globes");
         Check(DesignTable.PotionCooldownSeconds == 20m, "potion cooldown");
+        string feet = FeelAssetFile("ClipFeet.asset");
+        Check(feet != null, "ClipFeet.asset is on disk");
+        if (feet != null)
+        {
+            int at = feet.IndexOf("model: hero_hexweaver", StringComparison.Ordinal);
+            Check(at >= 0, "hexweaver foot speeds are listed");
+            if (at >= 0)
+            {
+                string block = feet.Substring(at, Math.Min(180, feet.Length - at));
+                Check(block.Contains("walk: 0.8") && block.Contains("run: 4.11"), "hero walk is about 0.8 m/s and run about 4.1");
+            }
+            Check(feet.Contains("model: mon_bogfiend") && feet.Contains("longPunch: 1"), "the long punch is marked for a trim");
+        }
         Check(DesignTable.BossPhase(1f) == 1 && DesignTable.BossPhase(0.66f) == 2 && DesignTable.BossPhase(0.33f) == 3, "guardian phases");
     }
 

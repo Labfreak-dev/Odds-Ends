@@ -55,8 +55,8 @@ namespace Hollowmere
                     }
                 }
             }
-            // Rarity edge, plus the itsmars border when that sprite is in the drop.
-            var edge = Ui.Rect(b.transform, "edge", new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 8));
+            // Rarity mark sits under the caption, not through the glyphs.
+            var edge = Ui.Rect(b.transform, "edge", new Vector2(0.12f, 0f), new Vector2(0.88f, 0f), new Vector2(0f, 1f), new Vector2(0f, 4f));
             Ui.Box(edge, Art.Rarity(it.rarity), false).raycastTarget = false;
             var border = ArtDrop.Sprite(RarityFrame(it.rarity));
             if (border != null)
@@ -373,12 +373,36 @@ namespace Hollowmere
                 var txt = b.GetComponentInChildren<Text>();
                 if (txt != null)
                 {
-                    txt.alignment = TextAnchor.LowerCenter;
-                    txt.fontSize = 18;
                     txt.color = new Color(0.95f, 0.9f, 0.8f, 1f);
                     txt.text = SlotLabel(slotId);
+                    FitSlotLabel(txt);
                 }
             }
+            else
+            {
+                var txt = b.GetComponentInChildren<Text>();
+                if (txt != null) FitSlotLabel(txt);
+            }
+        }
+
+        /// <summary>One line, shrunk to the slot width. The rule stays in the 4 px under the words.</summary>
+        static void FitSlotLabel(Text txt)
+        {
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.fontSize = 18;
+            // Overflow keeps Best Fit from breaking "Shoulders" onto a second line.
+            txt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            txt.verticalOverflow = VerticalWrapMode.Truncate;
+            txt.resizeTextForBestFit = true;
+            txt.resizeTextMinSize = 10;
+            txt.resizeTextMaxSize = 18;
+            var rt = txt.rectTransform;
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            // 4 px rule occupies y 1–4. The words start above it.
+            rt.offsetMin = new Vector2(2f, 8f);
+            rt.offsetMax = new Vector2(-2f, 28f);
         }
 
         static string SlotLabel(string id) => id switch

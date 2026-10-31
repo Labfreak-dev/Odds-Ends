@@ -4,7 +4,7 @@ This is the number source for Hollowmere. Reference notes supplied the shape of 
 
 Player-facing words in this spec are Hollowmere's. The code field `Item.ancient` stays, because saves already use it. The word shown to the player for that flag is Deepwrought.
 
-The shipping numbers live in `Hollowmere.Core.DesignTable`. Movement, pet follow, and the QA frame capture also ship in `Assets/Resources/FeelProfile.asset`, with the same values. Tests read the tables in this file and compare them to `DesignTable` and to that asset.
+The shipping numbers live in `Hollowmere.Core.DesignTable`. Movement and pet follow also ship in `Assets/Resources/FeelProfile.asset`. Combat, loot, gear, gem, and fishing globals also ship in `Assets/Resources/Presentation.asset`. Tests read the tables in this file and compare them to `DesignTable` and to those assets.
 
 ## 1. Experience
 
@@ -671,4 +671,254 @@ The Id column is the distance to the slot in metres. The value is the follow spe
 | fps | 10 |
 | width | 2340 |
 | height | 1080 |
+
+`-qaFrames combat`, `-qaFrames loot`, `-qaFrames gear`, `-qaFrames fishing`, and `-qaShot jeweler` use this same frame count, rate, and size. `jeweler` is one still of the bench. The others are sequences. Each mode is added with the phase that builds that screen.
+
+## 12. Combat feel
+
+Each class has six cast skills. The bar is the primary plus four others; the ultimate is the sixth. Passives have no cast. A cast skill's timing comes from its shape. Whirling Steel is the one exception: it uses the channel row, and its existing 2 second duration stays. The hit, bolt, or pulse is released when the windup ends. Windup, strike, and recover are milliseconds. The total is their sum.
+
+Why these lengths: the fastest weapon is the dagger at 1.6 attacks per second, so a primary swing has to finish inside about 0.63 s. The melee total is 320 ms, which leaves a gap before the next swing. A crit's hit-stop (below) still fits in that gap. Heavier skills are longer because they are not the generator.
+
+### T.cast
+
+| Id | Windup | Strike | Recover |
+| --- | --- | --- | --- |
+| melee | 80 | 100 | 140 |
+| projectile | 100 | 60 | 140 |
+| nova | 160 | 80 | 180 |
+| cone | 140 | 80 | 160 |
+| dash | 60 | 80 | 60 |
+| buff | 180 | 40 | 180 |
+| channel | 0 | 330 | 0 |
+| ground | 200 | 250 | 200 |
+| chain | 120 | 80 | 140 |
+| summon | 200 | 200 | 200 |
+
+The channel strike column is the pulse period. Whirling Steel already ticks every 330 ms. It is not a 330 ms cast.
+
+Hit-stop holds the actors (not the UI clock) for the milliseconds below. A new hit replaces the hold only when it would last longer than what remains. A 2.0 attack-per-second weapon has 500 ms between swings, so a normal hold is under a tenth of that, and a crit is 70 ms because a naked crit is only 5%.
+
+### T.hitstop
+
+| Id | Value |
+| --- | --- |
+| normal | 40 |
+| crit | 70 |
+| skill | 55 |
+| kill | 90 |
+| hurt | 50 |
+
+`normal` is a primary hit. `skill` is any other cast. `kill` replaces the hit's stop when the blow lands the kill. `hurt` is the hero taking a hit.
+
+Screen shake is an offset on the camera in millimetres, added and then decayed. Decay is exponential, `amplitude * e^(-shakeDecay * seconds)`. The cap stops stacked hits from throwing the frame. The settings screen has a SHAKE toggle, on by default.
+
+### T.shake
+
+| Id | Value |
+| --- | --- |
+| normal | 30 |
+| crit | 70 |
+| skill | 50 |
+| kill | 90 |
+| hurt | 60 |
+
+A weapon trail is a ribbon on the melee weapon from the strike until `trailHold` milliseconds later. Width and lifetime are in the globals below. It follows the skill colour.
+
+Impact sparks use a count, a speed in millimetres per second, a life, and a size.
+
+### T.sparks
+
+| Id | Count | Speed | Life | Size |
+| --- | --- | --- | --- | --- |
+| normal | 6 | 2400 | 280 | 80 |
+| crit | 12 | 3600 | 400 | 120 |
+| skill | 8 | 3000 | 320 | 100 |
+
+Floating numbers rise in millimetres over their life. Size is thousandths of a world unit (50 is the existing 0.05 character size). A crit is gold, 1.64 times that size (82), and the glyph is prefixed with `!`. Damage taken by the hero uses the hurt row.
+
+### T.numbers
+
+| Id | Hex | Size | Rise | Life |
+| --- | --- | --- | --- | --- |
+| normal | f4f1ea | 50 | 1400 | 700 |
+| crit | ffe25a | 82 | 1900 | 900 |
+| hurt | ff5a4a | 55 | 1400 | 700 |
+
+Every cast skill has its own colour and placeholder. The placeholder is original geometry (a ring, a bolt, a fan, a line, a burst). A drop-in model later replaces the placeholder when `Assets/Resources/Vfx/{skillId}.prefab` exists. Nothing here is traced from another game.
+
+### T.vfx
+
+| Id | Hex | Kind |
+| --- | --- | --- |
+| ic_cleave | e8e0d0 | arc |
+| ic_slam | c4a574 | nova |
+| ic_charge | d8d2c8 | dash |
+| ic_whirl | f0e6c8 | spin |
+| ic_warcry | e07040 | buff |
+| ic_earthsplit | a86830 | line |
+| st_twinshot | d8c8a0 | bolt |
+| st_volley | c8b888 | fan |
+| st_caltrops | 8a9a60 | ground |
+| st_roll | 6a6a72 | dash |
+| st_mark | e8d060 | buff |
+| st_rain | 9ab0c8 | ground |
+| hx_bolt | d08aff | bolt |
+| hx_frostring | 9fd8f0 | nova |
+| hx_chain | e8e070 | chain |
+| hx_blink | c8b0ff | dash |
+| hx_thrall | b0a0d8 | summon |
+| hx_meteor | e0603a | meteor |
+
+## 13. Loot on the ground
+
+Section 6 already sets the beam. A drop also hops `hopMm` millimetres up over `hopMs`, then settles in `settleMs`. Extra motes and a ground ring depend on rarity. Legendary and set still play the legendary sting.
+
+### T.motes
+
+| Rarity | Motes | Ring |
+| --- | --- | --- |
+| Common | 0 | 0 |
+| Magic | 4 | 0 |
+| Rare | 8 | 1 |
+| Legendary | 12 | 1 |
+| Set | 12 | 1 |
+
+Until a licensed mesh is dropped at `Assets/Resources/Models/item_{baseId}.glb`, the ground model is a primitive. Sizes are millimetres. A two-handed weapon uses `twoHandMm` for its length instead of the weapon row's length. The icon is a 64×64 image generated in code, one per base id, replaced when `Assets/Art/Icons/{baseId}.png` is present. Generated art is original.
+
+### T.ground
+
+| Slot | Shape | X | Y | Z |
+| --- | --- | --- | --- | --- |
+| weapon | box | 80 | 700 | 80 |
+| offhand | box | 280 | 360 | 60 |
+| head | sphere | 320 | 320 | 320 |
+| shoulders | box | 420 | 80 | 180 |
+| chest | box | 420 | 380 | 220 |
+| hands | box | 140 | 80 | 140 |
+| wrists | box | 120 | 60 | 120 |
+| waist | box | 280 | 60 | 80 |
+| legs | box | 220 | 400 | 160 |
+| feet | box | 180 | 80 | 260 |
+| amulet | sphere | 160 | 160 | 160 |
+| ring | sphere | 100 | 100 | 100 |
+
+## 14. Visible gear
+
+One body per class, the existing hero mesh, is the shared skeleton. Sockets are bones named `weapon_r`, `head`, and `chest` when the rig has them. Otherwise the attachment sits at this local offset, in millimetres, on the body.
+
+### T.sockets
+
+| Id | X | Y | Z |
+| --- | --- | --- | --- |
+| weapon | 150 | 1050 | 350 |
+| helm | 0 | 1720 | 0 |
+| chest | 0 | 1150 | 80 |
+
+Order of the swap: the weapon attaches first, then the helm, then the chest. Other slots do not change the mesh in this phase. Equipping any of those three rebuilds the world hero and the inventory preview. A drop-in mesh at `Assets/Resources/Models/gear_{baseId}.glb` replaces the primitive, which uses the ground size of that slot.
+
+## 15. Gems, sockets, the jeweler
+
+Section 5 has the gem values and the combine cost. A gem in the bag is an item whose id is `{gem}_{rank}` (`cinder_1` through `salt_5`). Three of the same id, plus the combine gold, become one gem of the next rank. Rank 5 does not combine.
+
+Socketing puts that id into `Item.gemId` and takes the gem out of the bag. A filled socket returns the previous gem to the bag first. The cell draws a pip, `pip` dp square, inset `pipInset` dp from the top-right. An empty socket is a hollow pip. A filled socket is solid `#e8c77a`. The tooltip line is `Socket: {Gem} {rank} — {effect}`.
+
+The worn gem changes stats:
+
+- Cinder in a weapon adds the CinderMin column to minimum damage and CinderMax to maximum damage.
+- Cinder in a helm adds `rank` percent XP from kills. Rank 3 is 3 percent, not the damage columns.
+- Thorn adds its ThornCrit column to critical damage.
+- Marrow adds its MarrowLife column as flat life, after the vitality formula.
+- Salt adds its SaltResist column to all resist.
+- A gem in any other slot does nothing.
+
+The jeweler is an NPC on the town tile marked `J`. The bench layout is the jeweler rows in T.ui.
+
+## 16. Fishing
+
+The minigame timings below are the ones the session already uses, written as milliseconds or thousandths so they stop being loose literals. A cast takes `castMs`. The wait is uniform between `waitMinMs` and `waitMaxMs`, then zero to two nibbles (`nibbleMax` is exclusive) of `nibbleMs`, with a gap from `gapMinMs` to `gapMaxMs`. The bite window is `biteMs` plus `biteLuckMs` per point of fishing luck, plus the rod's extra window. Missing it escapes. Hooking starts tension at `hookTension` and progress at `hookProgress`, both thousandths of the bar.
+
+While the button is held, tension rises by `reelHold` thousandths per second plus `reelRun` times the surge, and progress rises by `reelGain` minus `reelRunCut` times the surge. Released, tension falls by `reelRelease` and progress falls by `reelSlip` times the surge. The bar snaps at 1000 tension and lands at 1000 progress. It escapes at 0 progress.
+
+The bobber rests during the wait, bobs `bobMm` millimetres at `bobHz` during a nibble, and dips `biteDipMm` on the bite. The rod pumps `reelDeg` degrees every `reelPumpMs` while reeling.
+
+### T.fish
+
+| Id | MinDepth | Weight | Pull | Erratic | Stamina |
+| --- | --- | --- | --- | --- | --- |
+| minnow | 1 | 10 | 0.25 | 0.2 | 2.5 |
+| mudperch | 1 | 8 | 0.35 | 0.25 | 3 |
+| cavecarp | 1 | 8 | 0.4 | 0.3 | 3.5 |
+| emberfin | 3 | 5 | 0.5 | 0.4 | 4 |
+| rimeeel | 6 | 5 | 0.55 | 0.55 | 4.5 |
+| stormgill | 10 | 4 | 0.6 | 0.6 | 5 |
+| goldscale | 1 | 2 | 0.55 | 0.5 | 5 |
+| bogtrout | 1 | 6 | 0.4 | 0.3 | 3 |
+| glassfish | 12 | 2 | 0.65 | 0.7 | 5.5 |
+| graveling | 15 | 2 | 0.7 | 0.6 | 6 |
+| abyssal | 20 | 0.5 | 0.85 | 0.8 | 7 |
+| moonkoi | 1 | 0.4 | 0.8 | 0.7 | 6.5 |
+
+A fish is absent below its minimum depth. At floor F at or above that depth, its weight is
+
+`base * min(depthCap/1000, 1 + (depthStep/1000) * (F - minDepth))`.
+
+`depthStep` is 40 and `depthCap` is 2000, so the weight grows 4 percent per floor past the minimum and stops at double. Town fishing uses floor 1, which leaves every town fish at its base weight. Fifteen percent of casts are not fish (`otherMilli` 150), plus up to `otherLuckCap` thousandths from luck.
+
+### T.fishscale
+
+| Floor | MinDepth | Base | Weight |
+| --- | --- | --- | --- |
+| 1 | 1 | 10 | 10 |
+| 11 | 1 | 10 | 14 |
+| 26 | 1 | 10 | 20 |
+| 40 | 1 | 10 | 20 |
+| 10 | 20 | 0.5 | 0 |
+| 20 | 20 | 0.5 | 0.5 |
+| 45 | 20 | 0.5 | 1 |
+
+### T.present
+
+| Id | Value |
+| --- | --- |
+| shakeDecay | 9 |
+| shakeCap | 120 |
+| trailWidth | 60 |
+| trailLife | 140 |
+| trailHold | 180 |
+| hopMm | 550 |
+| hopMs | 280 |
+| settleMs | 120 |
+| pip | 14 |
+| pipInset | 6 |
+| icon | 64 |
+| twoHandMm | 1050 |
+| castMs | 700 |
+| waitMinMs | 1500 |
+| waitMaxMs | 4500 |
+| nibbleMs | 450 |
+| nibbleMax | 3 |
+| gapMinMs | 600 |
+| gapMaxMs | 1600 |
+| biteMs | 750 |
+| biteLuckMs | 2 |
+| hookTension | 300 |
+| hookProgress | 150 |
+| reelHold | 350 |
+| reelRun | 1100 |
+| reelGain | 200 |
+| reelRunCut | 100 |
+| reelRelease | 550 |
+| reelSlip | 120 |
+| runMinMs | 400 |
+| runMaxMs | 1400 |
+| bobMm | 80 |
+| bobHz | 6 |
+| biteDipMm | 180 |
+| reelDeg | 12 |
+| reelPumpMs | 250 |
+| depthStep | 40 |
+| depthCap | 2000 |
+| otherMilli | 150 |
+| otherLuckCap | 100 |
 

@@ -7,7 +7,7 @@ namespace Hollowmere.Core
     /// Every tuned figure from DESIGN_SPEC.md. Formulas live here so combat code does not
     /// carry loose literals. Floor depth is the only difficulty.
     /// </summary>
-    public static class DesignTable
+    public static partial class DesignTable
     {
         public const int MaxLevel = 70;
         public const int LevelCapPlus = 73;
@@ -125,6 +125,10 @@ namespace Hollowmere.Core
             new Rect("hero", "stage", 448, 120, 1100, 820),
             new Rect("hero", "info", 1580, 120, 480, 560),
             new Rect("hero", "play", 960, 960, 420, 72),
+            new Rect("jeweler", "panel", 48, 48, 2244, 984),
+            new Rect("jeweler", "gems", 80, 140, 720, 800),
+            new Rect("jeweler", "bench", 840, 140, 620, 680),
+            new Rect("jeweler", "bag", 1500, 160, 636, 744),
         };
 
         public static readonly Rect[] Doll =
@@ -187,7 +191,7 @@ namespace Hollowmere.Core
             "rows" => BagRows,
             "gap" => BagGap,
             "capacity" => BagCapacity,
-            _ => 0m,
+            _ => Present(id),
         };
 
         /// <summary>Pet follow speed from the distance to the trailing slot, before a form multiplier.</summary>

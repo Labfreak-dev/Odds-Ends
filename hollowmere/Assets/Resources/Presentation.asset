@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4b1c2d39a8f4e6b9c0d1e2f3a4b5c6d, type: 3}
+  m_Name: Presentation
+  m_EditorClassIdentifier: 
+  shakeDecay: 9
+  shakeCap: 120
+  trailWidth: 60
+  trailLife: 140
+  trailHold: 180
+  hopMm: 550
+  hopMs: 280
+  settleMs: 120
+  pip: 14
+  pipInset: 6
+  icon: 64
+  twoHandMm: 1050
+  castMs: 700
+  waitMinMs: 1500
+  waitMaxMs: 4500
+  nibbleMs: 450
+  nibbleMax: 3
+  gapMinMs: 600
+  gapMaxMs: 1600
+  biteMs: 750
+  biteLuckMs: 2
+  hookTension: 300
+  hookProgress: 150
+  reelHold: 350
+  reelRun: 1100
+  reelGain: 200
+  reelRunCut: 100
+  reelRelease: 550
+  reelSlip: 120
+  runMinMs: 400
+  runMaxMs: 1400
+  bobMm: 80
+  bobHz: 6
+  biteDipMm: 180
+  reelDeg: 12
+  reelPumpMs: 250
+  depthStep: 40
+  depthCap: 2000
+  otherMilli: 150
+  otherLuckCap: 100
+  shakeEnabled: 1

@@ -176,15 +176,15 @@ namespace Hollowmere
             RenderSettings.fogMode = FogMode.Linear;
             if (town)
             {
-                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.72f, 0.78f, 0.7f), 0.55f);
-                RenderSettings.fogStartDistance = 16f;
-                RenderSettings.fogEndDistance = 58f;
+                RenderSettings.fogColor = new Color(0.68f, 0.76f, 0.7f);
+                RenderSettings.fogStartDistance = 9f;
+                RenderSettings.fogEndDistance = 32f;
             }
             else
             {
-                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.55f, 0.5f, 0.46f), 0.4f);
-                RenderSettings.fogStartDistance = 18f;
-                RenderSettings.fogEndDistance = 52f;
+                RenderSettings.fogColor = new Color(0.48f, 0.42f, 0.4f);
+                RenderSettings.fogStartDistance = 10f;
+                RenderSettings.fogEndDistance = 28f;
             }
             var sun = new GameObject("sun").AddComponent<Light>();
             sun.transform.SetParent(root, false);

@@ -252,7 +252,12 @@ namespace Hollowmere
                             InteractKind.Mystic => new Color(0.5f, 0.25f, 0.6f), InteractKind.Gambler => new Color(0.2f, 0.45f, 0.35f),
                             _ => new Color(0.85f, 0.75f, 0.2f),
                         };
-                        Art.Humanoid(t, c, c * 0.6f, 1.75f, out var hand);
+                        var fig = Art.Humanoid(t, c, c * 0.6f, 1.75f, out var hand);
+                        fig.transform.localRotation = Quaternion.identity;
+                        var fit = fig.AddComponent<ModelFit>();
+                        fit.biped = true;
+                        fit.targetHeight = 1.75f;
+                        fig.AddComponent<PoseUpright>();
                         if (kind == InteractKind.Fisherman) Art.Weapon(hand, "rod", new Color(0.6f, 0.45f, 0.3f));
                         if (kind == InteractKind.Blacksmith) Art.Weapon(hand, "mace", Color.gray);
                     }

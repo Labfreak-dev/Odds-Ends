@@ -95,6 +95,7 @@ namespace Hollowmere
 
         public override int Level => Hero.level;
         public float MoveSpeed => 6f * (1 + Mathf.Min(stats[Stat.MoveSpeed], 50) / 100f) * SpeedMult;
+        public float GroundSpeed => loco.groundSpeed;
 
         protected override void Update()
         {

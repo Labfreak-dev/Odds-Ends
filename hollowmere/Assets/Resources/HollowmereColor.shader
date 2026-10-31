@@ -56,12 +56,14 @@ Shader "Hollowmere/Color"
                 float4 positionCS : SV_POSITION;
                 float3 normalWS : TEXCOORD0;
                 float2 uv : TEXCOORD1;
+                float3 positionWS : TEXCOORD2;
             };
 
             Varyings vert(Attributes v)
             {
                 Varyings o;
                 o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
+                o.positionWS = TransformObjectToWorld(v.positionOS.xyz);
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.uv = v.uv;
                 return o;
@@ -79,6 +81,15 @@ Shader "Hollowmere/Color"
                 half ndotl = saturate(dot(n, mainLight.direction));
                 half3 ambient = SampleSH(n);
                 half3 lit = albedo * (ambient + mainLight.color * ndotl) + _EmissionColor.rgb;
+                // URP only fogs shaders that opt in, and the FOG_LINEAR keyword is never set on
+                // this pass, so MixFog was a no-op. unity_FogParams.z is negative while linear
+                // fog is enabled and zero when it is off.
+                if (unity_FogParams.z < -0.0001)
+                {
+                    float dist = distance(i.positionWS, GetCameraPositionWS());
+                    float fog = saturate(dist * unity_FogParams.z + unity_FogParams.w);
+                    lit = lerp(unity_FogColor.rgb, lit, fog);
+                }
                 return half4(lit, 1);
             }
             ENDHLSL

@@ -91,16 +91,16 @@ namespace Hollowmere
             RenderSettings.fogMode = FogMode.Linear;
             if (map.theme == Theme.Town)
             {
-                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.72f, 0.78f, 0.7f), 0.55f);
-                RenderSettings.fogStartDistance = 16f;
-                RenderSettings.fogEndDistance = 58f;
+                RenderSettings.fogColor = new Color(0.68f, 0.76f, 0.7f);
+                RenderSettings.fogStartDistance = 9f;
+                RenderSettings.fogEndDistance = 32f;
             }
             else
             {
-                // Far enough that the hero and nearby VFX stay readable, close enough to see.
-                RenderSettings.fogColor = Color.Lerp(ambient, new Color(0.55f, 0.5f, 0.46f), 0.4f);
-                RenderSettings.fogStartDistance = 18f;
-                RenderSettings.fogEndDistance = 52f;
+                // Near the hero the mist is light. The far corridor fades out so the fog reads.
+                RenderSettings.fogColor = new Color(0.48f, 0.42f, 0.4f);
+                RenderSettings.fogStartDistance = 10f;
+                RenderSettings.fogEndDistance = 28f;
                 RenderSettings.ambientLight = ambient * 1.35f;
             }
             foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))

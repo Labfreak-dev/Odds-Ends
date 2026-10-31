@@ -266,18 +266,25 @@ namespace Hollowmere
             var tr = go.AddComponent<TrailRenderer>();
             var col = Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex);
             tr.time = DesignTable.TrailLife / 1000f;
-            tr.startWidth = DesignTable.TrailWidth / 1000f;
-            tr.endWidth = DesignTable.TrailWidth / 3000f;
-            tr.minVertexDistance = 0.04f;
+            // 60 mm is a few pixels at the isometric camera. Keep the spec as the minimum
+            // and draw a ribbon wide enough to read in the combat frames.
+            float width = Mathf.Max(0.28f, DesignTable.TrailWidth / 1000f);
+            tr.startWidth = width;
+            tr.endWidth = width * 0.25f;
+            tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
-            tr.numCornerVertices = 1;
-            tr.numCapVertices = 1;
+            tr.numCornerVertices = 2;
+            tr.numCapVertices = 2;
             tr.startColor = col;
             tr.endColor = new Color(col.r, col.g, col.b, 0f);
-            // Stretch puts U=0 on the oldest point. The art has U=0 at the weapon, so flip it.
-            var ribbon = CombatDrop.Sheet(Color.white, tex);
-            ribbon.mainTextureScale = new Vector2(-1f, 1f);
-            ribbon.mainTextureOffset = new Vector2(1f, 0f);
+            // Additive glow. Vertex colour carries the swing tint and the fade.
+            // The alpha sheet kept the dark cell and the swing disappeared.
+            var ribbon = Art.GlowMat(Color.white, true, tex);
+            if (tex != null)
+            {
+                ribbon.mainTextureScale = new Vector2(-1f, 1f);
+                ribbon.mainTextureOffset = new Vector2(1f, 0f);
+            }
             tr.material = ribbon;
             tr.emitting = true;
             var hold = go.AddComponent<TrailStop>();
@@ -338,12 +345,16 @@ namespace Hollowmere
             var s = DesignTable.Sparks(kind);
             float life = s.Life / 1000f;
             float speed = s.Speed / 1000f;
-            float size = s.Size / 1000f;
+            float size = Mathf.Max(0.42f, s.Size / 1000f * 4f);
+            var flash = Art.GlowSprite(null, size * 3.2f, col);
+            flash.transform.position = at;
+            flash.AddComponent<FxLife>().Init(Mathf.Max(0.18f, life), Vector3.one * size * 2.2f, Vector3.one * size * 4.5f);
             for (int i = 0; i < s.Count; i++)
             {
                 var dir = Random.onUnitSphere;
                 dir.y = Mathf.Abs(dir.y);
-                var g = Art.Sphere(null, at, Vector3.one * size, Art.Mat(col, 2f));
+                var g = Art.GlowSprite(null, size, col);
+                g.transform.position = at;
                 var mote = g.AddComponent<SparkMote>();
                 mote.vel = dir * speed;
                 mote.life = life;

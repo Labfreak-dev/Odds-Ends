@@ -90,6 +90,14 @@ namespace Hollowmere
                 yield return new WaitForEndOfFrame();
                 while (i < f.frames && drive.elapsed + 0.0001f >= next)
                 {
+                    if (mode == "move")
+                    {
+                        var p = hero.Pos;
+                        Debug.Log("Hollowmere QA move " + i.ToString("00")
+                            + " gait=" + drive.Gait
+                            + " speed=" + hero.GroundSpeed.ToString("0.00")
+                            + " pos=" + p.x.ToString("0.00") + "," + p.z.ToString("0.00"));
+                    }
                     Save(mode, i);
                     i++;
                     next += interval;
@@ -114,28 +122,19 @@ namespace Hollowmere
             UnityEngine.Object.Destroy(tex);
         }
 
-        /// <summary>A fixed side view of a clear lane, with the hero starting at the near end
-        /// so idle, walk and run travel across the frame instead of staying under the camera.</summary>
+        /// <summary>Still camera, hero centred. Idle holds the middle of the frame, then
+        /// walk and run carry them across it.</summary>
         static void HoldCameraAcross(HeroActor hero, Vector3 lane)
         {
             if (lane.sqrMagnitude < 0.01f) lane = Vector3.right;
             lane.y = 0f;
             lane.Normalize();
-            var mid = hero.Pos;
-            float span = 16f;
-            var start = mid;
-            for (float s = span * 0.45f; s >= 0f; s -= 0.5f)
-            {
-                var p = mid - lane * s;
-                if (World.Walkable(p)) { start = p; break; }
-            }
-            hero.Teleport(start);
             hero.Face(lane);
             var side = Vector3.Cross(Vector3.up, lane);
             if (side.sqrMagnitude < 0.01f) side = Vector3.forward;
             side.Normalize();
-            var look = start + lane * 6.5f + Vector3.up * 1.05f;
-            var camPos = look + Vector3.up * 2.6f - lane * 0.4f + side * 7.2f;
+            var look = hero.Pos + Vector3.up * 1.05f;
+            var camPos = look + side * 9.5f + Vector3.up * 2.2f;
             var rig = Camera.main != null ? Camera.main.GetComponent<CameraRig>() : null;
             if (rig != null)
                 rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
@@ -175,6 +174,7 @@ namespace Hollowmere
         public Vector3 forward = Vector3.forward;
         public Vector3 right = Vector3.right;
         public float elapsed;
+        public string Gait { get; private set; } = "idle";
         bool stamped;
 
         void Update()
@@ -202,10 +202,10 @@ namespace Hollowmere
             }
             else if (mode == "move")
             {
-                // One direction, three gaits: stand, walk, then run across the locked frame.
-                if (elapsed < 0.55f) { mag = 0f; dir = forward; }
-                else if (elapsed < 1.45f) { mag = 0.42f; dir = forward; }
-                else { mag = 1f; dir = forward; }
+                // Centred idle, then walk, then run. The camera stays put.
+                if (elapsed < 0.8f) { mag = 0f; dir = forward; Gait = "idle"; }
+                else if (elapsed < 1.7f) { mag = 0.42f; dir = forward; Gait = "walk"; }
+                else { mag = 1f; dir = forward; Gait = "run"; }
             }
             else if (elapsed < 0.8f) { mag = 0.45f; dir = forward; }
             else if (elapsed < 1.6f) { mag = 1f; dir = forward; }

@@ -28,46 +28,51 @@ namespace Hollowmere
 
         void Build(RawImage target)
         {
+            // Off the town. A stage at the origin was scaled and culled with the world,
+            // which left only the hound in the portrait.
+            transform.position = new Vector3(5200f, 0f, 5200f);
             rt = new RenderTexture(640, 720, 16) { name = "heroStage" };
             var camGo = new GameObject("stageCam");
             camGo.transform.SetParent(transform, false);
             cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.14f, 0.12f, 0.16f, 1f);
+            cam.backgroundColor = new Color(0.07f, 0.06f, 0.08f, 1f);
             cam.fieldOfView = 28f;
             cam.nearClipPlane = 0.05f;
-            cam.farClipPlane = 30f;
+            cam.farClipPlane = 24f;
             cam.cullingMask = 1 << StageLayer;
             cam.targetTexture = rt;
-            camGo.transform.localPosition = new Vector3(0.05f, 1.45f, -6.8f);
-            camGo.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
+            camGo.transform.localPosition = new Vector3(0.05f, 1.2f, -6.2f);
+            camGo.transform.LookAt(transform.TransformPoint(new Vector3(0.05f, 0.95f, 0.2f)));
             if (Camera.main != null) Camera.main.cullingMask &= ~(1 << StageLayer);
 
             // Hollowmere/Color only samples the main directional light. Point lights left the preview black.
             var sun = new GameObject("stageSun").AddComponent<Light>();
             sun.transform.SetParent(transform, false);
             sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(42f, 18f, 0f);
-            sun.intensity = 1.7f;
-            sun.color = new Color(1f, 0.94f, 0.84f);
+            sun.transform.rotation = Quaternion.Euler(38f, 10f, 0f);
+            sun.intensity = 1.25f;
+            sun.color = new Color(1f, 0.93f, 0.82f);
             sun.cullingMask = 1 << StageLayer;
             var fill = new GameObject("stageFill").AddComponent<Light>();
             fill.transform.SetParent(transform, false);
             fill.type = LightType.Directional;
-            fill.transform.rotation = Quaternion.Euler(20f, 160f, 0f);
-            fill.intensity = 0.55f;
-            fill.color = new Color(0.75f, 0.7f, 0.95f);
+            fill.transform.rotation = Quaternion.Euler(16f, 170f, 0f);
+            fill.intensity = 0.4f;
+            fill.color = new Color(0.55f, 0.5f, 0.7f);
             fill.cullingMask = 1 << StageLayer;
 
-            var floor = Art.Cube(transform, new Vector3(0.05f, -0.02f, 0.05f), new Vector3(4.2f, 0.05f, 3.4f), Art.GroundMat("cobble"));
-            floor.name = "stageFloor";
+            var floorTint = new Color(0.32f, 0.28f, 0.24f);
+            var wallTint = new Color(0.16f, 0.14f, 0.13f);
+            Art.PlaceQuad(transform, "stageFloor", new Vector3(0.05f, 0f, 0.15f), Quaternion.identity, 5.2f, 4.2f, Art.GroundMat("cobble", floorTint), true);
+            Art.PlaceQuad(transform, "stageBackdrop", new Vector3(0.05f, 1.45f, 2.1f), Quaternion.identity, 6.4f, 3.6f, Art.GroundMat("crypt", wallTint), false);
 
             heroPivot = new GameObject("heroPivot").transform;
             heroPivot.SetParent(transform, false);
-            heroPivot.localPosition = new Vector3(-0.42f, 0f, 0f);
+            heroPivot.localPosition = new Vector3(-0.72f, 0f, 0.15f);
             petPivot = new GameObject("petPivot").transform;
             petPivot.SetParent(transform, false);
-            petPivot.localPosition = new Vector3(0.48f, 0f, 0.05f);
+            petPivot.localPosition = new Vector3(0.78f, 0f, 0.25f);
             AssignLayer(gameObject);
             if (target != null) target.texture = rt;
         }
@@ -101,11 +106,11 @@ namespace Hollowmere
             spin += 28f * Time.unscaledDeltaTime;
             if (heroPivot != null) heroPivot.localRotation = Quaternion.Euler(0f, spin, 0f);
             if (petPivot != null) petPivot.localRotation = Quaternion.Euler(0f, spin * 0.8f + 40f, 0f);
-            if (built && framed < 4)
+            if (built && framed < 6)
             {
                 framed++;
-                if (framed == 4 && cam != null)
-                    Art.FrameCamera(cam, gameObject, "stageFloor", 0.72f);
+                if (framed == 6 && cam != null)
+                    FrameBoth();
             }
         }
 
@@ -113,6 +118,27 @@ namespace Hollowmere
         {
             if (cam != null) cam.targetTexture = null;
             if (rt != null) rt.Release();
+        }
+
+        void FrameBoth()
+        {
+            bool any = false;
+            Bounds b = default;
+            foreach (var pivot in new[] { heroPivot, petPivot })
+            {
+                if (pivot == null) continue;
+                Bounds piece;
+                bool sane = Art.MeshWorldBounds(pivot, out piece) && piece.size.y > 0.3f && piece.size.y < 3f;
+                if (!sane)
+                    piece = new Bounds(pivot.position + Vector3.up * 0.9f, new Vector3(0.7f, 1.8f, 0.7f));
+                if (!any) { b = piece; any = true; }
+                else b.Encapsulate(piece);
+            }
+            if (!any) return;
+            float dist = Mathf.Clamp(Mathf.Max(b.size.y * 2.6f, b.size.x * 2.3f), 5.2f, 8.5f);
+            var look = b.center;
+            cam.transform.position = look + new Vector3(0f, b.size.y * 0.08f, -dist);
+            cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);
         }
 
         static void Clear(Transform t)

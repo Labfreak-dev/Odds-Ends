@@ -306,13 +306,18 @@ namespace Hollowmere
                 var ghost = ArtDrop.Sprite("ghost_" + ghostId);
                 if (ghost != null)
                 {
-                    var g = Ui.At(b.transform, "ghost", new Vector2(0.5f, 0.62f), Vector2.zero, new Vector2(64f, 64f));
+                    var g = Ui.At(b.transform, "ghost", new Vector2(0.5f, 0.58f), Vector2.zero, new Vector2(68f, 68f));
                     var gi = g.gameObject.AddComponent<Image>();
-                    gi.sprite = ghost; gi.color = new Color(1f, 1f, 1f, 0.55f); gi.raycastTarget = false; gi.preserveAspect = true;
+                    gi.sprite = ghost; gi.color = new Color(0.9f, 0.86f, 0.78f, 0.92f); gi.raycastTarget = false; gi.preserveAspect = true;
                 }
-                var cap = Ui.At(b.transform, "slotLabel", new Vector2(0.5f, 0.12f), Vector2.zero, new Vector2(180f, 28f));
-                var lab = Ui.Label(cap, SlotLabel(slotId), 16, TextAnchor.MiddleCenter, new Color(0.75f, 0.7f, 0.62f, 0.9f));
-                lab.raycastTarget = false;
+                var txt = b.GetComponentInChildren<Text>();
+                if (txt != null)
+                {
+                    txt.alignment = TextAnchor.LowerCenter;
+                    txt.fontSize = 18;
+                    txt.color = new Color(0.95f, 0.9f, 0.8f, 1f);
+                    txt.text = SlotLabel(slotId);
+                }
             }
         }
 
@@ -538,42 +543,49 @@ namespace Hollowmere
         public static InventoryStage Build(HeroClass cls, RawImage target)
         {
             var root = new GameObject("InventoryStage");
-            root.transform.position = new Vector3(4000f, -40f, 4000f);
+            root.transform.position = new Vector3(4000f, 0f, 4000f);
             var stage = root.AddComponent<InventoryStage>();
             var tex = new RenderTexture(512, 640, 16) { name = "invHero" };
             stage.rt = tex;
             var camGo = new GameObject("cam");
             camGo.transform.SetParent(root.transform, false);
-            camGo.transform.localPosition = new Vector3(0f, 1.15f, -3.4f);
-            camGo.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
+            camGo.transform.localPosition = new Vector3(0f, 1.15f, -4.8f);
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.22f, 0.16f, 0.13f, 1f);
-            cam.fieldOfView = 22f;
+            cam.backgroundColor = new Color(0.05f, 0.045f, 0.055f, 1f);
+            cam.fieldOfView = 24f;
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 16f;
             cam.targetTexture = tex;
             cam.depth = -10f;
+            cam.cullingMask = 1 << 9;
+            if (Camera.main != null) Camera.main.cullingMask &= ~(1 << 9);
             var sun = new GameObject("invSun").AddComponent<Light>();
             sun.transform.SetParent(root.transform, false);
             sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(38f, 12f, 0f);
-            sun.intensity = 1.8f;
-            sun.color = new Color(1f, 0.93f, 0.82f);
+            sun.transform.rotation = Quaternion.Euler(36f, 8f, 0f);
+            sun.intensity = 1.15f;
+            sun.color = new Color(1f, 0.9f, 0.78f);
+            sun.cullingMask = 1 << 9;
             var fill = new GameObject("invFill").AddComponent<Light>();
             fill.transform.SetParent(root.transform, false);
             fill.type = LightType.Directional;
-            fill.transform.rotation = Quaternion.Euler(18f, -150f, 0f);
-            fill.intensity = 0.45f;
-            fill.color = new Color(0.7f, 0.62f, 0.85f);
-            var wall = Art.Cube(root.transform, new Vector3(0f, 1.15f, 1.8f), new Vector3(4.4f, 3.4f, 0.08f), Art.GroundMat("crypt"));
-            wall.name = "stageBackdrop";
-            var floor = Art.Cube(root.transform, new Vector3(0f, -0.02f, 0.15f), new Vector3(4.4f, 0.05f, 3.2f), Art.GroundMat("cobble"));
-            floor.name = "stageBackdropFloor";
+            fill.transform.rotation = Quaternion.Euler(12f, 190f, 0f);
+            fill.intensity = 0.28f;
+            fill.color = new Color(0.45f, 0.4f, 0.55f);
+            fill.cullingMask = 1 << 9;
+            var floorTint = new Color(0.2f, 0.17f, 0.15f);
+            var wallTint = new Color(0.1f, 0.09f, 0.1f);
+            Art.PlaceQuad(root.transform, "stageFloor", new Vector3(0f, 0f, 0.2f), Quaternion.identity, 4.4f, 3.6f, Art.GroundMat("cobble", floorTint), true);
+            Art.PlaceQuad(root.transform, "stageBackdrop", new Vector3(0f, 1.4f, 1.8f), Quaternion.identity, 4.8f, 3.4f, Art.GroundMat("crypt", wallTint), false);
             var pivot = new GameObject("pivot").transform;
             pivot.SetParent(root.transform, false);
             stage.pivot = pivot;
             Art.Animated(Art.HeroModelKey(cls), 1.8f, pivot);
+            foreach (var tr in root.GetComponentsInChildren<Transform>(true))
+                tr.gameObject.layer = 9;
+            camGo.layer = 9;
+            cam.transform.LookAt(root.transform.TransformPoint(new Vector3(0f, 0.95f, 0.1f)));
             stage.cam = cam;
             target.texture = tex;
             target.color = Color.white;
@@ -583,11 +595,16 @@ namespace Hollowmere
         void LateUpdate()
         {
             if (pivot != null) pivot.Rotate(0f, 12f * Time.unscaledDeltaTime, 0f, Space.Self);
-            if (framed < 4)
+            if (framed < 6)
             {
                 framed++;
-                if (framed == 4 && cam != null)
-                    Art.FrameCamera(cam, gameObject, "stageBackdrop", 0.8f);
+                if (framed == 6 && cam != null && pivot != null && Art.MeshWorldBounds(pivot, out var b) && b.size.y > 1.1f && b.size.y < 2.6f)
+                {
+                    float dist = Mathf.Clamp(b.size.y * 2.35f, 4.2f, 6.2f);
+                    var look = b.center;
+                    cam.transform.position = look + new Vector3(0f, b.size.y * 0.05f, -dist);
+                    cam.transform.rotation = Quaternion.LookRotation(look - cam.transform.position, Vector3.up);
+                }
             }
         }
 

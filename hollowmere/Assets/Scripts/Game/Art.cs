@@ -204,6 +204,7 @@ namespace Hollowmere
             ma.runFoot = foot.run;
             ma.longPunch = foot.longPunch;
             if (bodyKey == "mon_drownedwraith") holder.AddComponent<WraithHips>();
+            if (key.StartsWith("npc_")) holder.AddComponent<PoseUpright>();
             if (key.StartsWith("hero_")) CombatClipPlayer.Attach(ma, key);
             return holder;
         }
@@ -263,6 +264,16 @@ namespace Hollowmere
                     z = Mathf.Max(z, skin.sharedMesh.bounds.size.z);
                 }
             if (x > z * 1.25f) go.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+        }
+
+        static bool UnderCharacter(Transform t)
+        {
+            while (t != null)
+            {
+                if (IsCharacter(t.name)) return true;
+                t = t.parent;
+            }
+            return false;
         }
 
         static bool IsCharacter(string key)
@@ -434,24 +445,76 @@ namespace Hollowmere
             return null;
         }
 
-        /// <summary>Hollowmere/Color with a repeating ground texture. Used by the hero-select stage
-        /// and the inventory backdrop so those cameras are not a flat untextured disc.</summary>
-        public static Material GroundMat(string name)
+        /// <summary>Hollowmere/Color with a repeating ground texture, tinted so a light photo
+        /// does not become a white or cream slab under the stage lights.</summary>
+        public static Material GroundMat(string name, Color tint)
         {
             var tex = ArtDrop.Ground(name);
             var m = new Material(BaseMaterial());
-            m.color = Color.white;
-            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white);
-            if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white);
+            m.color = tint;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", tint);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", tint);
             if (tex != null)
             {
                 if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex);
                 if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex);
                 m.mainTexture = tex;
-                m.mainTextureScale = new Vector2(2f, 2f);
+                m.mainTextureScale = new Vector2(2.5f, 2.5f);
                 if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 1f);
             }
             return m;
+        }
+
+        public static Material GroundMat(string name) => GroundMat(name, Color.white);
+
+        static Mesh flatQuad, wallQuad;
+
+        /// <summary>A horizontal or vertical quad. Cubes squashed flat read as a cream band with bars.</summary>
+        public static GameObject PlaceQuad(Transform parent, string name, Vector3 localPos, Quaternion localRot, float width, float height, Material mat, bool floor)
+        {
+            var g = new GameObject(name);
+            g.transform.SetParent(parent, false);
+            g.transform.localPosition = localPos;
+            g.transform.localRotation = localRot;
+            g.transform.localScale = new Vector3(width, floor ? 1f : height, floor ? height : 1f);
+            var mf = g.AddComponent<MeshFilter>();
+            mf.sharedMesh = floor ? FlatQuad() : WallQuad();
+            var mr = g.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = mat;
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            return g;
+        }
+
+        static Mesh FlatQuad()
+        {
+            if (flatQuad != null) return flatQuad;
+            flatQuad = new Mesh { name = "flatQuad" };
+            flatQuad.vertices = new[]
+            {
+                new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f),
+                new Vector3(-0.5f, 0f, 0.5f), new Vector3(0.5f, 0f, 0.5f),
+            };
+            flatQuad.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+            flatQuad.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
+            flatQuad.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+            return flatQuad;
+        }
+
+        static Mesh WallQuad()
+        {
+            if (wallQuad != null) return wallQuad;
+            wallQuad = new Mesh { name = "wallQuad" };
+            wallQuad.vertices = new[]
+            {
+                new Vector3(-0.5f, -0.5f, 0f), new Vector3(0.5f, -0.5f, 0f),
+                new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.5f, 0.5f, 0f),
+            };
+            wallQuad.uv = new[] { new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f) };
+            wallQuad.normals = new[] { -Vector3.forward, -Vector3.forward, -Vector3.forward, -Vector3.forward };
+            // Normal faces -Z, toward a camera sitting on the negative Z side.
+            wallQuad.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+            return wallQuad;
         }
 
         /// <summary>Place a camera so the renderers under root fill the frame. Skips backdrop meshes.</summary>
@@ -514,7 +577,10 @@ namespace Hollowmere
                 bool level = IsLevelMesh(r.transform);
                 if (max > 10f || near)
                     Debug.LogWarning("Hollowmere bounds: " + PathOf(r.transform) + " size=" + b.size + " center=" + b.center + (near ? " near-camera" : "") + (level ? " level" : ""));
-                if (level || max <= 10f) continue;
+                // A skinned AABB can read as tens of metres. Shrinking from that made the
+                // blacksmith a speck and hid the hero on the select stage. People are fitted
+                // from the mesh, not from that box.
+                if (level || max <= 10f || UnderCharacter(r.transform)) continue;
                 var root = ScalableRoot(r.transform);
                 if (root == null || !seen.Add(root)) continue;
                 var fit = root.GetComponent<ModelFit>();
@@ -973,26 +1039,24 @@ namespace Hollowmere
             enabled = false;
             if (applied) return;
             if (biped) StandIfLying();
-            if (!Art.UnionBounds(gameObject, out var b)) return;
-            float max = Art.MaxAxis(b.size);
-            if (max < 0.02f) return;
+            // Mesh bounds through the world matrix. Renderer.bounds on these rigs can be
+            // huge or tiny and that is what shrank the blacksmith.
+            if (!Art.MeshWorldBounds(transform, out var b)) return;
+            float h = b.size.y;
+            if (h < 0.002f) return;
             float factor = 1f;
-            if (max > 10f)
-                factor = (targetHeight > 0.2f ? targetHeight : Mathf.Min(maxAxis, 2.6f)) / max;
-            else if (targetHeight > 0.2f && b.size.y > targetHeight * 1.35f)
-                factor = targetHeight / b.size.y;
-            else if (targetHeight > 0.2f && b.size.y > 0.3f && b.size.y < targetHeight * 0.65f)
-                factor = targetHeight / b.size.y;
-            bool grounded = false;
+            if (targetHeight > 0.2f)
+                factor = targetHeight / h;
+            else if (Art.MaxAxis(b.size) > maxAxis)
+                factor = maxAxis / Art.MaxAxis(b.size);
             if (factor > 0.92f && factor < 1.08f) factor = 1f;
             else
             {
                 applied = true;
-                grounded = true;
-                Debug.LogWarning("Hollowmere scale: " + name + " size " + b.size + " center " + b.center + " x" + factor.ToString("0.###"));
+                Debug.LogWarning("Hollowmere scale: " + name + " mesh " + b.size + " x" + factor.ToString("0.###"));
                 transform.localScale *= factor;
             }
-            if ((grounded || biped) && targetHeight > 0.2f && Art.UnionBounds(gameObject, out b))
+            if (targetHeight > 0.2f && Art.MeshWorldBounds(transform, out b))
             {
                 var p = transform.position;
                 var shift = new Vector3(p.x - b.center.x, p.y - b.min.y, p.z - b.center.z);
@@ -1031,6 +1095,105 @@ namespace Hollowmere
             }
             transform.localRotation = best;
             Debug.LogWarning("Hollowmere stand: " + name + " height " + bestH.ToString("0.00"));
+        }
+    }
+
+    /// <summary>After the idle pose is playing, stand a person whose skeleton is lying down
+    /// and lock their height. Mesh bounds miss a pose that only exists in the bones.</summary>
+    [DefaultExecutionOrder(50)]
+    public sealed class PoseUpright : MonoBehaviour
+    {
+        int phase;
+        Quaternion bestRot;
+        float bestH;
+        static readonly Vector3[] Turns =
+        {
+            new Vector3(-90f, 0f, 0f),
+            new Vector3(90f, 0f, 0f),
+            new Vector3(0f, 0f, -90f),
+            new Vector3(0f, 0f, 90f),
+        };
+
+        void LateUpdate()
+        {
+            phase++;
+            if (phase < 3) return;
+            if (phase == 3)
+            {
+                var hips = FindBone(transform, "Hips") ?? FindBone(transform, "hips");
+                if (hips != null && hips.up.y < 0.4f)
+                    transform.rotation = Quaternion.FromToRotation(hips.up, Vector3.up) * transform.rotation;
+                return;
+            }
+            if (!Sane(out var b))
+            {
+                if (phase > 4) transform.rotation = bestRot;
+                Finish();
+                return;
+            }
+            if (phase == 4)
+            {
+                bestRot = transform.rotation;
+                bestH = b.size.y;
+                if (Upright(b)) { Finish(); return; }
+                transform.rotation = bestRot * Quaternion.Euler(Turns[0]);
+                return;
+            }
+            int tried = phase - 5;
+            if (b.size.y > bestH)
+            {
+                bestH = b.size.y;
+                bestRot = transform.rotation;
+            }
+            else transform.rotation = bestRot;
+            if (Upright(b) || tried >= Turns.Length - 1)
+            {
+                transform.rotation = bestRot;
+                Finish();
+                return;
+            }
+            transform.rotation = bestRot * Quaternion.Euler(Turns[tried + 1]);
+        }
+
+        void Finish()
+        {
+            var fit = GetComponent<ModelFit>();
+            float target = fit != null && fit.targetHeight > 0.2f ? fit.targetHeight : 1.75f;
+            if (Art.MeshWorldBounds(transform, out var b) && b.size.y > 0.02f)
+            {
+                float factor = target / b.size.y;
+                if (factor < 0.8f || factor > 1.25f)
+                    transform.localScale *= factor;
+            }
+            if (Art.MeshWorldBounds(transform, out var grounded))
+            {
+                var p = transform.position;
+                var shift = new Vector3(p.x - grounded.center.x, p.y - grounded.min.y, p.z - grounded.center.z);
+                if (shift.sqrMagnitude > 0.0004f)
+                    foreach (Transform c in transform) c.position += shift;
+            }
+            enabled = false;
+        }
+
+        bool Sane(out Bounds b)
+        {
+            b = default;
+            if (!Art.UnionBounds(gameObject, out b)) return false;
+            float m = Art.MaxAxis(b.size);
+            return m > 0.35f && m < 4.5f;
+        }
+
+        static bool Upright(Bounds b) => b.size.y >= Mathf.Max(b.size.x, b.size.z) * 0.85f;
+
+        static Transform FindBone(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var f = FindBone(root.GetChild(i), name);
+                if (f != null) return f;
+            }
+            return null;
         }
     }
 

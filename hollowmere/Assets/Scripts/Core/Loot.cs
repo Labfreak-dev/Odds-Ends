@@ -110,6 +110,13 @@ namespace Hollowmere.Core
             {
                 it.armor = (int)Math.Round(b.armor * Balance.ArmorScale(ilvl) * rng.Range(0.9f, 1.1f) * (it.ancient ? (float)DesignTable.DeepwroughtScale : 1f));
             }
+            if (GearTable.VisibleArmor(b.slot))
+            {
+                it.tier = GearTable.TierOf(0, rarity);
+                it.family = GearTable.FamilyFromSet(setId) ?? GearTable.RollFamily(rng);
+                if (it.armor > 0)
+                    it.armor = Math.Max(1, (int)Math.Round(it.armor * GearTable.ArmorMul(it.tier)));
+            }
 
             DesignTable.AffixBudget(rarity, out int primaries, out int secondaries);
             RollAffixes(it, b, rng, primaries, secondaries, smartFor);

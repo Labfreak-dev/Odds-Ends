@@ -22,6 +22,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot propclose
     ///   Hollowmere -qaShot gearslots
     ///   Hollowmere -qaShot gearmix
+    ///   Hollowmere -qaShot weapons
     ///   Hollowmere -qaShot creator
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
@@ -119,6 +120,8 @@ namespace Hollowmere
                 case "gear-slots":
                 case "gearmix":
                 case "gear-mix":
+                case "weapons":
+                case "weaponline":
                     return true;
             }
             return false;
@@ -152,6 +155,11 @@ namespace Hollowmere
             if (scene == "gearmix" || scene == "gear-mix")
             {
                 yield return QaFrames.RunGearMix(gm);
+                yield break;
+            }
+            if (scene == "weapons" || scene == "weaponline")
+            {
+                yield return QaFrames.RunWeapons(gm);
                 yield break;
             }
             bool title = scene == "title";

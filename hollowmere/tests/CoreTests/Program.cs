@@ -34,6 +34,7 @@ static class Program
         PostVolumeLevel();
         HeroFitLevel();
         GearFitLevel();
+        GearCatalog();
         Cc0PropFiles();
         ModularKitFiles();
         SpecTables();
@@ -859,6 +860,39 @@ static class Program
         Check(!GearFit.ChainCovered(false, 0.08f), "hidden skin farther than the seam is a chain gap");
         Check(GearFit.ChainCovered(false, 0.03f), "hidden skin under a piece is still covered");
         Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
+    }
+
+    static void GearCatalog()
+    {
+        Check(GearTable.Families.Length == 5, "five armour families");
+        Check(GearTable.TierCount == 3, "three depth tiers");
+        Check(GearTable.TryFinish("plate", 1, out var dull) && dull.Blend > 0.5f, "tier 1 plate is a dull finish");
+        Check(GearTable.TryFinish("plate", 2, out var rust) && rust.R > rust.B, "tier 2 plate reads rusted");
+        Check(!GearTable.TryFinish("infernal", 3, out _), "tier 3 keeps the authored material");
+        Check(Math.Abs(GearTable.ArmorMul(1) - 0.8f) < 0.001f && GearTable.ArmorMul(3) > 1f, "tier scales armour");
+        Check(GearTable.CountAll >= 40, "forty weapon and off-hand bases");
+        var seen = new Dictionary<string, string>();
+        foreach (var type in GearTable.WeaponTypes)
+        {
+            Check(GearTable.CountType(type) >= 3, type + " has three bases");
+            Check(GearTable.Signature(type) != null, type + " has a signature");
+        }
+        int signatures = 0;
+        foreach (var row in GearTable.Weapons)
+        {
+            Check(ItemDb.Base(row.Id) != null && ItemDb.Base(row.Id).model == row.Model, row.Id + " is a base with its own model");
+            if (row.Signature) signatures++;
+            if (seen.TryGetValue(row.Model, out var other))
+                Check(other == row.Type, row.Model + " is not shared across types");
+            else seen[row.Model] = row.Type;
+            Check(GearTable.TrySocket(row.Id, out var sock) && sock.Reach <= GearTable.GripLimit, row.Id + " grip stays within 5 cm");
+        }
+        Check(signatures == 12, "twelve signature weapons");
+        Check(ItemDb.Set("set_plate") != null && ItemDb.Set("set_infernal").pieces.Length == 8, "each visual set lists eight slots");
+        var rolled = Loot.Generate(new Rng(9), 10, Rarity.Common, null, ItemSlot.Chest);
+        Check(rolled.tier == 1 && !string.IsNullOrEmpty(rolled.family), "a common chest is tier 1 of a family");
+        var set = Loot.Generate(new Rng(4), 20, Rarity.Set, null, ItemSlot.Head, "helm");
+        Check(set.tier == 3, "a set helm is tier 3");
     }
 
     /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh

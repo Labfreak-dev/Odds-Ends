@@ -345,6 +345,81 @@ namespace Hollowmere
             Application.Quit();
         }
 
+        /// <summary>One lineup of the signature prop for every weapon type, then one in-hand shot per type.</summary>
+        public static IEnumerator RunWeapons(GameManager gm)
+        {
+            var feel = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.35f);
+            Screen.SetResolution(feel.width, feel.height, FullScreenMode.Windowed);
+            yield return null;
+            var actor = HeroActor.I;
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            if (actor == null || cam == null)
+            {
+                Debug.LogError("Hollowmere gear FAIL no hero");
+                Application.Quit();
+                yield break;
+            }
+            var row = new GameObject("weapon_lineup");
+            var types = GearTable.WeaponTypes;
+            for (int i = 0; i < types.Count; i++)
+            {
+                string id = GearTable.Signature(types[i]);
+                var prefab = Resources.Load<GameObject>("Gear/Weapons/" + GearTable.ModelFor(id));
+                if (prefab == null)
+                {
+                    Debug.LogError("Hollowmere gear FAIL weapon model " + id);
+                    continue;
+                }
+                var go = UnityEngine.Object.Instantiate(prefab, row.transform);
+                go.name = "line_" + types[i];
+                go.transform.localPosition = new Vector3((i - types.Count * 0.5f) * 0.85f, 0.1f, 0f);
+                if (GearTable.TrySocket(id, out var sock))
+                    go.transform.localRotation = Quaternion.Euler(sock.Pitch, sock.Yaw + 180f, sock.Roll);
+            }
+            Vector3 mid = actor.Pos + FaceDir(actor) * 3.2f;
+            row.transform.position = mid;
+            row.transform.rotation = Quaternion.LookRotation(FaceDir(actor), Vector3.up);
+            Vector3 look = mid + Vector3.up * 0.6f;
+            Vector3 camPos = look + FaceDir(actor) * 6.5f + Vector3.up * 1.4f;
+            cam.fieldOfView = 34f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            SaveNamed("weapons-lineup");
+            UnityEngine.Object.Destroy(row);
+            for (int i = 0; i < types.Count; i++)
+            {
+                string id = GearTable.Signature(types[i]);
+                WearWeapon(gm, id);
+                yield return null;
+                GearAttach.AuditGrip(actor.transform);
+                FrameGear(actor, cam, rig, true);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                SaveNamed("weapons-" + types[i]);
+            }
+            Debug.Log("Hollowmere QA weapons done");
+            Application.Quit();
+        }
+
+        static void WearWeapon(GameManager gm, string baseId)
+        {
+            var hero = gm.State.hero;
+            hero.inventory.RemoveAll(it => it != null && it.kind == ItemKind.Equipment);
+            for (int i = 0; i < (int)EquipSlot.Count; i++)
+                hero.equipment[i] = null;
+            var it = Loot.Generate(new Rng(5), 14, Rarity.Rare, null, null, baseId, 8);
+            if (it == null || !hero.AddItem(it) || !hero.Equip(it))
+                Debug.LogError("Hollowmere gear FAIL could not equip " + baseId + " free=" + hero.FreeSlots);
+            gm.OnEquipmentChanged();
+        }
+
         static (EquipSlot slot, string id) Piece((EquipSlot slot, string id)[] pieces, EquipSlot slot)
         {
             for (int i = 0; i < pieces.Length; i++)

@@ -268,49 +268,79 @@ namespace Hollowmere
                 var slot = GearFit.Visible[i];
                 var it = hero.Equipped(slot);
                 if (Item.IsNone(it)) continue;
-                string folder = Folder(it);
+                int tier = GearTable.TierOf(it.tier, it.rarity);
+                string family = FamilyOf(it);
                 string slotName = GearFit.SlotName(slot);
-                var prefab = Load(folder, slotName, out bool lower);
+                var prefab = Load(family, slotName, tier, out bool lower);
                 if (prefab == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, folder);
+                var piece = Spawn(body, skin, slot, prefab, family, tier, !lower && tier < GearTable.TierCount);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
                     continue;
                 }
                 placed.Add(piece);
-                if (!lower && folder != "plate")
-                    Debug.Log("Hollowmere gear " + slotName + " set " + folder);
+                Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + (lower ? " cc0" : tier < GearTable.TierCount ? " finish" : " authored"));
             }
             BodyRegions.Show(body, Coverage(body, placed));
         }
 
-        static string Folder(Item it)
+        static void Tint(GameObject go, string family, int tier)
         {
-            string id = it != null ? it.setId : null;
-            if (!string.IsNullOrEmpty(id))
+            if (go == null || !GearTable.TryFinish(family, tier, out var fin)) return;
+            var tint = new Color(fin.R, fin.G, fin.B, 1f);
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
-                if (id.StartsWith("set_")) id = id.Substring(4);
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    if (m.HasProperty("_BaseColor"))
+                    {
+                        var c = m.GetColor("_BaseColor");
+                        c = Color.Lerp(c, tint, fin.Blend);
+                        m.SetColor("_BaseColor", c);
+                    }
+                    else m.color = Color.Lerp(m.color, tint, fin.Blend);
+                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
+                    if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", Color.black);
+                    if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", fin.Metal);
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", fin.Smooth);
+                }
+                r.materials = mats;
+            }
+        }
+
+        static string FamilyOf(Item it)
+        {
+            string fromSet = GearTable.FamilyFromSet(it != null ? it.setId : null);
+            if (!string.IsNullOrEmpty(fromSet)) return fromSet;
+            if (it != null && !string.IsNullOrEmpty(it.family))
+            {
                 for (int i = 0; i < Sets.Length; i++)
-                    if (Sets[i] == id) return Sets[i];
+                    if (Sets[i] == it.family) return Sets[i];
             }
             return "plate";
         }
 
-        static GameObject Load(string setFolder, string slot, out bool lower)
+        static GameObject Load(string family, string slot, int tier, out bool lower)
         {
             lower = false;
-            var low = Resources.Load<GameObject>("Gear/Lower/" + slot);
-            if (low != null) { lower = true; return low; }
-            if (string.IsNullOrEmpty(setFolder)) return null;
-            return Resources.Load<GameObject>(PackRoot + "/" + setFolder + "/" + slot);
+            if (tier < GearTable.TierCount)
+            {
+                var low = Resources.Load<GameObject>("Gear/Lower/" + family + "/" + slot);
+                if (low != null) { lower = true; return low; }
+            }
+            if (string.IsNullOrEmpty(family)) return null;
+            return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string setFolder)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string family, int tier, bool finish)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -328,7 +358,7 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return null;
             }
-            FitPiece(mesh, slot, setFolder, heroSkin.bones);
+            FitPiece(mesh, slot, family, heroSkin.bones);
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;
@@ -347,6 +377,7 @@ namespace Hollowmere
             }
             smr.materials = mats;
             Art.AdoptShaders(go);
+            if (finish) Tint(go, family, tier);
             Object.DestroyImmediate(inst);
             return smr;
         }

@@ -36,7 +36,11 @@ namespace Hollowmere
                     Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
                 var off = hero.Equipped(EquipSlot.OffHand);
                 if (!Item.IsNone(off))
-                    Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+                {
+                    bool two = !Item.IsNone(weapon) && weapon.Base != null && weapon.Base.twoHanded;
+                    if (two) HipItem(body, off);
+                    else Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+                }
                 if (v5)
                     GearWardrobe.Apply(body, hero);
                 else
@@ -182,11 +186,75 @@ namespace Hollowmere
         static void Weapon(Transform body, string key, string name, Item it, bool main)
         {
             var hand = main ? Hand(body) : (Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm"));
-            if (hand == null) return;
+            if (hand == null || it == null) return;
+            string model = GearTable.ModelFor(it.baseId);
+            if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name))
+            {
+                if (main) SeatOffHand(body, it);
+                return;
+            }
             string cc0 = Art.Cc0Gear(it.baseId);
             if (cc0 != null && Grip(hand, cc0, name, main)) return;
             if (Grip(hand, key, name, main)) return;
             Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
+        }
+
+        static void HipItem(Transform body, Item it)
+        {
+            var hips = Art.Bone(body, "Hips");
+            if (hips == null) return;
+            string model = GearTable.ModelFor(it.baseId);
+            var prefab = Resources.Load<GameObject>("Gear/Weapons/" + model);
+            if (prefab == null) return;
+            var go = Object.Instantiate(prefab, hips);
+            go.name = "gear_offhand";
+            go.transform.localPosition = new Vector3(0.18f, 0.05f, -0.08f);
+            go.transform.localRotation = Quaternion.Euler(0f, 0f, 20f);
+            go.transform.localScale = Vector3.one;
+            Art.AdoptShaders(go);
+        }
+
+        static bool GripResource(Transform hand, string resource, string baseId, string name)
+        {
+            var prefab = Resources.Load<GameObject>(resource);
+            if (prefab == null) return false;
+            var go = Object.Instantiate(prefab, hand);
+            go.name = name;
+            if (!GearTable.TrySocket(baseId, out var sock))
+            {
+                Object.Destroy(go);
+                return false;
+            }
+            go.transform.localRotation = Quaternion.Euler(sock.Pitch, sock.Yaw, sock.Roll);
+            go.transform.localPosition = new Vector3(0f, sock.Palm, 0f);
+            var s = hand.lossyScale;
+            go.transform.localScale = new Vector3(
+                1f / Mathf.Max(0.0001f, Mathf.Abs(s.x)),
+                1f / Mathf.Max(0.0001f, Mathf.Abs(s.y)),
+                1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            Art.AdoptShaders(go);
+            return true;
+        }
+
+        static void SeatOffHand(Transform body, Item it)
+        {
+            if (it == null || it.Base == null || !it.Base.twoHanded) return;
+            if (!GearTable.TrySocket(it.baseId, out var sock) || sock.OffHand < 0.05f) return;
+            var weapon = Find(body, "gear_weapon");
+            var upper = Art.Bone(body, "LeftArm");
+            var lower = Art.Bone(body, "LeftForeArm");
+            var hand = Art.Bone(body, "LeftHand");
+            if (weapon == null || upper == null || lower == null || hand == null) return;
+            var socket = new GameObject("offhand_grip").transform;
+            socket.SetParent(weapon, false);
+            socket.localPosition = new Vector3(0f, sock.OffHand, 0f);
+            socket.localRotation = Quaternion.identity;
+            var ik = weapon.gameObject.AddComponent<OffHandIk>();
+            ik.upper = upper;
+            ik.lower = lower;
+            ik.hand = hand;
+            ik.target = socket;
         }
 
         /// <summary>Point the skinned overlay at the hero's bones and drop the copied armature.</summary>
@@ -294,31 +362,23 @@ namespace Hollowmere
                 return;
             }
             var anim = body.GetComponentInChildren<Animation>();
-            SampleGrip(anim, "idle", hand, weapon);
-            SampleGrip(anim, "walk", hand, weapon);
-            SampleGrip(anim, "attack", hand, weapon);
-        }
-
-        static void SampleGrip(Animation anim, string key, Transform hand, Transform weapon)
-        {
-            AnimationState st = null;
-            if (anim != null)
+            if (anim == null)
             {
-                foreach (AnimationState s in anim)
-                {
-                    string n = s.name.ToLowerInvariant();
-                    if (n == key || n.EndsWith("|" + key) || n.Contains("|" + key + "|") || n.Contains(key))
-                    {
-                        st = s;
-                        break;
-                    }
-                }
-            }
-            if (st == null || st.clip == null)
-            {
-                Debug.Log("Hollowmere grip " + key + " no clip");
+                Debug.Log("Hollowmere grip no clips");
                 return;
             }
+            foreach (AnimationState s in anim)
+                SampleGrip(anim, s, hand, weapon);
+        }
+
+        static void SampleGrip(Animation anim, AnimationState st, Transform hand, Transform weapon)
+        {
+            if (st == null || st.clip == null)
+            {
+                Debug.Log("Hollowmere grip none no clip");
+                return;
+            }
+            string key = st.name;
             float worst = 0f;
             float len = Mathf.Max(0.05f, st.length);
             for (int i = 0; i < 3; i++)
@@ -490,6 +550,39 @@ namespace Hollowmere
                 if (hit != null) return hit;
             }
             return null;
+        }
+    }
+
+    /// <summary>Pulls the off hand onto a two-handed weapon's shaft. Rotations only.</summary>
+    public sealed class OffHandIk : MonoBehaviour
+    {
+        public Transform upper;
+        public Transform lower;
+        public Transform hand;
+        public Transform target;
+
+        void LateUpdate()
+        {
+            if (upper == null || lower == null || hand == null || target == null) return;
+            Vector3 a = upper.position;
+            Vector3 b = lower.position;
+            Vector3 c = hand.position;
+            float lab = Vector3.Distance(a, b);
+            float lbc = Vector3.Distance(b, c);
+            if (lab < 0.02f || lbc < 0.02f) return;
+            float reach = Mathf.Clamp(Vector3.Distance(a, target.position), 0.05f, lab + lbc - 0.02f);
+            Vector3 to = target.position - a;
+            if (to.sqrMagnitude < 1e-6f) return;
+            Vector3 pole = Vector3.Cross(upper.up, (b - a).normalized);
+            if (pole.sqrMagnitude < 1e-4f) pole = Vector3.Cross(to, Vector3.forward);
+            float cosA = Mathf.Clamp((lab * lab + reach * reach - lbc * lbc) / (2f * lab * reach), -1f, 1f);
+            float ang = Mathf.Acos(cosA) * Mathf.Rad2Deg;
+            Vector3 elbowDir = Quaternion.AngleAxis(ang, pole.normalized) * to.normalized;
+            upper.rotation = Quaternion.FromToRotation(b - a, elbowDir) * upper.rotation;
+            Vector3 forearm = hand.position - lower.position;
+            Vector3 want = target.position - lower.position;
+            if (forearm.sqrMagnitude < 1e-6f || want.sqrMagnitude < 1e-6f) return;
+            lower.rotation = Quaternion.FromToRotation(forearm, want) * lower.rotation;
         }
     }
 }

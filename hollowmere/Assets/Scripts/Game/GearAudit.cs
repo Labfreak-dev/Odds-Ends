@@ -267,25 +267,35 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear bone " + (piece != null ? piece.name : "none") + " none");
                     continue;
                 }
-                var tally = new Dictionary<string, int>();
                 string top = "none";
-                int topN = 0;
+                float topW = 0f;
+                float inSlot = 0f, total = 0f;
                 int step = Mathf.Max(1, weights.Length / 200);
+                var slot = SlotFromName(piece.name);
                 for (int i = 0; i < weights.Length; i += step)
                 {
-                    int d = GearShell.Dominant(weights[i]);
-                    if (d < 0 || d >= bones.Length || bones[d] == null) continue;
-                    string n = bones[d].name;
-                    tally.TryGetValue(n, out int c);
-                    tally[n] = c + 1;
-                    if (c + 1 > topN) { topN = c + 1; top = n; }
+                    var w = weights[i];
+                    AddWeight(w.boneIndex0, w.weight0, bones, slot, ref inSlot, ref total, ref top, ref topW);
+                    AddWeight(w.boneIndex1, w.weight1, bones, slot, ref inSlot, ref total, ref top, ref topW);
+                    AddWeight(w.boneIndex2, w.weight2, bones, slot, ref inSlot, ref total, ref top, ref topW);
+                    AddWeight(w.boneIndex3, w.weight3, bones, slot, ref inSlot, ref total, ref top, ref topW);
                 }
-                var slot = SlotFromName(piece.name);
-                bool ok = slot != null && GearFit.BoneInSlot(slot.Value, top);
-                Debug.Log("Hollowmere gear bone " + piece.name + " " + top + (ok ? " ok" : " OUT"));
-                if (!ok) fails += Fail(piece.name + " dominant bone " + top);
+                bool ok = slot != null && GearFit.CoverageOk(inSlot, total);
+                float cover = total > 0.0001f ? inSlot / total : 0f;
+                Debug.Log("Hollowmere gear bone " + piece.name + " cover=" + cover.ToString("0.00") + " bone=" + top + (ok ? " ok" : " OUT"));
+                if (!ok) fails += Fail(piece.name + " slot weight " + cover.ToString("0.00") + " bone=" + top);
             }
             return fails;
+        }
+
+        static void AddWeight(int bone, float weight, Transform[] bones, EquipSlot? slot, ref float inSlot, ref float total, ref string top, ref float topW)
+        {
+            if (weight <= 0f) return;
+            total += weight;
+            if (bones == null || bone < 0 || bone >= bones.Length || bones[bone] == null) return;
+            string name = bones[bone].name;
+            if (weight > topW) { topW = weight; top = name; }
+            if (slot != null && GearFit.BoneInSlot(slot.Value, name)) inSlot += weight;
         }
 
         /// <summary>Distance from the still-visible skin along a hidden region to the piece that covers it.</summary>

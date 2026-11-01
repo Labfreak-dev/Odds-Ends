@@ -185,7 +185,13 @@ namespace Hollowmere.Core
 
         public static bool Covered(float metres) => metres <= SeamGap;
 
-        /// <summary>Dominant bone of an authored piece has to be one this slot is allowed to move.</summary>
+        /// <summary>Share of a piece's weight that has to sit on the slot's own bones.</summary>
+        public const float SlotCoverage = 0.70f;
+
+        public static bool CoverageOk(float inSlot, float total)
+            => total > 0.0001f && inSlot / total >= SlotCoverage;
+
+        /// <summary>A bone this slot is allowed to move.</summary>
         public static bool BoneInSlot(EquipSlot slot, string bone)
         {
             string n = Tail(bone);

@@ -837,6 +837,7 @@ static class Program
         Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.Waist) == EquipSlot.Chest, "chest beats the belt for the hips");
         Check(GearFit.BoneInSlot(EquipSlot.Legs, "mixamorig:RightUpLeg"), "a greave may be weighted to the thigh");
         Check(!GearFit.BoneInSlot(EquipSlot.Waist, "mixamorig:RightForeArm"), "a belt is not weighted to the forearm");
+        Check(GearFit.CoverageOk(0.70f, 1f) && !GearFit.CoverageOk(0.69f, 1f), "a piece needs 70 percent of its weight on the slot");
         Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
     }
 

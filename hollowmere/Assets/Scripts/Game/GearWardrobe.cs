@@ -184,6 +184,11 @@ namespace Hollowmere
     /// </summary>
     public static class GearWardrobe
     {
+        /// <summary>Same layout as Gear/Sets/&lt;set&gt;/&lt;slot&gt;.glb. Replaces the files in that folder. Not fetched at runtime.</summary>
+        public const string PackFile = "hollowmere_gear_v7b.tar.gz";
+        public const string PackUrl = "https://github.com/Labfreak-dev/Odds-Ends/releases/download/hollowmere-assets-v5/hollowmere_gear_v7b.tar.gz";
+        public const string PackRoot = "Gear/Sets";
+
         static readonly string[] Sets = { "plate", "leather", "arcane", "bone", "infernal" };
 
         public static void Apply(Transform body, Hero hero)
@@ -239,7 +244,7 @@ namespace Hollowmere
             var low = Resources.Load<GameObject>("Gear/Lower/" + slot);
             if (low != null) { lower = true; return low; }
             if (string.IsNullOrEmpty(setFolder)) return null;
-            return Resources.Load<GameObject>("Gear/Sets/" + setFolder + "/" + slot);
+            return Resources.Load<GameObject>(PackRoot + "/" + setFolder + "/" + slot);
         }
 
         static bool Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab)
@@ -254,14 +259,6 @@ namespace Hollowmere
             }
             var mesh = Object.Instantiate(src.sharedMesh);
             mesh.name = "gear_" + GearFit.SlotName(slot);
-            StripToSlot(mesh, src.bones, slot);
-            if (mesh.triangles == null || mesh.triangles.Length < 3)
-            {
-                Object.DestroyImmediate(mesh);
-                Object.DestroyImmediate(inst);
-                Debug.Log("Hollowmere gear " + GearFit.SlotName(slot) + " empty after bone strip");
-                return false;
-            }
             if (!Remap(mesh, src.bones, heroSkin.bones, src.sharedMesh.bindposes, heroSkin.sharedMesh.bindposes))
             {
                 Object.DestroyImmediate(mesh);
@@ -288,67 +285,6 @@ namespace Hollowmere
             Art.AdoptShaders(go);
             Object.DestroyImmediate(inst);
             return true;
-        }
-
-        /// <summary>Drop triangles whose vertices are skinned to some other slot. The GLB packs those in beside the piece.</summary>
-        static void StripToSlot(Mesh mesh, Transform[] srcBones, EquipSlot slot)
-        {
-            var weights = mesh.boneWeights;
-            var tris = mesh.triangles;
-            if (weights == null || tris == null || srcBones == null) return;
-            var keepV = new bool[weights.Length];
-            int kept = 0;
-            for (int i = 0; i < weights.Length; i++)
-            {
-                int d = GearShell.Dominant(weights[i]);
-                if (d < 0 || d >= srcBones.Length || srcBones[d] == null) continue;
-                if (!GearFit.BoneInSlot(slot, srcBones[d].name)) continue;
-                keepV[i] = true;
-                kept++;
-            }
-            if (kept < 3) return;
-            var map = new int[weights.Length];
-            for (int i = 0; i < map.Length; i++) map[i] = -1;
-            var used = new List<int>();
-            var keep = new List<int>();
-            for (int i = 0; i + 2 < tris.Length; i += 3)
-            {
-                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
-                if (!keepV[a] || !keepV[b] || !keepV[c]) continue;
-                keep.Add(Take(map, used, a));
-                keep.Add(Take(map, used, b));
-                keep.Add(Take(map, used, c));
-            }
-            if (keep.Count < 3) return;
-            var v = mesh.vertices;
-            var nrm = mesh.normals;
-            var uv = mesh.uv;
-            var nv = new Vector3[used.Count];
-            var nn = nrm != null && nrm.Length == v.Length ? new Vector3[used.Count] : null;
-            var nuv = uv != null && uv.Length == v.Length ? new Vector2[used.Count] : null;
-            var nw = new BoneWeight[used.Count];
-            for (int i = 0; i < used.Count; i++)
-            {
-                int s = used[i];
-                nv[i] = v[s];
-                if (nn != null) nn[i] = nrm[s];
-                if (nuv != null) nuv[i] = uv[s];
-                nw[i] = weights[s];
-            }
-            mesh.vertices = nv;
-            if (nn != null) mesh.normals = nn;
-            if (nuv != null) mesh.uv = nuv;
-            mesh.boneWeights = nw;
-            mesh.triangles = keep.ToArray();
-            mesh.RecalculateBounds();
-        }
-
-        static int Take(int[] map, List<int> used, int src)
-        {
-            if (map[src] >= 0) return map[src];
-            map[src] = used.Count;
-            used.Add(src);
-            return map[src];
         }
 
         /// <summary>GLB inverse bind, written into the hero bone's slot. Unmatched hero bones keep the hero bind.</summary>

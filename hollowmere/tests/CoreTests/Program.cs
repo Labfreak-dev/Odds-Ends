@@ -805,8 +805,12 @@ static class Program
         Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[0]), "idle is a required pose");
         Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[1]), "run or walk is a required pose");
         Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[2]), "attack is a required pose");
-        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[3]), "death is a required pose");
-        Check(!GearFit.HasRequiredPose(new[] { "idle" }, GearFit.RequiredPoses[3]), "death cannot be skipped");
+        Check(GearFit.HasRequiredPose(new[] { "ic_attack_cleave" }, GearFit.RequiredPoses[2]), "ic_attack_cleave is an attack pose");
+        Check(GearFit.HasRequiredPose(new[] { "ic_cast_warcry" }, GearFit.OptionalPoses[3]), "ic_cast_warcry is a spell pose");
+        Check(GearFit.HasRequiredPose(new[] { "st_roll_fire" }, GearFit.OptionalPoses[2]), "st_roll_fire is a dodge pose");
+        Check(GearFit.HasRequiredPose(new[] { "fish_idle" }, GearFit.OptionalPoses[4]), "fish_idle is a fishing pose");
+        Check(!GearFit.HasRequiredPose(new[] { "idle", "run", "ic_attack_cleave" }, new[] { "death" }), "this hero has no death clip");
+        Check(GearFit.GapOk(0.0026f), "a dense helm shell 2.6 mm off the skin still fits");
         var mix = GearFit.Mix(7, 4);
         var again = GearFit.Mix(7, 4);
         Check(mix.Length == 4 && mix[0] == again[0] && mix[3] == again[3], "a set mix is deterministic");

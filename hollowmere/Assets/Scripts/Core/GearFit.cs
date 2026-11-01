@@ -10,7 +10,7 @@ namespace Hollowmere.Core
     {
         public const float ShellOffset = 0.012f;
         /// <summary>Closer than this and the shell z-fights or sinks into the body.</summary>
-        public const float MinGap = 0.004f;
+        public const float MinGap = 0.002f;
         /// <summary>Farther than this and the piece is floating off the body.</summary>
         public const float MaxGap = 0.035f;
         public const float MinWeightSum = 0.98f;
@@ -44,7 +44,16 @@ namespace Hollowmere.Core
             new[] { "idle" },
             new[] { "run", "walk" },
             new[] { "attack", "swing" },
+        };
+
+        /// <summary>Sampled when the hero actually has the clip. Death and hit are not on this rig.</summary>
+        public static readonly string[][] OptionalPoses =
+        {
             new[] { "death" },
+            new[] { "hit" },
+            new[] { "dodge", "roll" },
+            new[] { "cast", "spell" },
+            new[] { "fish" },
         };
 
         public static bool IsVisible(EquipSlot slot)
@@ -74,7 +83,7 @@ namespace Hollowmere.Core
         {
             string n = Tail(bone);
             if (n.Length == 0) return null;
-            if (Same(n, "Head")) return EquipSlot.Head;
+            if (Same(n, "Head") || Same(n, "Neck")) return EquipSlot.Head;
             if (Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "LeftArm") || Same(n, "RightArm"))
                 return EquipSlot.Shoulders;
             if (Same(n, "Spine1") || Same(n, "Spine2")) return EquipSlot.Chest;

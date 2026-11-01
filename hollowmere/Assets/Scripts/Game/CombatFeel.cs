@@ -649,12 +649,31 @@ namespace Hollowmere
             }
         }
 
-        static Transform Find(Transform root, string name)
+        static Transform Find(Transform root, string name) => FindCanon(root, Canon(name));
+
+        /// <summary>Combat packs use Spine02 and neck. The v5 hero uses mixamorig:Spine2 and Neck.</summary>
+        static string Canon(string name)
         {
-            if (root.name == name) return root;
+            string t = GearFit.Tail(name);
+            switch (t.ToLowerInvariant())
+            {
+                case "spine02": return "Spine2";
+                case "spine01": return "Spine1";
+                case "neck": return "Neck";
+                case "head_end":
+                case "headtop_end": return "HeadTop_End";
+                case "headfront": return "HeadFront";
+                default: return t;
+            }
+        }
+
+        static Transform FindCanon(Transform root, string want)
+        {
+            if (root == null) return null;
+            if (string.Equals(Canon(root.name), want, System.StringComparison.OrdinalIgnoreCase)) return root;
             for (int i = 0; i < root.childCount; i++)
             {
-                var f = Find(root.GetChild(i), name);
+                var f = FindCanon(root.GetChild(i), want);
                 if (f != null) return f;
             }
             return null;

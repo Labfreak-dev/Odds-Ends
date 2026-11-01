@@ -346,6 +346,15 @@ namespace Hollowmere
                 CombatClipPlayer.Attach(ma, key);
                 CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
             }
+            // The v5 body only ships idle, walk and run. Attack, spell, dodge and fishing
+            // live in the class packs and have to be rebound onto mixamorig bones.
+            if (v5 && (key == "hero" || key == "hero_plate"))
+            {
+                CombatClipPlayer.Attach(ma, "hero_ironclad");
+                CombatClipPlayer.Attach(ma, "hero_stalker");
+                CombatClipPlayer.Attach(ma, "hero_hexweaver");
+                CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+            }
             if (v5) DressNpc(bodyKey, go.transform);
             if (key.StartsWith("cc0_")) AuditCc0(holder, key);
             if (v5m)

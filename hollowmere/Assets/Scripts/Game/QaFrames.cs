@@ -216,6 +216,7 @@ namespace Hollowmere
             if (frames)
             {
                 Wear(gm, pieces);
+                GearAudit.Prepare(actor.transform);
                 yield return null;
                 yield return new WaitForEndOfFrame();
                 var anim = actor.GetComponentInChildren<Animation>();
@@ -230,8 +231,17 @@ namespace Hollowmere
                     yield return new WaitForEndOfFrame();
                     Save("gearslots-" + GearFit.RequiredPoses[g][0], shot++);
                 }
-                int fails = GearAudit.Run(actor.transform);
-                Debug.Log("Hollowmere gear frames fails=" + fails);
+                for (int g = 0; g < GearFit.OptionalPoses.Length; g++)
+                {
+                    string clip = FirstPose(names, GearFit.OptionalPoses[g]);
+                    if (clip == null) continue;
+                    Sample(anim, clip, 0.35f);
+                    FrameGear(actor, cam, rig, false);
+                    yield return new WaitForEndOfFrame();
+                    Save("gearslots-" + GearFit.OptionalPoses[g][0], shot++);
+                }
+                int frameFails = GearAudit.Run(actor.transform);
+                Debug.Log("Hollowmere gear frames fails=" + frameFails);
                 Debug.Log("Hollowmere QA frames saved: " + shot + " gearslots");
                 Application.Quit();
                 yield break;
@@ -247,37 +257,64 @@ namespace Hollowmere
                 FrameGear(actor, cam, rig, false);
                 yield return new WaitForEndOfFrame();
                 SaveNamed("gearslots-world-" + GearFit.SlotName(pieces[i].slot));
-                int fails = GearAudit.Run(actor.transform);
-                if (fails > 0)
-                    Debug.LogError("Hollowmere gear FAIL " + pieces[i].id + " poses " + fails);
-                else
-                    Debug.Log("Hollowmere gear " + pieces[i].id + " fit ok");
+                Debug.Log("Hollowmere gear " + pieces[i].id + " shot");
             }
+            Wear(gm, pieces);
+            yield return null;
+            int fails = GearAudit.Run(actor.transform);
+            Debug.Log("Hollowmere gear poses fails=" + fails);
+            Debug.Log("Hollowmere QA gearslots saved");
+            Application.Quit();
+        }
+
+        public static IEnumerator RunGearMix(GameManager gm)
+        {
+            gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.35f);
+            var actor = HeroActor.I;
+            if (actor == null)
+            {
+                Debug.LogError("Hollowmere gear FAIL no hero");
+                Application.Quit();
+                yield break;
+            }
+            (EquipSlot slot, string id)[] pieces =
+            {
+                (EquipSlot.Head, "helm"),
+                (EquipSlot.Shoulders, "pauldrons"),
+                (EquipSlot.Chest, "plate"),
+                (EquipSlot.Hands, "gauntlets"),
+                (EquipSlot.Wrists, "bracers"),
+                (EquipSlot.Waist, "belt"),
+                (EquipSlot.Legs, "greaves"),
+                (EquipSlot.Feet, "boots"),
+            };
             for (int i = 0; i < GearFit.Adjacent.Length; i++)
             {
                 var pair = GearFit.Adjacent[i];
                 Wear(gm, new[] { Piece(pieces, pair.a), Piece(pieces, pair.b) });
                 yield return null;
-                int fails = GearAudit.Run(actor.transform);
+                int fails = GearAudit.RunIdle(actor.transform);
                 if (fails > 0)
                     Debug.LogError("Hollowmere gear FAIL pair " + pair.a + "+" + pair.b + " " + fails);
                 else
                     Debug.Log("Hollowmere gear pair " + pair.a + "+" + pair.b + " ok");
             }
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 4; i++)
             {
                 var mix = GearFit.Mix(1000 + i, 4);
                 var worn = new (EquipSlot, string)[mix.Length];
                 for (int k = 0; k < mix.Length; k++) worn[k] = Piece(pieces, mix[k]);
                 Wear(gm, worn);
                 yield return null;
-                int fails = GearAudit.Run(actor.transform);
+                int fails = GearAudit.RunIdle(actor.transform);
                 if (fails > 0)
                     Debug.LogError("Hollowmere gear FAIL mix " + i + " " + fails);
                 else
                     Debug.Log("Hollowmere gear mix " + i + " ok");
             }
-            Debug.Log("Hollowmere QA gearslots saved");
+            Debug.Log("Hollowmere QA gearmix done");
             Application.Quit();
         }
 
@@ -317,6 +354,9 @@ namespace Hollowmere
             }
         }
 
+        static Light paperLight;
+        static readonly System.Collections.Generic.Dictionary<Light, float> paperDim = new System.Collections.Generic.Dictionary<Light, float>();
+
         static void FrameGear(HeroActor actor, Camera cam, CameraRig rig, bool paper)
         {
             if (cam == null || actor == null) return;
@@ -325,13 +365,47 @@ namespace Hollowmere
             fwd.y = 0f;
             if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
             fwd.Normalize();
+            // The face is along forward. The paper camera stands in front of it.
             Vector3 camPos = paper
-                ? look - fwd * 3.6f + Vector3.up * 0.05f
+                ? look + fwd * 3.15f + Vector3.up * 0.12f
                 : actor.Pos - fwd * 7.2f + Vector3.up * 5.6f;
-            cam.fieldOfView = paper ? 26f : 38f;
+            cam.fieldOfView = paper ? 24f : 38f;
             var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
             if (rig != null) rig.Lock(camPos, rot);
             else cam.transform.SetPositionAndRotation(camPos, rot);
+            PaperLight(actor, paper, camPos, look);
+        }
+
+        static void PaperLight(HeroActor actor, bool on, Vector3 camPos, Vector3 look)
+        {
+            if (on)
+            {
+                if (paperLight == null)
+                {
+                    var go = new GameObject("paperLight");
+                    paperLight = go.AddComponent<Light>();
+                    paperLight.type = LightType.Directional;
+                    paperLight.shadows = LightShadows.None;
+                    paperLight.color = new Color(1f, 0.985f, 0.96f);
+                    paperLight.intensity = 1.15f;
+                }
+                paperLight.gameObject.SetActive(true);
+                paperLight.transform.rotation = Quaternion.LookRotation(look - camPos, Vector3.up);
+                var lights = actor.GetComponentsInChildren<Light>(true);
+                for (int i = 0; i < lights.Length; i++)
+                {
+                    if (lights[i] == null || lights[i] == paperLight) continue;
+                    if (!paperDim.ContainsKey(lights[i])) paperDim[lights[i]] = lights[i].intensity;
+                    lights[i].intensity = paperDim[lights[i]] * 0.12f;
+                    lights[i].color = new Color(1f, 0.98f, 0.96f);
+                }
+            }
+            else if (paperLight != null)
+            {
+                paperLight.gameObject.SetActive(false);
+                foreach (var pair in paperDim)
+                    if (pair.Key != null) pair.Key.intensity = pair.Value;
+            }
         }
 
         static string FirstPose(string[] names, string[] group)

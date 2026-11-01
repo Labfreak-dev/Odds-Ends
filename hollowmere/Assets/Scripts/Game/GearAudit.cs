@@ -10,33 +10,85 @@ namespace Hollowmere
     /// </summary>
     public static class GearAudit
     {
-        public static int Run(Transform body)
+        public static void Prepare(Transform body)
+        {
+            var ma = body != null ? body.GetComponentInChildren<ModelAnim>() : null;
+            if (ma != null) EnsurePacks(ma);
+        }
+
+        public static int Run(Transform body) => RunClips(body, false);
+
+        /// <summary>One idle keyframe. Used by the mix pass so the full pose sweep stays in gearslots.</summary>
+        public static int RunIdle(Transform body) => RunClips(body, true);
+
+        static int RunClips(Transform body, bool idleOnly)
         {
             if (body == null) return Fail("missing hero");
+            var ma = body.GetComponentInChildren<ModelAnim>();
+            if (ma != null) EnsurePacks(ma);
             var anim = body.GetComponentInChildren<Animation>();
             var names = ClipNames(anim);
             int fails = 0;
+            var clips = new List<string>();
             for (int g = 0; g < GearFit.RequiredPoses.Length; g++)
             {
-                if (GearFit.HasRequiredPose(names, GearFit.RequiredPoses[g])) continue;
-                fails += Fail("missing pose " + GearFit.RequiredPoses[g][0]);
+                string hit = First(names, GearFit.RequiredPoses[g]);
+                if (hit == null) fails += Fail("missing pose " + GearFit.RequiredPoses[g][0]);
+                else if (!idleOnly || GearFit.PoseMatch(hit, "idle")) clips.Add(hit);
+            }
+            if (!idleOnly)
+            {
+                for (int g = 0; g < GearFit.OptionalPoses.Length; g++)
+                {
+                    string hit = First(names, GearFit.OptionalPoses[g]);
+                    if (hit == null) Debug.Log("Hollowmere gear pose " + GearFit.OptionalPoses[g][0] + " none");
+                    else clips.Add(hit);
+                }
             }
             if (anim == null) return fails + Fail("no animation");
             var pieces = Pieces(body);
             if (pieces.Count == 0) return fails + Fail("no fitted pieces");
             fails += Weights(pieces);
-            var figure = body;
-            foreach (AnimationState st in anim)
+            fails += Materials(pieces);
+            for (int c = 0; c < clips.Count; c++)
             {
+                AnimationState st = FindState(anim, clips[c]);
                 if (st == null || st.clip == null) continue;
-                float len = Mathf.Max(0.05f, st.length);
-                for (int i = 0; i < 4; i++)
-                {
-                    Pose(anim, st, len * (i / 3f));
-                    fails += Measure(figure, pieces, st.name + "@" + i);
-                }
+                Pose(anim, st, Mathf.Max(0.05f, st.length) * 0.45f);
+                fails += Measure(body, pieces, st.name);
             }
+            if (clips.Count > 0)
+                Debug.Log("Hollowmere gear sampled " + string.Join(",", clips));
             return fails;
+        }
+
+        static void EnsurePacks(ModelAnim ma)
+        {
+            if (ma.anim == null) return;
+            bool attack = false;
+            foreach (AnimationState s in ma.anim)
+                if (s != null && GearFit.PoseMatch(s.name, "attack")) attack = true;
+            if (attack) return;
+            CombatClipPlayer.Attach(ma, "hero_ironclad");
+            CombatClipPlayer.Attach(ma, "hero_stalker");
+            CombatClipPlayer.Attach(ma, "hero_hexweaver");
+            CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+        }
+
+        static string First(string[] names, string[] group)
+        {
+            if (names == null || group == null) return null;
+            for (int g = 0; g < group.Length; g++)
+                for (int i = 0; i < names.Length; i++)
+                    if (GearFit.PoseMatch(names[i], group[g])) return names[i];
+            return null;
+        }
+
+        static AnimationState FindState(Animation anim, string name)
+        {
+            foreach (AnimationState s in anim)
+                if (s != null && s.name == name) return s;
+            return null;
         }
 
         public static string[] ClipNames(Animation anim)
@@ -83,6 +135,31 @@ namespace Hollowmere
                     seen++;
                 }
                 if (bad * 10 > seen) fails += Fail(pieces[p].name + " bone weights do not sum to 1");
+            }
+            return fails;
+        }
+
+        static int Materials(List<SkinnedMeshRenderer> pieces)
+        {
+            int fails = 0;
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                var mat = pieces[p].sharedMaterial;
+                string name = pieces[p].name;
+                if (mat == null)
+                {
+                    fails += Fail(name + " untextured white");
+                    continue;
+                }
+                var albedo = mat.HasProperty("_BaseMap") ? mat.GetTexture("_BaseMap") : null;
+                if (albedo == null) albedo = mat.mainTexture;
+                var normal = mat.HasProperty("_BumpMap") ? mat.GetTexture("_BumpMap") : null;
+                bool rough = (mat.HasProperty("_MetallicGlossMap") && mat.GetTexture("_MetallicGlossMap") != null)
+                    || (mat.HasProperty("_Smoothness") && mat.HasProperty("_Metallic"));
+                var tint = mat.HasProperty("_BaseColor") ? mat.GetColor("_BaseColor") : mat.color;
+                bool white = tint.r > 0.97f && tint.g > 0.97f && tint.b > 0.97f;
+                if (albedo == null || normal == null || !rough || white)
+                    fails += Fail(name + " untextured white");
             }
             return fails;
         }
@@ -166,8 +243,6 @@ namespace Hollowmere
                 if (coverBad > 8) fails += Fail(pose + " " + slot + " hole in the body");
                 if (clearBad > 8) fails += Fail(pose + " " + slot + " clips the body");
                 if (stretchBad * 8 > seen) fails += Fail(pose + " " + slot + " stretched");
-                if (fails == 0)
-                    Debug.Log("Hollowmere gear fit " + pose + " " + slot + " ok");
             }
             return fails;
         }

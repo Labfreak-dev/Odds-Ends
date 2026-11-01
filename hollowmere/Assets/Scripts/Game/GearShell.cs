@@ -197,6 +197,29 @@ namespace Hollowmere
                 if (part == slot) { region[i] = true; n++; }
             }
             if (n < GearFit.MinShellVerts) return null;
+            // Keep the outer surface. Inward faces (eyes, mouth, armpit) fold the shell into a blob.
+            Vector3 center = Vector3.zero;
+            for (int i = 0; i < verts.Length; i++)
+                if (region[i]) center += verts[i];
+            center /= n;
+            var outer = new bool[region.Length];
+            int nOuter = 0;
+            for (int i = 0; i < verts.Length; i++)
+            {
+                if (!region[i]) continue;
+                Vector3 nrm = normals != null && normals.Length == verts.Length ? normals[i] : Vector3.up;
+                Vector3 dir = verts[i] - center;
+                if (dir.sqrMagnitude < 1e-8f || Vector3.Dot(nrm, dir.normalized) > 0.2f)
+                {
+                    outer[i] = true;
+                    nOuter++;
+                }
+            }
+            if (nOuter >= GearFit.MinShellVerts)
+            {
+                region = outer;
+                n = nOuter;
+            }
             var map = new int[verts.Length];
             var nv = new Vector3[n];
             var nn = new Vector3[n];
@@ -270,8 +293,17 @@ namespace Hollowmere
             smr.bones = hero.bones;
             smr.rootBone = hips != null ? hips : hero.rootBone;
             smr.updateWhenOffscreen = true;
-            smr.sharedMaterial = Art.Mat(SlotTint(slot), 0.15f);
+            smr.sharedMaterial = ShellMat(slot);
             Art.AdoptShaders(go);
+        }
+
+        /// <summary>Metal for the harness, darkened iron for leather. Both carry a normal and a roughness map.</summary>
+        static Material ShellMat(EquipSlot slot)
+        {
+            bool leather = slot == EquipSlot.Waist || slot == EquipSlot.Legs || slot == EquipSlot.Feet;
+            string surf = leather ? "rusted_iron" : "iron_plates";
+            var tint = leather ? new Color(0.78f, 0.62f, 0.46f) : new Color(0.86f, 0.88f, 0.92f);
+            return PbrKit.UrpLit(surf, leather ? 0.4f : 0.22f, tint, leather ? 0.12f : 0.7f, leather ? 0.38f : 0.52f, 0.75f);
         }
 
         static Color SlotTint(EquipSlot slot)

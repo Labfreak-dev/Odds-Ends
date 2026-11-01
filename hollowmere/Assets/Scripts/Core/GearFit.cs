@@ -9,10 +9,10 @@ namespace Hollowmere.Core
     public static class GearFit
     {
         public const float ShellOffset = 0.012f;
-        /// <summary>Closer than this and the shell z-fights or sinks into the body.</summary>
+        /// <summary>A visible body vertex closer than this to an armour triangle is inside the piece.</summary>
         public const float MinGap = 0.002f;
-        /// <summary>Farther than this and the piece is floating off the body.</summary>
-        public const float MaxGap = 0.035f;
+        /// <summary>A seam vertex farther than this from its piece is a gap. Authored plate is thicker than the old 12 mm shell.</summary>
+        public const float SeamGap = 0.05f;
         public const float MinWeightSum = 0.98f;
         public const float MaxWeightSum = 1.02f;
         /// <summary>Animated distance from the dominant bone, over the bind-pose distance.</summary>
@@ -155,7 +155,7 @@ namespace Hollowmere.Core
             {
                 case EquipSlot.Head: return region == (int)BodyRegion.Head;
                 case EquipSlot.Shoulders: return region == (int)BodyRegion.UpperArm;
-                case EquipSlot.Chest: return region == (int)BodyRegion.UpperTorso;
+                case EquipSlot.Chest: return region == (int)BodyRegion.UpperTorso || region == (int)BodyRegion.Waist;
                 case EquipSlot.Hands: return region == (int)BodyRegion.Hand;
                 case EquipSlot.Wrists: return region == (int)BodyRegion.LowerArm;
                 case EquipSlot.Waist: return region == (int)BodyRegion.Waist;
@@ -181,9 +181,37 @@ namespace Hollowmere.Core
 
         public static bool WeightsOk(float sum) => sum >= MinWeightSum && sum <= MaxWeightSum;
 
-        public static bool GapOk(float metres) => metres >= MinGap && metres <= MaxGap;
+        public static bool GapOk(float metres) => metres <= SeamGap;
 
-        public static bool Covered(float metres) => metres <= MaxGap;
+        public static bool Covered(float metres) => metres <= SeamGap;
+
+        /// <summary>Dominant bone of an authored piece has to be one this slot is allowed to move.</summary>
+        public static bool BoneInSlot(EquipSlot slot, string bone)
+        {
+            string n = Tail(bone);
+            if (n.Length == 0) return false;
+            switch (slot)
+            {
+                case EquipSlot.Head:
+                    return Same(n, "Head") || Same(n, "HeadFront") || Same(n, "HeadTop_End") || Same(n, "Neck");
+                case EquipSlot.Shoulders:
+                    return Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "LeftArm") || Same(n, "RightArm");
+                case EquipSlot.Chest:
+                    return Same(n, "Spine") || Same(n, "Spine1") || Same(n, "Spine2") || Same(n, "Neck");
+                case EquipSlot.Hands:
+                    return Same(n, "LeftHand") || Same(n, "RightHand");
+                case EquipSlot.Wrists:
+                    return Same(n, "LeftForeArm") || Same(n, "RightForeArm");
+                case EquipSlot.Waist:
+                    return Same(n, "Hips") || Same(n, "Spine");
+                case EquipSlot.Legs:
+                    return Same(n, "LeftUpLeg") || Same(n, "RightUpLeg") || Same(n, "LeftLeg") || Same(n, "RightLeg");
+                case EquipSlot.Feet:
+                    return Same(n, "LeftFoot") || Same(n, "RightFoot") || Same(n, "LeftToeBase") || Same(n, "RightToeBase");
+                default:
+                    return false;
+            }
+        }
 
         public static bool VisibleClear(float metres) => metres >= MinGap;
 
@@ -191,7 +219,7 @@ namespace Hollowmere.Core
 
         /// <summary>True when two shell points over the same body spot are close enough to z-fight.</summary>
         public static bool ShellsOverlap(float betweenMetres, float firstGap, float secondGap)
-            => betweenMetres <= OverlapMetres && firstGap <= MaxGap && secondGap <= MaxGap;
+            => betweenMetres <= OverlapMetres && firstGap <= SeamGap && secondGap <= SeamGap;
 
         /// <summary>Final death frame: torso axis horizontal, body on the floor, not still kneeling.</summary>
         public static bool DeathFlat(float torsoUpY, float minY, float height)

@@ -28,12 +28,12 @@ namespace Hollowmere
         // hips and the head only, so it cannot fold the chest down to the belt.
         static readonly Key[] Hit =
         {
-            new Key { T = 0.12f, Bone = "Hips", Euler = new Vector3(-10f, 8f, 0f) },
-            new Key { T = 0.12f, Bone = "Head", Euler = new Vector3(-8f, -14f, 0f) },
+            new Key { T = 0.12f, Bone = "Hips", Euler = new Vector3(-14f, 10f, 0f) },
+            new Key { T = 0.12f, Bone = "Head", Euler = new Vector3(-12f, -16f, 0f) },
 
-            new Key { T = 0.30f, Bone = "Hips", Euler = new Vector3(-18f, 14f, 0f) },
-            new Key { T = 0.30f, Bone = "Spine2", Euler = new Vector3(-8f, 0f, 0f) },
-            new Key { T = 0.30f, Bone = "Head", Euler = new Vector3(-16f, -24f, 0f) },
+            new Key { T = 0.30f, Bone = "Hips", Euler = new Vector3(-28f, 18f, 0f) },
+            new Key { T = 0.30f, Bone = "Spine2", Euler = new Vector3(-12f, 0f, 0f) },
+            new Key { T = 0.30f, Bone = "Head", Euler = new Vector3(-24f, -28f, 0f) },
         };
 
         static readonly Key[] Death =

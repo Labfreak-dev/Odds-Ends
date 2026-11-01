@@ -66,7 +66,9 @@ namespace Hollowmere
                 var child = root.GetChild(i);
                 int region = RegionOf(child.name);
                 if (region < 0 || region >= on.Length) continue;
-                child.gameObject.SetActive(on[region]);
+                child.gameObject.SetActive(true);
+                var smr = child.GetComponent<SkinnedMeshRenderer>();
+                if (smr != null) smr.forceRenderingOff = !on[region];
             }
         }
 
@@ -78,9 +80,10 @@ namespace Hollowmere
             if (root == null) return list;
             for (int i = 0; i < root.childCount; i++)
             {
-                if (!root.GetChild(i).gameObject.activeInHierarchy) continue;
                 var smr = root.GetChild(i).GetComponent<SkinnedMeshRenderer>();
-                if (smr != null) list.Add(smr);
+                if (smr == null || !smr.enabled || smr.forceRenderingOff) continue;
+                if (!smr.gameObject.activeInHierarchy) continue;
+                list.Add(smr);
             }
             return list;
         }
@@ -251,7 +254,15 @@ namespace Hollowmere
             }
             var mesh = Object.Instantiate(src.sharedMesh);
             mesh.name = "gear_" + GearFit.SlotName(slot);
-            if (!Remap(mesh, src.bones, heroSkin.bones, heroSkin.sharedMesh.bindposes))
+            StripToSlot(mesh, src.bones, slot);
+            if (mesh.triangles == null || mesh.triangles.Length < 3)
+            {
+                Object.DestroyImmediate(mesh);
+                Object.DestroyImmediate(inst);
+                Debug.Log("Hollowmere gear " + GearFit.SlotName(slot) + " empty after bone strip");
+                return false;
+            }
+            if (!Remap(mesh, src.bones, heroSkin.bones, src.sharedMesh.bindposes, heroSkin.sharedMesh.bindposes))
             {
                 Object.DestroyImmediate(mesh);
                 Object.DestroyImmediate(inst);
@@ -279,16 +290,78 @@ namespace Hollowmere
             return true;
         }
 
-        static bool Remap(Mesh mesh, Transform[] srcBones, Transform[] heroBones, Matrix4x4[] heroBind)
+        /// <summary>Drop triangles whose vertices are skinned to some other slot. The GLB packs those in beside the piece.</summary>
+        static void StripToSlot(Mesh mesh, Transform[] srcBones, EquipSlot slot)
         {
-            if (srcBones == null || heroBones == null || heroBind == null) return false;
+            var weights = mesh.boneWeights;
+            var tris = mesh.triangles;
+            if (weights == null || tris == null || srcBones == null) return;
+            var keepV = new bool[weights.Length];
+            int kept = 0;
+            for (int i = 0; i < weights.Length; i++)
+            {
+                int d = GearShell.Dominant(weights[i]);
+                if (d < 0 || d >= srcBones.Length || srcBones[d] == null) continue;
+                if (!GearFit.BoneInSlot(slot, srcBones[d].name)) continue;
+                keepV[i] = true;
+                kept++;
+            }
+            if (kept < 3) return;
+            var map = new int[weights.Length];
+            for (int i = 0; i < map.Length; i++) map[i] = -1;
+            var used = new List<int>();
+            var keep = new List<int>();
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
+                if (!keepV[a] || !keepV[b] || !keepV[c]) continue;
+                keep.Add(Take(map, used, a));
+                keep.Add(Take(map, used, b));
+                keep.Add(Take(map, used, c));
+            }
+            if (keep.Count < 3) return;
+            var v = mesh.vertices;
+            var nrm = mesh.normals;
+            var uv = mesh.uv;
+            var nv = new Vector3[used.Count];
+            var nn = nrm != null && nrm.Length == v.Length ? new Vector3[used.Count] : null;
+            var nuv = uv != null && uv.Length == v.Length ? new Vector2[used.Count] : null;
+            var nw = new BoneWeight[used.Count];
+            for (int i = 0; i < used.Count; i++)
+            {
+                int s = used[i];
+                nv[i] = v[s];
+                if (nn != null) nn[i] = nrm[s];
+                if (nuv != null) nuv[i] = uv[s];
+                nw[i] = weights[s];
+            }
+            mesh.vertices = nv;
+            if (nn != null) mesh.normals = nn;
+            if (nuv != null) mesh.uv = nuv;
+            mesh.boneWeights = nw;
+            mesh.triangles = keep.ToArray();
+            mesh.RecalculateBounds();
+        }
+
+        static int Take(int[] map, List<int> used, int src)
+        {
+            if (map[src] >= 0) return map[src];
+            map[src] = used.Count;
+            used.Add(src);
+            return map[src];
+        }
+
+        /// <summary>GLB inverse bind, written into the hero bone's slot. Unmatched hero bones keep the hero bind.</summary>
+        static bool Remap(Mesh mesh, Transform[] srcBones, Transform[] heroBones, Matrix4x4[] srcBind, Matrix4x4[] heroBind)
+        {
+            if (srcBones == null || heroBones == null) return false;
             var weights = mesh.boneWeights;
             if (weights == null || weights.Length == 0) return false;
             var map = new int[srcBones.Length];
             int matched = 0;
             for (int i = 0; i < srcBones.Length; i++)
             {
-                map[i] = 0;
+                map[i] = -1;
                 if (srcBones[i] == null) continue;
                 string tail = GearFit.Tail(srcBones[i].name);
                 for (int h = 0; h < heroBones.Length; h++)
@@ -301,18 +374,43 @@ namespace Hollowmere
                 }
             }
             if (matched < 8) return false;
+            var dst = new Matrix4x4[heroBones.Length];
+            for (int i = 0; i < dst.Length; i++)
+                dst[i] = heroBind != null && i < heroBind.Length ? heroBind[i] : Matrix4x4.identity;
+            if (srcBind != null)
+            {
+                for (int i = 0; i < srcBones.Length && i < srcBind.Length; i++)
+                    if (map[i] >= 0) dst[map[i]] = srcBind[i];
+            }
             for (int i = 0; i < weights.Length; i++)
             {
                 var w = weights[i];
-                w.boneIndex0 = Map(w.boneIndex0, map);
-                w.boneIndex1 = Map(w.boneIndex1, map);
-                w.boneIndex2 = Map(w.boneIndex2, map);
-                w.boneIndex3 = Map(w.boneIndex3, map);
+                int i0 = w.boneIndex0, i1 = w.boneIndex1, i2 = w.boneIndex2, i3 = w.boneIndex3;
+                float f0 = w.weight0, f1 = w.weight1, f2 = w.weight2, f3 = w.weight3;
+                RemapWeight(ref i0, ref f0, map);
+                RemapWeight(ref i1, ref f1, map);
+                RemapWeight(ref i2, ref f2, map);
+                RemapWeight(ref i3, ref f3, map);
+                w.boneIndex0 = i0; w.weight0 = f0;
+                w.boneIndex1 = i1; w.weight1 = f1;
+                w.boneIndex2 = i2; w.weight2 = f2;
+                w.boneIndex3 = i3; w.weight3 = f3;
                 weights[i] = w;
             }
             mesh.boneWeights = weights;
-            mesh.bindposes = heroBind;
+            mesh.bindposes = dst;
             return true;
+        }
+
+        static void RemapWeight(ref int bone, ref float weight, int[] map)
+        {
+            if (bone < 0 || bone >= map.Length || map[bone] < 0)
+            {
+                bone = 0;
+                weight = 0f;
+                return;
+            }
+            bone = map[bone];
         }
 
         static int Map(int bone, int[] map)

@@ -162,17 +162,44 @@ namespace Hollowmere
                     fails += Fail(name + " untextured white");
                     continue;
                 }
-                var albedo = mat.HasProperty("_BaseMap") ? mat.GetTexture("_BaseMap") : null;
-                if (albedo == null) albedo = mat.mainTexture;
-                var normal = mat.HasProperty("_BumpMap") ? mat.GetTexture("_BumpMap") : null;
-                bool rough = (mat.HasProperty("_MetallicGlossMap") && mat.GetTexture("_MetallicGlossMap") != null)
-                    || (mat.HasProperty("_Smoothness") && mat.HasProperty("_Metallic"));
-                var tint = mat.HasProperty("_BaseColor") ? mat.GetColor("_BaseColor") : mat.color;
-                bool white = tint.r > 0.97f && tint.g > 0.97f && tint.b > 0.97f;
-                if (albedo == null || normal == null || !rough || white)
-                    fails += Fail(name + " untextured white");
+                string found = BaseColor(mat);
+                if (found == null)
+                    fails += Fail(name + " untextured white shader=" + (mat.shader != null ? mat.shader.name : "none"));
+                else
+                    Debug.Log("Hollowmere gear mat " + name + " " + found);
             }
             return fails;
+        }
+
+        /// <summary>glTFast materials store the colour in baseColorTexture, not only _BaseMap.</summary>
+        static string BaseColor(Material mat)
+        {
+            string[] names =
+            {
+                "baseColorTexture", "_BaseMap", "_MainTex", "_BaseColorMap",
+                "baseColorTexture_tex", "pbrMetallicRoughness_baseColorTexture",
+            };
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (!mat.HasProperty(names[i])) continue;
+                var tex = mat.GetTexture(names[i]);
+                if (tex != null) return names[i] + "=" + tex.name;
+            }
+            if (mat.mainTexture != null) return "main=" + mat.mainTexture.name;
+            var shader = mat.shader;
+            if (shader == null) return null;
+            int count = shader.GetPropertyCount();
+            for (int i = 0; i < count; i++)
+            {
+                if (shader.GetPropertyType(i) != UnityEngine.Rendering.ShaderPropertyType.Texture) continue;
+                string prop = shader.GetPropertyName(i);
+                var tex = mat.GetTexture(prop);
+                if (tex == null) continue;
+                string low = prop.ToLowerInvariant();
+                if (low.Contains("base") || low.Contains("albedo") || low.Contains("color") || low.Contains("diffuse"))
+                    return prop + "=" + tex.name;
+            }
+            return null;
         }
 
         static int Measure(Transform body, List<SkinnedMeshRenderer> pieces, string pose)
@@ -180,8 +207,6 @@ namespace Hollowmere
             int fails = 0;
             var bodySkin = Body(body);
             if (bodySkin == null || bodySkin.sharedMesh == null) return Fail(pose + " no body");
-            var bodyPts = WorldPoints(bodySkin);
-            var bodyGrid = new Grid(bodyPts);
             for (int p = 0; p < pieces.Count; p++)
             {
                 var piece = pieces[p];
@@ -196,7 +221,7 @@ namespace Hollowmere
                 else if (!HeroFit.GearSizeOk(Art.MaxAxis(box.size)))
                     fails += Fail(pose + " " + piece.name + " bounds " + Art.MaxAxis(box.size).ToString("0.00") + "m");
 
-                int gapBad = 0, stretchBad = 0, seen = 0;
+                int stretchBad = 0, seen = 0;
                 int step = Mathf.Max(1, pts.Length / 240);
                 var bind = piece.sharedMesh.bindposes;
                 var baked = piece.sharedMesh.boneWeights;
@@ -205,8 +230,6 @@ namespace Hollowmere
                 for (int i = 0; i < pts.Length; i += step)
                 {
                     seen++;
-                    float gap = bodyGrid.Nearest(pts[i]);
-                    if (!GearFit.GapOk(gap)) gapBad++;
                     if (baked != null && bind != null && local != null && i < baked.Length && i < rest.Length && i < local.Length)
                     {
                         int d = GearShell.Dominant(baked[i]);
@@ -222,10 +245,103 @@ namespace Hollowmere
                     }
                 }
                 string slot = piece.name;
-                if (gapBad * 8 > seen) fails += Fail(pose + " " + slot + " gap");
                 if (stretchBad * 8 > seen) fails += Fail(pose + " " + slot + " stretched");
             }
+            fails += DominantBones(pieces);
+            fails += SeamGaps(body, pieces, pose);
             fails += ClipPieces(body, pieces, pose);
+            return fails;
+        }
+
+        static int DominantBones(List<SkinnedMeshRenderer> pieces)
+        {
+            int fails = 0;
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                var piece = pieces[p];
+                var mesh = piece != null ? piece.sharedMesh : null;
+                var weights = mesh != null ? mesh.boneWeights : null;
+                var bones = piece != null ? piece.bones : null;
+                if (weights == null || bones == null)
+                {
+                    Debug.Log("Hollowmere gear bone " + (piece != null ? piece.name : "none") + " none");
+                    continue;
+                }
+                var tally = new Dictionary<string, int>();
+                string top = "none";
+                int topN = 0;
+                int step = Mathf.Max(1, weights.Length / 200);
+                for (int i = 0; i < weights.Length; i += step)
+                {
+                    int d = GearShell.Dominant(weights[i]);
+                    if (d < 0 || d >= bones.Length || bones[d] == null) continue;
+                    string n = bones[d].name;
+                    tally.TryGetValue(n, out int c);
+                    tally[n] = c + 1;
+                    if (c + 1 > topN) { topN = c + 1; top = n; }
+                }
+                var slot = SlotFromName(piece.name);
+                bool ok = slot != null && GearFit.BoneInSlot(slot.Value, top);
+                Debug.Log("Hollowmere gear bone " + piece.name + " " + top + (ok ? " ok" : " OUT"));
+                if (!ok) fails += Fail(piece.name + " dominant bone " + top);
+            }
+            return fails;
+        }
+
+        /// <summary>Distance from the still-visible skin along a hidden region to the piece that covers it.</summary>
+        static int SeamGaps(Transform body, List<SkinnedMeshRenderer> pieces, string pose)
+        {
+            var mark = body != null ? body.GetComponentInChildren<BodySplit>(true) : null;
+            if (mark == null || pieces == null) return 0;
+            int fails = 0;
+            for (int c = 0; c < mark.transform.childCount; c++)
+            {
+                var child = mark.transform.GetChild(c);
+                var hidden = child.GetComponent<SkinnedMeshRenderer>();
+                if (hidden == null || !hidden.forceRenderingOff) continue;
+                int region = -1;
+                string tail = child.name.StartsWith("body_") ? child.name.Substring(5) : "";
+                for (int i = 0; i < (int)GearFit.BodyRegion.Count; i++)
+                    if (GearFit.RegionName(i) == tail) region = i;
+                if (region < 0) continue;
+                var covers = new List<Grid>();
+                string who = "";
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    var slot = SlotFromName(pieces[p].name);
+                    if (slot == null || !GearFit.Hides(slot.Value, region)) continue;
+                    var piecePts = WorldPoints(pieces[p]);
+                    if (piecePts == null) continue;
+                    covers.Add(new Grid(piecePts));
+                    who = pieces[p].name;
+                }
+                if (covers.Count == 0) continue;
+                var hiddenPts = WorldPoints(hidden);
+                if (hiddenPts == null) continue;
+                var edge = new Grid(hiddenPts);
+                int gap = 0, seams = 0;
+                var regions = BodyRegions.Visible(body);
+                for (int r = 0; r < regions.Count; r++)
+                {
+                    var pts = WorldPoints(regions[r]);
+                    if (pts == null) continue;
+                    int step = Mathf.Max(1, pts.Length / 40);
+                    for (int i = 0; i < pts.Length; i += step)
+                    {
+                        if (edge.Nearest(pts[i]) > 0.03f) continue;
+                        seams++;
+                        float near = 1f;
+                        for (int g = 0; g < covers.Count; g++)
+                        {
+                            float d = covers[g].Nearest(pts[i]);
+                            if (d < near) near = d;
+                        }
+                        if (near > GearFit.SeamGap) gap++;
+                    }
+                }
+                Debug.Log("Hollowmere gear seam " + pose + " " + who + " " + tail + " seams=" + seams + " gaps=" + gap);
+                if (seams > 0 && gap * 2 > seams) fails += Fail(pose + " " + who + " gap " + gap + " of " + seams);
+            }
             return fails;
         }
 

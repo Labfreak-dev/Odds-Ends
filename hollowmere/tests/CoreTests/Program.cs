@@ -797,7 +797,7 @@ static class Program
         Check(GearFit.Visible.Length == 8, "eight armour slots are skinned");
         Check(GearFit.Adjacent.Length >= 7, "adjacent slots are all paired");
         Check(GearFit.WeightsOk(1f) && !GearFit.WeightsOk(0.2f), "bone weights have to sum to one");
-        Check(GearFit.GapOk(GearFit.ShellOffset) && !GearFit.GapOk(0.001f) && !GearFit.GapOk(0.2f), "the shell sits off the skin without floating");
+        Check(GearFit.GapOk(0.012f) && GearFit.GapOk(0.04f) && !GearFit.GapOk(0.2f), "authored armour may sit 4 cm off the seam and still cover it");
         Check(GearFit.StretchOk(1f) && !GearFit.StretchOk(8f), "a vertex that flies off its bone is a stretch");
         Check(GearFit.Covered(0.02f) && !GearFit.Covered(0.2f), "a hidden body vertex must sit under its piece");
         Check(GearFit.VisibleClear(0.02f) && !GearFit.VisibleClear(0.001f), "visible skin must stay clear of the shell");
@@ -832,6 +832,11 @@ static class Program
         worn[(int)EquipSlot.Shoulders] = true;
         Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperTorso) == EquipSlot.Chest, "chest beats shoulders for the upper torso");
         Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperArm) == EquipSlot.Shoulders, "shoulders own the upper arm");
+        worn[(int)EquipSlot.Waist] = true;
+        Check(GearFit.Hides(EquipSlot.Chest, (int)GearFit.BodyRegion.Waist), "the chest hides the waist");
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.Waist) == EquipSlot.Chest, "chest beats the belt for the hips");
+        Check(GearFit.BoneInSlot(EquipSlot.Legs, "mixamorig:RightUpLeg"), "a greave may be weighted to the thigh");
+        Check(!GearFit.BoneInSlot(EquipSlot.Waist, "mixamorig:RightForeArm"), "a belt is not weighted to the forearm");
         Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
     }
 

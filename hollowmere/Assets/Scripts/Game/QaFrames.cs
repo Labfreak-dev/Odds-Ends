@@ -15,6 +15,7 @@ namespace Hollowmere
     ///   Hollowmere -qaFrames monsterdeath
     ///   Hollowmere -qaFrames skelclose
     ///   Hollowmere -qaFrames propclose
+    ///   Hollowmere -qaFrames telegraphs
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -49,6 +50,11 @@ namespace Hollowmere
             if (mode == "combatfeel")
             {
                 yield return CombatFeelFrames(gm);
+                yield break;
+            }
+            if (mode == "telegraphs")
+            {
+                yield return TelegraphFrames(gm);
                 yield break;
             }
             if (mode != "move" && mode != "pet" && mode != "combat")
@@ -553,6 +559,191 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere QA frame failed: " + e.Message);
             }
             UnityEngine.Object.Destroy(tex);
+        }
+
+        static IEnumerator TelegraphFrames(GameManager gm)
+        {
+            var f = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.4f);
+            Screen.SetResolution(f.width, f.height, FullScreenMode.Windowed);
+            yield return null;
+            CheapMonsterStage();
+            var origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 40f;
+            int fails = 0;
+            TelegraphBook.Audit(msg =>
+            {
+                fails++;
+                Debug.LogError("Hollowmere QA telegraph FAIL " + msg);
+            });
+            if (fails == 0) Debug.Log("Hollowmere QA telegraph audit ok");
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            floor.name = "telegraphFloor";
+            floor.transform.position = origin;
+            floor.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
+            var floorCol = floor.GetComponent<Collider>();
+            if (floorCol != null) UnityEngine.Object.Destroy(floorCol);
+            var floorR = floor.GetComponent<Renderer>();
+            if (floorR != null)
+            {
+                floorR.sharedMaterial = Art.Mat(new Color(0.16f, 0.15f, 0.14f));
+                floorR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            string[] shapes = { "cone", "line", "ring", "rune" };
+            string[] ids = { "bonewalker", "boneslinger", "stonehulk", "bogshaman" };
+            TelegraphShape[] expect = { TelegraphShape.Cone, TelegraphShape.Line, TelegraphShape.Ring, TelegraphShape.Rune };
+            float[] fills = { 0f, 0.5f, 1f };
+            var cam = Camera.main;
+            var look = origin + Vector3.forward * 1.5f + Vector3.up * 0.7f;
+            var camPos = origin + new Vector3(-2.6f, 5.2f, -5.1f);
+            if (cam != null)
+            {
+                cam.fieldOfView = 36f;
+                var rig = cam.GetComponent<CameraRig>();
+                var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+                if (rig != null) rig.Lock(camPos, rot);
+                else cam.transform.SetPositionAndRotation(camPos, rot);
+            }
+            int shots = 0;
+            for (int s = 0; s < shapes.Length; s++)
+            {
+                var mon = MonsterDb.Get(ids[s]);
+                var ms = MonsterDb.Create(mon, 8, MonsterRank.Normal, new Rng(4), 3);
+                var actor = MonsterActor.Spawn(ms, origin, 1);
+                actor.transform.rotation = Quaternion.LookRotation(Vector3.forward);
+                var tg = TelegraphBook.ForMonster(ids[s]);
+                if (tg == null || !TelegraphBook.Shaped(tg) || tg.shape != expect[s])
+                    Debug.LogError("Hollowmere QA telegraph FAIL " + ids[s] + " uses the default circle");
+                var anim = actor.GetComponentInChildren<ModelAnim>();
+                if (anim != null)
+                {
+                    bool cast = expect[s] == TelegraphShape.Rune || expect[s] == TelegraphShape.Line;
+                    anim.BeginAttack(cast, 1.4f);
+                    if (tg != null) anim.SetLeadIn(tg.windupSpeed);
+                    anim.Tick(0f, 0.04f);
+                }
+                var body = TelegraphBody.Arm(actor, tg, 3f, ms.def.element);
+                var mark = TelegraphMark.Place(tg, actor.Pos, Vector3.forward, 3f, ms.def.element);
+                if (mark == null || mark.shape != expect[s])
+                    Debug.LogError("Hollowmere QA telegraph FAIL " + shapes[s] + " mark is not a shaped TelegraphDef");
+                for (int i = 0; i < fills.Length; i++)
+                {
+                    if (mark != null) mark.SetFill(fills[i]);
+                    if (body != null) body.SetSwing(fills[i]);
+                    yield return new WaitForEndOfFrame();
+                    bool wind = anim != null && anim.Attacking;
+                    Debug.Log("Hollowmere QA telegraph " + shapes[s]
+                        + " fill=" + fills[i].ToString("0.00")
+                        + " shape=" + (mark != null ? mark.shape.ToString() : "circle")
+                        + " windup=" + wind
+                        + " glow=" + (body != null && body.Armed));
+                    if (!wind) Debug.LogError("Hollowmere QA telegraph FAIL " + shapes[s] + " has no wind-up");
+                    if (mark == null || mark.shape != expect[s])
+                        Debug.LogError("Hollowmere QA telegraph FAIL " + shapes[s] + " uses the default circle");
+                    LogWindupRead(actor, shapes[s]);
+                    Save("telegraphs-" + shapes[s], i);
+                    shots++;
+                }
+                if (mark != null)
+                {
+                    mark.transform.position += Vector3.right * 80f;
+                    UnityEngine.Object.Destroy(mark.gameObject);
+                }
+                actor.transform.position += Vector3.right * 80f;
+                UnityEngine.Object.Destroy(actor.gameObject);
+            }
+            Debug.Log("Hollowmere QA frames saved: " + shots + " telegraphs");
+            Application.Quit();
+        }
+
+        /// <summary>The wind-up must leave the albedo readable. A flat white body fails.</summary>
+        static void LogWindupRead(MonsterActor actor, string shape)
+        {
+            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            if (tex == null || actor == null) return;
+            if (!BodySampleRect(actor, tex.width, tex.height, out int x0, out int y0, out int x1, out int y1))
+            {
+                Debug.LogError("Hollowmere QA telegraph FAIL " + shape + " wind-up has no body pixels");
+                UnityEngine.Object.Destroy(tex);
+                return;
+            }
+            double sum = 0, sumSq = 0;
+            int count = 0;
+            for (int y = y0; y < y1; y += 2)
+            {
+                for (int x = x0; x < x1; x += 2)
+                {
+                    var c = tex.GetPixel(x, y);
+                    double l = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
+                    sum += l;
+                    sumSq += l * l;
+                    count++;
+                }
+            }
+            UnityEngine.Object.Destroy(tex);
+            if (count < 16)
+            {
+                Debug.LogError("Hollowmere QA telegraph FAIL " + shape + " wind-up sample is empty");
+                return;
+            }
+            double mean = sum / count;
+            double var = sumSq / count - mean * mean;
+            if (var < 0) var = 0;
+            Debug.Log("Hollowmere QA telegraph " + shape + " luma=" + mean.ToString("0.000") + " var=" + var.ToString("0.0000"));
+            if (mean > 0.68 || (mean > 0.50 && var < 0.0025))
+                Debug.LogError("Hollowmere QA telegraph FAIL " + shape + " wind-up flat white luma="
+                    + mean.ToString("0.00") + " var=" + var.ToString("0.0000"));
+        }
+
+        static bool BodySampleRect(MonsterActor actor, int width, int height, out int x0, out int y0, out int x1, out int y1)
+        {
+            x0 = y0 = x1 = y1 = 0;
+            var cam = Camera.main;
+            if (cam == null || actor == null) return false;
+            bool any = false;
+            Bounds b = default;
+            foreach (var r in actor.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                string n = r.gameObject.name;
+                if (n == "label" || n == "telegraph") continue;
+                if (n.IndexOf("glow", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (n.IndexOf("charge", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                if (n.IndexOf("Trail", System.StringComparison.Ordinal) >= 0) continue;
+                if (!any) { b = r.bounds; any = true; }
+                else b.Encapsulate(r.bounds);
+            }
+            if (!any || b.size.sqrMagnitude < 0.01f) return false;
+            int minX = width, minY = height, maxX = 0, maxY = 0;
+            var ext = b.extents;
+            var c = b.center;
+            for (int iz = -1; iz <= 1; iz += 2)
+                for (int iy = -1; iy <= 1; iy += 2)
+                    for (int ix = -1; ix <= 1; ix += 2)
+                    {
+                        var w = c + Vector3.Scale(ext, new Vector3(ix, iy, iz));
+                        var vp = cam.WorldToViewportPoint(w);
+                        if (vp.z <= 0f) continue;
+                        int px = Mathf.Clamp((int)(vp.x * width), 0, width - 1);
+                        int py = Mathf.Clamp((int)(vp.y * height), 0, height - 1);
+                        if (px < minX) minX = px;
+                        if (py < minY) minY = py;
+                        if (px > maxX) maxX = px;
+                        if (py > maxY) maxY = py;
+                    }
+            if (maxX <= minX || maxY <= minY) return false;
+            int bw = maxX - minX;
+            int bh = maxY - minY;
+            x0 = minX + bw / 5;
+            x1 = maxX - bw / 5;
+            y0 = minY + bh / 3;
+            y1 = maxY - bh / 12;
+            if (x1 <= x0 + 4 || y1 <= y0 + 4) return false;
+            return true;
         }
 
         static IEnumerator CombatFeelFrames(GameManager gm)

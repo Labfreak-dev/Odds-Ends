@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9c3e7b14d2f4a6e8b0c1d2e3f405162, type: 3}
+  m_Name: tg_slam
+  m_EditorClassIdentifier: 
+  id: tg_slam
+  shape: 2
+  element: 0
+  biomeId: 
+  reach: 2.6
+  width: 2.6
+  angle: 40
+  radius: 2.5
+  inner: 0.46
+  fillFromOrigin: 0
+  scroll: 0.35
+  weaponGlow: 1
+  trail: 1
+  charge: 0
+  eyeGlow: 1
+  windupSpeed: 0.3
+  noiseName: crack1
+  monsters:
+  - stonehulk
+  - magmahulk
+  - bone_golem
+  - forest_brute
+  - warwolf
+  - boss_abbot
+  - boss_matriarch
+  - boss_ossuary
+  - boss_furnace
+  - boss_mutant
+  - boss_lava
+  useAffix: 0
+  affix: 0
+  attack: basic
+  plainCircle: 0

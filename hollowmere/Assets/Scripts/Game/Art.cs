@@ -1636,7 +1636,7 @@ namespace Hollowmere
         }
 
         AnimationState idle, walk, run, attack, hit, skill, current;
-        float attackLeft, attackTotal, hitLeft;
+        float attackLeft, attackTotal, hitLeft, leadIn = 1f;
         const float PunchIn = 0.85f;
         const float PunchOut = 1.75f;
         bool cached, attackEdge, skillLoop;
@@ -1675,6 +1675,7 @@ namespace Hollowmere
             attackEdge = true;
             skillLoop = false;
             skill = null;
+            leadIn = 1f;
             if (anim != null && !string.IsNullOrEmpty(clipName))
             {
                 var st = anim[clipName];
@@ -1682,6 +1683,9 @@ namespace Hollowmere
             }
             if (skill == null) skill = attack;
         }
+
+        /// <summary>Hold the attack clip slow for the first half so the wind-up reads.</summary>
+        public void SetLeadIn(float speed) => leadIn = Mathf.Clamp(speed, 0.15f, 1f);
 
         public void LoopSkill(float seconds)
         {
@@ -1727,7 +1731,7 @@ namespace Hollowmere
                 var clip = striking ? posed : flinch ? hit : Loco(groundSpeed, f.idle, f.walkRun);
                 if (clip != null)
                 {
-                    float rate = striking || flinch ? 1f : Rate(clip, groundSpeed, f.idle);
+                    float rate = flinch ? 1f : striking ? (AttackUnit < 0.45f ? leadIn : 1f) : Rate(clip, groundSpeed, f.idle);
                     float blend = striking || flinch ? f.attackBlend : f.locoBlend;
                     if (clip != current)
                     {
@@ -1737,7 +1741,8 @@ namespace Hollowmere
                         anim.CrossFade(clip.name, Mathf.Max(0.02f, blend));
                         if (striking && longPunch && skill == null) clip.time = PunchIn;
                     }
-                    else if (!striking && !flinch) clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
+                    else if (striking) clip.speed = rate;
+                    else if (!flinch) clip.speed = Mathf.MoveTowards(clip.speed, rate, dt / Mathf.Max(0.05f, blend));
                     if (striking && longPunch && skill == null && clip.time >= PunchOut) attackLeft = 0f;
                 }
             }
@@ -1749,7 +1754,7 @@ namespace Hollowmere
         {
             if (animator == null || animator.runtimeAnimatorController == null) return;
             animator.applyRootMotion = false;
-            animator.speed = 1f;
+            animator.speed = attackLeft > 0f && AttackUnit < 0.45f ? leadIn : 1f;
             var ps = animator.parameters;
             for (int i = 0; i < ps.Length; i++)
             {

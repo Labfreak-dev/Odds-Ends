@@ -47,6 +47,7 @@ namespace Hollowmere
                 bool bare = headSlot || CoversHead(r);
                 float emit = bare ? 0f : row.emit;
                 var glow = bare ? Color.black : RarityBook.Glow(it.rarity, family) * emit;
+                bool neck = !bare && (slot == EquipSlot.Chest || slot == EquipSlot.Shoulders) && r is SkinnedMeshRenderer smr && BakeNeckMask(smr);
                 var mats = r.materials;
                 for (int i = 0; i < mats.Length; i++)
                 {
@@ -74,6 +75,7 @@ namespace Hollowmere
                         if (m.HasProperty("_EdgeBoost")) m.SetFloat("_EdgeBoost", row.edge);
                         if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", emit > 0.02f ? 1f : 0f);
                         if (m.HasProperty("_KillEmit")) m.SetFloat("_KillEmit", 0f);
+                        if (m.HasProperty("_UseNeck")) m.SetFloat("_UseNeck", neck ? 1f : 0f);
                         if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", glow);
                         if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", glow);
                         if (emit > 0.02f) m.EnableKeyword("_EMISSION");
@@ -356,6 +358,55 @@ namespace Hollowmere
             src.b *= tint.b;
             return src;
         }
+
+        /// <summary>uv2.x = Neck/Head skin weight, or bind-pose nearness to the head bone (off inside 20 cm, smooth to 34 cm).</summary>
+        public static bool BakeNeckMask(SkinnedMeshRenderer smr)
+        {
+            var src = smr.sharedMesh;
+            if (src == null) return false;
+            if (src.name.EndsWith("_neck")) return true;
+            var bones = smr.bones;
+            if (bones == null || bones.Length == 0) return false;
+            var mesh = Object.Instantiate(src);
+            mesh.name = src.name + "_neck";
+            var verts = mesh.vertices;
+            var bw = mesh.boneWeights;
+            var bp = mesh.bindposes;
+            int head = -1;
+            for (int b = 0; b < bones.Length; b++)
+                if (bones[b] != null && Tail(bones[b].name) == "Head") { head = b; break; }
+            Vector3 headPos = Vector3.zero; float scale = 1f;
+            if (head >= 0 && head < bp.Length)
+            {
+                headPos = bp[head].inverse.MultiplyPoint3x4(Vector3.zero);
+                var lossy = smr.transform.lossyScale; scale = Mathf.Max(1e-4f, Mathf.Abs(lossy.x));
+            }
+            var uv2 = new Vector2[verts.Length];
+            for (int v = 0; v < verts.Length; v++)
+            {
+                float w = 0f;
+                if (bw != null && v < bw.Length)
+                {
+                    var k = bw[v];
+                    if (Hb(bones, k.boneIndex0)) w += k.weight0;
+                    if (Hb(bones, k.boneIndex1)) w += k.weight1;
+                    if (Hb(bones, k.boneIndex2)) w += k.weight2;
+                    if (Hb(bones, k.boneIndex3)) w += k.weight3;
+                }
+                float near = 0f;
+                if (head >= 0)
+                {
+                    float d = Vector3.Distance(verts[v], headPos) * scale;
+                    near = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.20f, 0.34f, d));
+                }
+                uv2[v] = new Vector2(Mathf.Clamp01(Mathf.Max(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(w * 2f)), near)), 0f);
+            }
+            mesh.uv2 = uv2;
+            smr.sharedMesh = mesh;
+            return true;
+        }
+
+        static bool Hb(Transform[] bones, int i) => i >= 0 && i < bones.Length && HeadBone(bones[i]);
 
         static bool HeadBone(Transform bone)
         {

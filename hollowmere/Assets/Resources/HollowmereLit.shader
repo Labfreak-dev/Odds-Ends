@@ -26,6 +26,7 @@ Shader "Hollowmere/Lit"
         _EdgeBoost ("Edge", Float) = 0
         _RimOnly ("Rim Only", Float) = 0
         _KillEmit ("Kill Emit", Float) = 0
+        _UseNeck ("Use Neck Mask", Float) = 0
         _TintMask ("Tint Mask", 2D) = "black" {}
         _HasTint ("Has Tint", Float) = 0
         _TintArmour ("Armour Tint", Color) = (1,1,1,1)
@@ -86,6 +87,7 @@ Shader "Hollowmere/Lit"
                 half _EdgeBoost;
                 half _RimOnly;
                 half _KillEmit;
+                half _UseNeck;
             CBUFFER_END
 
             // Hero face sphere. Set from the head bone. Zero radius disables the cut.
@@ -98,6 +100,7 @@ Shader "Hollowmere/Lit"
                 float3 normalOS : NORMAL;
                 float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
+                float2 uv2 : TEXCOORD1;
             };
 
             struct Varyings
@@ -110,6 +113,7 @@ Shader "Hollowmere/Lit"
                 float tangentSign : TEXCOORD4;
                 float3 normalOS : TEXCOORD5;
                 float3 positionOS : TEXCOORD6;
+                float neckMask : TEXCOORD7;
             };
 
             Varyings vert(Attributes v)
@@ -123,6 +127,8 @@ Shader "Hollowmere/Lit"
                 o.uv = v.uv;
                 o.normalOS = v.normalOS;
                 o.positionOS = v.positionOS.xyz;
+                // uv2.x = baked Neck/Head weight + bind-pose head proximity (chest/shoulders only). 0 elsewhere.
+                o.neckMask = saturate(v.uv2.x);
                 return o;
             }
 
@@ -224,7 +230,12 @@ Shader "Hollowmere/Lit"
                 float face = 1.0;
                 // Dark past the checked face sphere, so the collar cannot light the disc.
                 if (mask > 0.0 && _HmFaceRadius > 0.001)
+                {
                     face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - (_HmFaceRadius + 0.06)) * 25.0);
+                    // Smooth collar falloff: off inside 20 cm of the head bone, full by 34 cm.
+                    face *= smoothstep(0.20, 0.34, distance(i.positionWS, _HmFaceCenter.xyz));
+                }
+                face *= 1.0 - i.neckMask * step(0.5, _UseNeck);
                 lit += _EmissionColor.rgb * mask * face;
                 if (unity_FogParams.z < -0.0001)
                 {

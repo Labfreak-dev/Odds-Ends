@@ -277,16 +277,20 @@ namespace Hollowmere
                 var slot = GearFit.Visible[i];
                 var it = hero.Equipped(slot);
                 if (Item.IsNone(it)) continue;
-                int tier = GearTable.TierOf(it.tier, it.rarity);
+                int tier = RarityBook.VisualTier(it.rarity, it.tier);
                 string family = FamilyOf(it);
+                string meshFamily = RarityBook.MeshFamily(family, it.rarity);
+                // The infernal helm authors lava cracks into its emission map and its albedo.
+                if (slot == EquipSlot.Head && meshFamily == "infernal")
+                    meshFamily = family;
                 string slotName = GearFit.SlotName(slot);
-                var prefab = Load(family, slotName, tier, out bool lower);
+                var prefab = Load(meshFamily, slotName, tier, out bool lower);
                 if (prefab == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, family, tier, !lower);
+                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
@@ -298,44 +302,10 @@ namespace Hollowmere
             BodyRegions.Show(body, Coverage(body, placed));
         }
 
-        static void Tint(GameObject go, string family, int tier)
+        static void Tint(GameObject go, string family, Item it, EquipSlot slot)
         {
-            if (go == null || !GearTable.TryFinish(family, tier, out var fin)) return;
-            // R, G, B multiply the authored base colour. They never replace the albedo,
-            // normal, or metal maps. A hard lerp toward a flat tint plus a strong
-            // emission is what washed tier 3 plate and arcane to white and infernal to orange.
-            var mul = new Color(fin.R, fin.G, fin.B, 1f);
-            var accent = FamilyAccent(family) * fin.Emit;
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
-            {
-                var mats = r.materials;
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    var m = mats[i];
-                    if (m == null) continue;
-                    if (m.HasProperty("_BaseColor"))
-                    {
-                        var c = m.GetColor("_BaseColor");
-                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
-                        m.SetColor("_BaseColor", Color.Lerp(c, scaled, fin.Blend));
-                    }
-                    else
-                    {
-                        var c = m.color;
-                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
-                        m.color = Color.Lerp(c, scaled, fin.Blend);
-                    }
-                    if (fin.Emit > 0.02f)
-                    {
-                        if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", accent);
-                        if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", accent);
-                        m.EnableKeyword("_EMISSION");
-                    }
-                    if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", fin.Metal);
-                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", fin.Smooth);
-                }
-                r.materials = mats;
-            }
+            // Rarity multiplies the authored maps. It does not replace the textures.
+            RarityVfx.Tint(go, it, family, slot);
         }
 
         /// <summary>Small tier-3 trim. Kept off the albedo multiplier so a near-white modulate cannot blow the maps out.</summary>
@@ -363,6 +333,10 @@ namespace Hollowmere
             return "plate";
         }
 
+        /// <summary>
+        /// Tier 1 and 2 look in Gear/Lower/&lt;family&gt;/&lt;slot&gt; first. A later Meshy drop
+        /// lands in that folder and is picked up from the rarity row's tier and mesh family.
+        /// </summary>
         static GameObject Load(string family, string slot, int tier, out bool lower)
         {
             lower = false;
@@ -375,7 +349,7 @@ namespace Hollowmere
             return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string family, int tier, bool finish)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -393,7 +367,7 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return null;
             }
-            FitPiece(mesh, slot, family, heroSkin.bones);
+            FitPiece(mesh, slot, meshFamily, heroSkin.bones);
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;
@@ -412,7 +386,8 @@ namespace Hollowmere
             }
             smr.materials = mats;
             Art.AdoptShaders(go);
-            if (finish) Tint(go, family, tier);
+            Tint(go, glowFamily, it, slot);
+            RarityVfx.AttachArmor(go, it, slot);
             Object.DestroyImmediate(inst);
             return smr;
         }

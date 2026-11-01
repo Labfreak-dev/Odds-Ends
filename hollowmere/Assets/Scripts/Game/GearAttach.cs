@@ -31,6 +31,8 @@ namespace Hollowmere
                 bool v5 = V5Hero(body);
                 if (HeroFit.SkinnedGear(v5)) StripClassHeld(body);
                 Clear(body);
+                RarityVfx.Clear(body);
+                RarityVfx.EnsureFace(body);
                 var weapon = hero.Equipped(EquipSlot.MainHand);
                 if (!Item.IsNone(weapon))
                     Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
@@ -44,12 +46,33 @@ namespace Hollowmere
                     Armor(body, hero, EquipSlot.Head, "helm");
                     Armor(body, hero, EquipSlot.Chest, "chest");
                 }
+                RarityVfx.SealHead(body);
             }
             finally
             {
                 RestoreBones(saved);
             }
             Art.LogHeroBounds(body.gameObject, Art.PlayMode());
+        }
+
+        /// <summary>Replace the held props and leave the worn armour in place.</summary>
+        public static void SwapHeld(Transform body, Hero hero)
+        {
+            if (body == null || hero == null) return;
+            DestroyNamed(body, "gear_weapon");
+            DestroyNamed(body, "gear_offhand");
+            var weapon = hero.Equipped(EquipSlot.MainHand);
+            if (!Item.IsNone(weapon))
+                Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
+            var off = hero.Equipped(EquipSlot.OffHand);
+            if (!Item.IsNone(off))
+                Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+        }
+
+        static void DestroyNamed(Transform body, string name)
+        {
+            var hit = Find(body, name);
+            if (hit != null) Object.DestroyImmediate(hit.gameObject);
         }
 
         /// <summary>The fishing rod uses the same grip as a weapon and hides the equipped one.</summary>
@@ -183,13 +206,13 @@ namespace Hollowmere
         {
             var hand = HoldHand(body, it.baseId, main);
             if (hand == null || it == null) return;
-            string model = GearTable.ModelFor(it.baseId);
+            string model = GearTable.PresentModel(it.baseId, RarityBook.ModelPick(it.rarity));
             string type = GearTable.TypeOf(it.baseId);
-            if (type == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name, model))
+            if (type == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name, model, it))
                 return;
-            if (type == "shield" && PlaceShield(body, "Gear/Weapons/" + model, name, model))
+            if (type == "shield" && PlaceShield(body, "Gear/Weapons/" + model, name, model, it))
                 return;
-            if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name))
+            if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name, it))
             {
                 if (main) SeatOffHand(body, it);
                 return;
@@ -200,7 +223,7 @@ namespace Hollowmere
             Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
         }
 
-        static bool PlaceQuiver(Transform body, string resource, string name, string model)
+        static bool PlaceQuiver(Transform body, string resource, string name, string model, Item it)
         {
             var spine = Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1") ?? Art.Bone(body, "Spine");
             if (spine == null) return false;
@@ -224,6 +247,8 @@ namespace Hollowmere
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
             Reveal(go, spine.gameObject.layer);
+            RarityVfx.Tint(go, it, it != null ? it.family : "plate", EquipSlot.OffHand);
+            RarityVfx.AttachWeapon(go, it);
             return true;
         }
 
@@ -233,7 +258,7 @@ namespace Hollowmere
         /// A mirrored arm flips the winding; both sides are drawn or the plate vanishes
         /// while its bounds still pass.
         /// </summary>
-        static bool PlaceShield(Transform body, string resource, string name, string model)
+        static bool PlaceShield(Transform body, string resource, string name, string model, Item it)
         {
             var arm = Art.Bone(body, "LeftForeArm");
             if (arm == null) return false;
@@ -271,6 +296,8 @@ namespace Hollowmere
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
             Reveal(go, arm.gameObject.layer);
+            RarityVfx.Tint(go, it, it != null ? it.family : "plate", EquipSlot.OffHand);
+            RarityVfx.AttachWeapon(go, it);
             return true;
         }
 
@@ -338,7 +365,7 @@ namespace Hollowmere
             go.localScale *= metres / longest;
         }
 
-        static bool GripResource(Transform hand, string resource, string baseId, string name)
+        static bool GripResource(Transform hand, string resource, string baseId, string name, Item it)
         {
             var prefab = Resources.Load<GameObject>(resource);
             if (prefab == null) return false;
@@ -358,6 +385,8 @@ namespace Hollowmere
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
             PaintPlain(go, type == "fist" ? new Color(0.35f, 0.36f, 0.38f) : new Color(0.62f, 0.58f, 0.50f));
+            RarityVfx.Tint(go, it, it != null ? it.family : "plate", EquipSlot.MainHand);
+            RarityVfx.AttachWeapon(go, it);
             return true;
         }
 
@@ -637,7 +666,7 @@ namespace Hollowmere
             var hero = actor != null ? actor.Hero : null;
             var it = hero != null ? hero.Equipped(slot) : null;
             if (Item.IsNone(it)) return "";
-            return GearTable.ModelFor(it.baseId);
+            return GearTable.PresentModel(it.baseId, RarityBook.ModelPick(it.rarity));
         }
 
         static bool MeshNamed(Transform prop, string model)

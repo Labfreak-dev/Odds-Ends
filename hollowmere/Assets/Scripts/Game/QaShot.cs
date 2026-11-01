@@ -124,6 +124,7 @@ namespace Hollowmere
                 case "weaponline":
                 case "tiers":
                 case "geartiers":
+                case "rarity":
                     return true;
             }
             return false;
@@ -167,6 +168,11 @@ namespace Hollowmere
             if (scene == "tiers" || scene == "geartiers")
             {
                 yield return QaFrames.RunTiers(gm);
+                yield break;
+            }
+            if (scene == "rarity")
+            {
+                yield return QaFrames.RunRarity(gm);
                 yield break;
             }
             bool title = scene == "title";

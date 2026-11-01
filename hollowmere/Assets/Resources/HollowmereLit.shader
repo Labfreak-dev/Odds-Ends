@@ -20,6 +20,13 @@ Shader "Hollowmere/Lit"
         _Metallic ("Metallic", Range(0,1)) = 0
         _Smoothness ("Smoothness", Range(0,1)) = 0.35
         _EmissionColor ("Emission", Color) = (0,0,0,1)
+        _Desat ("Desaturate", Range(0,1)) = 0
+        _Finish ("Finish", Range(0,1)) = 0
+        _RimPower ("Rim Power", Float) = 4
+        _EdgeBoost ("Edge", Float) = 0
+        _RimOnly ("Rim Only", Float) = 0
+        _KillEmit ("Kill Emit", Float) = 0
+        _UseNeck ("Use Neck Mask", Float) = 0
         _TintMask ("Tint Mask", 2D) = "black" {}
         _HasTint ("Has Tint", Float) = 0
         _TintArmour ("Armour Tint", Color) = (1,1,1,1)
@@ -74,7 +81,20 @@ Shader "Hollowmere/Lit"
                 half _HasMetal;
                 half _GltfPack;
                 half _HasTint;
+                half _Desat;
+                half _Finish;
+                half _RimPower;
+                half _EdgeBoost;
+                half _RimOnly;
+                half _KillEmit;
+                half _UseNeck;
             CBUFFER_END
+
+            // Hero face sphere. Set from the head bone. Zero radius disables the cut.
+            float4 _HmFaceCenter;
+            float _HmFaceRadius;
+            // QA only: 1 renders the same frame without rarity emission.
+            float _HmQaNoEmit;
 
             struct Attributes
             {
@@ -82,6 +102,7 @@ Shader "Hollowmere/Lit"
                 float3 normalOS : NORMAL;
                 float4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
+                float2 uv2 : TEXCOORD1;
             };
 
             struct Varyings
@@ -92,6 +113,9 @@ Shader "Hollowmere/Lit"
                 float3 positionWS : TEXCOORD2;
                 float2 uv : TEXCOORD3;
                 float tangentSign : TEXCOORD4;
+                float3 normalOS : TEXCOORD5;
+                float3 positionOS : TEXCOORD6;
+                float neckMask : TEXCOORD7;
             };
 
             Varyings vert(Attributes v)
@@ -103,6 +127,10 @@ Shader "Hollowmere/Lit"
                 o.tangentWS = TransformObjectToWorldDir(v.tangentOS.xyz);
                 o.tangentSign = v.tangentOS.w;
                 o.uv = v.uv;
+                o.normalOS = v.normalOS;
+                o.positionOS = v.positionOS.xyz;
+                // uv2.x = baked Neck/Head weight + bind-pose head proximity (chest/shoulders only). 0 elsewhere.
+                o.neckMask = saturate(v.uv2.x);
                 return o;
             }
 
@@ -122,6 +150,18 @@ Shader "Hollowmere/Lit"
                     half remain = saturate(1.0 - min(sum, 1.0));
                     albedo = acc + tex * _TintSkin.rgb * remain;
                 }
+                // Desaturate the sampled map. A flat colour multiply would erase it.
+                half luma = dot(albedo, half3(0.299, 0.587, 0.114));
+                albedo = lerp(albedo, luma.xxx, saturate(_Desat));
+                // Authored lava in the albedo still crosses the face. Drop its colour inside the sphere.
+                if (_RimOnly > 0.5 && _HmFaceRadius > 0.001)
+                {
+                    float faceKill = saturate(((_HmFaceRadius + 0.06) - distance(i.positionWS, _HmFaceCenter.xyz)) * 25.0);
+                    albedo = lerp(albedo, luma.xxx, faceKill);
+                }
+                // Chest and shoulder collar: authored lava and trim near the neck go matte too.
+                if (_RimOnly > 0.5 && _UseNeck > 0.5)
+                    albedo = lerp(albedo, luma.xxx * 0.85, i.neckMask);
 
                 half3 n = normalize(i.normalWS);
                 half3 view = normalize(GetCameraPositionWS() - i.positionWS);
@@ -151,6 +191,9 @@ Shader "Hollowmere/Lit"
                         smoothness = mr.a;
                     }
                 }
+                // Pull toward the rarity scalars. The map's variation stays in the leftover weight.
+                metallic = lerp(metallic, _Metallic, saturate(_Finish));
+                smoothness = lerp(smoothness, _Smoothness, saturate(_Finish));
                 half3 specCol = lerp(half3(0.04, 0.04, 0.04), albedo, metallic);
                 albedo *= 1.0 - metallic;
 
@@ -159,6 +202,10 @@ Shader "Hollowmere/Lit"
                 half3 halfVec = normalize(mainLight.direction + view);
                 half spec = pow(saturate(dot(n, halfVec)), exp2(10.0 * smoothness)) * smoothness;
                 half3 lit = albedo * (SampleSH(n) + mainLight.color * ndotl) + specCol * mainLight.color * spec;
+                // Polished metal has almost no diffuse. Reflect the probe so it does not go black.
+                half3 env = GlossyEnvironmentReflection(reflect(-view, n), saturate(1.0 - smoothness), 1.0);
+                env = max(env, half3(0.16, 0.17, 0.19));
+                lit += specCol * env * (0.25 + smoothness);
 
                 #if defined(_ADDITIONAL_LIGHTS)
                 uint count = GetAdditionalLightsCount();
@@ -173,7 +220,30 @@ Shader "Hollowmere/Lit"
                 }
                 #endif
 
-                lit += _EmissionColor.rgb;
+                // Rare uses a view fresnel. Legendary and set use an object-space crease and a UV seam,
+                // not the screen-space outline, so the glow cannot streak across the face.
+                half ndv = saturate(dot(n, view));
+                half fres = pow(1.0 - ndv, max(_RimPower, 0.5));
+                float span = max(length(fwidth(i.positionOS)), 1e-4);
+                half crease = length(fwidth(i.normalOS)) / span;
+                half seam = length(fwidth(i.uv)) / span;
+                half edge = saturate(max(crease - 14.0, seam * 0.35 - 6.0) * _EdgeBoost * 0.04);
+                half legacy = 0.35 + pow(1.0 - ndv, 3.0);
+                half mask = 0.0;
+                if (_KillEmit < 0.5)
+                    mask = _RimOnly > 0.5 ? (_EdgeBoost > 0.01 ? edge : fres) : legacy;
+                float face = 1.0;
+                // Dark past the checked face sphere, so the collar cannot light the disc.
+                if (mask > 0.0 && _HmFaceRadius > 0.001)
+                {
+                    face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - (_HmFaceRadius + 0.06)) * 25.0);
+                    // Chest and shoulders: smooth collar falloff from the live head bone. Spiky pauldrons
+                    // rise behind the jaw, so the ramp runs from 20 cm (off) to 62 cm (full). The hero rig is taller than 1.8 m.
+                    if (_UseNeck > 0.5)
+                        face *= smoothstep(0.20, 0.62, distance(i.positionWS, _HmFaceCenter.xyz));
+                }
+                face *= 1.0 - i.neckMask * step(0.5, _UseNeck);
+                lit += _EmissionColor.rgb * mask * face * (1.0 - saturate(_HmQaNoEmit));
                 if (unity_FogParams.z < -0.0001)
                 {
                     float dist = distance(i.positionWS, GetCameraPositionWS());

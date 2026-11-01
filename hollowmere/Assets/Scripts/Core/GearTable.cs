@@ -6,10 +6,12 @@ namespace Hollowmere.Core
     /// <summary>
     /// Item and presentation table for armour tiers and weapon bases. Tier 3 is the
     /// authored v7b mesh. Tiers 1 and 2 use a CC0 mesh at Gear/Lower/&lt;family&gt;/&lt;slot&gt;
-    /// when one is present, and otherwise the same v7b mesh with this finish: no
-    /// emission, and a tint that is not the authored material. Each weapon base has
-    /// its own model. A model is never shared across types. Grip sockets are per type
-    /// and keep the prop origin within 5 cm of the hand.
+    /// when one is present, and otherwise the same v7b mesh. Finish R, G, B multiply
+    /// the authored base colour. They do not replace the albedo, normal, or metal
+    /// maps. Tier 1 is a worn rusty multiply, tier 2 a clean steel multiply, and
+    /// tier 3 stays near the authored maps with a small emission accent. Each weapon
+    /// base has its own model. A model is never shared across types. Grip sockets are
+    /// per type and keep the prop origin within 5 cm of the hand.
     /// </summary>
     public static class GearTable
     {
@@ -62,33 +64,33 @@ namespace Hollowmere.Core
 
         static readonly Finish[] Plate =
         {
-            new Finish(0.55f, 0.32f, 0.18f, 0.04f, 0.08f, 0.82f, 0.04f),
-            new Finish(0.78f, 0.80f, 0.84f, 0.55f, 0.42f, 0.70f, 0.06f),
-            new Finish(0.92f, 0.90f, 0.82f, 0.85f, 0.72f, 0.55f, 0.42f),
+            new Finish(0.58f, 0.36f, 0.22f, 0.02f, 0.08f, 1.00f, 0.00f),
+            new Finish(1.32f, 1.36f, 1.42f, 0.74f, 0.58f, 1.00f, 0.00f),
+            new Finish(1.04f, 1.03f, 0.98f, 0.80f, 0.66f, 0.30f, 0.12f),
         };
         static readonly Finish[] Leather =
         {
-            new Finish(0.48f, 0.32f, 0.18f, 0.02f, 0.10f, 0.80f, 0.03f),
-            new Finish(0.62f, 0.44f, 0.26f, 0.06f, 0.28f, 0.62f, 0.05f),
-            new Finish(0.78f, 0.58f, 0.32f, 0.12f, 0.48f, 0.45f, 0.22f),
+            new Finish(0.52f, 0.34f, 0.20f, 0.02f, 0.08f, 1.00f, 0.00f),
+            new Finish(1.18f, 1.02f, 0.82f, 0.08f, 0.34f, 1.00f, 0.00f),
+            new Finish(1.02f, 0.98f, 0.92f, 0.10f, 0.42f, 0.28f, 0.06f),
         };
         static readonly Finish[] Arcane =
         {
-            new Finish(0.42f, 0.44f, 0.55f, 0.04f, 0.12f, 0.78f, 0.04f),
-            new Finish(0.55f, 0.62f, 0.86f, 0.15f, 0.40f, 0.60f, 0.10f),
-            new Finish(0.72f, 0.78f, 1.00f, 0.25f, 0.62f, 0.40f, 0.55f),
+            new Finish(0.50f, 0.54f, 0.68f, 0.04f, 0.10f, 1.00f, 0.00f),
+            new Finish(1.08f, 1.16f, 1.40f, 0.24f, 0.50f, 1.00f, 0.00f),
+            new Finish(1.02f, 1.04f, 1.08f, 0.28f, 0.60f, 0.25f, 0.14f),
         };
         static readonly Finish[] Bone =
         {
-            new Finish(0.55f, 0.48f, 0.36f, 0.02f, 0.08f, 0.75f, 0.03f),
-            new Finish(0.78f, 0.70f, 0.52f, 0.08f, 0.22f, 0.55f, 0.06f),
-            new Finish(0.95f, 0.88f, 0.62f, 0.18f, 0.40f, 0.40f, 0.28f),
+            new Finish(0.60f, 0.48f, 0.32f, 0.02f, 0.08f, 1.00f, 0.00f),
+            new Finish(1.22f, 1.12f, 0.88f, 0.10f, 0.30f, 1.00f, 0.00f),
+            new Finish(1.04f, 1.00f, 0.92f, 0.16f, 0.36f, 0.28f, 0.08f),
         };
         static readonly Finish[] Infernal =
         {
-            new Finish(0.42f, 0.22f, 0.16f, 0.06f, 0.08f, 0.80f, 0.05f),
-            new Finish(0.72f, 0.28f, 0.16f, 0.18f, 0.24f, 0.62f, 0.12f),
-            new Finish(1.00f, 0.46f, 0.18f, 0.35f, 0.50f, 0.45f, 0.65f),
+            new Finish(0.46f, 0.26f, 0.18f, 0.04f, 0.08f, 1.00f, 0.00f),
+            new Finish(1.20f, 1.02f, 0.90f, 0.42f, 0.34f, 1.00f, 0.00f),
+            new Finish(1.02f, 0.96f, 0.90f, 0.40f, 0.48f, 0.25f, 0.16f),
         };
 
         static readonly WeaponRow[] Rows =

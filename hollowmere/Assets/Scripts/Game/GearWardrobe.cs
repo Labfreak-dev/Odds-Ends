@@ -94,8 +94,15 @@ namespace Hollowmere
                     smr.forceRenderingOff = true;
                     continue;
                 }
-                // Never blank a whole region. Drop only the triangles 1 cm inside the piece
-                // so the edge skin stays and the chain check does not open a hole.
+                // 85 percent and the whole region comes off, which is what kept the chest
+                // and the neck from cutting the plate in attack, roll, cast, and reel.
+                // Below that, drop only the triangles 1 cm inside so a partial piece
+                // does not open a hole in the chain check.
+                if (cover.hideAll)
+                {
+                    smr.forceRenderingOff = true;
+                    continue;
+                }
                 var open = Open(full, 0f, cover.under);
                 if (open == null)
                 {
@@ -294,7 +301,11 @@ namespace Hollowmere
         static void Tint(GameObject go, string family, int tier)
         {
             if (go == null || !GearTable.TryFinish(family, tier, out var fin)) return;
-            var tint = new Color(fin.R, fin.G, fin.B, 1f);
+            // R, G, B multiply the authored base colour. They never replace the albedo,
+            // normal, or metal maps. A hard lerp toward a flat tint plus a strong
+            // emission is what washed tier 3 plate and arcane to white and infernal to orange.
+            var mul = new Color(fin.R, fin.G, fin.B, 1f);
+            var accent = FamilyAccent(family) * fin.Emit;
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.materials;
@@ -305,18 +316,38 @@ namespace Hollowmere
                     if (m.HasProperty("_BaseColor"))
                     {
                         var c = m.GetColor("_BaseColor");
-                        c = Color.Lerp(c, tint, fin.Blend);
-                        m.SetColor("_BaseColor", c);
+                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
+                        m.SetColor("_BaseColor", Color.Lerp(c, scaled, fin.Blend));
                     }
-                    else m.color = Color.Lerp(m.color, tint, fin.Blend);
-                    var glow = tint * fin.Emit;
-                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", glow);
-                    if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", glow);
-                    if (fin.Emit > 0.02f) m.EnableKeyword("_EMISSION");
+                    else
+                    {
+                        var c = m.color;
+                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
+                        m.color = Color.Lerp(c, scaled, fin.Blend);
+                    }
+                    if (fin.Emit > 0.02f)
+                    {
+                        if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", accent);
+                        if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", accent);
+                        m.EnableKeyword("_EMISSION");
+                    }
                     if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", fin.Metal);
                     if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", fin.Smooth);
                 }
                 r.materials = mats;
+            }
+        }
+
+        /// <summary>Small tier-3 trim. Kept off the albedo multiplier so a near-white modulate cannot blow the maps out.</summary>
+        static Color FamilyAccent(string family)
+        {
+            switch (family)
+            {
+                case "infernal": return new Color(1f, 0.32f, 0.06f);
+                case "arcane": return new Color(0.35f, 0.55f, 1f);
+                case "bone": return new Color(0.95f, 0.78f, 0.40f);
+                case "leather": return new Color(0.55f, 0.28f, 0.10f);
+                default: return new Color(1f, 0.78f, 0.35f);
             }
         }
 

@@ -16,7 +16,7 @@ On equip the mesh is rebound by bone name. Each vertex keeps its offset in bone 
 
 ## Tiers
 
-Each of plate, leather, arcane, bone, and infernal has three tiers. Tier 3 is the v7b mesh in `Resources/Gear/Sets/<family>/<slot>.glb`, with its authored material. Tiers 1 and 2 load `Resources/Gear/Lower/<family>/<slot>` when a CC0 skinned mesh is there, and otherwise wear the v7b mesh with a finish from `GearTable`: no emission, and a tint that is dull, rusted, or dyed so it does not match tier 3. The numbers live in `GearTable`.
+Each of plate, leather, arcane, bone, and infernal has three tiers. Tier 3 is the v7b mesh in `Resources/Gear/Sets/<family>/<slot>.glb`. Tiers 1 and 2 load `Resources/Gear/Lower/<family>/<slot>` when a CC0 skinned mesh is there, and otherwise wear the same v7b mesh. `GearTable` finishes multiply the authored base colour and metal values. They do not replace the albedo, normal, or metal maps. Tier 1 is worn and rusty, tier 2 is clean steel, and tier 3 keeps the maps with a small emission accent.
 
 ## Weapons
 

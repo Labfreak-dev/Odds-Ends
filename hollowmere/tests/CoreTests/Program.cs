@@ -867,9 +867,9 @@ static class Program
     {
         Check(GearTable.Families.Length == 5, "five armour families");
         Check(GearTable.TierCount == 3, "three depth tiers");
-        Check(GearTable.TryFinish("plate", 1, out var dull) && dull.Metal < 0.1f && dull.Emit < 0.08f, "tier 1 plate is worn and matte");
-        Check(GearTable.TryFinish("plate", 2, out var steel) && steel.R > 0.7f && steel.Metal > 0.4f, "tier 2 plate is cleaner steel");
-        Check(GearTable.TryFinish("infernal", 3, out var hot) && hot.Emit > 0.4f && hot.R > 0.8f, "tier 3 carries a bright emissive trim");
+        Check(GearTable.TryFinish("plate", 1, out var dull) && dull.Metal < 0.1f && dull.Emit < 0.08f && dull.R < 0.7f && dull.R > dull.G && dull.G > dull.B, "tier 1 plate is worn and rusty");
+        Check(GearTable.TryFinish("plate", 2, out var steel) && steel.R > 1.1f && steel.Metal > 0.5f && steel.Emit < 0.05f && steel.R > dull.R + 0.4f, "tier 2 plate is clean steel");
+        Check(GearTable.TryFinish("infernal", 3, out var hot) && hot.Emit > 0.05f && hot.Emit < 0.22f && hot.R > 0.9f && hot.R < 1.15f, "tier 3 modulates the authored maps");
         Check(Math.Abs(GearTable.ArmorMul(1) - 0.8f) < 0.001f && GearTable.ArmorMul(3) > 1f, "tier scales armour");
         Check(GearTable.CountAll >= 40, "forty weapon and off-hand bases");
         var seen = new Dictionary<string, string>();

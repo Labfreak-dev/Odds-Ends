@@ -8,8 +8,8 @@ namespace Hollowmere.Core
     {
         public const float VfxPad = 0.15f;
         public const float EmitPresent = 0.05f;
-        /// <summary>No emission or motes inside this sphere around the head bone.</summary>
-        public const float FaceRadius = 0.18f;
+        /// <summary>No emission or motes on the head, or on chest-top verts inside this sphere around the head bone.</summary>
+        public const float FaceRadius = 0.22f;
 
         public readonly struct Row
         {
@@ -45,19 +45,19 @@ namespace Hollowmere.Core
             // r,g,b multiply the authored albedo. Finish pulls metal and smoothness toward the scalars
             // without discarding the maps. Rare leaves the maps alone and only adds a fresnel rim.
             new Row(Rarity.Common, 1, 0.96f, 0.88f, 0.80f, 0.08f, 0.14f, 0.40f, 0.62f, 0f, 4f, 0f, 0, "", false, false, 0.55f, 0.42f, 0.28f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Magic, 1, 1.10f, 1.15f, 1.20f, 0.58f, 0.74f, 0f, 0.40f, 0f, 4f, 0f, 0, "", false, false, 0.75f, 0.84f, 1.00f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Rare, 2, 1f, 1f, 1f, 0f, 0f, 0f, 0f, 0.45f, 4f, 0f, 0, "", false, false, 0.25f, 0.72f, 1.00f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Legendary, 3, 1.02f, 1.00f, 0.98f, 0.35f, 0.48f, 0f, 0.12f, 0.62f, 4f, 2.6f, 1, "infernal", true, true, 1.00f, 0.42f, 0.08f, 8f, 0.035f, 0.02f),
-            new Row(Rarity.Set, 3, 1.00f, 1.02f, 0.98f, 0.30f, 0.44f, 0f, 0.12f, 0.55f, 4f, 2.6f, 2, "arcane", true, true, 0.22f, 0.95f, 0.32f, 8f, 0.035f, 0.02f),
+            new Row(Rarity.Magic, 1, 1.30f, 1.35f, 1.40f, 0.90f, 0.75f, 0f, 0.90f, 0f, 4f, 0f, 0, "", false, false, 0.78f, 0.84f, 0.92f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Rare, 2, 1f, 1f, 1f, 0f, 0f, 0f, 0f, 1.20f, 2.5f, 0f, 0, "", false, false, 0.18f, 0.40f, 1.00f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Legendary, 3, 1.02f, 1.00f, 0.98f, 0.35f, 0.48f, 0f, 0.12f, 0.70f, 4f, 2.6f, 1, "infernal", true, true, 1.00f, 0.42f, 0.08f, 8f, 0.035f, 0.02f),
+            new Row(Rarity.Set, 3, 1.00f, 1.02f, 0.98f, 0.30f, 0.44f, 0f, 0.12f, 0.40f, 4f, 1.8f, 2, "arcane", true, true, 0.38f, 0.84f, 0.46f, 8f, 0.035f, 0.02f),
         };
 
         static readonly Glow[] Sets =
         {
-            new Glow("plate", 0.22f, 0.95f, 0.32f),
-            new Glow("leather", 0.22f, 0.95f, 0.32f),
-            new Glow("arcane", 0.22f, 0.95f, 0.32f),
-            new Glow("bone", 0.22f, 0.95f, 0.32f),
-            new Glow("infernal", 0.22f, 0.95f, 0.32f),
+            new Glow("plate", 0.38f, 0.84f, 0.46f),
+            new Glow("leather", 0.38f, 0.84f, 0.46f),
+            new Glow("arcane", 0.38f, 0.84f, 0.46f),
+            new Glow("bone", 0.38f, 0.84f, 0.46f),
+            new Glow("infernal", 0.38f, 0.84f, 0.46f),
         };
 
         static readonly Glow[] Trails =

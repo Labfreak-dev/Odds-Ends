@@ -876,21 +876,21 @@ static class Program
         Check(common.R >= 0.8f && common.G >= 0.8f && common.B >= 0.8f && common.Desat >= 0.35f && common.Desat <= 0.45f && common.Smooth < 0.25f,
             "common desaturates, roughens, and stays above a black multiply");
         float magicMean = (magic.R + magic.G + magic.B) / 3f;
-        Check(Math.Abs(magicMean - 1.15f) < 0.02f && magic.B > magic.R && magic.Metal > common.Metal + 0.3f && magic.Smooth > common.Smooth + 0.4f,
-            "magic is a small cool silver multiply");
+        Check(Math.Abs(magicMean - 1.35f) < 0.03f && magic.B > magic.R && magic.Metal >= 0.85f && magic.Smooth >= 0.7f && magic.Smooth <= 0.8f,
+            "magic is bright cool silver");
         Check(Math.Abs(rare.R - 1f) < 0.02f && Math.Abs(rare.G - 1f) < 0.02f && Math.Abs(rare.B - 1f) < 0.02f
-            && rare.Finish < 0.001f && rare.Desat < 0.001f && rare.Edge < 0.001f && rare.Rim >= 3.5f
-            && rare.Emit > 0.2f && rare.Emit < 0.8f && rare.GlowB > rare.GlowR,
-            "rare is a modest fresnel on an unchanged base");
-        Check(legendary.Emit > rare.Emit && legendary.Edge > 1f && set.Edge > 1f && legendary.GlowR > 0.9f && legendary.GlowB < 0.2f,
-            "legendary accents are an orange edge");
+            && rare.Finish < 0.001f && rare.Desat < 0.001f && rare.Edge < 0.001f
+            && rare.Rim > 2.2f && rare.Rim < 3.0f && rare.Emit > 0.9f && rare.GlowB > rare.GlowG,
+            "rare is a wide blue fresnel on an unchanged base");
+        Check(legendary.Edge > 1f && set.Edge > 1f && legendary.GlowR > 0.9f && legendary.GlowB < 0.2f && set.Emit < legendary.Emit,
+            "legendary accents are an orange edge and set is quieter");
         Check(legendary.UniqueModel && legendary.Vfx && set.UniqueModel && set.Vfx, "legendary and set take a distinct model and persistent vfx");
         Check(legendary.ModelPick == 1 && set.ModelPick == 2 && legendary.MeshFamily == "infernal" && set.MeshFamily == "arcane"
             && string.IsNullOrEmpty(common.MeshFamily) && string.IsNullOrEmpty(rare.MeshFamily),
             "mesh choice is data on the rarity row");
         Check(!common.Vfx && !rare.Vfx, "trails start at legendary");
         Check(Math.Abs(RarityTable.VfxPad - 0.15f) < 0.001f, "vfx stays within 15 cm of the piece");
-        Check(Math.Abs(RarityTable.FaceRadius - 0.18f) < 0.001f, "the face sphere is 18 cm");
+        Check(Math.Abs(RarityTable.FaceRadius - 0.22f) < 0.001f, "the face sphere is 22 cm");
         var plate = RarityTable.SetGlow("plate");
         var arcane = RarityTable.SetGlow("arcane");
         Check(plate.G > 0.8f && plate.G > plate.R && Math.Abs(plate.G - arcane.G) < 0.01f, "set pieces share a green glow");
@@ -907,7 +907,7 @@ static class Program
             && GearTable.PresentFamily("plate", Rarity.Set) != GearTable.PresentFamily("plate", Rarity.Legendary),
             "legendary and set armour change silhouette");
         string asset = File.ReadAllText(Path.Combine("Assets", "Resources", "RarityLook.asset"));
-        Check(asset.Contains("desat: 0.4") && asset.Contains("emit: 0.45") && asset.Contains("emit: 0.62")
+        Check(asset.Contains("desat: 0.4") && asset.Contains("rim: 2.5") && asset.Contains("metal: 0.9")
             && asset.Contains("meshFamily: infernal") && asset.Contains("modelPick: 1") && asset.Contains("vfxPad: 0.15"),
             "the rarity scriptable object carries the finishes");
     }

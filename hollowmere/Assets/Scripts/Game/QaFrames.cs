@@ -521,12 +521,14 @@ namespace Hollowmere
             };
             string[] weapons = { "sword", "axe", "bow", "staff", "shield" };
             var fronts = new System.Collections.Generic.List<Texture2D>();
+            var crops = new System.Collections.Generic.List<Rect>();
             var closes = new System.Collections.Generic.List<Texture2D>();
             foreach (Rarity rarity in System.Enum.GetValues(typeof(Rarity)))
             {
                 string tag = rarity.ToString().ToLowerInvariant();
                 WearRaritySet(gm, pieces, rarity);
                 PoseRarity(actor.transform, "idle");
+                RarityEnv(true);
                 FrameGear(actor, cam, rig, true);
                 yield return new WaitForEndOfFrame();
                 var front = ScreenCapture.CaptureScreenshotAsTexture();
@@ -534,6 +536,7 @@ namespace Hollowmere
                 {
                     SaveTexture(front, "rarity-paper-" + tag + "-front");
                     fronts.Add(front);
+                    crops.Add(ArmorCrop(actor.transform, cam, front.width, front.height));
                     CheckFace(front, cam, actor.transform, rarity);
                 }
                 FrameThreeQuarter(actor, cam, rig);
@@ -542,6 +545,7 @@ namespace Hollowmere
                 RarityVfx.AuditBody(actor.transform, rarity);
                 if (rarity >= Rarity.Rare)
                 {
+                    RarityEnv(false);
                     FrameGear(actor, cam, rig, false);
                     yield return new WaitForEndOfFrame();
                     SaveNamed("rarity-world-" + tag + "-idle");
@@ -558,6 +562,7 @@ namespace Hollowmere
                     SaveNamed("rarity-world-" + tag + "-death");
                     RarityVfx.AuditBody(actor.transform, rarity);
                     PoseRarity(actor.transform, "idle");
+                    RarityEnv(true);
                 }
                 for (int w = 0; w < weapons.Length; w++)
                 {
@@ -579,7 +584,8 @@ namespace Hollowmere
                     RarityVfx.AuditBody(actor.transform, rarity);
                 }
             }
-            CheckRarityColours(fronts);
+            RarityEnv(false);
+            CheckRarityColours(fronts, crops);
             SaveRaritySheet(fronts, closes);
             for (int i = 0; i < fronts.Count; i++)
                 if (fronts[i] != null) UnityEngine.Object.Destroy(fronts[i]);
@@ -687,17 +693,38 @@ namespace Hollowmere
             PaperLight(actor, true, camPos, look);
         }
 
-        static void CheckRarityColours(System.Collections.Generic.List<Texture2D> fronts)
+        static bool rarityEnvOn;
+        static LineupLight rarityEnv;
+
+        /// <summary>Studio ambient and a bright reflection, so a metallic finish is silver instead of black. Rarity shots only.</summary>
+        static void RarityEnv(bool on)
+        {
+            if (on == rarityEnvOn) return;
+            if (on) rarityEnv = LineupLight.Push();
+            else LineupLight.Pop(rarityEnv);
+            rarityEnvOn = on;
+        }
+
+        static void CheckRarityColours(System.Collections.Generic.List<Texture2D> fronts, System.Collections.Generic.List<Rect> crops)
         {
             if (fronts == null || fronts.Count < 2) return;
             var means = new Color[fronts.Count];
             var spread = new float[fronts.Count];
+            var counts = new int[fronts.Count];
+            string[] names = { "common", "magic", "rare", "legendary", "set" };
             for (int i = 0; i < fronts.Count; i++)
             {
-                means[i] = MeanFigure(fronts[i]);
-                spread[i] = LumaStd(fronts[i]);
+                Rect crop = crops != null && i < crops.Count ? crops[i] : new Rect(fronts[i].width * 0.42f, fronts[i].height * 0.28f, fronts[i].width * 0.16f, fronts[i].height * 0.48f);
+                means[i] = MeanArmor(fronts[i], crop, out counts[i], out spread[i]);
+                string who = i < names.Length ? names[i] : i.ToString();
+                Debug.Log("Hollowmere rarity crop " + who + " "
+                    + crop.x.ToString("0") + "," + crop.y.ToString("0") + " "
+                    + crop.width.ToString("0") + "x" + crop.height.ToString("0")
+                    + " n=" + counts[i]
+                    + " rgb=" + means[i].r.ToString("0.00") + "," + means[i].g.ToString("0.00") + "," + means[i].b.ToString("0.00"));
+                if (counts[i] < 40)
+                    Debug.LogError("Hollowmere rarity FAIL crop " + who + " n=" + counts[i]);
             }
-            string[] names = { "common", "magic", "rare", "legendary", "set" };
             for (int i = 1; i < means.Length && i < names.Length; i++)
             {
                 float d = (Mathf.Abs(means[i].r - means[i - 1].r) + Mathf.Abs(means[i].g - means[i - 1].g) + Mathf.Abs(means[i].b - means[i - 1].b)) / 3f;
@@ -716,6 +743,56 @@ namespace Hollowmere
             }
         }
 
+        /// <summary>Screen rect of the worn armour, head excluded, from the camera that took this shot.</summary>
+        static Rect ArmorCrop(Transform body, Camera cam, int width, int height)
+        {
+            bool any = false;
+            Bounds world = new Bounds();
+            if (body != null)
+            {
+                foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r == null || r is ParticleSystemRenderer || !r.enabled) continue;
+                    if (!r.name.StartsWith("gear_")) continue;
+                    if (r.name.Contains("head") || r.name.Contains("helm")) continue;
+                    if (!any) { world = r.bounds; any = true; }
+                    else world.Encapsulate(r.bounds);
+                }
+            }
+            if (!any)
+            {
+                var chest = body != null ? Art.Bone(body, "Spine2") : null;
+                Vector3 at = chest != null ? chest.position : Vector3.up;
+                world = new Bounds(at, new Vector3(0.42f, 0.7f, 0.32f));
+            }
+            else
+                world.extents *= 0.7f;
+            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+            var c = world.center;
+            var e = world.extents;
+            int seen = 0;
+            for (int i = 0; i < 8; i++)
+            {
+                var p = c + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
+                var s = cam.WorldToScreenPoint(p);
+                if (s.z < 0.05f) continue;
+                seen++;
+                if (s.x < minX) minX = s.x;
+                if (s.x > maxX) maxX = s.x;
+                if (s.y < minY) minY = s.y;
+                if (s.y > maxY) maxY = s.y;
+            }
+            if (seen < 2 || width < 2 || height < 2)
+                return new Rect(width * 0.42f, height * 0.28f, width * 0.16f, height * 0.48f);
+            float sx = width / (float)Mathf.Max(1, Screen.width);
+            float sy = height / (float)Mathf.Max(1, Screen.height);
+            minX = Mathf.Clamp(minX * sx, 0f, width - 2f);
+            maxX = Mathf.Clamp(maxX * sx, minX + 2f, width);
+            minY = Mathf.Clamp(minY * sy, 0f, height - 2f);
+            maxY = Mathf.Clamp(maxY * sy, minY + 2f, height);
+            return Rect.MinMaxRect(minX, minY, maxX, maxY);
+        }
+
         static void CheckFace(Texture2D src, Camera cam, Transform body, Rarity rarity)
         {
             if (src == null || cam == null || body == null || rarity < Rarity.Rare) return;
@@ -726,8 +803,8 @@ namespace Hollowmere
             sp.x *= src.width / (float)Mathf.Max(1, Screen.width);
             sp.y *= src.height / (float)Mathf.Max(1, Screen.height);
             float dist = Vector3.Distance(cam.transform.position, head.position);
-            // The opening in the helm, not the 18 cm exclusion sphere. That sphere also covers the collar.
-            float radius = 0.09f / Mathf.Max(0.25f, 2f * dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad)) * src.height;
+            // Same 22 cm sphere the shader uses to cut emission off the head and the chest top.
+            float radius = RarityTable.FaceRadius / Mathf.Max(0.25f, 2f * dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad)) * src.height;
             radius = Mathf.Clamp(radius, 28f, src.height * 0.16f);
             var glow = RarityBook.Glow(rarity, "plate");
             int bad = 0, n = 0;
@@ -760,30 +837,33 @@ namespace Hollowmere
             return Vector3.Dot(a.normalized, b.normalized) > 0.92f;
         }
 
-        static float LumaStd(Texture2D src)
+        static Color MeanArmor(Texture2D src, Rect crop, out int n, out float std)
         {
-            if (src == null) return 0f;
-            int x0 = src.width * 3 / 10;
-            int x1 = src.width * 7 / 10;
-            int y0 = src.height / 8;
-            int y1 = src.height * 7 / 8;
+            n = 0;
+            std = 0f;
+            if (src == null) return Color.black;
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(crop.x), 0, src.width - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt(crop.xMax), x0 + 1, src.width);
+            int y0 = Mathf.Clamp(Mathf.FloorToInt(crop.y), 0, src.height - 1);
+            int y1 = Mathf.Clamp(Mathf.CeilToInt(crop.yMax), y0 + 1, src.height);
             Color corner = src.GetPixel(4, 4);
-            double sum = 0, sum2 = 0;
-            int n = 0;
-            for (int y = y0; y < y1; y += 4)
-            for (int x = x0; x < x1; x += 4)
+            double r = 0, g = 0, b = 0, sum = 0, sum2 = 0;
+            for (int y = y0; y < y1; y += 2)
+            for (int x = x0; x < x1; x += 2)
             {
                 var p = src.GetPixel(x, y);
-                if (Mathf.Abs(p.r - corner.r) + Mathf.Abs(p.g - corner.g) + Mathf.Abs(p.b - corner.b) < 0.12f) continue;
+                if (Mathf.Abs(p.r - corner.r) + Mathf.Abs(p.g - corner.g) + Mathf.Abs(p.b - corner.b) < 0.08f) continue;
+                r += p.r; g += p.g; b += p.b;
                 float luma = 0.299f * p.r + 0.587f * p.g + 0.114f * p.b;
                 sum += luma;
                 sum2 += luma * luma;
                 n++;
             }
-            if (n < 8) return 0f;
+            if (n < 8) return Color.black;
             double mean = sum / n;
             double v = sum2 / n - mean * mean;
-            return Mathf.Sqrt((float)System.Math.Max(0.0, v));
+            std = Mathf.Sqrt((float)System.Math.Max(0.0, v));
+            return new Color((float)(r / n), (float)(g / n), (float)(b / n), 1f);
         }
 
         static void SaveTexture(Texture2D tex, string name)
@@ -799,29 +879,6 @@ namespace Hollowmere
             {
                 Debug.LogError("Hollowmere QA frame failed: " + e.Message);
             }
-        }
-
-        static Color MeanFigure(Texture2D src)
-        {
-            if (src == null) return Color.black;
-            int x0 = src.width * 3 / 10;
-            int x1 = src.width * 7 / 10;
-            int y0 = src.height / 8;
-            int y1 = src.height * 7 / 8;
-            Color corner = src.GetPixel(4, 4);
-            double r = 0, g = 0, b = 0;
-            int n = 0;
-            int step = 4;
-            for (int y = y0; y < y1; y += step)
-            for (int x = x0; x < x1; x += step)
-            {
-                var p = src.GetPixel(x, y);
-                if (Mathf.Abs(p.r - corner.r) + Mathf.Abs(p.g - corner.g) + Mathf.Abs(p.b - corner.b) < 0.12f) continue;
-                r += p.r; g += p.g; b += p.b;
-                n++;
-            }
-            if (n == 0) return Color.black;
-            return new Color((float)(r / n), (float)(g / n), (float)(b / n), 1f);
         }
 
         static void SaveRaritySheet(System.Collections.Generic.List<Texture2D> fronts, System.Collections.Generic.List<Texture2D> closes)

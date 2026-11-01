@@ -37,13 +37,13 @@ MonoBehaviour:
     lift: 0.02
   - rarity: 1
     tier: 1
-    r: 1.1
-    g: 1.15
-    b: 1.2
-    metal: 0.58
-    smooth: 0.74
+    r: 1.3
+    g: 1.35
+    b: 1.4
+    metal: 0.9
+    smooth: 0.75
     desat: 0
-    finish: 0.4
+    finish: 0.9
     emit: 0
     rim: 4
     edge: 0
@@ -66,15 +66,15 @@ MonoBehaviour:
     smooth: 0
     desat: 0
     finish: 0
-    emit: 0.45
-    rim: 4
+    emit: 1.2
+    rim: 2.5
     edge: 0
     modelPick: 0
     meshFamily: 
     uniqueModel: 0
     vfx: 0
-    glowR: 0.25
-    glowG: 0.72
+    glowR: 0.18
+    glowG: 0.4
     glowB: 1
     rate: 0
     size: 0.02
@@ -88,7 +88,7 @@ MonoBehaviour:
     smooth: 0.48
     desat: 0
     finish: 0.12
-    emit: 0.62
+    emit: 0.7
     rim: 4
     edge: 2.6
     modelPick: 1
@@ -110,40 +110,40 @@ MonoBehaviour:
     smooth: 0.44
     desat: 0
     finish: 0.12
-    emit: 0.55
+    emit: 0.4
     rim: 4
-    edge: 2.6
+    edge: 1.8
     modelPick: 2
     meshFamily: arcane
     uniqueModel: 1
     vfx: 1
-    glowR: 0.22
-    glowG: 0.95
-    glowB: 0.32
+    glowR: 0.38
+    glowG: 0.84
+    glowB: 0.46
     rate: 8
     size: 0.035
     lift: 0.02
   sets:
   - family: plate
-    r: 0.22
-    g: 0.95
-    b: 0.32
+    r: 0.38
+    g: 0.84
+    b: 0.46
   - family: leather
-    r: 0.22
-    g: 0.95
-    b: 0.32
+    r: 0.38
+    g: 0.84
+    b: 0.46
   - family: arcane
-    r: 0.22
-    g: 0.95
-    b: 0.32
+    r: 0.38
+    g: 0.84
+    b: 0.46
   - family: bone
-    r: 0.22
-    g: 0.95
-    b: 0.32
+    r: 0.38
+    g: 0.84
+    b: 0.46
   - family: infernal
-    r: 0.22
-    g: 0.95
-    b: 0.32
+    r: 0.38
+    g: 0.84
+    b: 0.46
   trails:
   - kind: ember
     r: 1

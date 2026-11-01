@@ -25,6 +25,7 @@ Shader "Hollowmere/Lit"
         _RimPower ("Rim Power", Float) = 4
         _EdgeBoost ("Edge", Float) = 0
         _RimOnly ("Rim Only", Float) = 0
+        _KillEmit ("Kill Emit", Float) = 0
         _TintMask ("Tint Mask", 2D) = "black" {}
         _HasTint ("Has Tint", Float) = 0
         _TintArmour ("Armour Tint", Color) = (1,1,1,1)
@@ -84,6 +85,7 @@ Shader "Hollowmere/Lit"
                 half _RimPower;
                 half _EdgeBoost;
                 half _RimOnly;
+                half _KillEmit;
             CBUFFER_END
 
             // Hero face sphere. Set from the head bone. Zero radius disables the cut.
@@ -179,6 +181,10 @@ Shader "Hollowmere/Lit"
                 half3 halfVec = normalize(mainLight.direction + view);
                 half spec = pow(saturate(dot(n, halfVec)), exp2(10.0 * smoothness)) * smoothness;
                 half3 lit = albedo * (SampleSH(n) + mainLight.color * ndotl) + specCol * mainLight.color * spec;
+                // Polished metal has almost no diffuse. Reflect the probe so it does not go black.
+                half3 env = GlossyEnvironmentReflection(reflect(-view, n), saturate(1.0 - smoothness), 1.0);
+                env = max(env, half3(0.16, 0.17, 0.19));
+                lit += specCol * env * (0.25 + smoothness);
 
                 #if defined(_ADDITIONAL_LIGHTS)
                 uint count = GetAdditionalLightsCount();
@@ -199,10 +205,11 @@ Shader "Hollowmere/Lit"
                 half fres = pow(1.0 - ndv, max(_RimPower, 0.5));
                 half edge = saturate(length(fwidth(n)) * _EdgeBoost);
                 half legacy = 0.35 + pow(1.0 - ndv, 3.0);
-                half mask = _RimOnly > 0.5 ? max(fres, edge) : legacy;
+                half mask = _KillEmit > 0.5 ? 0.0 : (_RimOnly > 0.5 ? max(fres, edge) : legacy);
                 float face = 1.0;
-                if (_RimOnly > 0.5 && _HmFaceRadius > 0.001)
-                    face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - _HmFaceRadius) * 33.333);
+                // Head mesh and anything within the face sphere, including the chest top, stay dark.
+                if (_KillEmit < 0.5 && _RimOnly > 0.5 && _HmFaceRadius > 0.001)
+                    face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - _HmFaceRadius) * 25.0);
                 lit += _EmissionColor.rgb * mask * face;
                 if (unity_FogParams.z < -0.0001)
                 {

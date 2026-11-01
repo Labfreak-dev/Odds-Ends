@@ -53,6 +53,8 @@ namespace Hollowmere
                     UseLit(m);
                     var c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.color;
                     c = new Color(c.r * row.r, c.g * row.g, c.b * row.b, c.a);
+                    if (head && it.rarity == Rarity.Set)
+                        c = TintHelm(c, RarityBook.Glow(it.rarity, family));
                     if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
                     if (m.HasProperty("_Color")) m.SetColor("_Color", c);
                     m.color = c;
@@ -65,7 +67,8 @@ namespace Hollowmere
                     }
                     if (m.HasProperty("_RimPower")) m.SetFloat("_RimPower", row.rim > 0.5f ? row.rim : 4f);
                     if (m.HasProperty("_EdgeBoost")) m.SetFloat("_EdgeBoost", head ? 0f : row.edge);
-                    if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", emit > 0.02f ? 1f : 0f);
+                    if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", !head && emit > 0.02f ? 1f : 0f);
+                    if (m.HasProperty("_KillEmit")) m.SetFloat("_KillEmit", head ? 1f : 0f);
                     if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", glow);
                     if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", glow);
                     if (emit > 0.02f) m.EnableKeyword("_EMISSION");
@@ -214,12 +217,46 @@ namespace Hollowmere
             if (m.HasProperty("_GltfPack")) m.SetFloat("_GltfPack", gltf);
         }
 
+        static Color TintHelm(Color src, Color glow)
+        {
+            float peak = Mathf.Max(0.001f, Mathf.Max(glow.r, Mathf.Max(glow.g, glow.b)));
+            var hue = new Color(glow.r / peak, glow.g / peak, glow.b / peak, 1f);
+            var tint = Color.Lerp(Color.white, hue, 0.45f);
+            src.r *= tint.r;
+            src.g *= tint.g;
+            src.b *= tint.b;
+            return src;
+        }
+
+        static bool HeadBone(Transform bone)
+        {
+            if (bone == null) return false;
+            string n = bone.name;
+            int cut = n.LastIndexOf(':');
+            if (cut >= 0 && cut + 1 < n.Length) n = n.Substring(cut + 1);
+            return n == "Head" || n == "Neck" || n == "head" || n == "neck";
+        }
+
+        /// <summary>Drop a mote that would sit on the head, and push a chest-top mote below the face sphere.</summary>
+        static bool PlaceClear(Transform host, ref Vector3 local)
+        {
+            if (HeadBone(host)) return false;
+            var head = HeadOf(host);
+            if (head == null) return true;
+            Vector3 world = host.TransformPoint(local);
+            float limit = RarityTable.FaceRadius;
+            if (Vector3.Distance(world, head.position) >= limit) return true;
+            Vector3 away = world - head.position;
+            Vector3 dir = Vector3.down;
+            if (away.sqrMagnitude > 1e-6f) dir = (away.normalized + Vector3.down).normalized;
+            world = head.position + dir * (limit + 0.04f);
+            local = host.InverseTransformPoint(world);
+            return Vector3.Distance(host.TransformPoint(local), head.position) >= limit;
+        }
+
         static void Spawn(Transform host, Color color, RarityLookProfile.RarityRow row, Vector3 local)
         {
-            if (host == null) return;
-            var head = HeadOf(host);
-            if (head != null && Vector3.Distance(host.TransformPoint(local), head.position) < RarityTable.FaceRadius)
-                return;
+            if (host == null || !PlaceClear(host, ref local)) return;
             var go = new GameObject(Name);
             go.transform.SetParent(host, false);
             go.transform.localPosition = local;
@@ -243,7 +280,7 @@ namespace Hollowmere
             shape.shapeType = ParticleSystemShapeType.Sphere;
             shape.radius = 0.012f;
             var pr = ps.GetComponent<ParticleSystemRenderer>();
-            pr.material = Art.Mat(color, 1.6f);
+            pr.material = Art.Mat(color, 1.1f);
             pr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             pr.maxParticleSize = 0.06f;
             ps.Simulate(0.12f, true, true);

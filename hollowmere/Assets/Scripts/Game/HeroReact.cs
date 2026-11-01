@@ -18,28 +18,33 @@ namespace Hollowmere
             public Vector3 Euler;
         }
 
+        struct Drop
+        {
+            public float T;
+            public Vector3 Delta;
+        }
+
         static readonly Key[] Hit =
         {
-            new Key { T = 0.10f, Bone = "Spine1", Euler = new Vector3(-8f, 6f, 0f) },
-            new Key { T = 0.10f, Bone = "Spine2", Euler = new Vector3(-10f, 4f, 0f) },
-            new Key { T = 0.10f, Bone = "Neck", Euler = new Vector3(-6f, -6f, 0f) },
-            new Key { T = 0.10f, Bone = "Head", Euler = new Vector3(-12f, -14f, 4f) },
-            new Key { T = 0.10f, Bone = "LeftShoulder", Euler = new Vector3(0f, 0f, 10f) },
-            new Key { T = 0.10f, Bone = "RightShoulder", Euler = new Vector3(0f, 0f, -10f) },
-            new Key { T = 0.10f, Bone = "LeftArm", Euler = new Vector3(12f, 0f, 8f) },
-            new Key { T = 0.10f, Bone = "RightArm", Euler = new Vector3(12f, 0f, -8f) },
+            new Key { T = 0.12f, Bone = "Hips", Euler = new Vector3(0f, 8f, 0f) },
+            new Key { T = 0.12f, Bone = "Spine1", Euler = new Vector3(-10f, 8f, 0f) },
+            new Key { T = 0.12f, Bone = "Spine2", Euler = new Vector3(-16f, 6f, 0f) },
+            new Key { T = 0.12f, Bone = "Head", Euler = new Vector3(-14f, -18f, 6f) },
+            new Key { T = 0.12f, Bone = "LeftShoulder", Euler = new Vector3(0f, 0f, 12f) },
+            new Key { T = 0.12f, Bone = "RightShoulder", Euler = new Vector3(0f, 0f, -12f) },
 
-            new Key { T = 0.24f, Bone = "Spine", Euler = new Vector3(-6f, 4f, 0f) },
-            new Key { T = 0.24f, Bone = "Spine1", Euler = new Vector3(-16f, 10f, 0f) },
-            new Key { T = 0.24f, Bone = "Spine2", Euler = new Vector3(-22f, 8f, 0f) },
-            new Key { T = 0.24f, Bone = "Neck", Euler = new Vector3(-10f, -8f, 0f) },
-            new Key { T = 0.24f, Bone = "Head", Euler = new Vector3(-20f, -18f, 6f) },
-            new Key { T = 0.24f, Bone = "LeftShoulder", Euler = new Vector3(0f, 0f, 16f) },
-            new Key { T = 0.24f, Bone = "RightShoulder", Euler = new Vector3(0f, 0f, -16f) },
-            new Key { T = 0.24f, Bone = "LeftArm", Euler = new Vector3(22f, 0f, 14f) },
-            new Key { T = 0.24f, Bone = "RightArm", Euler = new Vector3(22f, 0f, -14f) },
-            new Key { T = 0.24f, Bone = "LeftForeArm", Euler = new Vector3(0f, 0f, -18f) },
-            new Key { T = 0.24f, Bone = "RightForeArm", Euler = new Vector3(0f, 0f, 18f) },
+            new Key { T = 0.28f, Bone = "Hips", Euler = new Vector3(0f, 16f, 0f) },
+            new Key { T = 0.28f, Bone = "Spine", Euler = new Vector3(-8f, 6f, 0f) },
+            new Key { T = 0.28f, Bone = "Spine1", Euler = new Vector3(-22f, 14f, 0f) },
+            new Key { T = 0.28f, Bone = "Spine2", Euler = new Vector3(-36f, 12f, 0f) },
+            new Key { T = 0.28f, Bone = "Neck", Euler = new Vector3(-12f, -10f, 0f) },
+            new Key { T = 0.28f, Bone = "Head", Euler = new Vector3(-28f, -38f, 12f) },
+            new Key { T = 0.28f, Bone = "LeftShoulder", Euler = new Vector3(8f, 0f, 24f) },
+            new Key { T = 0.28f, Bone = "RightShoulder", Euler = new Vector3(8f, 0f, -24f) },
+            new Key { T = 0.28f, Bone = "LeftArm", Euler = new Vector3(28f, 0f, 20f) },
+            new Key { T = 0.28f, Bone = "RightArm", Euler = new Vector3(28f, 0f, -20f) },
+            new Key { T = 0.28f, Bone = "LeftForeArm", Euler = new Vector3(0f, 0f, -24f) },
+            new Key { T = 0.28f, Bone = "RightForeArm", Euler = new Vector3(0f, 0f, 24f) },
         };
 
         static readonly Key[] Death =
@@ -73,18 +78,21 @@ namespace Hollowmere
             new Key { T = 0.85f, Bone = "LeftArm", Euler = new Vector3(18f, 0f, 20f) },
             new Key { T = 0.85f, Bone = "RightArm", Euler = new Vector3(18f, 0f, -20f) },
 
-            new Key { T = 1.20f, Bone = "Hips", Euler = new Vector3(74f, 6f, 0f) },
-            new Key { T = 1.20f, Bone = "Spine", Euler = new Vector3(20f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "Spine1", Euler = new Vector3(16f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "Spine2", Euler = new Vector3(10f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "Neck", Euler = new Vector3(8f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "Head", Euler = new Vector3(14f, -4f, 0f) },
-            new Key { T = 1.20f, Bone = "LeftUpLeg", Euler = new Vector3(34f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "RightUpLeg", Euler = new Vector3(34f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "LeftLeg", Euler = new Vector3(-30f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "RightLeg", Euler = new Vector3(-30f, 0f, 0f) },
-            new Key { T = 1.20f, Bone = "LeftArm", Euler = new Vector3(24f, 0f, 28f) },
-            new Key { T = 1.20f, Bone = "RightArm", Euler = new Vector3(24f, 0f, -28f) },
+            // End flat: hips pitch the bind pose onto its face and drop to the floor.
+            // Extra knee and spine bend here is what left the body hunched.
+            new Key { T = 1.35f, Bone = "Hips", Euler = new Vector3(90f, 4f, 0f) },
+            new Key { T = 1.35f, Bone = "Head", Euler = new Vector3(6f, -28f, 8f) },
+            new Key { T = 1.35f, Bone = "LeftUpLeg", Euler = new Vector3(6f, 0f, 0f) },
+            new Key { T = 1.35f, Bone = "RightUpLeg", Euler = new Vector3(6f, 0f, 0f) },
+            new Key { T = 1.35f, Bone = "LeftLeg", Euler = new Vector3(-4f, 0f, 0f) },
+            new Key { T = 1.35f, Bone = "RightLeg", Euler = new Vector3(-4f, 0f, 0f) },
+        };
+
+        static readonly Drop[] DeathDrop =
+        {
+            new Drop { T = 0.48f, Delta = new Vector3(0f, -0.12f, 0.04f) },
+            new Drop { T = 0.85f, Delta = new Vector3(0f, -0.40f, 0.12f) },
+            new Drop { T = 1.35f, Delta = new Vector3(0f, -0.78f, 0.16f) },
         };
 
         public static void Attach(ModelAnim ma)
@@ -93,10 +101,10 @@ namespace Hollowmere
             bool hit = Has(ma.anim, "hit");
             bool death = Has(ma.anim, "death");
             if (hit && death) return;
-            var skin = ma.anim.GetComponentInChildren<SkinnedMeshRenderer>();
+            var skin = LargestSkin(ma.anim.transform);
             if (skin == null || skin.bones == null || skin.bones.Length < 8) return;
-            if (!hit) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "hit", 0.50f, Hit), "hit");
-            if (!death) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "death", 1.20f, Death), "death");
+            if (!hit) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "hit", 0.58f, Hit, null), "hit");
+            if (!death) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "death", 1.35f, Death, DeathDrop), "death");
             ma.Forget();
         }
 
@@ -107,18 +115,39 @@ namespace Hollowmere
             return false;
         }
 
-        static AnimationClip Build(Transform root, Transform[] bones, string name, float length, Key[] motion)
+        static SkinnedMeshRenderer LargestSkin(Transform root)
+        {
+            SkinnedMeshRenderer best = null;
+            int n = 0;
+            if (root == null) return null;
+            var skins = root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            for (int i = 0; i < skins.Length; i++)
+            {
+                var smr = skins[i];
+                if (smr == null || smr.gameObject.name.StartsWith("gear_")) continue;
+                int c = smr.bones != null ? smr.bones.Length : 0;
+                if (c > n) { n = c; best = smr; }
+            }
+            return best;
+        }
+
+        static AnimationClip Build(Transform root, Transform[] bones, string name, float length, Key[] motion, Drop[] drop)
         {
             var clip = new AnimationClip { name = name, legacy = true, frameRate = 24f, wrapMode = WrapMode.ClampForever };
             var times = new List<float> { 0f, length };
             for (int i = 0; i < motion.Length; i++)
                 if (!times.Contains(motion[i].T)) times.Add(motion[i].T);
+            if (drop != null)
+                for (int i = 0; i < drop.Length; i++)
+                    if (!times.Contains(drop[i].T)) times.Add(drop[i].T);
             times.Sort();
             for (int b = 0; b < bones.Length; b++)
             {
                 var bone = bones[b];
                 if (bone == null) continue;
                 string tail = Tail(bone.name);
+                string path = Rel(root, bone);
+                if (path == null) continue;
                 var rest = bone.localRotation;
                 var cx = new AnimationCurve();
                 var cy = new AnimationCurve();
@@ -133,15 +162,39 @@ namespace Hollowmere
                     cw.AddKey(times[t], q.w);
                 }
                 Linear(cx); Linear(cy); Linear(cz); Linear(cw);
-                string path = Rel(root, bone);
-                if (path == null) continue;
                 clip.SetCurve(path, typeof(Transform), "localRotation.x", cx);
                 clip.SetCurve(path, typeof(Transform), "localRotation.y", cy);
                 clip.SetCurve(path, typeof(Transform), "localRotation.z", cz);
                 clip.SetCurve(path, typeof(Transform), "localRotation.w", cw);
+                if (drop != null && string.Equals(tail, "Hips", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    var restP = bone.localPosition;
+                    var px = new AnimationCurve();
+                    var py = new AnimationCurve();
+                    var pz = new AnimationCurve();
+                    for (int t = 0; t < times.Count; t++)
+                    {
+                        var p = restP + DropAt(drop, times[t]);
+                        px.AddKey(times[t], p.x);
+                        py.AddKey(times[t], p.y);
+                        pz.AddKey(times[t], p.z);
+                    }
+                    Linear(px); Linear(py); Linear(pz);
+                    clip.SetCurve(path, typeof(Transform), "localPosition.x", px);
+                    clip.SetCurve(path, typeof(Transform), "localPosition.y", py);
+                    clip.SetCurve(path, typeof(Transform), "localPosition.z", pz);
+                }
             }
             clip.EnsureQuaternionContinuity();
             return clip;
+        }
+
+        static Vector3 DropAt(Drop[] drop, float time)
+        {
+            if (drop == null) return Vector3.zero;
+            for (int i = 0; i < drop.Length; i++)
+                if (drop[i].T == time) return drop[i].Delta;
+            return Vector3.zero;
         }
 
         static Vector3 EulerAt(Key[] motion, string bone, float time)

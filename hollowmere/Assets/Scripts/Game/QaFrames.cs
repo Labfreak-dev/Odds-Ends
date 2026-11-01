@@ -217,19 +217,30 @@ namespace Hollowmere
             {
                 Wear(gm, pieces);
                 GearAudit.Prepare(actor.transform);
+                var motive = actor.GetComponentInChildren<ModelAnim>();
+                if (motive != null) HeroReact.Attach(motive);
                 yield return null;
                 yield return new WaitForEndOfFrame();
-                var anim = actor.GetComponentInChildren<Animation>();
+                var anim = motive != null && motive.anim != null ? motive.anim : actor.GetComponentInChildren<Animation>();
                 var names = GearAudit.ClipNames(anim);
+                Debug.Log("Hollowmere gear frames clips " + string.Join(",", names));
                 int shot = 0;
                 for (int g = 0; g < GearFit.RequiredPoses.Length; g++)
                 {
+                    string label = GearFit.RequiredPoses[g][0];
                     string clip = FirstPose(names, GearFit.RequiredPoses[g]);
-                    if (clip == null) continue;
-                    Sample(anim, clip, 0.35f);
+                    if (clip == null)
+                    {
+                        Debug.LogError("Hollowmere gear FAIL frames missing pose " + label);
+                        Debug.Log("Hollowmere gear pose " + label + " none");
+                        continue;
+                    }
+                    float unit = label == "death" ? 0.99f : label == "hit" ? 0.5f : 0.35f;
+                    Sample(anim, clip, unit);
                     FrameGear(actor, cam, rig, false);
                     yield return new WaitForEndOfFrame();
-                    Save("gearslots-" + GearFit.RequiredPoses[g][0], shot++);
+                    Save("gearslots-" + label, shot++);
+                    Debug.Log("Hollowmere gear frames pose " + label + " " + clip + " t=" + unit.ToString("0.00"));
                 }
                 for (int g = 0; g < GearFit.OptionalPoses.Length; g++)
                 {
@@ -504,8 +515,10 @@ namespace Hollowmere
             }
             st.enabled = true;
             st.weight = 1f;
+            st.speed = 1f;
             st.time = Mathf.Max(0.05f, st.length) * Mathf.Clamp01(unit);
             anim.Sample();
+            st.speed = 0f;
         }
 
         public static IEnumerator RunMonsterMode(GameManager gm, string mode)

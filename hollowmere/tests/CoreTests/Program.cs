@@ -813,6 +813,11 @@ static class Program
         Check(GearFit.HasRequiredPose(new[] { "ic_cast_warcry" }, GearFit.OptionalPoses[1]), "ic_cast_warcry is a spell pose");
         Check(GearFit.HasRequiredPose(new[] { "fish_idle" }, GearFit.OptionalPoses[2]), "fish_idle is a fishing pose");
         Check(GearFit.GapOk(0.0026f), "a dense helm shell 2.6 mm off the skin still fits");
+        Check(GearFit.ShellsOverlap(0.002f, 0.012f, 0.013f), "shells 2 mm apart over the same skin z-fight");
+        Check(!GearFit.ShellsOverlap(0.02f, 0.012f, 0.03f), "shells 2 cm apart are a seam, not an overlap");
+        Check(GearFit.DeathFlat(0.04f, 0.06f, 0.42f), "a body lying on the floor passes the death-flat check");
+        Check(!GearFit.DeathFlat(0.72f, 0.02f, 0.84f), "a hunched kneel fails the death-flat check");
+        Check(!GearFit.DeathFlat(0.04f, 0.6f, 0.42f), "a flat body floating off the floor fails");
         var mix = GearFit.Mix(7, 4);
         var again = GearFit.Mix(7, 4);
         Check(mix.Length == 4 && mix[0] == again[0] && mix[3] == again[3], "a set mix is deterministic");

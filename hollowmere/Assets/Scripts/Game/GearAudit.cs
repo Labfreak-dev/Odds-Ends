@@ -26,14 +26,14 @@ namespace Hollowmere
             if (body == null) return Fail("missing hero");
             var ma = body.GetComponentInChildren<ModelAnim>();
             if (ma != null) EnsurePacks(ma);
-            var anim = body.GetComponentInChildren<Animation>();
+            var anim = ma != null && ma.anim != null ? ma.anim : body.GetComponentInChildren<Animation>();
             var names = ClipNames(anim);
             int fails = 0;
             var clips = new List<string>();
             for (int g = 0; g < GearFit.RequiredPoses.Length; g++)
             {
                 string hit = First(names, GearFit.RequiredPoses[g]);
-                if (hit == null) fails += Fail("missing pose " + GearFit.RequiredPoses[g][0]);
+                if (hit == null) fails += Fail("missing pose " + GearFit.RequiredPoses[g][0] + " clips=" + string.Join(",", names));
                 else if (!idleOnly || GearFit.PoseMatch(hit, "idle")) clips.Add(hit);
             }
             if (!idleOnly)
@@ -54,8 +54,16 @@ namespace Hollowmere
             {
                 AnimationState st = FindState(anim, clips[c]);
                 if (st == null || st.clip == null) continue;
-                Pose(anim, st, Mathf.Max(0.05f, st.length) * 0.45f);
+                bool death = GearFit.PoseMatch(st.name, "death") && !GearFit.PoseMatch(st.name, "idle");
+                float length = Mathf.Max(0.05f, st.length);
+                Pose(anim, st, length * (death ? 0.42f : 0.45f));
                 fails += Measure(body, pieces, st.name);
+                if (death)
+                {
+                    Pose(anim, st, length * 0.99f);
+                    fails += DeathFlat(body, st.name);
+                    fails += Measure(body, pieces, st.name + "@end");
+                }
             }
             if (clips.Count > 0)
                 Debug.Log("Hollowmere gear sampled " + string.Join(",", clips));
@@ -175,6 +183,7 @@ namespace Hollowmere
             var bodyPts = WorldPoints(bodySkin);
             var bodyHide = Hidden(bodySkin, body);
             var bodyGrid = new Grid(bodyPts);
+            var shellGrids = new List<Grid>();
             for (int p = 0; p < pieces.Count; p++)
             {
                 var piece = pieces[p];
@@ -185,12 +194,13 @@ namespace Hollowmere
                     continue;
                 }
                 var pieceGrid = new Grid(pts);
+                shellGrids.Add(pieceGrid);
                 if (!Art.MeshWorldBounds(piece.transform, out var box))
                     fails += Fail(pose + " " + piece.name + " bounds missing");
                 else if (!HeroFit.GearSizeOk(Art.MaxAxis(box.size)))
                     fails += Fail(pose + " " + piece.name + " bounds " + Art.MaxAxis(box.size).ToString("0.00") + "m");
 
-                int gapBad = 0, coverBad = 0, clearBad = 0, stretchBad = 0, seen = 0;
+                int gapBad = 0, clearBad = 0, stretchBad = 0, seen = 0;
                 int step = Mathf.Max(1, pts.Length / 240);
                 var bind = piece.sharedMesh.bindposes;
                 var baked = piece.sharedMesh.boneWeights;
@@ -231,11 +241,8 @@ namespace Hollowmere
                             if (d >= 0 && d < bones.Length && bones[d] != null)
                                 vs = GearFit.SlotForBone(bones[d].name);
                         }
-                        if (mine != null && vs == mine)
-                        {
-                            if (!GearFit.Covered(dist)) coverBad++;
-                        }
-                        else if (i >= bodyHide.Length || !bodyHide[i])
+                        if (mine != null && vs == mine) continue;
+                        if (i >= bodyHide.Length || !bodyHide[i])
                         {
                             if (!GearFit.VisibleClear(dist)) clearBad++;
                         }
@@ -243,11 +250,93 @@ namespace Hollowmere
                 }
                 string slot = piece.name;
                 if (gapBad * 8 > seen) fails += Fail(pose + " " + slot + " gap");
-                if (coverBad > 8) fails += Fail(pose + " " + slot + " hole in the body");
                 if (clearBad > 8) fails += Fail(pose + " " + slot + " clips the body");
                 if (stretchBad * 8 > seen) fails += Fail(pose + " " + slot + " stretched");
             }
+            fails += Holes(body, bodyPts, pieces, shellGrids, pose);
+            fails += Overlap(bodyPts, shellGrids, pose);
             return fails;
+        }
+
+        /// <summary>A covered body vertex may sit under a neighbouring shell. The outer piece wins an overlap.</summary>
+        static int Holes(Transform body, Vector3[] bodyPts, List<SkinnedMeshRenderer> pieces, List<Grid> shells, string pose)
+        {
+            if (bodyPts == null || pieces == null || shells == null || shells.Count == 0) return 0;
+            var skin = Body(body);
+            var bw = skin != null && skin.sharedMesh != null ? skin.sharedMesh.boneWeights : null;
+            var bones = skin != null ? skin.bones : null;
+            if (bw == null) return 0;
+            int fails = 0;
+            int step = Mathf.Max(1, bodyPts.Length / 280);
+            for (int p = 0; p < pieces.Count && p < shells.Count; p++)
+            {
+                var mine = SlotFromName(pieces[p].name);
+                if (mine == null) continue;
+                int coverBad = 0;
+                for (int i = 0; i < bodyPts.Length; i += step)
+                {
+                    if (i >= bw.Length || bones == null) continue;
+                    int d = GearShell.Dominant(bw[i]);
+                    if (d < 0 || d >= bones.Length || bones[d] == null) continue;
+                    if (GearFit.SlotForBone(bones[d].name) != mine) continue;
+                    float best = 1f;
+                    for (int g = 0; g < shells.Count; g++)
+                    {
+                        float dist = shells[g].Nearest(bodyPts[i]);
+                        if (dist < best) best = dist;
+                    }
+                    if (!GearFit.Covered(best)) coverBad++;
+                }
+                if (coverBad > 8) fails += Fail(pose + " " + pieces[p].name + " hole in the body");
+            }
+            return fails;
+        }
+
+        /// <summary>Two shells within 3 mm over the same body spot. The inner one should have been removed.</summary>
+        static int Overlap(Vector3[] bodyPts, List<Grid> shells, string pose)
+        {
+            if (bodyPts == null || shells == null || shells.Count < 2) return 0;
+            int bad = 0;
+            int step = Mathf.Max(1, bodyPts.Length / 220);
+            for (int i = 0; i < bodyPts.Length; i += step)
+            {
+                float d0 = 1f, d1 = 1f;
+                Vector3 p0 = bodyPts[i], p1 = bodyPts[i];
+                for (int s = 0; s < shells.Count; s++)
+                {
+                    Vector3 q = shells[s].NearestPoint(bodyPts[i], out float d);
+                    if (d < d0) { d1 = d0; p1 = p0; d0 = d; p0 = q; }
+                    else if (d < d1) { d1 = d; p1 = q; }
+                }
+                if (GearFit.ShellsOverlap(Vector3.Distance(p0, p1), d0, d1)) bad++;
+            }
+            if (bad > 8) return Fail(pose + " shells overlap " + bad);
+            return 0;
+        }
+
+        static int DeathFlat(Transform body, string pose)
+        {
+            var head = Art.Bone(body, "Head");
+            var hips = Art.Bone(body, "Hips");
+            var skin = Body(body);
+            var pts = WorldPoints(skin);
+            if (head == null || hips == null || pts == null || pts.Length == 0)
+                return Fail(pose + " death flat missing bones");
+            Vector3 torso = head.position - hips.position;
+            float up = torso.sqrMagnitude > 0.0001f ? torso.normalized.y : 1f;
+            float minY = pts[0].y, maxY = pts[0].y;
+            for (int i = 1; i < pts.Length; i++)
+            {
+                if (pts[i].y < minY) minY = pts[i].y;
+                if (pts[i].y > maxY) maxY = pts[i].y;
+            }
+            float height = maxY - minY;
+            Debug.Log("Hollowmere gear death flat up=" + up.ToString("0.00")
+                + " minY=" + minY.ToString("0.00")
+                + " height=" + height.ToString("0.00"));
+            if (!GearFit.DeathFlat(up, minY, height))
+                return Fail("death not flat on the floor");
+            return 0;
         }
 
         static bool[] Hidden(SkinnedMeshRenderer skin, Transform figure)
@@ -354,9 +443,12 @@ namespace Hollowmere
                 }
             }
 
-            public float Nearest(Vector3 p)
+            public float Nearest(Vector3 p) => Vector3.Distance(p, NearestPoint(p, out _));
+
+            public Vector3 NearestPoint(Vector3 p, out float dist)
             {
-                float best = 1f;
+                dist = 1f;
+                Vector3 best = p;
                 int cx = Mathf.FloorToInt(p.x / Cell);
                 int cy = Mathf.FloorToInt(p.y / Cell);
                 int cz = Mathf.FloorToInt(p.z / Cell);
@@ -369,7 +461,7 @@ namespace Hollowmere
                             for (int i = 0; i < list.Count; i++)
                             {
                                 float d = Vector3.Distance(p, list[i]);
-                                if (d < best) best = d;
+                                if (d < dist) { dist = d; best = list[i]; }
                             }
                         }
                 return best;

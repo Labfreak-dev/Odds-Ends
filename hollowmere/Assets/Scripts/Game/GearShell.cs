@@ -37,8 +37,8 @@ namespace Hollowmere
                 if (!Item.IsNone(hero.Equipped(slot))) worn.Add(slot);
             }
             var hide = new bool[source.vertexCount];
-            var seam = new bool[source.vertexCount];
             int hidden = 0;
+            var built = new List<ShellPiece>();
             for (int s = 0; s < worn.Count; s++)
             {
                 var mesh = Build(source, skin.bones, worn[s], GearFit.ShellOffset, out var region);
@@ -53,18 +53,31 @@ namespace Hollowmere
                     Debug.LogError("Hollowmere gear FAIL " + GearFit.SlotName(worn[s]) + " has no fitted mesh");
                     continue;
                 }
-                Attach(body, skin, mesh, worn[s]);
-                bool helm = worn[s] == EquipSlot.Head;
+                built.Add(new ShellPiece { slot = worn[s], mesh = mesh, region = region });
                 for (int v = 0; v < region.Length; v++)
-                {
-                    if (!region[v]) continue;
-                    hide[v] = true;
-                    hidden++;
-                    // The helm's one-vert seam left a pale line of the face around the cut.
-                    if (helm) seam[v] = true;
-                }
+                    if (region[v]) { hide[v] = true; hidden++; }
             }
-            skin.sharedMesh = hidden > 0 ? Hide(source, hide, seam) : source;
+            // Plate and the leather under it are two shells on the same skin. Keep the outer one.
+            ResolveOverlap(source, skin.bones, built);
+            for (int s = 0; s < built.Count; s++)
+            {
+                var mesh = built[s].mesh;
+                if (mesh == null) continue;
+                if (mesh.triangles == null || mesh.triangles.Length < GearFit.MinShellVerts)
+                {
+                    Object.Destroy(mesh);
+                    continue;
+                }
+                Attach(body, skin, mesh, built[s].slot);
+            }
+            skin.sharedMesh = hidden > 0 ? Hide(source, hide) : source;
+        }
+
+        sealed class ShellPiece
+        {
+            public EquipSlot slot;
+            public Mesh mesh;
+            public bool[] region;
         }
 
         static Mesh TryMeshy(Transform body, SkinnedMeshRenderer heroSkin, Mesh heroMesh, EquipSlot slot)
@@ -265,34 +278,147 @@ namespace Hollowmere
             mesh.bindposes = source.bindposes;
             if (nuv != null) mesh.uv = nuv;
             mesh.triangles = keep.ToArray();
-            WeldNormals(mesh, nn);
             mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             return mesh;
         }
 
-        /// <summary>Split body normals follow the face UV seams and read as bright lines on metal.
-        /// Weld them, and flip the result if it turned the shell inside out.</summary>
-        static void WeldNormals(Mesh mesh, Vector3[] pushed)
+        /// <summary>Where two shells sit on the same skin, drop the inner one so one surface remains.</summary>
+        static void ResolveOverlap(Mesh source, Transform[] bones, List<ShellPiece> shells)
         {
-            mesh.RecalculateNormals();
-            var welded = mesh.normals;
-            if (welded == null || pushed == null || welded.Length != pushed.Length) return;
-            Vector3 want = Vector3.zero, got = Vector3.zero;
-            int step = Mathf.Max(1, welded.Length / 48);
-            for (int i = 0; i < welded.Length; i += step)
+            if (shells == null || shells.Count < 2) return;
+            var body = source.vertices;
+            var weights = source.boneWeights;
+            var owner = new EquipSlot?[body.Length];
+            for (int i = 0; i < body.Length; i++)
             {
-                want += pushed[i];
-                got += welded[i];
+                int d = Dominant(weights[i]);
+                if (bones == null || d < 0 || d >= bones.Length || bones[d] == null) continue;
+                owner[i] = GearFit.SlotForBone(bones[d].name);
             }
-            if (Vector3.Dot(want, got) < 0f)
+            var index = new BodyIndex(body);
+            var pos = new Vector3[shells.Count][];
+            var gap = new float[shells.Count][];
+            var buckets = new List<int>[4096];
+            for (int s = 0; s < shells.Count; s++)
             {
-                for (int i = 0; i < welded.Length; i++) welded[i] = -welded[i];
-                mesh.normals = welded;
+                pos[s] = shells[s].mesh.vertices;
+                gap[s] = new float[pos[s].Length];
+                for (int v = 0; v < pos[s].Length; v++)
+                {
+                    int bi = index.Nearest(pos[s][v], out float d);
+                    gap[s][v] = d;
+                    int key = Hash(pos[s][v]);
+                    if (buckets[key] == null) buckets[key] = new List<int>(4);
+                    buckets[key].Add((s << 16) | v);
+                }
+            }
+            var lose = new bool[shells.Count][];
+            for (int s = 0; s < shells.Count; s++) lose[s] = new bool[pos[s].Length];
+            for (int s = 0; s < shells.Count; s++)
+            {
+                for (int v = 0; v < pos[s].Length; v++)
+                {
+                    int cx = Mathf.FloorToInt(pos[s][v].x / 0.08f);
+                    int cy = Mathf.FloorToInt(pos[s][v].y / 0.08f);
+                    int cz = Mathf.FloorToInt(pos[s][v].z / 0.08f);
+                    for (int z = -1; z <= 1 && !lose[s][v]; z++)
+                        for (int y = -1; y <= 1 && !lose[s][v]; y++)
+                            for (int x = -1; x <= 1 && !lose[s][v]; x++)
+                            {
+                                var list = buckets[Hash(cx + x, cy + y, cz + z)];
+                                if (list == null) continue;
+                                for (int n = 0; n < list.Count; n++)
+                                {
+                                    int os = list[n] >> 16;
+                                    int ov = list[n] & 0xffff;
+                                    if (os == s) continue;
+                                    if (ov < 0 || ov >= pos[os].Length) continue;
+                                    // Cull a little wider than the 3 mm fail so a sampled edge still passes.
+                                    if (Vector3.Distance(pos[s][v], pos[os][ov]) > 0.006f) continue;
+                                    bool inner = gap[s][v] < gap[os][ov] - 0.0005f;
+                                    bool tie = Mathf.Abs(gap[s][v] - gap[os][ov]) <= 0.0005f;
+                                    int mid = index.Nearest((pos[s][v] + pos[os][ov]) * 0.5f, out _);
+                                    var slot = mid >= 0 && mid < owner.Length ? owner[mid] : null;
+                                    if (inner || (tie && slot != null && slot != shells[s].slot))
+                                    {
+                                        lose[s][v] = true;
+                                        break;
+                                    }
+                                }
+                            }
+                }
+            }
+            for (int s = 0; s < shells.Count; s++)
+            {
+                var tris = shells[s].mesh.triangles;
+                var keep = new List<int>(tris.Length);
+                for (int i = 0; i + 2 < tris.Length; i += 3)
+                {
+                    if (lose[s][tris[i]] || lose[s][tris[i + 1]] || lose[s][tris[i + 2]]) continue;
+                    keep.Add(tris[i]);
+                    keep.Add(tris[i + 1]);
+                    keep.Add(tris[i + 2]);
+                }
+                shells[s].mesh.triangles = keep.ToArray();
+                shells[s].mesh.RecalculateBounds();
             }
         }
 
-        static Mesh Hide(Mesh source, bool[] hide, bool[] seam)
+        sealed class BodyIndex
+        {
+            readonly Vector3[] pts;
+            readonly List<int>[] cells;
+            const float Cell = 0.08f;
+            const int Buckets = 4096;
+
+            public BodyIndex(Vector3[] points)
+            {
+                pts = points;
+                cells = new List<int>[Buckets];
+                for (int i = 0; i < pts.Length; i++)
+                {
+                    int k = Hash(pts[i]);
+                    if (cells[k] == null) cells[k] = new List<int>(4);
+                    cells[k].Add(i);
+                }
+            }
+
+            public int Nearest(Vector3 p, out float dist)
+            {
+                dist = 1f;
+                int best = -1;
+                int cx = Mathf.FloorToInt(p.x / Cell);
+                int cy = Mathf.FloorToInt(p.y / Cell);
+                int cz = Mathf.FloorToInt(p.z / Cell);
+                for (int z = -1; z <= 1; z++)
+                    for (int y = -1; y <= 1; y++)
+                        for (int x = -1; x <= 1; x++)
+                        {
+                            var list = cells[Hash(cx + x, cy + y, cz + z)];
+                            if (list == null) continue;
+                            for (int i = 0; i < list.Count; i++)
+                            {
+                                float d = Vector3.Distance(p, pts[list[i]]);
+                                if (d < dist) { dist = d; best = list[i]; }
+                            }
+                        }
+                return best;
+            }
+        }
+
+        static int Hash(Vector3 p) => Hash(Mathf.FloorToInt(p.x / 0.08f), Mathf.FloorToInt(p.y / 0.08f), Mathf.FloorToInt(p.z / 0.08f));
+
+        static int Hash(int x, int y, int z)
+        {
+            unchecked
+            {
+                int h = x * 73856093 ^ y * 19349663 ^ z * 83492791;
+                return (h & 0x7fffffff) % 4096;
+            }
+        }
+
+        static Mesh Hide(Mesh source, bool[] hide)
         {
             var tris = source.triangles;
             var keep = new List<int>(tris.Length);
@@ -300,8 +426,8 @@ namespace Hollowmere
             {
                 int a = tris[i], b = tris[i + 1], c = tris[i + 2];
                 int n = (hide[a] ? 1 : 0) + (hide[b] ? 1 : 0) + (hide[c] ? 1 : 0);
-                bool cut = seam != null && (seam[a] || seam[b] || seam[c]);
-                if (n >= 2 || (cut && n >= 1)) continue;
+                // Any covered vertex: the shell is the only surface. A one-vertex lip z-fights.
+                if (n >= 1) continue;
                 keep.Add(a);
                 keep.Add(b);
                 keep.Add(c);

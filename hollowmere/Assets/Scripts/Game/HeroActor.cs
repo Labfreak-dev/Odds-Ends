@@ -403,7 +403,7 @@ namespace Hollowmere
             releaseIn = -1f;
             deathLeft = 0f;
             // The clip folds the skeleton. Tipping the body root left the gear in a T-pose.
-            if (modelAnim != null && modelAnim.PlayClip("death", 1.2f)) deathLeft = 1.2f;
+            if (modelAnim != null && modelAnim.PlayClip("death", 1.45f)) deathLeft = 1.45f;
             else if (modelAnim != null) Debug.LogError("Hollowmere hero FAIL death clip missing");
             GameManager.I.OnHeroDied();
         }

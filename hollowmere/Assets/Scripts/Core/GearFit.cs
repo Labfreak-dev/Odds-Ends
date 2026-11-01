@@ -19,6 +19,11 @@ namespace Hollowmere.Core
         public const float MinStretch = 0.45f;
         public const float MaxStretch = 2.4f;
         public const int MinShellVerts = 24;
+        /// <summary>Two shells closer than this over the same skin are z-fighting.</summary>
+        public const float OverlapMetres = 0.003f;
+        /// <summary>A lying hero is this thin, and the torso axis is this close to horizontal.</summary>
+        public const float DeathFlatHeight = 0.55f;
+        public const float DeathFlatUp = 0.35f;
 
         public static readonly EquipSlot[] Visible =
         {
@@ -106,6 +111,17 @@ namespace Hollowmere.Core
         public static bool VisibleClear(float metres) => metres >= MinGap;
 
         public static bool StretchOk(float ratio) => ratio >= MinStretch && ratio <= MaxStretch;
+
+        /// <summary>True when two shell points over the same body spot are close enough to z-fight.</summary>
+        public static bool ShellsOverlap(float betweenMetres, float firstGap, float secondGap)
+            => betweenMetres <= OverlapMetres && firstGap <= MaxGap && secondGap <= MaxGap;
+
+        /// <summary>Final death frame: torso axis horizontal, body on the floor, not still kneeling.</summary>
+        public static bool DeathFlat(float torsoUpY, float minY, float height)
+        {
+            if (torsoUpY < 0f) torsoUpY = -torsoUpY;
+            return torsoUpY < DeathFlatUp && minY > -0.35f && minY < 0.25f && height > 0.08f && height < DeathFlatHeight;
+        }
 
         public static bool PoseMatch(string clipName, string key)
         {

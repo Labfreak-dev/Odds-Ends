@@ -47,6 +47,17 @@ Files in `restricted/` are **CC-BY**. You must credit them in the game credits w
 - "Freeze Spell" by artisticdude, CC0, https://opengameart.org/content/freeze-spell-0 (1 files)
 - "Interface Sounds" by Kenney, CC0, https://kenney.nl/assets/interface-sounds (6 files)
 
+## Weapon meshes (hollowmere_weapons_cc0_v1)
+
+Forty-five props in `Resources/Gear/Weapons/`, named `<type>_<n>.glb`. The mesh origin is the grip. Full licence texts are in `Resources/Gear/Licenses/`.
+
+- Signature tier (`*_1` for sword, axe, mace, spear, scythe, flail, bow, crossbow, wand, staff, shield, and orb): generated for this project with Meshy (meshy-6). Not CC0. Owned by the project.
+- Quaternius, "Lowpoly Medieval Weapons" (September 2018), CC0 1.0, https://opengameart.org/content/lowpoly-medieval-weapons
+- "19 Low-Poly Fantasy Weapons", CC0 1.0, https://opengameart.org/content/19-low-poly-fantasy-weapons
+- "Medieval Weapon Pack", CC0 1.0, https://opengameart.org/content/medieval-weapon-pack
+- KayKit Adventurers 1.0, KayKit Skeletons 1.0, and KayKit Dungeon Remastered 1.0 by Kay Lousberg, CC0 1.0, https://kaylousberg.com — credit is not required.
+- A few fist weapons, flails, and orbs are kitbashes of those CC0 parts, or of plain boxes, and are released CC0.
+
 ## Gap fill (2026-10-31)
 
 - Original synthesized sounds, license "original (CC0, made in-house)", made in Python from filtered noise and sine tones: cc0/spells/spell_travel_frost.ogg, spell_travel_arcane.ogg, spell_travel_shadow.ogg

@@ -889,6 +889,10 @@ static class Program
             Check(GearTable.TrySocket(row.Id, out var sock) && sock.Reach <= GearTable.GripLimit, row.Id + " grip stays within 5 cm");
         }
         Check(signatures == 12, "twelve signature weapons");
+        Check(ItemDb.Base("warscythe").name == "Glaive" && ItemDb.Base("warscythe").model == "scythe_3", "scythe_3 is labelled a glaive");
+        Check(ItemDb.Base("warhammer").name == "Warhammer" && ItemDb.Base("warhammer").model == "mace_3", "mace_3 is the warhammer");
+        foreach (var row in GearTable.Weapons)
+            Check(File.Exists(Path.Combine("Assets", "Resources", "Gear", "Weapons", row.Model + ".glb")), row.Model + " mesh is on disk");
         Check(ItemDb.Set("set_plate") != null && ItemDb.Set("set_infernal").pieces.Length == 8, "each visual set lists eight slots");
         var rolled = Loot.Generate(new Rng(9), 10, Rarity.Common, null, ItemSlot.Chest);
         Check(rolled.tier == 1 && !string.IsNullOrEmpty(rolled.family), "a common chest is tier 1 of a family");

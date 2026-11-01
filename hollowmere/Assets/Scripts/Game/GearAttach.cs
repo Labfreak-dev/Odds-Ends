@@ -185,7 +185,7 @@ namespace Hollowmere
 
         static void Weapon(Transform body, string key, string name, Item it, bool main)
         {
-            var hand = main ? Hand(body) : (Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm"));
+            var hand = HoldHand(body, it.baseId, main);
             if (hand == null || it == null) return;
             string model = GearTable.ModelFor(it.baseId);
             if (GearTable.TypeOf(it.baseId) == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name))
@@ -263,7 +263,7 @@ namespace Hollowmere
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
             if (!Art.MeshWorldBounds(go, out var box)) return;
             float max = Art.MaxAxis(box.size);
-            if (max > 1.7f) go.localScale *= 1.55f / max;
+            if (max > 4f) go.localScale *= 2.2f / max;
         }
 
         static void PaintPlain(GameObject go, Color color)
@@ -292,9 +292,10 @@ namespace Hollowmere
             if (it == null || it.Base == null || !it.Base.twoHanded) return;
             if (!GearTable.TrySocket(it.baseId, out var sock) || sock.OffHand < 0.05f) return;
             var weapon = Find(body, "gear_weapon");
-            var upper = Art.Bone(body, "LeftArm");
-            var lower = Art.Bone(body, "LeftForeArm");
-            var hand = Art.Bone(body, "LeftHand");
+            bool gripLeft = GearTable.TryRow(it.baseId, out var row) && row.Hand == "L";
+            var upper = Art.Bone(body, gripLeft ? "RightArm" : "LeftArm");
+            var lower = Art.Bone(body, gripLeft ? "RightForeArm" : "LeftForeArm");
+            var hand = Art.Bone(body, gripLeft ? "RightHand" : "LeftHand");
             if (weapon == null || upper == null || lower == null || hand == null) return;
             var socket = new GameObject("offhand_grip").transform;
             socket.SetParent(weapon, false);
@@ -652,6 +653,16 @@ namespace Hollowmere
         }
 
         static Transform Hand(Transform body) => Art.Bone(body, "RightHand") ?? Art.Bone(body, "hand");
+
+        static Transform HoldHand(Transform body, string baseId, bool main)
+        {
+            string hand = "R";
+            if (GearTable.TryRow(baseId, out var row) && !string.IsNullOrEmpty(row.Hand)) hand = row.Hand;
+            if (hand == "L") return Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm");
+            if (hand == "Back") return Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1") ?? Art.Bone(body, "Spine");
+            if (!main && hand == "R") return Hand(body);
+            return main || hand == "R" ? Hand(body) : (Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm"));
+        }
 
         static bool IsGearDebris(string name)
         {

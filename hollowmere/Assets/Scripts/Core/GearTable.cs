@@ -47,14 +47,16 @@ namespace Hollowmere.Core
             public readonly bool TwoHand, Signature;
             public readonly HeroClass? ClassOnly;
             public readonly Element Element;
+            /// <summary>R right hand, L left hand, Back the upper spine. From the CC0 manifest.</summary>
+            public readonly string Hand;
 
             public WeaponRow(string id, string name, string type, string model, ItemSlot slot,
                 float lo, float hi, float aps, bool twoHand, bool signature, int armor,
-                HeroClass? cls, Element element)
+                HeroClass? cls, Element element, string hand)
             {
                 Id = id; Name = name; Type = type; Model = model; Slot = slot;
                 Lo = lo; Hi = hi; Aps = aps; TwoHand = twoHand; Signature = signature;
-                Armor = armor; ClassOnly = cls; Element = element;
+                Armor = armor; ClassOnly = cls; Element = element; Hand = hand;
             }
         }
 
@@ -91,51 +93,51 @@ namespace Hollowmere.Core
 
         static readonly WeaponRow[] Rows =
         {
-            W("sword", "Sword", "sword", 3, 6, 1.4f),
-            W("arming_sword", "Arming Sword", "sword", 3, 7, 1.35f),
-            W("greatsword", "Greatsword", "sword", 8, 14, 1.05f, two: true, signature: true),
-            W("handaxe", "Handaxe", "axe", 3, 6, 1.35f),
-            W("axe", "Axe", "axe", 4, 7, 1.3f, signature: true),
-            W("greataxe", "Great Axe", "axe", 7, 13, 1.0f, two: true, cls: HeroClass.Ironclad),
-            W("club", "Club", "mace", 3, 7, 1.2f),
-            W("mace", "Mace", "mace", 4, 8, 1.2f, signature: true),
-            W("warhammer", "Warhammer", "mace", 8, 12, 0.95f, two: true, cls: HeroClass.Ironclad),
-            W("javelin", "Javelin", "spear", 4, 8, 1.2f),
-            W("spear", "Spear", "spear", 5, 10, 1.15f, two: true, signature: true),
-            W("pike", "Pike", "spear", 6, 12, 0.95f, two: true),
-            W("sickle", "Sickle", "scythe", 3, 6, 1.3f),
-            W("scythe", "Scythe", "scythe", 7, 13, 1.0f, two: true, signature: true),
-            W("warscythe", "War Scythe", "scythe", 8, 14, 0.9f, two: true),
-            W("flail", "Flail", "flail", 4, 9, 1.25f, signature: true),
-            W("chain", "Chain", "flail", 3, 7, 1.3f),
-            W("ballflail", "Ball Flail", "flail", 5, 10, 1.1f),
-            W("dagger", "Dagger", "dagger", 2, 5, 1.6f),
-            W("kris", "Kris", "dagger", 2, 6, 1.45f),
-            W("stiletto", "Stiletto", "dagger", 1, 5, 1.7f),
-            W("claw", "Claw", "fist", 2, 5, 1.7f),
-            W("knuckle", "Knuckle", "fist", 2, 4, 1.75f),
-            W("cestus", "Cestus", "fist", 3, 6, 1.5f),
-            W("shortbow", "Shortbow", "bow", 3, 6, 1.5f, two: true, cls: HeroClass.Stalker),
-            W("bow", "Longbow", "bow", 4, 8, 1.4f, two: true, cls: HeroClass.Stalker, signature: true),
-            W("longbow", "Warbow", "bow", 5, 9, 1.2f, two: true, cls: HeroClass.Stalker),
-            W("handcrossbow", "Hand Crossbow", "crossbow", 4, 8, 1.25f, cls: HeroClass.Stalker),
-            W("crossbow", "Crossbow", "crossbow", 6, 10, 1.1f, two: true, cls: HeroClass.Stalker, signature: true),
-            W("arbalest", "Arbalest", "crossbow", 7, 12, 0.9f, two: true, cls: HeroClass.Stalker),
-            W("sceptre", "Sceptre", "wand", 3, 6, 1.25f, cls: HeroClass.Hexweaver, element: Element.Arcane),
-            W("wand", "Wand", "wand", 3, 6, 1.4f, cls: HeroClass.Hexweaver, element: Element.Arcane, signature: true),
-            W("focus", "Focus", "wand", 2, 5, 1.35f, cls: HeroClass.Hexweaver, element: Element.Arcane),
-            W("crook", "Crook", "staff", 4, 8, 1.05f, two: true, cls: HeroClass.Hexweaver, element: Element.Arcane),
-            W("staff", "Staff", "staff", 6, 11, 1.0f, two: true, cls: HeroClass.Hexweaver, element: Element.Arcane, signature: true),
-            W("warstaff", "War Staff", "staff", 7, 13, 0.9f, two: true, cls: HeroClass.Hexweaver, element: Element.Arcane),
-            O("buckler", "Buckler", "shield", 6),
-            O("shield", "Kite Shield", "shield", 12, signature: true),
-            O("towershield", "Tower Shield", "shield", 18),
-            O("crystal", "Crystal", "orb", 2, cls: HeroClass.Hexweaver),
-            O("orb", "Source Orb", "orb", 2, cls: HeroClass.Hexweaver, signature: true),
-            O("phylactery", "Phylactery", "orb", 3, cls: HeroClass.Hexweaver),
-            O("quiver", "Quiver", "quiver", 2, cls: HeroClass.Stalker),
-            O("boltcase", "Bolt Case", "quiver", 2, cls: HeroClass.Stalker),
-            O("arrowbag", "Arrow Bag", "quiver", 3, cls: HeroClass.Stalker),
+            W("sword", "Sword", "sword", "sword_3", 3, 6, 1.4f),
+            W("arming_sword", "Arming Sword", "sword", "sword_2", 3, 7, 1.35f),
+            W("greatsword", "Greatsword", "sword", "sword_1", 8, 14, 1.05f, two: true, signature: true),
+            W("handaxe", "Handaxe", "axe", "axe_2", 3, 6, 1.35f),
+            W("axe", "Axe", "axe", "axe_1", 4, 7, 1.3f, signature: true),
+            W("greataxe", "Great Axe", "axe", "axe_3", 7, 13, 1.0f, two: true, cls: HeroClass.Ironclad),
+            W("club", "Club", "mace", "mace_2", 3, 7, 1.2f),
+            W("mace", "Mace", "mace", "mace_1", 4, 8, 1.2f, signature: true),
+            W("warhammer", "Warhammer", "mace", "mace_3", 8, 12, 0.95f, two: true, cls: HeroClass.Ironclad),
+            W("javelin", "Javelin", "spear", "spear_2", 4, 8, 1.2f, two: true),
+            W("spear", "Spear", "spear", "spear_1", 5, 10, 1.15f, two: true, signature: true),
+            W("pike", "Pike", "spear", "spear_3", 6, 12, 0.95f, two: true),
+            W("sickle", "Sickle", "scythe", "scythe_2", 3, 6, 1.3f, two: true),
+            W("scythe", "Scythe", "scythe", "scythe_1", 7, 13, 1.0f, two: true, signature: true),
+            W("warscythe", "Glaive", "scythe", "scythe_3", 8, 14, 0.9f, two: true),
+            W("flail", "Flail", "flail", "flail_1", 4, 9, 1.25f, signature: true),
+            W("chain", "Chain", "flail", "flail_2", 3, 7, 1.3f),
+            W("ballflail", "Ball Flail", "flail", "flail_3", 5, 10, 1.1f),
+            W("dagger", "Dagger", "dagger", "dagger_1", 2, 5, 1.6f),
+            W("kris", "Kris", "dagger", "dagger_2", 2, 6, 1.45f),
+            W("stiletto", "Stiletto", "dagger", "dagger_3", 1, 5, 1.7f),
+            W("claw", "Claw", "fist", "fist_1", 2, 5, 1.7f),
+            W("knuckle", "Knuckle", "fist", "fist_2", 2, 4, 1.75f),
+            W("cestus", "Cestus", "fist", "fist_3", 3, 6, 1.5f),
+            W("shortbow", "Shortbow", "bow", "bow_2", 3, 6, 1.5f, two: true, cls: HeroClass.Stalker, hand: "L"),
+            W("bow", "Longbow", "bow", "bow_1", 4, 8, 1.4f, two: true, cls: HeroClass.Stalker, signature: true, hand: "L"),
+            W("longbow", "Warbow", "bow", "bow_3", 5, 9, 1.2f, two: true, cls: HeroClass.Stalker, hand: "L"),
+            W("handcrossbow", "Hand Crossbow", "crossbow", "crossbow_2", 4, 8, 1.25f, cls: HeroClass.Stalker),
+            W("crossbow", "Crossbow", "crossbow", "crossbow_1", 6, 10, 1.1f, two: true, cls: HeroClass.Stalker, signature: true),
+            W("arbalest", "Arbalest", "crossbow", "crossbow_3", 7, 12, 0.9f, two: true, cls: HeroClass.Stalker),
+            W("sceptre", "Sceptre", "wand", "wand_2", 3, 6, 1.25f, cls: HeroClass.Hexweaver, element: Element.Arcane),
+            W("wand", "Wand", "wand", "wand_1", 3, 6, 1.4f, cls: HeroClass.Hexweaver, element: Element.Arcane, signature: true),
+            W("focus", "Focus", "wand", "wand_3", 2, 5, 1.35f, cls: HeroClass.Hexweaver, element: Element.Arcane),
+            W("crook", "Crook", "staff", "staff_2", 4, 8, 1.05f, two: true, cls: HeroClass.Hexweaver, element: Element.Arcane),
+            W("staff", "Staff", "staff", "staff_1", 6, 11, 1.0f, two: true, cls: HeroClass.Hexweaver, element: Element.Arcane, signature: true),
+            W("warstaff", "War Staff", "staff", "staff_3", 7, 13, 0.9f, two: true, cls: HeroClass.Hexweaver, element: Element.Arcane),
+            O("buckler", "Buckler", "shield", "shield_2", 6),
+            O("shield", "Kite Shield", "shield", "shield_1", 12, signature: true),
+            O("towershield", "Tower Shield", "shield", "shield_3", 18),
+            O("crystal", "Crystal", "orb", "orb_2", 2, cls: HeroClass.Hexweaver),
+            O("orb", "Source Orb", "orb", "orb_1", 2, cls: HeroClass.Hexweaver, signature: true),
+            O("phylactery", "Phylactery", "orb", "orb_3", 3, cls: HeroClass.Hexweaver),
+            O("quiver", "Quiver", "quiver", "quiver_1", 2, hand: "Back", cls: HeroClass.Stalker),
+            O("boltcase", "Bolt Case", "quiver", "quiver_2", 2, hand: "Back", cls: HeroClass.Stalker),
+            O("arrowbag", "Arrow Bag", "quiver", "quiver_3", 3, hand: "Back", cls: HeroClass.Stalker),
         };
 
         static readonly string[] Types =
@@ -289,11 +291,11 @@ namespace Hollowmere.Core
             });
         }
 
-        static WeaponRow W(string id, string name, string type, float lo, float hi, float aps,
-            bool two = false, bool signature = false, HeroClass? cls = null, Element element = Element.Physical)
-            => new WeaponRow(id, name, type, id, ItemSlot.MainHand, lo, hi, aps, two, signature, 0, cls, element);
+        static WeaponRow W(string id, string name, string type, string model, float lo, float hi, float aps,
+            bool two = false, bool signature = false, HeroClass? cls = null, Element element = Element.Physical, string hand = "R")
+            => new WeaponRow(id, name, type, model, ItemSlot.MainHand, lo, hi, aps, two, signature, 0, cls, element, hand);
 
-        static WeaponRow O(string id, string name, string type, int armor, bool signature = false, HeroClass? cls = null)
-            => new WeaponRow(id, name, type, id, ItemSlot.OffHand, 0f, 0f, 0f, false, signature, armor, cls, Element.Physical);
+        static WeaponRow O(string id, string name, string type, string model, int armor, bool signature = false, HeroClass? cls = null, string hand = "L")
+            => new WeaponRow(id, name, type, model, ItemSlot.OffHand, 0f, 0f, 0f, false, signature, armor, cls, Element.Physical, hand);
     }
 }

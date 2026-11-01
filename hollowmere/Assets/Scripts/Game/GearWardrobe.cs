@@ -264,6 +264,9 @@ namespace Hollowmere
         public const string PackUrl = "https://github.com/Labfreak-dev/Odds-Ends/releases/download/hollowmere-assets-v5/hollowmere_gear_v7b.tar.gz";
         public const string PackRoot = "Gear/Sets";
 
+        /// <summary>Source mesh name per slot from the last Apply. QA compares these across tiers.</summary>
+        public static readonly Dictionary<EquipSlot, string> LastSource = new Dictionary<EquipSlot, string>();
+
         static readonly string[] Sets = { "plate", "leather", "arcane", "bone", "infernal" };
 
         public static void Apply(Transform body, Hero hero)
@@ -342,12 +345,16 @@ namespace Hollowmere
             lower = false;
             if (tier < GearTable.TierCount)
             {
-                var low = Resources.Load<GameObject>("Gear/Lower/" + family + "/" + slot);
+                // v8: each lower tier is its own model (t1 Blender simplification, t2 Meshy).
+                var low = Resources.Load<GameObject>(LowerPath(family, slot, tier))
+                    ?? Resources.Load<GameObject>("Gear/Lower/" + family + "/" + slot);
                 if (low != null) { lower = true; return low; }
             }
             if (string.IsNullOrEmpty(family)) return null;
             return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
+
+        public static string LowerPath(string family, string slot, int tier) => "Gear/Lower/" + family + "/t" + tier + "_" + slot;
 
         static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it)
         {
@@ -359,6 +366,7 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return null;
             }
+            LastSource[slot] = src.sharedMesh.name;
             var mesh = Object.Instantiate(src.sharedMesh);
             mesh.name = "gear_" + GearFit.SlotName(slot);
             if (!Remap(mesh, src.bones, heroSkin.bones, src.sharedMesh.bindposes, heroSkin.sharedMesh.bindposes))

@@ -471,12 +471,35 @@ namespace Hollowmere
                 (EquipSlot.Legs, "greaves"),
                 (EquipSlot.Feet, "boots"),
             };
+            int tierFails = 0;
             for (int f = 0; f < GearTable.Families.Length; f++)
             {
+                var seen = new System.Collections.Generic.Dictionary<EquipSlot, string>[GearTable.TierCount + 1];
                 for (int tier = 1; tier <= GearTable.TierCount; tier++)
                 {
-                    WearFamily(gm, pieces, GearTable.Families[f], tier);
+                    // The rarity row owns the visual tier: common is t1, rare t2, legendary t3.
+                    var tierRarity = tier == 1 ? Rarity.Common : tier == 2 ? Rarity.Rare : Rarity.Legendary;
+                    GearWardrobe.LastSource.Clear();
+                    WearFamily(gm, pieces, GearTable.Families[f], tier, tierRarity);
                     yield return null;
+                    seen[tier] = new System.Collections.Generic.Dictionary<EquipSlot, string>(GearWardrobe.LastSource);
+                    for (int p = 0; p < pieces.Length; p++)
+                    {
+                        seen[tier].TryGetValue(pieces[p].slot, out var now);
+                        Debug.Log("Hollowmere tiers mesh " + GearTable.Families[f] + " t" + tier + " " + pieces[p].slot + " " + (now ?? "none"));
+                        if (string.IsNullOrEmpty(now)) { tierFails++; Debug.LogError("Hollowmere gear FAIL tiers no mesh " + GearTable.Families[f] + " t" + tier + " " + pieces[p].slot); continue; }
+                        for (int lower = 1; lower < tier; lower++)
+                            if (seen[lower] != null && seen[lower].TryGetValue(pieces[p].slot, out var was) && was == now)
+                            {
+                                tierFails++;
+                                Debug.LogError("Hollowmere gear FAIL tiers same mesh " + GearTable.Families[f] + " t" + lower + "=t" + tier + " " + pieces[p].slot + " " + now);
+                            }
+                    }
+                    // Fit and in-engine skin clip on every pose for this family and tier (crouch included).
+                    GearAudit.Prepare(actor.transform);
+                    int fitFails = GearAudit.Run(actor.transform);
+                    Debug.Log("Hollowmere tiers fit " + GearTable.Families[f] + " t" + tier + " fails=" + fitFails);
+                    if (fitFails > 0) tierFails += fitFails;
                     StandIdle(actor);
                     FrameGear(actor, cam, rig, true);
                     yield return null;
@@ -484,6 +507,7 @@ namespace Hollowmere
                     SaveNamed("tiers-" + GearTable.Families[f] + "-" + tier);
                 }
             }
+            Debug.Log("Hollowmere tiers distinct fails=" + tierFails);
             Debug.Log("Hollowmere QA tiers done");
             Application.Quit();
         }
@@ -1675,6 +1699,9 @@ namespace Hollowmere
         }
 
         static void WearFamily(GameManager gm, (EquipSlot slot, string id)[] pieces, string family, int tier)
+            => WearFamily(gm, pieces, family, tier, Rarity.Rare);
+
+        static void WearFamily(GameManager gm, (EquipSlot slot, string id)[] pieces, string family, int tier, Rarity rarity)
         {
             var hero = gm.State.hero;
             hero.classless = true;
@@ -1684,7 +1711,7 @@ namespace Hollowmere
             var rng = new Rng(11);
             for (int i = 0; i < pieces.Length; i++)
             {
-                var it = Loot.Generate(rng, 12, Rarity.Rare, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
+                var it = Loot.Generate(rng, 12, rarity, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
                 if (it == null)
                 {
                     Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id);

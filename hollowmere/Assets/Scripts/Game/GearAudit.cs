@@ -420,23 +420,26 @@ namespace Hollowmere
 
         /// <summary>
         /// Shoulder-to-hand and hip-to-foot. A sample fails when that skin is not drawn and no
-        /// piece is within the seam distance, which is the floating-gauntlet gap.
+        /// drawn triangle, body or piece, is within the seam distance.
         /// </summary>
         static int LimbChains(Transform body, List<SkinnedMeshRenderer> pieces, string pose)
         {
             var mark = body != null ? body.GetComponentInChildren<BodySplit>(true) : null;
             if (mark == null) return Fail(pose + " chain missing body");
-            var gearPts = new List<Vector3>();
+            var drawnTris = new List<DrawnMesh>();
+            for (int c = 0; c < mark.transform.childCount; c++)
+            {
+                var child = mark.transform.GetChild(c);
+                var smr = child.GetComponent<SkinnedMeshRenderer>();
+                if (smr == null || smr.forceRenderingOff || !smr.enabled || !smr.gameObject.activeInHierarchy) continue;
+                AddDrawn(drawnTris, child.name, smr);
+            }
             if (pieces != null)
             {
                 for (int p = 0; p < pieces.Count; p++)
-                {
-                    var pts = WorldPoints(pieces[p]);
-                    if (pts == null) continue;
-                    for (int i = 0; i < pts.Length; i++) gearPts.Add(pts[i]);
-                }
+                    AddDrawn(drawnTris, pieces[p] != null ? pieces[p].name : "piece", pieces[p]);
             }
-            var gear = new Grid(gearPts.ToArray());
+            var surfaces = new TriNear(drawnTris);
             string[] links = { "UpperArm", "LowerArm", "Hand", "Waist", "Thigh", "Shin", "Foot" };
             var seen = new bool[links.Length];
             int fails = 0;
@@ -453,6 +456,8 @@ namespace Hollowmere
                 if (smr == null || smr.sharedMesh == null) continue;
                 var pts = WorldPoints(smr);
                 var used = TriangleUsed(smr.sharedMesh);
+                var weights = smr.sharedMesh.boneWeights;
+                var bones = smr.bones;
                 if (pts == null) continue;
                 bool hidden = smr.forceRenderingOff || !smr.enabled || !smr.gameObject.activeInHierarchy;
                 int step = Mathf.Max(1, pts.Length / 80);
@@ -460,9 +465,18 @@ namespace Hollowmere
                 for (int i = 0; i < pts.Length; i += step)
                 {
                     bool drawn = !hidden && used != null && i < used.Length && used[i];
-                    float dist = drawn ? 0f : gear.Nearest(pts[i]);
-                    if (!drawn) undrawn++;
-                    if (!GearFit.ChainCovered(drawn, dist)) far++;
+                    if (drawn) continue;
+                    undrawn++;
+                    float dist = surfaces.Nearest(pts[i], out string nearest);
+                    if (GearFit.ChainCovered(false, dist)) continue;
+                    far++;
+                    string bone = DominantName(weights, bones, i);
+                    var p = pts[i];
+                    Debug.Log("Hollowmere gear chain " + pose + " " + tail
+                        + " bone=" + bone
+                        + " pos=(" + p.x.ToString("0.000") + "," + p.y.ToString("0.000") + "," + p.z.ToString("0.000") + ")"
+                        + " nearest=" + nearest
+                        + " dist=" + dist.ToString("0.000"));
                 }
                 Debug.Log("Hollowmere gear chain " + pose + " " + tail + " undrawn=" + undrawn + " far=" + far);
                 if (far > 0) fails += Fail(pose + " " + tail + " chain gap " + far);
@@ -470,6 +484,22 @@ namespace Hollowmere
             for (int i = 0; i < links.Length; i++)
                 if (!seen[i]) fails += Fail(pose + " " + links[i] + " chain missing");
             return fails;
+        }
+
+        static void AddDrawn(List<DrawnMesh> list, string name, SkinnedMeshRenderer smr)
+        {
+            var pts = WorldPoints(smr);
+            var tris = smr != null && smr.sharedMesh != null ? smr.sharedMesh.triangles : null;
+            if (pts == null || tris == null || tris.Length < 3) return;
+            list.Add(new DrawnMesh { name = string.IsNullOrEmpty(name) ? "surface" : name, pts = pts, tris = tris });
+        }
+
+        static string DominantName(BoneWeight[] weights, Transform[] bones, int index)
+        {
+            if (weights == null || bones == null || index < 0 || index >= weights.Length) return "none";
+            int d = GearShell.Dominant(weights[index]);
+            if (d < 0 || d >= bones.Length || bones[d] == null) return "none";
+            return GearFit.Tail(bones[d].name);
         }
 
         static bool[] TriangleUsed(Mesh mesh)
@@ -726,6 +756,103 @@ namespace Hollowmere
         {
             Debug.LogError("Hollowmere gear FAIL " + why);
             return 1;
+        }
+
+        struct DrawnMesh
+        {
+            public string name;
+            public Vector3[] pts;
+            public int[] tris;
+        }
+
+        /// <summary>Every drawn triangle, body or piece. A query searches the cells the triangle actually overlaps.</summary>
+        sealed class TriNear
+        {
+            struct Item
+            {
+                public string name;
+                public Vector3 a, b, c;
+            }
+
+            readonly List<Item>[] cells;
+            const float Cell = 0.08f;
+            const int Buckets = 8192;
+
+            public TriNear(List<DrawnMesh> meshes)
+            {
+                cells = new List<Item>[Buckets];
+                if (meshes == null) return;
+                for (int m = 0; m < meshes.Count; m++)
+                {
+                    var mesh = meshes[m];
+                    if (mesh.pts == null || mesh.tris == null) continue;
+                    int n = mesh.tris.Length / 3;
+                    for (int t = 0; t < n; t++)
+                    {
+                        int ia = mesh.tris[t * 3], ib = mesh.tris[t * 3 + 1], ic = mesh.tris[t * 3 + 2];
+                        if (ia < 0 || ib < 0 || ic < 0 || ia >= mesh.pts.Length || ib >= mesh.pts.Length || ic >= mesh.pts.Length) continue;
+                        var item = new Item { name = mesh.name, a = mesh.pts[ia], b = mesh.pts[ib], c = mesh.pts[ic] };
+                        Vector3 min = item.a, max = item.a;
+                        Enc(ref min, ref max, item.b);
+                        Enc(ref min, ref max, item.c);
+                        int x0 = Mathf.FloorToInt(min.x / Cell), x1 = Mathf.FloorToInt(max.x / Cell);
+                        int y0 = Mathf.FloorToInt(min.y / Cell), y1 = Mathf.FloorToInt(max.y / Cell);
+                        int z0 = Mathf.FloorToInt(min.z / Cell), z1 = Mathf.FloorToInt(max.z / Cell);
+                        if (x1 - x0 > 16 || y1 - y0 > 16 || z1 - z0 > 16) { x0 = x1 = Mathf.FloorToInt(item.a.x / Cell); y0 = y1 = Mathf.FloorToInt(item.a.y / Cell); z0 = z1 = Mathf.FloorToInt(item.a.z / Cell); }
+                        for (int z = z0; z <= z1; z++)
+                            for (int y = y0; y <= y1; y++)
+                                for (int x = x0; x <= x1; x++)
+                                {
+                                    int k = Key(x, y, z);
+                                    if (cells[k] == null) cells[k] = new List<Item>(4);
+                                    cells[k].Add(item);
+                                }
+                    }
+                }
+            }
+
+            public float Nearest(Vector3 p, out string name)
+            {
+                name = "none";
+                float best = 1f;
+                int cx = Mathf.FloorToInt(p.x / Cell);
+                int cy = Mathf.FloorToInt(p.y / Cell);
+                int cz = Mathf.FloorToInt(p.z / Cell);
+                for (int z = -2; z <= 2; z++)
+                    for (int y = -2; y <= 2; y++)
+                        for (int x = -2; x <= 2; x++)
+                        {
+                            var list = cells[Key(cx + x, cy + y, cz + z)];
+                            if (list == null) continue;
+                            for (int i = 0; i < list.Count; i++)
+                            {
+                                float d = DistPointTri(p, list[i].a, list[i].b, list[i].c);
+                                if (d >= best) continue;
+                                best = d;
+                                name = list[i].name;
+                            }
+                        }
+                return best;
+            }
+
+            static void Enc(ref Vector3 min, ref Vector3 max, Vector3 p)
+            {
+                if (p.x < min.x) min.x = p.x;
+                if (p.y < min.y) min.y = p.y;
+                if (p.z < min.z) min.z = p.z;
+                if (p.x > max.x) max.x = p.x;
+                if (p.y > max.y) max.y = p.y;
+                if (p.z > max.z) max.z = p.z;
+            }
+
+            static int Key(int x, int y, int z)
+            {
+                unchecked
+                {
+                    int h = x * 73856093 ^ y * 19349663 ^ z * 83492791;
+                    return (h & 0x7fffffff) % Buckets;
+                }
+            }
         }
 
         sealed class Grid

@@ -211,9 +211,9 @@ namespace Hollowmere.Core
             return !a || !b || !c;
         }
 
-        /// <summary>A limb vertex is covered when its skin is drawn, or a piece is within the seam distance.</summary>
-        public static bool ChainCovered(bool drawn, float toPieceMetres)
-            => drawn || toPieceMetres <= SeamGap;
+        /// <summary>A limb vertex is covered when its skin is drawn, or a drawn triangle is within the seam distance.</summary>
+        public static bool ChainCovered(bool drawn, float toSurfaceMetres)
+            => drawn || toSurfaceMetres <= SeamGap;
 
         public static bool CoverageOk(float inSlot, float total)
             => total > 0.0001f && inSlot / total >= SlotCoverage;

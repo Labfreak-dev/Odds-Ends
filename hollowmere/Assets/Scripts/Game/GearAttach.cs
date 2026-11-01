@@ -251,7 +251,14 @@ namespace Hollowmere
             outward -= Vector3.Project(outward, along);
             if (outward.sqrMagnitude < 1e-4f) outward = Vector3.Cross(along, Vector3.up);
             outward.Normalize();
-            go.transform.rotation = Quaternion.LookRotation(outward, along);
+            // The plate's broad face is local +Z. Point it forward and a little outward
+            // so a front camera sees the face, not the edge.
+            Vector3 heroForward = chest != null ? chest.forward : Vector3.forward;
+            heroForward.y = 0f;
+            if (heroForward.sqrMagnitude < 1e-4f) heroForward = Vector3.forward;
+            heroForward.Normalize();
+            Vector3 faceNormal = (heroForward * 0.86f + outward * 0.5f).normalized;
+            go.transform.rotation = Quaternion.LookRotation(faceNormal, along);
             go.transform.position = arm.position + outward * 0.035f + along * 0.02f;
             FitWorldScale(go.transform, arm);
             FitLongest(go.transform, 0.82f);
@@ -579,6 +586,21 @@ namespace Hollowmere
                 + (drawn ? " drawn" : " hidden");
             Debug.Log(line);
             if (!drawn || height < 0.5f || dist > 0.10f || big < 0.2f)
+                Debug.LogError("Hollowmere grip shield FAIL " + line);
+        }
+
+        /// <summary>The grip camera has to see the shield face, not its edge. |dot(normal, cameraForward)| at least 0.5.</summary>
+        public static void AuditShieldFace(Transform body, Camera cam)
+        {
+            if (body == null || cam == null) return;
+            var prop = Find(body, "gear_offhand");
+            if (prop == null || GripType(body) != "shield") return;
+            Vector3 normal = prop.forward;
+            if (normal.sqrMagnitude < 1e-6f) normal = Vector3.forward;
+            float dot = Mathf.Abs(Vector3.Dot(normal.normalized, cam.transform.forward));
+            string line = "Hollowmere grip shield face " + dot.ToString("0.00");
+            Debug.Log(line);
+            if (dot < 0.5f)
                 Debug.LogError("Hollowmere grip shield FAIL " + line);
         }
 

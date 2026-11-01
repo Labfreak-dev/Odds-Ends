@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using Hollowmere.Core;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Hollowmere
 {
@@ -370,9 +371,14 @@ namespace Hollowmere
             var savedClear = cam.clearFlags;
             var savedBg = cam.backgroundColor;
             var savedFov = cam.fieldOfView;
+            var lineupLight = LineupLight.Push();
             ShowLineup(cam, rig, GearTable.Weapons, 9, 1.15f, 0.8f);
             yield return null;
             yield return new WaitForEndOfFrame();
+            float lum = LineupLuminance();
+            Debug.Log("Hollowmere lineup luminance " + lum.ToString("0.00"));
+            if (lum < 0.3f)
+                Debug.LogError("Hollowmere lineup FAIL luminance " + lum.ToString("0.00"));
             SaveNamed("weapons-lineup");
             ClearLineup();
             var types = GearTable.WeaponTypes;
@@ -384,6 +390,7 @@ namespace Hollowmere
                 SaveNamed("weapons-lineup-" + types[i]);
                 ClearLineup();
             }
+            LineupLight.Pop(lineupLight);
             cam.clearFlags = savedClear;
             cam.backgroundColor = savedBg;
             cam.fieldOfView = savedFov;
@@ -402,9 +409,17 @@ namespace Hollowmere
                 SaveNamed("weapons-" + types[i]);
                 FrameGrip(actor, cam, rig, main);
                 GearAttach.AuditFramed(actor.transform, cam);
+                if (types[i] == "shield") GearAttach.AuditShieldFace(actor.transform, cam);
                 yield return null;
                 yield return new WaitForEndOfFrame();
                 SaveNamed("weapons-grip-" + types[i]);
+                if (types[i] == "shield")
+                {
+                    FrameShield34(actor, cam, rig);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("weapons-grip-shield-34");
+                }
                 if (types[i] == "quiver")
                 {
                     FrameRear(actor, cam, rig);
@@ -515,6 +530,7 @@ namespace Hollowmere
                 var go = UnityEngine.Object.Instantiate(prefab, root.transform);
                 go.name = "line_" + row.Id;
                 Art.AdoptShaders(go);
+                CatalogShade(go);
                 go.transform.localRotation = Quaternion.Euler(-6f, 24f, 0f);
                 go.transform.localScale = Vector3.one;
                 float max = 1f;
@@ -554,9 +570,11 @@ namespace Hollowmere
             var cr = card.GetComponent<Renderer>();
             cr.sharedMaterial = Art.Mat(grey);
             cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 3.6f, Quaternion.Euler(48f, -24f, 0f));
-            AddLineupLight(root.transform, "lineupFill", new Color(0.84f, 0.90f, 1f), 2.2f, Quaternion.Euler(14f, 150f, 0f));
-            AddLineupLight(root.transform, "lineupFront", new Color(1f, 0.99f, 0.96f), 2.5f, Quaternion.Euler(8f, 180f, 0f));
+            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 2.8f, Quaternion.Euler(48f, -24f, 0f));
+            AddLineupLight(root.transform, "lineupFill", new Color(0.86f, 0.90f, 1f), 1.8f, Quaternion.Euler(14f, 150f, 0f));
+            // From the camera, brighter than the town sun, so this is the main light on the faces we see.
+            AddLineupLight(root.transform, "lineupFront", new Color(1f, 0.99f, 0.97f), 5.2f, Quaternion.Euler(8f, 180f, 0f));
+            AddLineupProbe(root.transform);
             float width = Mathf.Max(cell, (cols - 1) * cell + target);
             float height = Mathf.Max(cell, (nRows - 1) * cell + target * 1.35f);
             float fov = 26f;
@@ -588,6 +606,166 @@ namespace Hollowmere
             light.color = color;
             light.intensity = intensity;
             light.shadows = LightShadows.None;
+            light.renderMode = LightRenderMode.ForcePixel;
+        }
+
+        /// <summary>
+        /// A metal map of white zeros the diffuse term, so extra directional lights
+        /// leave the mesh black. The catalog keeps the albedo and drops that map.
+        /// </summary>
+        static void CatalogShade(GameObject go)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    m.DisableKeyword("_METALLICSPECGLOSSMAP");
+                    if (m.HasProperty("_HasMetal")) m.SetFloat("_HasMetal", 0f);
+                    if (m.HasProperty("_GltfPack")) m.SetFloat("_GltfPack", 0f);
+                    if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0.08f);
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.34f);
+                    if (m.HasProperty("_EnvironmentReflections")) m.SetFloat("_EnvironmentReflections", 1f);
+                    if (m.HasProperty("_GlossyReflections")) m.SetFloat("_GlossyReflections", 1f);
+                }
+                r.materials = mats;
+            }
+        }
+
+        static void AddLineupProbe(Transform root)
+        {
+            var go = new GameObject("lineupProbe");
+            go.transform.SetParent(root, false);
+            var probe = go.AddComponent<ReflectionProbe>();
+            probe.mode = ReflectionProbeMode.Realtime;
+            probe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            probe.size = new Vector3(28f, 14f, 28f);
+            probe.resolution = 64;
+            probe.hdr = true;
+            probe.boxProjection = true;
+            probe.RenderProbe();
+        }
+
+        struct LineupLight
+        {
+            public AmbientMode mode;
+            public Color ambient, sky, equator, ground;
+            public float intensity, reflection;
+            public DefaultReflectionMode reflectionMode;
+            public Texture customReflection;
+            public Material skybox;
+            public bool fog;
+
+            public static LineupLight Push()
+            {
+                var snap = new LineupLight();
+                snap.mode = RenderSettings.ambientMode;
+                snap.ambient = RenderSettings.ambientLight;
+                snap.sky = RenderSettings.ambientSkyColor;
+                snap.equator = RenderSettings.ambientEquatorColor;
+                snap.ground = RenderSettings.ambientGroundColor;
+                snap.intensity = RenderSettings.ambientIntensity;
+                snap.reflection = RenderSettings.reflectionIntensity;
+                snap.reflectionMode = RenderSettings.defaultReflectionMode;
+                snap.customReflection = RenderSettings.customReflection;
+                snap.skybox = RenderSettings.skybox;
+                snap.fog = RenderSettings.fog;
+                RenderSettings.fog = false;
+                RenderSettings.ambientMode = AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = new Color(0.74f, 0.75f, 0.77f);
+                RenderSettings.ambientEquatorColor = new Color(0.64f, 0.64f, 0.66f);
+                RenderSettings.ambientGroundColor = new Color(0.52f, 0.52f, 0.54f);
+                RenderSettings.ambientLight = new Color(0.66f, 0.66f, 0.68f);
+                RenderSettings.ambientIntensity = 1.3f;
+                RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+                RenderSettings.customReflection = BrightCube();
+                RenderSettings.reflectionIntensity = 1.25f;
+                DynamicGI.UpdateEnvironment();
+                return snap;
+            }
+
+            public static void Pop(LineupLight snap)
+            {
+                RenderSettings.ambientMode = snap.mode;
+                RenderSettings.ambientLight = snap.ambient;
+                RenderSettings.ambientSkyColor = snap.sky;
+                RenderSettings.ambientEquatorColor = snap.equator;
+                RenderSettings.ambientGroundColor = snap.ground;
+                RenderSettings.ambientIntensity = snap.intensity;
+                RenderSettings.reflectionIntensity = snap.reflection;
+                RenderSettings.defaultReflectionMode = snap.reflectionMode;
+                RenderSettings.customReflection = snap.customReflection;
+                RenderSettings.skybox = snap.skybox;
+                RenderSettings.fog = snap.fog;
+                DynamicGI.UpdateEnvironment();
+            }
+        }
+
+        static Cubemap brightCube;
+
+        static Cubemap BrightCube()
+        {
+            if (brightCube != null) return brightCube;
+            brightCube = new Cubemap(16, TextureFormat.RGB24, false);
+            var cols = new Color[16 * 16];
+            for (int i = 0; i < cols.Length; i++) cols[i] = new Color(0.82f, 0.83f, 0.85f);
+            for (int face = 0; face < 6; face++)
+                brightCube.SetPixels(cols, (CubemapFace)face);
+            brightCube.Apply();
+            return brightCube;
+        }
+
+        /// <summary>Mean luminance of pixels that are not the backdrop and not the label ink.</summary>
+        static float LineupLuminance()
+        {
+            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            if (tex == null) return 0f;
+            int w = tex.width;
+            int h = tex.height;
+            var pixels = tex.GetPixels32();
+            UnityEngine.Object.Destroy(tex);
+            if (pixels == null || pixels.Length < 16 || w < 2 || h < 2) return 0f;
+            Color bg = CornerColor(pixels, w, h);
+            double sum = 0;
+            int n = 0;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                float r = pixels[i].r / 255f;
+                float g = pixels[i].g / 255f;
+                float b = pixels[i].b / 255f;
+                float dr = r - bg.r, dg = g - bg.g, db = b - bg.b;
+                if (dr * dr + dg * dg + db * db < 0.008f) continue;
+                if (Mathf.Max(r, Mathf.Max(g, b)) < 0.12f) continue;
+                sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                n++;
+            }
+            return n < 32 ? 0f : (float)(sum / n);
+        }
+
+        static Color CornerColor(Color32[] pixels, int w, int h)
+        {
+            int[] ids =
+            {
+                0, w - 1, (h - 1) * w, (h - 1) * w + w - 1,
+                w / 2, (h - 1) * w + w / 2
+            };
+            float r = 0f, g = 0f, b = 0f;
+            int n = 0;
+            for (int i = 0; i < ids.Length; i++)
+            {
+                int id = ids[i];
+                if (id < 0 || id >= pixels.Length) continue;
+                r += pixels[id].r;
+                g += pixels[id].g;
+                b += pixels[id].b;
+                n++;
+            }
+            if (n == 0) return new Color(0.82f, 0.83f, 0.85f);
+            return new Color(r / (255f * n), g / (255f * n), b / (255f * n));
         }
 
         static bool UnionRenderers(GameObject go, out Bounds box)
@@ -626,6 +804,39 @@ namespace Hollowmere
                 paperCard.transform.localScale = new Vector3(8f, 5f, 1f);
             }
             PaperLight(actor, true, camPos, look);
+        }
+
+        /// <summary>Close three-quarter view of the shield face, from the front and the shield side.</summary>
+        static void FrameShield34(HeroActor actor, Camera cam, CameraRig rig)
+        {
+            if (cam == null || actor == null) return;
+            var propGo = GameObject.Find("gear_offhand");
+            Transform prop = propGo != null ? propGo.transform : null;
+            var arm = Art.Bone(actor.transform, "LeftForeArm");
+            Vector3 center = prop != null ? prop.position : arm != null ? arm.position : actor.Pos + Vector3.up;
+            Bounds box = new Bounds(center, Vector3.one * 0.35f);
+            if (prop != null)
+            {
+                foreach (var r in prop.GetComponentsInChildren<Renderer>())
+                {
+                    if (r == null || !r.enabled) continue;
+                    box.Encapsulate(r.bounds);
+                }
+            }
+            Vector3 face = FaceDir(actor);
+            Vector3 side = Vector3.Cross(face, Vector3.up);
+            if (side.sqrMagnitude < 1e-4f) side = Vector3.right;
+            side.Normalize();
+            // Left hand is on +X when the hero faces +Z, which is -Cross(forward, up).
+            Vector3 shieldSide = -side;
+            Vector3 look = box.center;
+            cam.fieldOfView = 22f;
+            float radius = Mathf.Max(box.extents.magnitude, 0.28f);
+            float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + 0.15f;
+            Vector3 camPos = look + (face * 0.75f + shieldSide * 0.65f).normalized * dist + Vector3.up * radius * 0.12f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
         }
 
         /// <summary>Tight frame on the hand that holds a small weapon.</summary>

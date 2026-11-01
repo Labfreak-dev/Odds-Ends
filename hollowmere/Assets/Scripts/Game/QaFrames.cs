@@ -595,6 +595,16 @@ namespace Hollowmere
             Save("combatfeel", 0);
             monster.TakeDamage(new Hit { amount = 86f, crit = true, element = Element.Physical }, null);
             CombatClock.Punch("crit");
+            // Sample before yielding. One QA frame of scaled time is longer than the 60 ms stop,
+            // so a check after yield return null always saw the window already closed.
+            bool frozen = CombatClock.Frozen && Time.timeScale < 0.05f;
+            float windowEnd = Time.unscaledTime + critMs / 1000f;
+            float sampleAt = Time.unscaledTime + 0.030f;
+            while (Time.unscaledTime < sampleAt && Time.unscaledTime < windowEnd)
+                yield return null;
+            // A long QA frame can step past the stop. Only the sample that lands inside it counts.
+            if (Time.unscaledTime < windowEnd)
+                frozen = frozen && CombatClock.Frozen && Time.timeScale < 0.05f;
             yield return null;
             bool number = false;
             foreach (var tm in UnityEngine.Object.FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
@@ -602,10 +612,10 @@ namespace Hollowmere
             foreach (var tr in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
                 if (tr != null && tr.name == "dmg") number = true;
             var flash = monster.GetComponent<HitFlash>();
-            Debug.Log("Hollowmere QA combatfeel number=" + number + " flash=" + (flash != null) + " frozen=" + CombatClock.Frozen);
+            Debug.Log("Hollowmere QA combatfeel number=" + number + " flash=" + (flash != null) + " frozen=" + frozen + " scale=" + Time.timeScale.ToString("0.0000"));
             if (!number) Debug.LogError("Hollowmere QA combatfeel FAIL no damage number");
             if (flash == null) Debug.LogError("Hollowmere QA combatfeel FAIL no hit flash");
-            if (!CombatClock.Frozen) Debug.LogError("Hollowmere QA combatfeel FAIL hit-stop did not freeze");
+            if (!frozen) Debug.LogError("Hollowmere QA combatfeel FAIL hit-stop did not freeze");
             for (int i = 1; i <= 6; i++)
             {
                 yield return new WaitForEndOfFrame();

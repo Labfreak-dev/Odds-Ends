@@ -727,13 +727,14 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere QA lootbeam FAIL " + beams + "/" + rows.Length);
             else
                 Debug.Log("Hollowmere QA lootbeam " + beams + " ok");
-            string[] steps = { "stone", "dirt", "grass", "wood", "water", "wade" };
-            for (int i = 0; i < steps.Length; i++)
+            for (int i = 0; i < Sfx.StepSurfaces.Length; i++)
             {
-                if (!AudioHub.Has("step_" + steps[i] + "_01"))
-                    Debug.LogError("Hollowmere QA step FAIL missing step_" + steps[i] + "_01");
+                string surface = Sfx.StepSurfaces[i];
+                string clip = Sfx.StepCue(surface) + "_01";
+                if (!Sfx.HasStep(surface))
+                    Debug.LogError("Hollowmere QA step FAIL missing " + clip);
                 else
-                    Debug.Log("Hollowmere QA step " + steps[i]);
+                    Debug.Log("Hollowmere QA step " + surface + " " + clip);
             }
             var look = origin + new Vector3(0f, 1.1f, 4f);
             var camPos = look + new Vector3(0f, 1.4f, -7.2f);

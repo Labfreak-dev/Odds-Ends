@@ -68,6 +68,7 @@ namespace Hollowmere
                 if (left <= 0) { Destroy(t.transform.parent.gameObject); toasts.RemoveAt(i); }
             }
             Time.timeScale = AnyModal ? 0f : 1f;
+            CombatClock.Tick();
         }
 
         public void Toast(string msg)
@@ -168,6 +169,7 @@ namespace Hollowmere
             modals.Remove(m);
             if (m != null) Destroy(m);
             Time.timeScale = AnyModal ? 0f : 1f;
+            CombatClock.Tick();
         }
 
         public void CloseAll()
@@ -185,6 +187,7 @@ namespace Hollowmere
             modals.Add(root.gameObject);
             AudioHub.Panel(true);
             Time.timeScale = 0f;
+            CombatClock.Tick();
             return root;
         }
 

@@ -108,6 +108,8 @@ Shader "Hollowmere/Lit"
                 float3 positionWS : TEXCOORD2;
                 float2 uv : TEXCOORD3;
                 float tangentSign : TEXCOORD4;
+                float3 normalOS : TEXCOORD5;
+                float3 positionOS : TEXCOORD6;
             };
 
             Varyings vert(Attributes v)
@@ -119,6 +121,8 @@ Shader "Hollowmere/Lit"
                 o.tangentWS = TransformObjectToWorldDir(v.tangentOS.xyz);
                 o.tangentSign = v.tangentOS.w;
                 o.uv = v.uv;
+                o.normalOS = v.normalOS;
+                o.positionOS = v.positionOS.xyz;
                 return o;
             }
 
@@ -199,17 +203,22 @@ Shader "Hollowmere/Lit"
                 }
                 #endif
 
-                // Rarity sets _RimOnly and gets a view-dependent fresnel plus an optional edge mask.
-                // Other emission (hit flashes, props) keeps the previous coverage.
+                // Rare uses a view fresnel. Legendary and set use an object-space crease and a UV seam,
+                // not the screen-space outline, so the glow cannot streak across the face.
                 half ndv = saturate(dot(n, view));
                 half fres = pow(1.0 - ndv, max(_RimPower, 0.5));
-                half edge = saturate(length(fwidth(n)) * _EdgeBoost);
+                float span = max(length(fwidth(i.positionOS)), 1e-4);
+                half crease = length(fwidth(i.normalOS)) / span;
+                half seam = length(fwidth(i.uv)) / span;
+                half edge = saturate(max(crease - 14.0, seam * 0.35 - 6.0) * _EdgeBoost * 0.04);
                 half legacy = 0.35 + pow(1.0 - ndv, 3.0);
-                half mask = _KillEmit > 0.5 ? 0.0 : (_RimOnly > 0.5 ? max(fres, edge) : legacy);
+                half mask = 0.0;
+                if (_KillEmit < 0.5)
+                    mask = _RimOnly > 0.5 ? (_EdgeBoost > 0.01 ? edge : fres) : legacy;
                 float face = 1.0;
-                // Head mesh and anything within the face sphere, including the chest top, stay dark.
-                if (_KillEmit < 0.5 && _RimOnly > 0.5 && _HmFaceRadius > 0.001)
-                    face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - _HmFaceRadius) * 25.0);
+                // Dark past the checked face sphere, so the collar cannot light the disc.
+                if (mask > 0.0 && _HmFaceRadius > 0.001)
+                    face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - (_HmFaceRadius + 0.06)) * 25.0);
                 lit += _EmissionColor.rgb * mask * face;
                 if (unity_FogParams.z < -0.0001)
                 {

@@ -725,12 +725,26 @@ namespace Hollowmere
                 if (counts[i] < 40)
                     Debug.LogError("Hollowmere rarity FAIL crop " + who + " n=" + counts[i]);
             }
-            for (int i = 1; i < means.Length && i < names.Length; i++)
+            var labs = new Vector3[fronts.Count];
+            for (int i = 0; i < fronts.Count; i++)
             {
-                float d = (Mathf.Abs(means[i].r - means[i - 1].r) + Mathf.Abs(means[i].g - means[i - 1].g) + Mathf.Abs(means[i].b - means[i - 1].b)) / 3f;
-                Debug.Log("Hollowmere rarity colour " + names[i - 1] + "-" + names[i] + " " + d.ToString("0.00"));
-                if (d < 0.06f)
-                    Debug.LogError("Hollowmere rarity FAIL colour " + names[i - 1] + "-" + names[i] + " " + d.ToString("0.00"));
+                Rect crop = crops != null && i < crops.Count ? crops[i] : new Rect(fronts[i].width * 0.42f, fronts[i].height * 0.28f, fronts[i].width * 0.16f, fronts[i].height * 0.48f);
+                var hi = HighlightLab(fronts[i], crop, out int hn, out Color rgb);
+                labs[i] = hi;
+                string who = i < names.Length ? names[i] : i.ToString();
+                Debug.Log("Hollowmere rarity highlight " + who + " n=" + hn
+                    + " rgb=" + rgb.r.ToString("0.00") + "," + rgb.g.ToString("0.00") + "," + rgb.b.ToString("0.00")
+                    + " lab=" + hi.x.ToString("0.0") + "," + hi.y.ToString("0.0") + "," + hi.z.ToString("0.0"));
+            }
+            // The current sheet reads as dark iron, bright silver, a blue rim, orange, and muted green.
+            // CIE76 of 12 is a clear step between those highlight colours and still rejects a shared dark mean.
+            const float minDeltaE = 12f;
+            for (int i = 1; i < labs.Length && i < names.Length; i++)
+            {
+                float d = Vector3.Distance(labs[i], labs[i - 1]);
+                Debug.Log("Hollowmere rarity deltaE " + names[i - 1] + "-" + names[i] + " " + d.ToString("0.0"));
+                if (d < minDeltaE)
+                    Debug.LogError("Hollowmere rarity FAIL colour " + names[i - 1] + "-" + names[i] + " " + d.ToString("0.0"));
             }
             float common = spread.Length > 0 ? spread[0] : 0f;
             Debug.Log("Hollowmere rarity variance common " + common.ToString("0.000"));
@@ -822,7 +836,7 @@ namespace Hollowmere
                 if (RarityPixel(src.GetPixel(x, y), glow)) bad++;
             }
             Debug.Log("Hollowmere rarity face " + rarity + " " + bad + "/" + n);
-            if (n > 0 && bad * 50 > n)
+            if (bad > 0)
                 Debug.LogError("Hollowmere rarity FAIL face " + rarity + " " + bad + "/" + n);
         }
 
@@ -865,6 +879,81 @@ namespace Hollowmere
             std = Mathf.Sqrt((float)System.Math.Max(0.0, v));
             return new Color((float)(r / n), (float)(g / n), (float)(b / n), 1f);
         }
+
+        /// <summary>CIELAB of the brightest quarter of the armour crop. The dark base no longer sets the mean.</summary>
+        static Vector3 HighlightLab(Texture2D src, Rect crop, out int n, out Color mean)
+        {
+            n = 0;
+            mean = Color.black;
+            if (src == null) return Vector3.zero;
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(crop.x), 0, src.width - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt(crop.xMax), x0 + 1, src.width);
+            int y0 = Mathf.Clamp(Mathf.FloorToInt(crop.y), 0, src.height - 1);
+            int y1 = Mathf.Clamp(Mathf.CeilToInt(crop.yMax), y0 + 1, src.height);
+            Color corner = src.GetPixel(4, 4);
+            Color edge = CropEdge(src, x0, x1, y0, y1);
+            var lum = new System.Collections.Generic.List<float>(1024);
+            var cols = new System.Collections.Generic.List<Color>(1024);
+            for (int y = y0; y < y1; y += 2)
+            for (int x = x0; x < x1; x += 2)
+            {
+                var p = src.GetPixel(x, y);
+                if (Near(p, corner, 0.08f) || Near(p, edge, 0.10f)) continue;
+                lum.Add(0.299f * p.r + 0.587f * p.g + 0.114f * p.b);
+                cols.Add(p);
+            }
+            if (cols.Count < 8) return Vector3.zero;
+            var order = new float[lum.Count];
+            for (int i = 0; i < lum.Count; i++) order[i] = lum[i];
+            System.Array.Sort(order);
+            float cut = order[Mathf.Clamp(Mathf.FloorToInt(order.Length * 0.75f), 0, order.Length - 1)];
+            double r = 0, g = 0, b = 0;
+            for (int i = 0; i < cols.Count; i++)
+            {
+                if (lum[i] < cut) continue;
+                r += cols[i].r; g += cols[i].g; b += cols[i].b;
+                n++;
+            }
+            if (n < 4) return Vector3.zero;
+            mean = new Color((float)(r / n), (float)(g / n), (float)(b / n), 1f);
+            return RgbToLab(mean);
+        }
+
+        static Color CropEdge(Texture2D src, int x0, int x1, int y0, int y1)
+        {
+            double r = 0, g = 0, b = 0;
+            int n = 0;
+            int step = Mathf.Max(2, (x1 - x0) / 12);
+            for (int x = x0; x < x1; x += step)
+            {
+                Add(src.GetPixel(x, y0), ref r, ref g, ref b, ref n);
+                Add(src.GetPixel(x, Mathf.Min(src.height - 1, y1 - 1)), ref r, ref g, ref b, ref n);
+            }
+            if (n == 0) return src.GetPixel(4, 4);
+            return new Color((float)(r / n), (float)(g / n), (float)(b / n), 1f);
+        }
+
+        static void Add(Color p, ref double r, ref double g, ref double b, ref int n)
+        {
+            r += p.r; g += p.g; b += p.b; n++;
+        }
+
+        static bool Near(Color a, Color b, float tol)
+            => Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < tol;
+
+        static Vector3 RgbToLab(Color c)
+        {
+            float R = Srgb(c.r), G = Srgb(c.g), B = Srgb(c.b);
+            float x = (R * 0.4124f + G * 0.3576f + B * 0.1805f) / 0.95047f;
+            float y = R * 0.2126f + G * 0.7152f + B * 0.0722f;
+            float z = (R * 0.0193f + G * 0.1192f + B * 0.9505f) / 1.08883f;
+            x = LabF(x); y = LabF(y); z = LabF(z);
+            return new Vector3(116f * y - 16f, 500f * (x - y), 200f * (y - z));
+        }
+
+        static float Srgb(float u) => u <= 0.04045f ? u / 12.92f : Mathf.Pow((u + 0.055f) / 1.055f, 2.4f);
+
+        static float LabF(float t) => t > 0.008856f ? Mathf.Pow(t, 1f / 3f) : 7.787f * t + 16f / 116f;
 
         static void SaveTexture(Texture2D tex, string name)
         {

@@ -46,6 +46,7 @@ namespace Hollowmere
                     Armor(body, hero, EquipSlot.Head, "helm");
                     Armor(body, hero, EquipSlot.Chest, "chest");
                 }
+                RarityVfx.SealHead(body);
             }
             finally
             {

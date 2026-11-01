@@ -39,12 +39,14 @@ namespace Hollowmere
             if (go == null || Item.IsNone(it)) return;
             EnsureFace(go.transform);
             var row = RarityBook.Row(it.rarity);
-            bool head = slot == EquipSlot.Head;
-            float emit = head ? 0f : row.emit;
-            var glow = head ? Color.black : RarityBook.Glow(it.rarity, family) * emit;
+            bool headSlot = slot == EquipSlot.Head;
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 if (r is ParticleSystemRenderer) continue;
+                // Rim and emission belong to this piece only. Helm, hair, and the body head stay matte.
+                bool bare = headSlot || CoversHead(r);
+                float emit = bare ? 0f : row.emit;
+                var glow = bare ? Color.black : RarityBook.Glow(it.rarity, family) * emit;
                 var mats = r.materials;
                 for (int i = 0; i < mats.Length; i++)
                 {
@@ -53,7 +55,7 @@ namespace Hollowmere
                     UseLit(m);
                     var c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.color;
                     c = new Color(c.r * row.r, c.g * row.g, c.b * row.b, c.a);
-                    if (head && it.rarity == Rarity.Set)
+                    if (headSlot && it.rarity == Rarity.Set)
                         c = TintHelm(c, RarityBook.Glow(it.rarity, family));
                     if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
                     if (m.HasProperty("_Color")) m.SetColor("_Color", c);
@@ -65,15 +67,33 @@ namespace Hollowmere
                         if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", row.metal);
                         if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", row.smooth);
                     }
-                    if (m.HasProperty("_RimPower")) m.SetFloat("_RimPower", row.rim > 0.5f ? row.rim : 4f);
-                    if (m.HasProperty("_EdgeBoost")) m.SetFloat("_EdgeBoost", head ? 0f : row.edge);
-                    if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", !head && emit > 0.02f ? 1f : 0f);
-                    if (m.HasProperty("_KillEmit")) m.SetFloat("_KillEmit", head ? 1f : 0f);
-                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", glow);
-                    if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", glow);
-                    if (emit > 0.02f) m.EnableKeyword("_EMISSION");
-                    else m.DisableKeyword("_EMISSION");
+                    if (bare) KillEmission(m);
+                    else
+                    {
+                        if (m.HasProperty("_RimPower")) m.SetFloat("_RimPower", row.rim > 0.5f ? row.rim : 4f);
+                        if (m.HasProperty("_EdgeBoost")) m.SetFloat("_EdgeBoost", row.edge);
+                        if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", emit > 0.02f ? 1f : 0f);
+                        if (m.HasProperty("_KillEmit")) m.SetFloat("_KillEmit", 0f);
+                        if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", glow);
+                        if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", glow);
+                        if (emit > 0.02f) m.EnableKeyword("_EMISSION");
+                        else m.DisableKeyword("_EMISSION");
+                    }
                 }
+                r.materials = mats;
+            }
+        }
+
+        /// <summary>Helm, hair, the head region, and the body skin never keep a rarity rim, even on a shared material.</summary>
+        public static void SealHead(Transform body)
+        {
+            if (body == null) return;
+            foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || r is ParticleSystemRenderer || !CoversHead(r)) continue;
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                    if (mats[i] != null) KillEmission(mats[i]);
                 r.materials = mats;
             }
         }
@@ -87,11 +107,11 @@ namespace Hollowmere
             var root = piece.transform.root;
             if (Paired(slot))
             {
-                Spawn(Bone(root, LeftOf(slot)) ?? piece.transform, glow, row, OnSurface(piece));
-                Spawn(Bone(root, RightOf(slot)) ?? piece.transform, glow, row, OnSurface(piece));
+                Spawn(Bone(root, LeftOf(slot)), glow, row, OnSurface(piece), true);
+                Spawn(Bone(root, RightOf(slot)), glow, row, OnSurface(piece), true);
             }
             else
-                Spawn(Bone(root, CenterOf(slot)) ?? piece.transform, glow, row, OnSurface(piece));
+                Spawn(Bone(root, CenterOf(slot)), glow, row, OnSurface(piece), true);
         }
 
         public static void AttachWeapon(GameObject weapon, Item it)
@@ -102,7 +122,7 @@ namespace Hollowmere
             Element element = it.Base != null ? it.Base.weaponElement : Element.Physical;
             var tint = RarityBook.TrailColor(RarityTable.TrailKind(element));
             if (it.rarity == Rarity.Set) tint = RarityBook.Glow(it.rarity, it.family);
-            Spawn(weapon.transform, tint, row, MeshCenter(weapon));
+            Spawn(weapon.transform, tint, row, MeshCenter(weapon), false);
         }
 
         /// <summary>Emission for rare and above. Legendary and set motes stay inside the piece bounds plus the pad.</summary>
@@ -150,10 +170,39 @@ namespace Hollowmere
             return Art.Bone(actor != null ? actor.transform : host.root, "Head");
         }
 
-        static bool HeadPiece(string name)
+        static bool HeadPiece(string name) => CoversHeadName(name);
+
+        static bool CoversHead(Renderer r)
+        {
+            if (r == null) return false;
+            if (CoversHeadName(r.name)) return true;
+            var t = r.transform;
+            for (int i = 0; i < 6 && t != null; i++)
+            {
+                if (CoversHeadName(t.name) || HeadBone(t)) return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        static bool CoversHeadName(string name)
         {
             if (string.IsNullOrEmpty(name)) return false;
-            return name == "gear_head" || name.EndsWith("_helm") || name.Contains("helm");
+            string n = name.ToLowerInvariant();
+            int cut = n.LastIndexOf(':');
+            if (cut >= 0 && cut + 1 < n.Length) n = n.Substring(cut + 1);
+            return n.Contains("head") || n.Contains("helm") || n.Contains("hair") || n.Contains("face")
+                || n == "neck" || n.EndsWith("_neck");
+        }
+
+        static void KillEmission(Material m)
+        {
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
+            if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", Color.black);
+            if (m.HasProperty("_EdgeBoost")) m.SetFloat("_EdgeBoost", 0f);
+            if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", 0f);
+            if (m.HasProperty("_KillEmit")) m.SetFloat("_KillEmit", 1f);
+            m.DisableKeyword("_EMISSION");
         }
 
         static bool InFace(Transform vfx, Vector3 head)
@@ -237,26 +286,35 @@ namespace Hollowmere
             return n == "Head" || n == "Neck" || n == "head" || n == "neck";
         }
 
-        /// <summary>Drop a mote that would sit on the head, and push a chest-top mote below the face sphere.</summary>
-        static bool PlaceClear(Transform host, ref Vector3 local)
+        /// <summary>Spine1 and below, plus the arms. Spine2, the neck, and the head are too close to the face.</summary>
+        static bool MoteBone(Transform bone)
         {
-            if (HeadBone(host)) return false;
-            var head = HeadOf(host);
-            if (head == null) return true;
-            Vector3 world = host.TransformPoint(local);
-            float limit = RarityTable.FaceRadius;
-            if (Vector3.Distance(world, head.position) >= limit) return true;
-            Vector3 away = world - head.position;
-            Vector3 dir = Vector3.down;
-            if (away.sqrMagnitude > 1e-6f) dir = (away.normalized + Vector3.down).normalized;
-            world = head.position + dir * (limit + 0.04f);
-            local = host.InverseTransformPoint(world);
-            return Vector3.Distance(host.TransformPoint(local), head.position) >= limit;
+            if (bone == null || HeadBone(bone)) return false;
+            string n = Tail(bone.name);
+            return n != "Spine2" && n.IndexOf("Hair", System.StringComparison.OrdinalIgnoreCase) < 0
+                && n.IndexOf("Jaw", System.StringComparison.OrdinalIgnoreCase) < 0
+                && n.IndexOf("Head", System.StringComparison.OrdinalIgnoreCase) < 0;
         }
 
-        static void Spawn(Transform host, Color color, RarityLookProfile.RarityRow row, Vector3 local)
+        static string Tail(string name)
         {
-            if (host == null || !PlaceClear(host, ref local)) return;
+            if (string.IsNullOrEmpty(name)) return "";
+            int cut = name.LastIndexOf(':');
+            return cut >= 0 && cut + 1 < name.Length ? name.Substring(cut + 1) : name;
+        }
+
+        static bool OutsideFace(Transform host, Vector3 local)
+        {
+            var head = HeadOf(host);
+            if (head == null) return true;
+            return Vector3.Distance(host.TransformPoint(local), head.position) >= RarityTable.FaceRadius + 0.05f;
+        }
+
+        static void Spawn(Transform host, Color color, RarityLookProfile.RarityRow row, Vector3 local, bool armor)
+        {
+            if (host == null) return;
+            if (armor && !MoteBone(host)) return;
+            if (!OutsideFace(host, local)) return;
             var go = new GameObject(Name);
             go.transform.SetParent(host, false);
             go.transform.localPosition = local;
@@ -267,7 +325,7 @@ namespace Hollowmere
             main.playOnAwake = false;
             main.loop = true;
             main.startLifetime = 0.16f;
-            main.startSpeed = 0.02f;
+            main.startSpeed = 0f;
             main.startSize = Mathf.Clamp(row.size, 0.02f, 0.05f);
             main.maxParticles = 8;
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
@@ -278,7 +336,13 @@ namespace Hollowmere
             var shape = ps.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.012f;
+            shape.radius = 0.008f;
+            var drift = ps.velocityOverLifetime;
+            drift.enabled = true;
+            drift.space = ParticleSystemSimulationSpace.World;
+            drift.x = 0f;
+            drift.y = -0.06f;
+            drift.z = 0f;
             var pr = ps.GetComponent<ParticleSystemRenderer>();
             pr.material = Art.Mat(color, 1.1f);
             pr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -330,7 +394,6 @@ namespace Hollowmere
         {
             switch (slot)
             {
-                case EquipSlot.Chest: return "Spine2";
                 case EquipSlot.Waist: return "Spine";
                 default: return "Spine1";
             }

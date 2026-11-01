@@ -250,6 +250,7 @@ namespace Hollowmere
             fails += DominantBones(pieces);
             fails += SeamGaps(body, pieces, pose);
             fails += ClipPieces(body, pieces, pose);
+            fails += LimbChains(body, pieces, pose);
             return fails;
         }
 
@@ -334,10 +335,12 @@ namespace Hollowmere
                 for (int r = 0; r < regions.Count; r++)
                 {
                     var pts = WorldPoints(regions[r]);
+                    var used = TriangleUsed(regions[r].sharedMesh);
                     if (pts == null) continue;
                     int step = Mathf.Max(1, pts.Length / 40);
                     for (int i = 0; i < pts.Length; i += step)
                     {
+                        if (used != null && (i >= used.Length || !used[i])) continue;
                         if (edge.Nearest(pts[i]) > 0.03f) continue;
                         seams++;
                         float near = 1f;
@@ -385,12 +388,14 @@ namespace Hollowmere
                     var skin = regions[r];
                     if (skin == null || !skin.enabled || !skin.gameObject.activeInHierarchy) continue;
                     var pts = WorldPoints(skin);
+                    var used = TriangleUsed(skin.sharedMesh);
                     var weights = skin.sharedMesh != null ? skin.sharedMesh.boneWeights : null;
                     var bones = skin.bones;
                     if (pts == null) continue;
                     int step = Mathf.Max(1, pts.Length / 48);
                     for (int i = 0; i < pts.Length; i += step)
                     {
+                        if (used != null && (i >= used.Length || !used[i])) continue;
                         float dist = DistToTris(pts[i], tris);
                         if (dist >= GearFit.MinGap) continue;
                         bad++;
@@ -411,6 +416,74 @@ namespace Hollowmere
             if (pieces.Count == 0)
                 Debug.Log("Hollowmere gear clip " + pose + " verts=0 bone=none");
             return fails;
+        }
+
+        /// <summary>
+        /// Shoulder-to-hand and hip-to-foot. A sample fails when that skin is not drawn and no
+        /// piece is within the seam distance, which is the floating-gauntlet gap.
+        /// </summary>
+        static int LimbChains(Transform body, List<SkinnedMeshRenderer> pieces, string pose)
+        {
+            var mark = body != null ? body.GetComponentInChildren<BodySplit>(true) : null;
+            if (mark == null) return Fail(pose + " chain missing body");
+            var gearPts = new List<Vector3>();
+            if (pieces != null)
+            {
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    var pts = WorldPoints(pieces[p]);
+                    if (pts == null) continue;
+                    for (int i = 0; i < pts.Length; i++) gearPts.Add(pts[i]);
+                }
+            }
+            var gear = new Grid(gearPts.ToArray());
+            string[] links = { "UpperArm", "LowerArm", "Hand", "Waist", "Thigh", "Shin", "Foot" };
+            var seen = new bool[links.Length];
+            int fails = 0;
+            for (int c = 0; c < mark.transform.childCount; c++)
+            {
+                var child = mark.transform.GetChild(c);
+                string tail = child.name.StartsWith("body_") ? child.name.Substring(5) : "";
+                int link = -1;
+                for (int i = 0; i < links.Length; i++)
+                    if (links[i] == tail) link = i;
+                if (link < 0) continue;
+                seen[link] = true;
+                var smr = child.GetComponent<SkinnedMeshRenderer>();
+                if (smr == null || smr.sharedMesh == null) continue;
+                var pts = WorldPoints(smr);
+                var used = TriangleUsed(smr.sharedMesh);
+                if (pts == null) continue;
+                bool hidden = smr.forceRenderingOff || !smr.enabled || !smr.gameObject.activeInHierarchy;
+                int step = Mathf.Max(1, pts.Length / 80);
+                int undrawn = 0, far = 0;
+                for (int i = 0; i < pts.Length; i += step)
+                {
+                    bool drawn = !hidden && used != null && i < used.Length && used[i];
+                    float dist = drawn ? 0f : gear.Nearest(pts[i]);
+                    if (!drawn) undrawn++;
+                    if (!GearFit.ChainCovered(drawn, dist)) far++;
+                }
+                Debug.Log("Hollowmere gear chain " + pose + " " + tail + " undrawn=" + undrawn + " far=" + far);
+                if (far > 0) fails += Fail(pose + " " + tail + " chain gap " + far);
+            }
+            for (int i = 0; i < links.Length; i++)
+                if (!seen[i]) fails += Fail(pose + " " + links[i] + " chain missing");
+            return fails;
+        }
+
+        static bool[] TriangleUsed(Mesh mesh)
+        {
+            if (mesh == null) return null;
+            var tris = mesh.triangles;
+            if (tris == null) return null;
+            var used = new bool[mesh.vertexCount];
+            for (int i = 0; i < tris.Length; i++)
+            {
+                int k = tris[i];
+                if (k >= 0 && k < used.Length) used[k] = true;
+            }
+            return used;
         }
 
         static float DistToTris(Vector3 p, Vector3[] tris)

@@ -6,8 +6,9 @@ namespace Hollowmere
 {
     /// <summary>
     /// The v5 body is cut once, when the hero is first equipped, into one renderer per
-    /// region. Later equips only enable or disable those renderers. Armour is an authored
-    /// mesh rebound onto the hero bones. The offset-shell generator does not run.
+    /// region. Later equips hide a region only when a piece covers it, and otherwise leave
+    /// the uncovered skin on. Armour is an authored mesh rebound onto the hero bones.
+    /// The offset-shell generator does not run.
     /// </summary>
     public static class BodyRegions
     {
@@ -45,6 +46,8 @@ namespace Hollowmere
                 go.transform.SetParent(root.transform, false);
                 var smr = go.AddComponent<SkinnedMeshRenderer>();
                 smr.sharedMesh = part;
+                var kept = go.AddComponent<RegionMesh>();
+                kept.full = part;
                 smr.bones = skin.bones;
                 smr.rootBone = skin.rootBone;
                 smr.sharedMaterial = skin.sharedMaterial;
@@ -55,21 +58,83 @@ namespace Hollowmere
             skin.forceRenderingOff = true;
         }
 
-        public static void Show(Transform body, bool[] on)
+        /// <summary>Per-region result of the coverage test. hideAll is the 85 percent case.</summary>
+        public struct Cover
+        {
+            public bool hideAll;
+            public bool[] under;
+            public float fraction;
+        }
+
+        public static void Show(Transform body, Cover[] covers)
         {
             Ensure(body);
             var mark = body != null ? body.GetComponentInChildren<BodySplit>(true) : null;
             var root = mark != null ? mark.transform : null;
-            if (root == null || on == null) return;
+            if (root == null || covers == null) return;
             for (int i = 0; i < root.childCount; i++)
             {
                 var child = root.GetChild(i);
                 int region = RegionOf(child.name);
-                if (region < 0 || region >= on.Length) continue;
+                if (region < 0 || region >= covers.Length) continue;
                 child.gameObject.SetActive(true);
                 var smr = child.GetComponent<SkinnedMeshRenderer>();
-                if (smr != null) smr.forceRenderingOff = !on[region];
+                if (smr == null) continue;
+                var kept = child.GetComponent<RegionMesh>();
+                Mesh full = kept != null && kept.full != null ? kept.full : smr.sharedMesh;
+                if (smr.sharedMesh != full && smr.sharedMesh != null)
+                {
+                    var extra = smr.sharedMesh;
+                    smr.sharedMesh = full;
+                    Object.DestroyImmediate(extra);
+                }
+                var cover = covers[region];
+                if (cover.hideAll || full == null)
+                {
+                    smr.forceRenderingOff = true;
+                    continue;
+                }
+                var open = Open(full, cover.fraction, cover.under);
+                if (open == null)
+                {
+                    smr.forceRenderingOff = false;
+                    continue;
+                }
+                if (open.triangles == null || open.triangles.Length < 3)
+                {
+                    Object.DestroyImmediate(open);
+                    smr.forceRenderingOff = true;
+                    continue;
+                }
+                smr.sharedMesh = open;
+                smr.forceRenderingOff = false;
             }
+        }
+
+        /// <summary>Full mesh with the triangles a piece already covers removed. Null when nothing is dropped.</summary>
+        static Mesh Open(Mesh full, float fraction, bool[] under)
+        {
+            if (full == null || under == null) return null;
+            var tris = full.triangles;
+            if (tris == null || tris.Length < 3) return null;
+            var keep = new List<int>(tris.Length);
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
+                bool ca = a >= 0 && a < under.Length && under[a];
+                bool cb = b >= 0 && b < under.Length && under[b];
+                bool cc = c >= 0 && c < under.Length && under[c];
+                if (!GearFit.DrawTriangle(fraction, ca, cb, cc)) continue;
+                keep.Add(a);
+                keep.Add(b);
+                keep.Add(c);
+            }
+            if (keep.Count == tris.Length) return null;
+            var mesh = Object.Instantiate(full);
+            mesh.name = full.name + "_open";
+            mesh.triangles = keep.ToArray();
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         public static List<SkinnedMeshRenderer> Visible(Transform body)
@@ -197,7 +262,7 @@ namespace Hollowmere
             if (body == null || hero == null) return;
             BodyRegions.Ensure(body);
             var skin = BodyRegions.Source(body);
-            var worn = new bool[(int)EquipSlot.Count];
+            var placed = new List<SkinnedMeshRenderer>();
             for (int i = 0; i < GearFit.Visible.Length; i++)
             {
                 var slot = GearFit.Visible[i];
@@ -211,20 +276,17 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                if (!Spawn(body, skin, slot, prefab, folder))
+                var piece = Spawn(body, skin, slot, prefab, folder);
+                if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
                     continue;
                 }
-                worn[(int)slot] = true;
+                placed.Add(piece);
                 if (!lower && folder != "plate")
                     Debug.Log("Hollowmere gear " + slotName + " set " + folder);
             }
-            int count = (int)GearFit.BodyRegion.Count;
-            var show = new bool[count];
-            for (int r = 0; r < count; r++)
-                show[r] = GearFit.RegionOwner(worn, r) == null;
-            BodyRegions.Show(body, show);
+            BodyRegions.Show(body, Coverage(body, placed));
         }
 
         static string Folder(Item it)
@@ -248,15 +310,15 @@ namespace Hollowmere
             return Resources.Load<GameObject>(PackRoot + "/" + setFolder + "/" + slot);
         }
 
-        static bool Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string setFolder)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string setFolder)
         {
-            if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return false;
+            if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
             var src = inst.GetComponentInChildren<SkinnedMeshRenderer>(true);
             if (src == null || src.sharedMesh == null || !src.sharedMesh.isReadable)
             {
                 Object.DestroyImmediate(inst);
-                return false;
+                return null;
             }
             var mesh = Object.Instantiate(src.sharedMesh);
             mesh.name = "gear_" + GearFit.SlotName(slot);
@@ -264,7 +326,7 @@ namespace Hollowmere
             {
                 Object.DestroyImmediate(mesh);
                 Object.DestroyImmediate(inst);
-                return false;
+                return null;
             }
             FitPiece(mesh, slot, setFolder, heroSkin.bones);
             var go = new GameObject(mesh.name);
@@ -286,7 +348,83 @@ namespace Hollowmere
             smr.materials = mats;
             Art.AdoptShaders(go);
             Object.DestroyImmediate(inst);
-            return true;
+            return smr;
+        }
+
+        /// <summary>
+        /// Fraction of each body region within 3 cm of a piece, measured in the bind pose once
+        /// per equip. A piece hides a region it is allowed to hide only at 85 percent. Below
+        /// that, the triangles it fully covers are dropped and the rest of the skin stays.
+        /// </summary>
+        static BodyRegions.Cover[] Coverage(Transform body, List<SkinnedMeshRenderer> pieces)
+        {
+            int count = (int)GearFit.BodyRegion.Count;
+            var covers = new BodyRegions.Cover[count];
+            var mark = body != null ? body.GetComponentInChildren<BodySplit>(true) : null;
+            var root = mark != null ? mark.transform : null;
+            if (root == null || pieces == null) return covers;
+            var grids = new TriGrid[pieces.Count];
+            var slots = new EquipSlot?[pieces.Count];
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                var mesh = pieces[p] != null ? pieces[p].sharedMesh : null;
+                slots[p] = SlotOf(pieces[p] != null ? pieces[p].name : null);
+                if (mesh == null || !mesh.isReadable) continue;
+                grids[p] = new TriGrid(mesh.vertices, mesh.triangles, GearFit.CoverDistance);
+            }
+            for (int c = 0; c < root.childCount; c++)
+            {
+                var child = root.GetChild(c);
+                int region = -1;
+                string tail = child.name.StartsWith("body_") ? child.name.Substring(5) : "";
+                for (int i = 0; i < count; i++)
+                    if (GearFit.RegionName(i) == tail) region = i;
+                if (region < 0) continue;
+                var kept = child.GetComponent<RegionMesh>();
+                var smr = child.GetComponent<SkinnedMeshRenderer>();
+                Mesh full = kept != null && kept.full != null ? kept.full : (smr != null ? smr.sharedMesh : null);
+                if (full == null || !full.isReadable) continue;
+                var verts = full.vertices;
+                if (verts == null || verts.Length == 0) continue;
+                var under = new bool[verts.Length];
+                float best = 0f;
+                string who = "";
+                for (int p = 0; p < pieces.Count; p++)
+                {
+                    if (grids[p] == null || slots[p] == null || !GearFit.Hides(slots[p].Value, region)) continue;
+                    int hit = 0;
+                    for (int v = 0; v < verts.Length; v++)
+                    {
+                        if (!grids[p].Near(verts[v], GearFit.CoverDistance)) continue;
+                        under[v] = true;
+                        hit++;
+                    }
+                    float fraction = hit / (float)verts.Length;
+                    if (fraction > best)
+                    {
+                        best = fraction;
+                        who = pieces[p].name;
+                    }
+                }
+                covers[region].fraction = best;
+                covers[region].hideAll = GearFit.Covers(best);
+                covers[region].under = best > 0f ? under : null;
+                if (best > 0.001f)
+                    Debug.Log("Hollowmere gear cover " + who + " " + tail + " " + best.ToString("0.00")
+                        + (covers[region].hideAll ? " hide" : " open"));
+            }
+            return covers;
+        }
+
+        static EquipSlot? SlotOf(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            for (int i = 0; i < GearFit.Visible.Length; i++)
+            {
+                var slot = GearFit.Visible[i];
+                if (name == "gear_" + GearFit.SlotName(slot)) return slot;
+            }
+            return null;
         }
 
         /// <summary>
@@ -304,6 +442,7 @@ namespace Hollowmere
             if (slot == EquipSlot.Hands && setFolder == "plate") DropPlateStrap(mesh);
             if (slot == EquipSlot.Head && setFolder == "infernal") Offset(mesh, new Vector3(0f, -HelmDrop, 0f));
             if (slot == EquipSlot.Wrists) ScaleAroundForearms(mesh, heroBones, BracerScale);
+            if (slot == EquipSlot.Chest) SmoothNormals(mesh, 60f);
         }
 
         static void Offset(Mesh mesh, Vector3 delta)
@@ -415,6 +554,86 @@ namespace Hollowmere
             return s;
         }
 
+        static void SmoothNormals(Mesh mesh, float degrees)
+        {
+            var v = mesh.vertices;
+            var tris = mesh.triangles;
+            if (v == null || tris == null || v.Length == 0 || tris.Length < 3) return;
+            int ntri = tris.Length / 3;
+            var face = new Vector3[ntri];
+            var vertFace = new int[v.Length];
+            for (int i = 0; i < vertFace.Length; i++) vertFace[i] = -1;
+            var groups = new Dictionary<PosKey, List<int>>();
+            for (int t = 0; t < ntri; t++)
+            {
+                int a = tris[t * 3], b = tris[t * 3 + 1], c = tris[t * 3 + 2];
+                if (a < 0 || b < 0 || c < 0 || a >= v.Length || b >= v.Length || c >= v.Length) continue;
+                Vector3 n = Vector3.Cross(v[b] - v[a], v[c] - v[a]);
+                face[t] = n.sqrMagnitude > 1e-12f ? n.normalized : Vector3.up;
+                if (vertFace[a] < 0) vertFace[a] = t;
+                if (vertFace[b] < 0) vertFace[b] = t;
+                if (vertFace[c] < 0) vertFace[c] = t;
+                AddFace(groups, v[a], t);
+                AddFace(groups, v[b], t);
+                AddFace(groups, v[c], t);
+            }
+            float minDot = Mathf.Cos(degrees * Mathf.Deg2Rad);
+            var normals = new Vector3[v.Length];
+            for (int i = 0; i < v.Length; i++)
+            {
+                int t = vertFace[i];
+                if (t < 0) { normals[i] = Vector3.up; continue; }
+                List<int> list;
+                if (!groups.TryGetValue(PosKey.From(v[i]), out list))
+                {
+                    normals[i] = face[t];
+                    continue;
+                }
+                Vector3 sum = Vector3.zero;
+                for (int k = 0; k < list.Count; k++)
+                {
+                    int o = list[k];
+                    if (o < 0 || o >= face.Length) continue;
+                    if (Vector3.Dot(face[t], face[o]) < minDot) continue;
+                    sum += face[o];
+                }
+                normals[i] = sum.sqrMagnitude > 1e-12f ? sum.normalized : face[t];
+            }
+            mesh.normals = normals;
+            mesh.RecalculateTangents();
+        }
+
+        static void AddFace(Dictionary<PosKey, List<int>> groups, Vector3 p, int tri)
+        {
+            var key = PosKey.From(p);
+            List<int> list;
+            if (!groups.TryGetValue(key, out list))
+            {
+                list = new List<int>(4);
+                groups[key] = list;
+            }
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] == tri) return;
+            list.Add(tri);
+        }
+
+        struct PosKey : System.IEquatable<PosKey>
+        {
+            public int x, y, z;
+            public static PosKey From(Vector3 p)
+            {
+                return new PosKey
+                {
+                    x = Mathf.RoundToInt(p.x * 10000f),
+                    y = Mathf.RoundToInt(p.y * 10000f),
+                    z = Mathf.RoundToInt(p.z * 10000f),
+                };
+            }
+            public bool Equals(PosKey other) => x == other.x && y == other.y && z == other.z;
+            public override bool Equals(object obj) => obj is PosKey && Equals((PosKey)obj);
+            public override int GetHashCode() => x * 73856093 ^ y * 19349663 ^ z * 83492791;
+        }
+
         /// <summary>GLB inverse bind, written into the hero bone's slot. Unmatched hero bones keep the hero bind.</summary>
         static bool Remap(Mesh mesh, Transform[] srcBones, Transform[] heroBones, Matrix4x4[] srcBind, Matrix4x4[] heroBind)
         {
@@ -487,5 +706,126 @@ namespace Hollowmere
     /// <summary>Marks the one-time region split so equip does not cut the body again.</summary>
     public sealed class BodySplit : MonoBehaviour
     {
+    }
+
+    /// <summary>The uncut region mesh. Equip swaps in an opened copy and restores this one.</summary>
+    public sealed class RegionMesh : MonoBehaviour
+    {
+        public Mesh full;
+    }
+
+    /// <summary>Piece triangles bucketed so a body vertex only tests the cell it sits in.</summary>
+    sealed class TriGrid
+    {
+        const float Cell = 0.08f;
+        const int Buckets = 4096;
+        readonly List<int>[] cells;
+        readonly Vector3[] verts;
+        readonly int[] tris;
+
+        public TriGrid(Vector3[] verts, int[] tris, float pad)
+        {
+            this.verts = verts;
+            this.tris = tris;
+            cells = new List<int>[Buckets];
+            if (verts == null || tris == null) return;
+            int n = tris.Length / 3;
+            for (int t = 0; t < n; t++)
+            {
+                int ia = tris[t * 3], ib = tris[t * 3 + 1], ic = tris[t * 3 + 2];
+                if (ia < 0 || ib < 0 || ic < 0 || ia >= verts.Length || ib >= verts.Length || ic >= verts.Length) continue;
+                Vector3 a = verts[ia], b = verts[ib], c = verts[ic];
+                Vector3 min = a, max = a;
+                Enc(ref min, ref max, b);
+                Enc(ref min, ref max, c);
+                min -= new Vector3(pad, pad, pad);
+                max += new Vector3(pad, pad, pad);
+                int x0 = Mathf.FloorToInt(min.x / Cell), x1 = Mathf.FloorToInt(max.x / Cell);
+                int y0 = Mathf.FloorToInt(min.y / Cell), y1 = Mathf.FloorToInt(max.y / Cell);
+                int z0 = Mathf.FloorToInt(min.z / Cell), z1 = Mathf.FloorToInt(max.z / Cell);
+                if (x1 - x0 > 12 || y1 - y0 > 12 || z1 - z0 > 12) continue;
+                for (int z = z0; z <= z1; z++)
+                    for (int y = y0; y <= y1; y++)
+                        for (int x = x0; x <= x1; x++)
+                        {
+                            int k = Key(x, y, z);
+                            if (cells[k] == null) cells[k] = new List<int>(4);
+                            cells[k].Add(t);
+                        }
+            }
+        }
+
+        public bool Near(Vector3 p, float dist)
+        {
+            if (tris == null) return false;
+            var list = cells[Key(Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.y / Cell), Mathf.FloorToInt(p.z / Cell))];
+            if (list == null) return false;
+            float lim = dist * dist;
+            for (int i = 0; i < list.Count; i++)
+            {
+                int t = list[i];
+                int ia = tris[t * 3], ib = tris[t * 3 + 1], ic = tris[t * 3 + 2];
+                if (Dist2(p, verts[ia], verts[ib], verts[ic]) <= lim) return true;
+            }
+            return false;
+        }
+
+        static void Enc(ref Vector3 min, ref Vector3 max, Vector3 p)
+        {
+            if (p.x < min.x) min.x = p.x;
+            if (p.y < min.y) min.y = p.y;
+            if (p.z < min.z) min.z = p.z;
+            if (p.x > max.x) max.x = p.x;
+            if (p.y > max.y) max.y = p.y;
+            if (p.z > max.z) max.z = p.z;
+        }
+
+        static int Key(int x, int y, int z)
+        {
+            unchecked
+            {
+                int h = x * 73856093 ^ y * 19349663 ^ z * 83492791;
+                return (h & 0x7fffffff) % Buckets;
+            }
+        }
+
+        static float Dist2(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
+        {
+            Vector3 ab = b - a, ac = c - a, ap = p - a;
+            float d1 = Vector3.Dot(ab, ap);
+            float d2 = Vector3.Dot(ac, ap);
+            if (d1 <= 0f && d2 <= 0f) return ap.sqrMagnitude;
+            Vector3 bp = p - b;
+            float d3 = Vector3.Dot(ab, bp);
+            float d4 = Vector3.Dot(ac, bp);
+            if (d3 >= 0f && d4 <= d3) return bp.sqrMagnitude;
+            float vc = d1 * d4 - d3 * d2;
+            if (vc <= 0f && d1 >= 0f && d3 <= 0f)
+            {
+                float v = d1 / (d1 - d3);
+                return (p - (a + v * ab)).sqrMagnitude;
+            }
+            Vector3 cp = p - c;
+            float d5 = Vector3.Dot(ab, cp);
+            float d6 = Vector3.Dot(ac, cp);
+            if (d6 >= 0f && d5 <= d6) return cp.sqrMagnitude;
+            float vb = d5 * d2 - d1 * d6;
+            if (vb <= 0f && d2 >= 0f && d6 <= 0f)
+            {
+                float w = d2 / (d2 - d6);
+                return (p - (a + w * ac)).sqrMagnitude;
+            }
+            float va = d3 * d6 - d5 * d4;
+            if (va <= 0f && (d4 - d3) >= 0f && (d5 - d6) >= 0f)
+            {
+                float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                return (p - (b + w * (c - b))).sqrMagnitude;
+            }
+            float denom = va + vb + vc;
+            if (Mathf.Abs(denom) < 1e-8f) return ap.sqrMagnitude;
+            float v2 = vb / denom;
+            float w2 = vc / denom;
+            return (p - (a + ab * v2 + ac * w2)).sqrMagnitude;
+        }
     }
 }

@@ -850,6 +850,14 @@ static class Program
         Check(!GearFit.BoneInSlot(EquipSlot.Wrists, "LeftHand"), "a bracer is not weighted to the hand");
         Check(!GearFit.BoneInSlot(EquipSlot.Waist, "mixamorig:RightForeArm"), "a belt is not weighted to the forearm");
         Check(GearFit.CoverageOk(0.70f, 1f) && !GearFit.CoverageOk(0.69f, 1f), "a piece needs 70 percent of its weight on the slot");
+        Check(GearFit.Covers(0.85f) && !GearFit.Covers(0.84f), "a region hides only when a piece covers 85 percent of it");
+        Check(!GearFit.DrawTriangle(0.9f, false, false, false), "a covered region draws no skin");
+        Check(GearFit.DrawTriangle(0.7f, true, true, false), "a partly covered region keeps the open corner");
+        Check(!GearFit.DrawTriangle(0.7f, true, true, true), "a fully covered triangle stays under the piece");
+        Check(GearFit.DrawTriangle(0.2f, false, false, false), "an uncovered region stays visible");
+        Check(GearFit.ChainCovered(true, 1f), "a drawn limb is a surface");
+        Check(!GearFit.ChainCovered(false, 0.08f), "hidden skin farther than the seam is a chain gap");
+        Check(GearFit.ChainCovered(false, 0.03f), "hidden skin under a piece is still covered");
         Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
     }
 

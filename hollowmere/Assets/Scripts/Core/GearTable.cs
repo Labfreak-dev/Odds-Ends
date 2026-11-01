@@ -20,10 +20,10 @@ namespace Hollowmere.Core
 
         public readonly struct Finish
         {
-            public readonly float R, G, B, Metal, Smooth, Blend;
-            public Finish(float r, float g, float b, float metal, float smooth, float blend)
+            public readonly float R, G, B, Metal, Smooth, Blend, Emit;
+            public Finish(float r, float g, float b, float metal, float smooth, float blend, float emit)
             {
-                R = r; G = g; B = b; Metal = metal; Smooth = smooth; Blend = blend;
+                R = r; G = g; B = b; Metal = metal; Smooth = smooth; Blend = blend; Emit = emit;
             }
         }
 
@@ -60,28 +60,33 @@ namespace Hollowmere.Core
 
         static readonly Finish[] Plate =
         {
-            new Finish(0.42f, 0.43f, 0.46f, 0.15f, 0.12f, 0.72f),
-            new Finish(0.62f, 0.34f, 0.18f, 0.28f, 0.18f, 0.66f),
+            new Finish(0.55f, 0.32f, 0.18f, 0.04f, 0.08f, 0.82f, 0.04f),
+            new Finish(0.78f, 0.80f, 0.84f, 0.55f, 0.42f, 0.70f, 0.06f),
+            new Finish(0.92f, 0.90f, 0.82f, 0.85f, 0.72f, 0.55f, 0.42f),
         };
         static readonly Finish[] Leather =
         {
-            new Finish(0.48f, 0.36f, 0.22f, 0.02f, 0.16f, 0.70f),
-            new Finish(0.30f, 0.18f, 0.12f, 0.04f, 0.22f, 0.62f),
+            new Finish(0.48f, 0.32f, 0.18f, 0.02f, 0.10f, 0.80f, 0.03f),
+            new Finish(0.62f, 0.44f, 0.26f, 0.06f, 0.28f, 0.62f, 0.05f),
+            new Finish(0.78f, 0.58f, 0.32f, 0.12f, 0.48f, 0.45f, 0.22f),
         };
         static readonly Finish[] Arcane =
         {
-            new Finish(0.28f, 0.32f, 0.48f, 0.05f, 0.20f, 0.70f),
-            new Finish(0.40f, 0.26f, 0.58f, 0.08f, 0.28f, 0.64f),
+            new Finish(0.42f, 0.44f, 0.55f, 0.04f, 0.12f, 0.78f, 0.04f),
+            new Finish(0.55f, 0.62f, 0.86f, 0.15f, 0.40f, 0.60f, 0.10f),
+            new Finish(0.72f, 0.78f, 1.00f, 0.25f, 0.62f, 0.40f, 0.55f),
         };
         static readonly Finish[] Bone =
         {
-            new Finish(0.46f, 0.42f, 0.32f, 0.02f, 0.10f, 0.70f),
-            new Finish(0.72f, 0.64f, 0.46f, 0.04f, 0.18f, 0.60f),
+            new Finish(0.55f, 0.48f, 0.36f, 0.02f, 0.08f, 0.75f, 0.03f),
+            new Finish(0.78f, 0.70f, 0.52f, 0.08f, 0.22f, 0.55f, 0.06f),
+            new Finish(0.95f, 0.88f, 0.62f, 0.18f, 0.40f, 0.40f, 0.28f),
         };
         static readonly Finish[] Infernal =
         {
-            new Finish(0.22f, 0.12f, 0.10f, 0.08f, 0.10f, 0.75f),
-            new Finish(0.52f, 0.16f, 0.08f, 0.12f, 0.16f, 0.68f),
+            new Finish(0.42f, 0.22f, 0.16f, 0.06f, 0.08f, 0.80f, 0.05f),
+            new Finish(0.72f, 0.28f, 0.16f, 0.18f, 0.24f, 0.62f, 0.12f),
+            new Finish(1.00f, 0.46f, 0.18f, 0.35f, 0.50f, 0.45f, 0.65f),
         };
 
         static readonly WeaponRow[] Rows =
@@ -173,7 +178,7 @@ namespace Hollowmere.Core
         public static bool TryFinish(string family, int tier, out Finish finish)
         {
             finish = default;
-            if (tier >= TierCount || tier < 1) return false;
+            if (tier > TierCount || tier < 1) return false;
             Finish[] bank = family switch
             {
                 "leather" => Leather,
@@ -205,18 +210,18 @@ namespace Hollowmere.Core
             string type = TypeOf(baseId);
             switch (type)
             {
-                case "sword": socket = new Socket(0.03f, 0f, 0f, 0f, 0.42f); return true;
-                case "axe": socket = new Socket(0.032f, 0f, 0f, 0f, 0.38f); return true;
-                case "mace": socket = new Socket(0.03f, 0f, 0f, 0f, 0.34f); return true;
-                case "spear": socket = new Socket(0.028f, 0f, 0f, 0f, 0.62f); return true;
-                case "scythe": socket = new Socket(0.03f, 0f, 0f, 0f, 0.48f); return true;
-                case "flail": socket = new Socket(0.034f, 0f, 0f, 0f, 0.3f); return true;
+                case "sword": socket = new Socket(0.03f, 0f, 0f, 0f, 0.32f); return true;
+                case "axe": socket = new Socket(0.032f, 0f, 0f, 0f, 0.32f); return true;
+                case "mace": socket = new Socket(0.04f, 0f, 0f, 0f, 0.30f); return true;
+                case "spear": socket = new Socket(0.028f, 0f, 0f, 0f, 0.32f); return true;
+                case "scythe": socket = new Socket(0.03f, 0f, 0f, 0f, 0.32f); return true;
+                case "flail": socket = new Socket(0.04f, 0f, 0f, 0f, 0.30f); return true;
                 case "dagger": socket = new Socket(0.025f, 0f, 0f, 0f, 0f); return true;
                 case "fist": socket = new Socket(0.02f, 0f, 0f, 0f, 0f); return true;
-                case "bow": socket = new Socket(0.03f, 0f, 0f, 0f, 0.36f); return true;
+                case "bow": socket = new Socket(0.03f, 0f, 0f, 0f, 0.30f); return true;
                 case "crossbow": socket = new Socket(0.03f, 0f, 90f, 0f, 0.28f); return true;
                 case "wand": socket = new Socket(0.028f, 0f, 0f, 0f, 0f); return true;
-                case "staff": socket = new Socket(0.03f, 0f, 0f, 0f, 0.55f); return true;
+                case "staff": socket = new Socket(0.03f, 0f, 0f, 0f, 0.32f); return true;
                 case "shield": socket = new Socket(0.03f, 0f, 90f, 0f, 0f); return true;
                 case "orb": socket = new Socket(0.028f, 0f, 0f, 0f, 0f); return true;
                 case "quiver": socket = new Socket(0.02f, 0f, 180f, 0f, 0f); return true;

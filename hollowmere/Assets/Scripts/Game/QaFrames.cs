@@ -386,6 +386,7 @@ namespace Hollowmere
                 yield return new WaitForEndOfFrame();
                 SaveNamed("weapons-" + types[i]);
                 FrameGrip(actor, cam, rig, main);
+                GearAttach.AuditFramed(actor.transform, cam);
                 yield return null;
                 yield return new WaitForEndOfFrame();
                 SaveNamed("weapons-grip-" + types[i]);
@@ -482,12 +483,12 @@ namespace Hollowmere
                 if (font == null) continue;
                 var label = new GameObject("label_" + row.Id);
                 label.transform.SetParent(root.transform, false);
-                label.transform.localPosition = go.transform.localPosition + new Vector3(0f, -0.38f, 0f);
-                label.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                label.transform.localPosition = go.transform.localPosition + new Vector3(0f, -0.42f, -0.05f);
                 var text = label.AddComponent<TextMesh>();
                 text.text = row.Id;
                 text.font = font;
-                text.characterSize = 0.035f;
+                text.fontSize = 64;
+                text.characterSize = 0.11f;
                 text.anchor = TextAnchor.MiddleCenter;
                 text.alignment = TextAlignment.Center;
                 text.color = new Color(0.92f, 0.9f, 0.84f);
@@ -497,16 +498,16 @@ namespace Hollowmere
             var card = GameObject.CreatePrimitive(PrimitiveType.Quad);
             card.name = "lineupCard";
             card.transform.SetParent(root.transform, false);
-            card.transform.localPosition = new Vector3(0f, 0f, 0.8f);
-            card.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            card.transform.localPosition = new Vector3(0f, 0f, -0.8f);
+            card.transform.localRotation = Quaternion.identity;
             card.transform.localScale = new Vector3(16f, 6.5f, 1f);
             var colr = card.GetComponent<Collider>();
             if (colr != null) UnityEngine.Object.Destroy(colr);
             var cr = card.GetComponent<Renderer>();
             cr.sharedMaterial = Art.Mat(new Color(0.16f, 0.16f, 0.17f));
             cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            Vector3 look = root.transform.position + Vector3.up * 0.15f;
-            Vector3 camPos = look + new Vector3(0f, 0.2f, -8.2f);
+            Vector3 look = root.transform.position + Vector3.up * 0.05f;
+            Vector3 camPos = look + new Vector3(0f, 0.35f, 11.5f);
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
@@ -524,19 +525,40 @@ namespace Hollowmere
             if (actor.Dead) actor.Revive(1f);
             if (actor.transform != null) actor.transform.localRotation = Quaternion.identity;
             GearAttach.PoseIdle(actor.transform);
+            var ik = actor.GetComponentInChildren<OffHandIk>();
+            if (ik != null) ik.Apply();
         }
 
         static void FrameGrip(HeroActor actor, Camera cam, CameraRig rig, bool main)
         {
             if (cam == null || actor == null) return;
-            var hand = main
-                ? (Art.Bone(actor.transform, "RightHand") ?? Art.Bone(actor.transform, "hand"))
-                : (Art.Bone(actor.transform, "LeftHand") ?? Art.Bone(actor.transform, "LeftForeArm"));
-            if (hand == null) return;
+            var right = Art.Bone(actor.transform, "RightHand") ?? Art.Bone(actor.transform, "hand");
+            var left = Art.Bone(actor.transform, "LeftHand") ?? Art.Bone(actor.transform, "LeftForeArm");
+            var prop = GameObject.Find("gear_weapon") ?? GameObject.Find("gear_offhand");
+            bool any = false;
+            Bounds box = new Bounds(actor.Pos + Vector3.up, Vector3.zero);
+            if (right != null) { box = new Bounds(right.position, Vector3.one * 0.08f); any = true; }
+            if (left != null)
+            {
+                if (!any) { box = new Bounds(left.position, Vector3.one * 0.08f); any = true; }
+                else box.Encapsulate(left.position);
+            }
+            if (prop != null)
+            {
+                foreach (var r in prop.GetComponentsInChildren<Renderer>())
+                {
+                    if (r == null || !r.enabled) continue;
+                    if (!any) { box = r.bounds; any = true; }
+                    else box.Encapsulate(r.bounds);
+                }
+            }
+            if (!any) return;
             Vector3 face = FaceDir(actor);
-            Vector3 look = hand.position;
-            Vector3 camPos = look + face * 0.72f + Vector3.up * 0.08f;
-            cam.fieldOfView = 26f;
+            Vector3 look = box.center;
+            float radius = Mathf.Max(box.extents.magnitude, 0.25f);
+            cam.fieldOfView = 32f;
+            float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + 0.35f;
+            Vector3 camPos = look + face * dist + Vector3.up * radius * 0.15f;
             var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
             if (rig != null) rig.Lock(camPos, rot);
             else cam.transform.SetPositionAndRotation(camPos, rot);
@@ -600,6 +622,11 @@ namespace Hollowmere
             for (int i = 0; i < pieces.Length; i++)
             {
                 var it = Loot.Generate(rng, 12, Rarity.Rare, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
+                if (it != null)
+                {
+                    it.family = "plate";
+                    it.tier = 3;
+                }
                 if (it == null || !hero.AddItem(it) || !hero.Equip(it))
                     Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id + " free=" + hero.FreeSlots);
             }

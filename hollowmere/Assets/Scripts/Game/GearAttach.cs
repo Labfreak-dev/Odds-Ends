@@ -188,6 +188,8 @@ namespace Hollowmere
             var hand = main ? Hand(body) : (Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm"));
             if (hand == null || it == null) return;
             string model = GearTable.ModelFor(it.baseId);
+            if (GearTable.TypeOf(it.baseId) == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name))
+                return;
             if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name))
             {
                 if (main) SeatOffHand(body, it);
@@ -197,6 +199,21 @@ namespace Hollowmere
             if (cc0 != null && Grip(hand, cc0, name, main)) return;
             if (Grip(hand, key, name, main)) return;
             Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
+        }
+
+        static bool PlaceQuiver(Transform body, string resource, string name)
+        {
+            var spine = Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1") ?? Art.Bone(body, "Spine");
+            if (spine == null) return false;
+            var prefab = Resources.Load<GameObject>(resource);
+            if (prefab == null) return false;
+            var go = Object.Instantiate(prefab, spine);
+            go.name = name;
+            go.transform.localPosition = new Vector3(0.02f, 0.04f, -0.16f);
+            go.transform.localRotation = Quaternion.Euler(8f, 0f, 0f);
+            FitWorldScale(go.transform, spine);
+            PaintPlain(go, new Color(0.42f, 0.28f, 0.16f));
+            return true;
         }
 
         static void HipItem(Transform body, Item it)
@@ -210,8 +227,9 @@ namespace Hollowmere
             go.name = "gear_offhand";
             go.transform.localPosition = new Vector3(0.18f, 0.05f, -0.08f);
             go.transform.localRotation = Quaternion.Euler(0f, 0f, 20f);
-            go.transform.localScale = Vector3.one;
+            FitWorldScale(go.transform, hips);
             Art.AdoptShaders(go);
+            PaintPlain(go, new Color(0.62f, 0.58f, 0.50f));
         }
 
         static bool GripResource(Transform hand, string resource, string baseId, string name)
@@ -226,15 +244,47 @@ namespace Hollowmere
                 return false;
             }
             go.transform.localRotation = Quaternion.Euler(sock.Pitch, sock.Yaw, sock.Roll);
-            go.transform.localPosition = new Vector3(0f, sock.Palm, 0f);
-            var s = hand.lossyScale;
-            go.transform.localScale = new Vector3(
+            string type = GearTable.TypeOf(baseId);
+            float intoPalm = type == "mace" || type == "flail" ? -0.025f : 0f;
+            go.transform.localPosition = new Vector3(0f, sock.Palm, intoPalm);
+            FitWorldScale(go.transform, hand);
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            Art.AdoptShaders(go);
+            PaintPlain(go, type == "fist" ? new Color(0.35f, 0.36f, 0.38f) : new Color(0.62f, 0.58f, 0.50f));
+            return true;
+        }
+
+        static void FitWorldScale(Transform go, Transform parent)
+        {
+            var s = parent.lossyScale;
+            go.localScale = new Vector3(
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.x)),
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.y)),
                 1f / Mathf.Max(0.0001f, Mathf.Abs(s.z)));
-            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
-            Art.AdoptShaders(go);
-            return true;
+            if (!Art.MeshWorldBounds(go, out var box)) return;
+            float max = Art.MaxAxis(box.size);
+            if (max > 1.7f) go.localScale *= 1.55f / max;
+        }
+
+        static void PaintPlain(GameObject go, Color color)
+        {
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                bool textured = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    if (m.mainTexture != null) textured = true;
+                    if (m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") != null) textured = true;
+                }
+                if (textured) continue;
+                var lit = Art.Mat(color, 0.08f);
+                var next = new Material[mats.Length == 0 ? 1 : mats.Length];
+                for (int i = 0; i < next.Length; i++) next[i] = lit;
+                r.materials = next;
+            }
         }
 
         static void SeatOffHand(Transform body, Item it)
@@ -248,7 +298,7 @@ namespace Hollowmere
             if (weapon == null || upper == null || lower == null || hand == null) return;
             var socket = new GameObject("offhand_grip").transform;
             socket.SetParent(weapon, false);
-            socket.localPosition = new Vector3(0f, sock.OffHand, 0f);
+            socket.localPosition = new Vector3(0f, sock.OffHand, -0.04f);
             socket.localRotation = Quaternion.identity;
             var ik = weapon.gameObject.AddComponent<OffHandIk>();
             ik.upper = upper;
@@ -377,6 +427,66 @@ namespace Hollowmere
             foreach (AnimationState s in anim)
                 SampleGrip(anim, s, hand, prop);
             PoseIdle(body);
+            SettleOffHand(body);
+            float gap = RendererGap(hand, prop);
+            if (gap > GearTable.GripLimit)
+                Debug.LogError("Hollowmere grip FAIL bounds " + (gap * 100f).ToString("0.0") + "cm");
+            else
+                Debug.Log("Hollowmere grip bounds " + (gap * 100f).ToString("0.0") + "cm");
+        }
+
+        public static void AuditFramed(Transform body, Camera cam)
+        {
+            if (body == null || cam == null) return;
+            var prop = Find(body, "gear_weapon") ?? Find(body, "gear_offhand");
+            if (prop == null)
+            {
+                Debug.LogError("Hollowmere grip FAIL no renderer");
+                return;
+            }
+            var planes = GeometryUtility.CalculateFrustumPlanes(cam);
+            bool seen = false;
+            bool enabled = false;
+            foreach (var r in prop.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                if (!r.enabled || !r.gameObject.activeInHierarchy) continue;
+                enabled = true;
+                if (GeometryUtility.TestPlanesAABB(planes, r.bounds)) seen = true;
+            }
+            if (!enabled) Debug.LogError("Hollowmere grip FAIL renderer disabled");
+            else if (!seen) Debug.LogError("Hollowmere grip FAIL off-screen");
+            else Debug.Log("Hollowmere grip framed");
+        }
+
+        static float RendererGap(Transform hand, Transform prop)
+        {
+            if (hand == null || prop == null) return 99f;
+            float best = 99f;
+            bool any = false;
+            foreach (var r in prop.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                any = true;
+                float d = Vector3.Distance(r.bounds.ClosestPoint(hand.position), hand.position);
+                if (d < best) best = d;
+            }
+            return any ? best : 99f;
+        }
+
+        static void SettleOffHand(Transform body)
+        {
+            var prop = Find(body, "gear_weapon");
+            var ik = prop != null ? prop.GetComponent<OffHandIk>() : null;
+            if (ik == null) return;
+            ik.Apply();
+            ik.Apply();
+            if (ik.hand == null || ik.target == null) return;
+            float d = Vector3.Distance(ik.hand.position, ik.target.position);
+            string cm = (d * 100f).ToString("0.0");
+            Debug.Log("Hollowmere grip offhand " + cm + "cm");
+            if (d > GearTable.GripLimit)
+                Debug.LogError("Hollowmere grip FAIL offhand " + cm + "cm");
         }
 
         public static void PoseIdle(Transform body)
@@ -592,28 +702,33 @@ namespace Hollowmere
         public Transform hand;
         public Transform target;
 
-        void LateUpdate()
+        void LateUpdate() => Apply();
+
+        public void Apply()
         {
             if (upper == null || lower == null || hand == null || target == null) return;
-            Vector3 a = upper.position;
-            Vector3 b = lower.position;
-            Vector3 c = hand.position;
-            float lab = Vector3.Distance(a, b);
-            float lbc = Vector3.Distance(b, c);
-            if (lab < 0.02f || lbc < 0.02f) return;
-            float reach = Mathf.Clamp(Vector3.Distance(a, target.position), 0.05f, lab + lbc - 0.02f);
-            Vector3 to = target.position - a;
-            if (to.sqrMagnitude < 1e-6f) return;
-            Vector3 pole = Vector3.Cross(upper.up, (b - a).normalized);
-            if (pole.sqrMagnitude < 1e-4f) pole = Vector3.Cross(to, Vector3.forward);
-            float cosA = Mathf.Clamp((lab * lab + reach * reach - lbc * lbc) / (2f * lab * reach), -1f, 1f);
-            float ang = Mathf.Acos(cosA) * Mathf.Rad2Deg;
-            Vector3 elbowDir = Quaternion.AngleAxis(ang, pole.normalized) * to.normalized;
-            upper.rotation = Quaternion.FromToRotation(b - a, elbowDir) * upper.rotation;
-            Vector3 forearm = hand.position - lower.position;
-            Vector3 want = target.position - lower.position;
-            if (forearm.sqrMagnitude < 1e-6f || want.sqrMagnitude < 1e-6f) return;
-            lower.rotation = Quaternion.FromToRotation(forearm, want) * lower.rotation;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                Vector3 a = upper.position;
+                Vector3 b = lower.position;
+                Vector3 c = hand.position;
+                float lab = Vector3.Distance(a, b);
+                float lbc = Vector3.Distance(b, c);
+                if (lab < 0.02f || lbc < 0.02f) return;
+                Vector3 to = target.position - a;
+                if (to.sqrMagnitude < 1e-6f) return;
+                float reach = Mathf.Clamp(to.magnitude, 0.05f, lab + lbc - 0.02f);
+                Vector3 bend = Vector3.Cross(to.normalized, Vector3.up);
+                if (bend.sqrMagnitude < 1e-4f) bend = Vector3.Cross(to.normalized, Vector3.right);
+                float cosA = Mathf.Clamp((lab * lab + reach * reach - lbc * lbc) / (2f * lab * reach), -1f, 1f);
+                float ang = Mathf.Acos(cosA) * Mathf.Rad2Deg;
+                Vector3 elbowDir = Quaternion.AngleAxis(-ang, bend.normalized) * to.normalized;
+                upper.rotation = Quaternion.FromToRotation((b - a).normalized, elbowDir) * upper.rotation;
+                Vector3 forearm = hand.position - lower.position;
+                Vector3 want = target.position - lower.position;
+                if (forearm.sqrMagnitude < 1e-6f || want.sqrMagnitude < 1e-6f) return;
+                lower.rotation = Quaternion.FromToRotation(forearm, want) * lower.rotation;
+            }
         }
     }
 }

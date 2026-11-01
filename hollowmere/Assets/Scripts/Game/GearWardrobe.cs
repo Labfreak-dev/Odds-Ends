@@ -89,12 +89,14 @@ namespace Hollowmere
                     Object.DestroyImmediate(extra);
                 }
                 var cover = covers[region];
-                if (cover.hideAll || full == null)
+                if (full == null)
                 {
                     smr.forceRenderingOff = true;
                     continue;
                 }
-                var open = Open(full, cover.fraction, cover.under);
+                // Never blank a whole region. Drop only the triangles 1 cm inside the piece
+                // so the edge skin stays and the chain check does not open a hole.
+                var open = Open(full, 0f, cover.under);
                 if (open == null)
                 {
                     smr.forceRenderingOff = false;
@@ -277,7 +279,7 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, family, tier, !lower && tier < GearTable.TierCount);
+                var piece = Spawn(body, skin, slot, prefab, family, tier, !lower);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
@@ -307,8 +309,10 @@ namespace Hollowmere
                         m.SetColor("_BaseColor", c);
                     }
                     else m.color = Color.Lerp(m.color, tint, fin.Blend);
-                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
-                    if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", Color.black);
+                    var glow = tint * fin.Emit;
+                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", glow);
+                    if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", glow);
+                    if (fin.Emit > 0.02f) m.EnableKeyword("_EMISSION");
                     if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", fin.Metal);
                     if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", fin.Smooth);
                 }

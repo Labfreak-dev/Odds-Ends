@@ -365,14 +365,29 @@ namespace Hollowmere
                 yield break;
             }
             actor.gameObject.SetActive(false);
-            LineupWeapons(cam, rig);
+            bool hudOn = UiRoot.I != null && UiRoot.I.Hud != null && UiRoot.I.Hud.gameObject.activeSelf;
+            if (hudOn) UiRoot.I.Hud.gameObject.SetActive(false);
+            var savedClear = cam.clearFlags;
+            var savedBg = cam.backgroundColor;
+            var savedFov = cam.fieldOfView;
+            ShowLineup(cam, rig, GearTable.Weapons, 9, 1.15f, 0.8f);
             yield return null;
             yield return new WaitForEndOfFrame();
             SaveNamed("weapons-lineup");
-            var line = GameObject.Find("weapon_lineup");
-            if (line != null) UnityEngine.Object.Destroy(line);
-            actor.gameObject.SetActive(true);
+            ClearLineup();
             var types = GearTable.WeaponTypes;
+            for (int i = 0; i < types.Count; i++)
+            {
+                ShowLineup(cam, rig, OfType(types[i]), 3, 1.7f, 1.2f);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                SaveNamed("weapons-lineup-" + types[i]);
+                ClearLineup();
+            }
+            cam.clearFlags = savedClear;
+            cam.backgroundColor = savedBg;
+            cam.fieldOfView = savedFov;
+            actor.gameObject.SetActive(true);
             for (int i = 0; i < types.Count; i++)
             {
                 string id = GearTable.Signature(types[i]);
@@ -390,6 +405,20 @@ namespace Hollowmere
                 yield return null;
                 yield return new WaitForEndOfFrame();
                 SaveNamed("weapons-grip-" + types[i]);
+                if (types[i] == "quiver")
+                {
+                    FrameRear(actor, cam, rig);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("weapons-quiver-back");
+                }
+                if (types[i] == "dagger" || types[i] == "fist")
+                {
+                    FrameHand(actor, cam, rig);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("weapons-hand-" + types[i]);
+                }
             }
             Debug.Log("Hollowmere QA weapons done");
             Application.Quit();
@@ -442,16 +471,35 @@ namespace Hollowmere
             Application.Quit();
         }
 
-        static void LineupWeapons(Camera cam, CameraRig rig)
+        static System.Collections.Generic.List<GearTable.WeaponRow> OfType(string type)
         {
+            var list = new System.Collections.Generic.List<GearTable.WeaponRow>();
+            var rows = GearTable.Weapons;
+            for (int i = 0; i < rows.Count; i++)
+                if (rows[i].Type == type) list.Add(rows[i]);
+            return list;
+        }
+
+        static void ClearLineup()
+        {
+            var line = GameObject.Find("weapon_lineup");
+            if (line != null) UnityEngine.Object.DestroyImmediate(line);
+        }
+
+        /// <summary>
+        /// Weapons on a light card, filling the frame. Labels are small and turned
+        /// to face the camera: a TextMesh at identity reads backwards from +Z.
+        /// </summary>
+        static void ShowLineup(Camera cam, CameraRig rig, System.Collections.Generic.IReadOnlyList<GearTable.WeaponRow> rows, int cols, float cell, float target)
+        {
+            ClearLineup();
+            if (rows == null || rows.Count == 0) return;
             var root = new GameObject("weapon_lineup");
             root.transform.position = new Vector3(0f, 40f, 0f);
-            const int cols = 15;
-            const float cell = 0.9f;
-            const float target = 0.5f;
-            var rows = GearTable.Weapons;
+            var grey = new Color(0.82f, 0.83f, 0.85f);
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            int nRows = (rows.Count + cols - 1) / cols;
             for (int i = 0; i < rows.Count; i++)
             {
                 var row = rows[i];
@@ -463,60 +511,149 @@ namespace Hollowmere
                 }
                 int col = i % cols;
                 int line = i / cols;
+                var cellPos = new Vector3((col - (cols - 1) * 0.5f) * cell, ((nRows - 1) * 0.5f - line) * cell, 0f);
                 var go = UnityEngine.Object.Instantiate(prefab, root.transform);
                 go.name = "line_" + row.Id;
-                var rend = go.GetComponentsInChildren<Renderer>();
-                Bounds box = new Bounds(go.transform.position, Vector3.zero);
-                bool any = false;
-                for (int r = 0; r < rend.Length; r++)
-                {
-                    if (rend[r] == null) continue;
-                    if (!any) { box = rend[r].bounds; any = true; }
-                    else box.Encapsulate(rend[r].bounds);
-                }
-                float max = any ? Mathf.Max(box.size.x, box.size.y, box.size.z) : 1f;
-                if (max < 0.001f) max = 1f;
+                Art.AdoptShaders(go);
+                go.transform.localRotation = Quaternion.Euler(-6f, 24f, 0f);
+                go.transform.localScale = Vector3.one;
+                float max = 1f;
+                if (Art.MeshWorldBounds(go.transform, out var raw))
+                    max = Mathf.Max(0.001f, Art.MaxAxis(raw.size));
                 go.transform.localScale = Vector3.one * (target / max);
-                go.transform.localPosition = new Vector3((col - (cols - 1) * 0.5f) * cell, (1 - line) * cell, 0f);
-                if (GearTable.TrySocket(row.Id, out var sock))
-                    go.transform.localRotation = Quaternion.Euler(sock.Pitch, sock.Yaw + 20f, sock.Roll);
-                if (font == null) continue;
+                go.transform.localPosition = cellPos;
+                if (UnionRenderers(go, out var box))
+                {
+                    Vector3 center = root.transform.InverseTransformPoint(box.center);
+                    go.transform.localPosition += new Vector3(cellPos.x - center.x, cellPos.y - center.y, 0f);
+                }
+                if (font == null || !UnionRenderers(go, out box)) continue;
                 var label = new GameObject("label_" + row.Id);
-                label.transform.SetParent(root.transform, false);
-                label.transform.localPosition = go.transform.localPosition + new Vector3(0f, -0.42f, -0.05f);
+                label.transform.SetParent(root.transform, true);
+                label.transform.position = new Vector3(box.center.x, box.min.y - target * 0.08f, box.center.z);
+                label.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
                 var text = label.AddComponent<TextMesh>();
                 text.text = row.Id;
                 text.font = font;
-                text.fontSize = 64;
-                text.characterSize = 0.11f;
-                text.anchor = TextAnchor.MiddleCenter;
+                text.fontSize = 24;
+                text.characterSize = 0.018f;
+                text.anchor = TextAnchor.UpperCenter;
                 text.alignment = TextAlignment.Center;
-                text.color = new Color(0.92f, 0.9f, 0.84f);
+                text.color = new Color(0.12f, 0.12f, 0.13f);
                 var mr = label.GetComponent<MeshRenderer>();
                 if (mr != null) mr.sharedMaterial = font.material;
             }
             var card = GameObject.CreatePrimitive(PrimitiveType.Quad);
             card.name = "lineupCard";
             card.transform.SetParent(root.transform, false);
-            card.transform.localPosition = new Vector3(0f, 0f, -0.8f);
+            card.transform.localPosition = new Vector3(0f, 0f, -1.6f);
             card.transform.localRotation = Quaternion.identity;
-            card.transform.localScale = new Vector3(16f, 6.5f, 1f);
+            card.transform.localScale = new Vector3(cols * cell + 4f, nRows * cell + 3f, 1f);
             var colr = card.GetComponent<Collider>();
             if (colr != null) UnityEngine.Object.Destroy(colr);
             var cr = card.GetComponent<Renderer>();
-            cr.sharedMaterial = Art.Mat(new Color(0.16f, 0.16f, 0.17f));
+            cr.sharedMaterial = Art.Mat(grey);
             cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            Vector3 look = root.transform.position + Vector3.up * 0.05f;
-            Vector3 camPos = look + new Vector3(0f, 0.35f, 11.5f);
+            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 1.85f, Quaternion.Euler(42f, -32f, 0f));
+            AddLineupLight(root.transform, "lineupFill", new Color(0.80f, 0.86f, 1f), 0.9f, Quaternion.Euler(16f, 148f, 0f));
+            float width = Mathf.Max(cell, (cols - 1) * cell + target);
+            float height = Mathf.Max(cell, (nRows - 1) * cell + target * 1.35f);
+            float fov = 26f;
+            float aspect = cam != null && cam.aspect > 0.2f ? cam.aspect : 16f / 9f;
+            float distH = (height * 0.55f) / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
+            float hFov = 2f * Mathf.Atan(Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * aspect) * Mathf.Rad2Deg;
+            float distW = (width * 0.55f) / Mathf.Tan(hFov * 0.5f * Mathf.Deg2Rad);
+            float dist = Mathf.Max(distH, distW);
+            Vector3 look = root.transform.position;
+            Vector3 camPos = look + new Vector3(0f, 0f, dist);
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.16f, 0.16f, 0.17f);
-                cam.fieldOfView = 32f;
+                cam.backgroundColor = grey;
+                cam.fieldOfView = fov;
                 var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
                 if (rig != null) rig.Lock(camPos, rot);
                 else cam.transform.SetPositionAndRotation(camPos, rot);
             }
+        }
+
+        static void AddLineupLight(Transform root, string name, Color color, float intensity, Quaternion rotation)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(root, false);
+            go.transform.rotation = rotation;
+            var light = go.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.color = color;
+            light.intensity = intensity;
+            light.shadows = LightShadows.None;
+        }
+
+        static bool UnionRenderers(GameObject go, out Bounds box)
+        {
+            box = new Bounds(go.transform.position, Vector3.zero);
+            bool any = false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>())
+            {
+                if (r == null || !r.enabled) continue;
+                if (!any) { box = r.bounds; any = true; }
+                else box.Encapsulate(r.bounds);
+            }
+            return any;
+        }
+
+        /// <summary>Three-quarter view from behind, so a back-mounted quiver is in frame.</summary>
+        static void FrameRear(HeroActor actor, Camera cam, CameraRig rig)
+        {
+            if (cam == null || actor == null) return;
+            Vector3 face = FaceDir(actor);
+            Vector3 side = Vector3.Cross(Vector3.up, face);
+            if (side.sqrMagnitude < 0.001f) side = Vector3.right;
+            side.Normalize();
+            Vector3 look = actor.Pos + Vector3.up * 1.15f;
+            cam.fieldOfView = 28f;
+            Vector3 camPos = look - face * 2.2f + side * 1.25f + Vector3.up * 0.28f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+            PaperStage(actor, face, true);
+            if (paperCard != null)
+            {
+                paperCard.transform.SetPositionAndRotation(
+                    actor.Pos + face * 1.7f + Vector3.up * 1.05f,
+                    Quaternion.LookRotation(-face, Vector3.up));
+                paperCard.transform.localScale = new Vector3(8f, 5f, 1f);
+            }
+            PaperLight(actor, true, camPos, look);
+        }
+
+        /// <summary>Tight frame on the hand that holds a small weapon.</summary>
+        static void FrameHand(HeroActor actor, Camera cam, CameraRig rig)
+        {
+            if (cam == null || actor == null) return;
+            var propGo = GameObject.Find("gear_weapon") ?? GameObject.Find("gear_offhand");
+            Transform prop = propGo != null ? propGo.transform : null;
+            Transform hand = prop != null ? prop.parent : null;
+            if (hand == null) hand = Art.Bone(actor.transform, "RightHand") ?? Art.Bone(actor.transform, "hand");
+            if (hand == null) return;
+            Bounds box = new Bounds(hand.position, Vector3.one * 0.1f);
+            if (prop != null)
+            {
+                foreach (var r in prop.GetComponentsInChildren<Renderer>())
+                {
+                    if (r == null || !r.enabled) continue;
+                    box.Encapsulate(r.bounds);
+                }
+            }
+            Vector3 face = FaceDir(actor);
+            Vector3 look = box.center;
+            cam.fieldOfView = 22f;
+            float radius = Mathf.Max(box.extents.magnitude, 0.1f);
+            float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + 0.06f;
+            Vector3 camPos = look + face * dist + Vector3.up * radius * 0.12f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
         }
 
         static void StandIdle(HeroActor actor)

@@ -184,7 +184,10 @@ namespace Hollowmere
             var hand = HoldHand(body, it.baseId, main);
             if (hand == null || it == null) return;
             string model = GearTable.ModelFor(it.baseId);
-            if (GearTable.TypeOf(it.baseId) == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name))
+            string type = GearTable.TypeOf(it.baseId);
+            if (type == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name))
+                return;
+            if (type == "shield" && PlaceShield(body, "Gear/Weapons/" + model, name))
                 return;
             if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name))
             {
@@ -214,6 +217,40 @@ namespace Hollowmere
             FitWorldScale(go.transform, spine);
             PaintPlain(go, new Color(0.42f, 0.28f, 0.16f));
             return true;
+        }
+
+        /// <summary>
+        /// Shield on the left forearm, face outward, about 0.8 m tall.
+        /// The pivot stays within 5 cm of the bone so the grip audit still passes.
+        /// </summary>
+        static bool PlaceShield(Transform body, string resource, string name)
+        {
+            var arm = Art.Bone(body, "LeftForeArm");
+            if (arm == null) return false;
+            var prefab = Resources.Load<GameObject>(resource);
+            if (prefab == null) return false;
+            var go = Object.Instantiate(prefab, arm);
+            go.name = name;
+            // Forearm -X points away from the chest. Yaw -90 turns the shield's broad face that way
+            // and leaves its long axis along the forearm.
+            go.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+            go.transform.localPosition = MetresOn(arm, new Vector3(-0.03f, 0.03f, 0f));
+            FitWorldScale(go.transform, arm);
+            FitLongest(go.transform, 0.82f);
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            Art.AdoptShaders(go);
+            PaintPlain(go, new Color(0.55f, 0.52f, 0.48f));
+            return true;
+        }
+
+        /// <summary>Scale so the longest world axis is exactly <paramref name="metres"/>.</summary>
+        static void FitLongest(Transform go, float metres)
+        {
+            if (go == null || metres <= 0.01f) return;
+            if (!Art.MeshWorldBounds(go, out var box)) return;
+            float longest = Art.MaxAxis(box.size);
+            if (longest < 0.001f) return;
+            go.localScale *= metres / longest;
         }
 
         static bool GripResource(Transform hand, string resource, string baseId, string name)
@@ -437,6 +474,27 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere grip " + type + " FAIL bounds " + (gap * 100f).ToString("0.0") + "cm");
             else
                 Debug.Log("Hollowmere grip " + type + " bounds " + (gap * 100f).ToString("0.0") + "cm");
+            if (type == "shield") AuditShield(body, prop);
+        }
+
+        /// <summary>Shield must be a real plate on the forearm, not a speck at the hip.</summary>
+        static void AuditShield(Transform body, Transform prop)
+        {
+            if (prop == null) return;
+            var arm = Art.Bone(body, "LeftForeArm");
+            float dist = arm != null ? Vector3.Distance(prop.position, arm.position) : 99f;
+            float height = 0f;
+            foreach (var r in prop.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                float axis = Art.MaxAxis(r.bounds.size);
+                if (axis > height) height = axis;
+            }
+            string line = "Hollowmere grip shield forearm " + (dist * 100f).ToString("0.0")
+                + "cm height " + (height * 100f).ToString("0.0") + "cm";
+            Debug.Log(line);
+            if (height < 0.5f || dist > 0.10f)
+                Debug.LogError("Hollowmere grip shield FAIL " + line);
         }
 
         public static void AuditFramed(Transform body, Camera cam)

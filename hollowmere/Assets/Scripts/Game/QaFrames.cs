@@ -671,7 +671,7 @@ namespace Hollowmere
                 snap.intensity = RenderSettings.ambientIntensity;
                 snap.reflection = RenderSettings.reflectionIntensity;
                 snap.reflectionMode = RenderSettings.defaultReflectionMode;
-                snap.customReflection = RenderSettings.customReflection;
+                snap.customReflection = CustomReflection();
                 snap.skybox = RenderSettings.skybox;
                 snap.fog = RenderSettings.fog;
                 RenderSettings.fog = false;
@@ -682,7 +682,7 @@ namespace Hollowmere
                 RenderSettings.ambientLight = new Color(0.66f, 0.66f, 0.68f);
                 RenderSettings.ambientIntensity = 1.3f;
                 RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
-                RenderSettings.customReflection = BrightCube();
+                SetCustomReflection(BrightCube());
                 RenderSettings.reflectionIntensity = 1.25f;
                 DynamicGI.UpdateEnvironment();
                 return snap;
@@ -698,7 +698,7 @@ namespace Hollowmere
                 RenderSettings.ambientIntensity = snap.intensity;
                 RenderSettings.reflectionIntensity = snap.reflection;
                 RenderSettings.defaultReflectionMode = snap.reflectionMode;
-                RenderSettings.customReflection = snap.customReflection;
+                SetCustomReflection(snap.customReflection);
                 RenderSettings.skybox = snap.skybox;
                 RenderSettings.fog = snap.fog;
                 DynamicGI.UpdateEnvironment();
@@ -706,6 +706,30 @@ namespace Hollowmere
         }
 
         static Cubemap brightCube;
+
+        /// <summary>
+        /// Unity 6 types the reflection slot as Texture (customReflectionTexture).
+        /// The older property is a Cubemap, so a Texture cannot be written back into it.
+        /// </summary>
+        static Texture CustomReflection()
+        {
+#if UNITY_6000_0_OR_NEWER
+            return RenderSettings.customReflectionTexture;
+#else
+            return RenderSettings.customReflection;
+#endif
+        }
+
+        static void SetCustomReflection(Texture tex)
+        {
+#if UNITY_6000_0_OR_NEWER
+            RenderSettings.customReflectionTexture = tex;
+#else
+            var cube = tex as Cubemap;
+            if (tex == null || cube != null)
+                RenderSettings.customReflection = cube;
+#endif
+        }
 
         static Cubemap BrightCube()
         {

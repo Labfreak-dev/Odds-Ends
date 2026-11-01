@@ -295,7 +295,12 @@ namespace Hollowmere
         /// <summary>Two shells within 3 mm over the same body spot. The inner one should have been removed.</summary>
         static int Overlap(Vector3[] bodyPts, List<Grid> shells, string pose)
         {
-            if (bodyPts == null || shells == null || shells.Count < 2) return 0;
+            int shellCount = shells == null ? 0 : shells.Count;
+            if (bodyPts == null || shells == null || shells.Count < 2)
+            {
+                Debug.Log("Hollowmere gear overlap " + pose + " shells=" + shellCount + " bad=0");
+                return 0;
+            }
             int bad = 0;
             int step = Mathf.Max(1, bodyPts.Length / 220);
             for (int i = 0; i < bodyPts.Length; i += step)
@@ -310,6 +315,7 @@ namespace Hollowmere
                 }
                 if (GearFit.ShellsOverlap(Vector3.Distance(p0, p1), d0, d1)) bad++;
             }
+            Debug.Log("Hollowmere gear overlap " + pose + " shells=" + shells.Count + " bad=" + bad);
             if (bad > 8) return Fail(pose + " shells overlap " + bad);
             return 0;
         }
@@ -346,8 +352,11 @@ namespace Hollowmere
             var hide = new bool[mesh.vertexCount];
             var bones = skin.bones;
             var w = mesh.boneWeights;
+            var src = skin.GetComponent<GearBodySource>();
+            var covered = src != null ? src.covered : null;
             for (int i = 0; i < w.Length && i < hide.Length; i++)
             {
+                if (covered != null && i < covered.Length && covered[i]) { hide[i] = true; continue; }
                 int d = GearShell.Dominant(w[i]);
                 if (bones == null || d < 0 || d >= bones.Length || bones[d] == null) continue;
                 var slot = GearFit.SlotForBone(bones[d].name);

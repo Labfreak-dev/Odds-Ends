@@ -24,27 +24,22 @@ namespace Hollowmere
             public Vector3 Delta;
         }
 
+        // Negative spine X stacked into a bow (head down at the hips). Positive X is the
+        // opposite lean: a short rock backward, plus a twist to the side. Kept small so
+        // the quaternion cannot take the long way around.
         static readonly Key[] Hit =
         {
-            new Key { T = 0.12f, Bone = "Hips", Euler = new Vector3(0f, 8f, 0f) },
-            new Key { T = 0.12f, Bone = "Spine1", Euler = new Vector3(-10f, 8f, 0f) },
-            new Key { T = 0.12f, Bone = "Spine2", Euler = new Vector3(-16f, 6f, 0f) },
-            new Key { T = 0.12f, Bone = "Head", Euler = new Vector3(-14f, -18f, 6f) },
-            new Key { T = 0.12f, Bone = "LeftShoulder", Euler = new Vector3(0f, 0f, 12f) },
-            new Key { T = 0.12f, Bone = "RightShoulder", Euler = new Vector3(0f, 0f, -12f) },
+            new Key { T = 0.10f, Bone = "Spine2", Euler = new Vector3(8f, 8f, 0f) },
+            new Key { T = 0.10f, Bone = "Head", Euler = new Vector3(10f, -12f, 0f) },
+            new Key { T = 0.10f, Bone = "Hips", Euler = new Vector3(0f, 6f, 0f) },
 
-            new Key { T = 0.28f, Bone = "Hips", Euler = new Vector3(0f, 16f, 0f) },
-            new Key { T = 0.28f, Bone = "Spine", Euler = new Vector3(-8f, 6f, 0f) },
-            new Key { T = 0.28f, Bone = "Spine1", Euler = new Vector3(-22f, 14f, 0f) },
-            new Key { T = 0.28f, Bone = "Spine2", Euler = new Vector3(-36f, 12f, 0f) },
-            new Key { T = 0.28f, Bone = "Neck", Euler = new Vector3(-12f, -10f, 0f) },
-            new Key { T = 0.28f, Bone = "Head", Euler = new Vector3(-28f, -38f, 12f) },
-            new Key { T = 0.28f, Bone = "LeftShoulder", Euler = new Vector3(8f, 0f, 24f) },
-            new Key { T = 0.28f, Bone = "RightShoulder", Euler = new Vector3(8f, 0f, -24f) },
-            new Key { T = 0.28f, Bone = "LeftArm", Euler = new Vector3(28f, 0f, 20f) },
-            new Key { T = 0.28f, Bone = "RightArm", Euler = new Vector3(28f, 0f, -20f) },
-            new Key { T = 0.28f, Bone = "LeftForeArm", Euler = new Vector3(0f, 0f, -24f) },
-            new Key { T = 0.28f, Bone = "RightForeArm", Euler = new Vector3(0f, 0f, 24f) },
+            new Key { T = 0.30f, Bone = "Spine1", Euler = new Vector3(6f, 6f, 0f) },
+            new Key { T = 0.30f, Bone = "Spine2", Euler = new Vector3(14f, 14f, 0f) },
+            new Key { T = 0.30f, Bone = "Neck", Euler = new Vector3(6f, -8f, 0f) },
+            new Key { T = 0.30f, Bone = "Head", Euler = new Vector3(16f, -22f, 6f) },
+            new Key { T = 0.30f, Bone = "Hips", Euler = new Vector3(0f, 10f, 0f) },
+            new Key { T = 0.30f, Bone = "LeftShoulder", Euler = new Vector3(0f, 0f, 10f) },
+            new Key { T = 0.30f, Bone = "RightShoulder", Euler = new Vector3(0f, 0f, -8f) },
         };
 
         static readonly Key[] Death =
@@ -103,7 +98,7 @@ namespace Hollowmere
             if (hit && death) return;
             var skin = LargestSkin(ma.anim.transform);
             if (skin == null || skin.bones == null || skin.bones.Length < 8) return;
-            if (!hit) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "hit", 0.58f, Hit, null), "hit");
+            if (!hit) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "hit", 0.60f, Hit, null), "hit");
             if (!death) ma.anim.AddClip(Build(ma.anim.transform, skin.bones, "death", 1.35f, Death, DeathDrop), "death");
             ma.Forget();
         }

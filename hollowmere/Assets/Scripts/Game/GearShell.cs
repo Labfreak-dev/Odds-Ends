@@ -59,6 +59,10 @@ namespace Hollowmere
             }
             // Plate and the leather under it are two shells on the same skin. Keep the outer one.
             ResolveOverlap(source, skin.bones, built);
+            // Anything the surviving shell sits on is removed, including the other slot's faces.
+            CoverUnder(source.vertices, built, hide);
+            var keep = skin.GetComponent<GearBodySource>();
+            if (keep != null) keep.covered = hide;
             for (int s = 0; s < built.Count; s++)
             {
                 var mesh = built[s].mesh;
@@ -283,6 +287,35 @@ namespace Hollowmere
             return mesh;
         }
 
+        /// <summary>Body vertices the shell covers. The audit treats these as not visible skin.</summary>
+        static void CoverUnder(Vector3[] body, List<ShellPiece> shells, bool[] hide)
+        {
+            if (body == null || shells == null || hide == null) return;
+            var pts = new List<Vector3>();
+            for (int s = 0; s < shells.Count; s++)
+            {
+                var mesh = shells[s].mesh;
+                if (mesh == null) continue;
+                var v = mesh.vertices;
+                var tris = mesh.triangles;
+                if (v == null || tris == null || tris.Length < 3) continue;
+                var used = new bool[v.Length];
+                for (int i = 0; i < tris.Length; i++)
+                    if (tris[i] >= 0 && tris[i] < used.Length) used[tris[i]] = true;
+                for (int i = 0; i < v.Length; i++)
+                    if (used[i]) pts.Add(v[i]);
+            }
+            if (pts.Count == 0) return;
+            var index = new BodyIndex(pts.ToArray());
+            // The shell is 12 mm out. Hide the skin under it and the band it would otherwise clip.
+            const float Cover = 0.02f;
+            for (int i = 0; i < body.Length && i < hide.Length; i++)
+            {
+                index.Nearest(body[i], out float d);
+                if (d <= Cover) hide[i] = true;
+            }
+        }
+
         /// <summary>Where two shells sit on the same skin, drop the inner one so one surface remains.</summary>
         static void ResolveOverlap(Mesh source, Transform[] bones, List<ShellPiece> shells)
         {
@@ -334,8 +367,8 @@ namespace Hollowmere
                                     int ov = list[n] & 0xffff;
                                     if (os == s) continue;
                                     if (ov < 0 || ov >= pos[os].Length) continue;
-                                    // Cull a little wider than the 3 mm fail so a sampled edge still passes.
-                                    if (Vector3.Distance(pos[s][v], pos[os][ov]) > 0.006f) continue;
+                                    // Same skin, two surfaces. 12 mm still reads as one z-fighting patch.
+                                    if (Vector3.Distance(pos[s][v], pos[os][ov]) > 0.012f) continue;
                                     bool inner = gap[s][v] < gap[os][ov] - 0.0005f;
                                     bool tie = Mathf.Abs(gap[s][v] - gap[os][ov]) <= 0.0005f;
                                     int mid = index.Nearest((pos[s][v] + pos[os][ov]) * 0.5f, out _);
@@ -508,7 +541,7 @@ namespace Hollowmere
             {
                 var gone = skin.sharedMesh;
                 skin.sharedMesh = keep.original;
-                Object.Destroy(gone);
+                Object.DestroyImmediate(gone);
             }
             return keep.original;
         }
@@ -528,5 +561,7 @@ namespace Hollowmere
     public sealed class GearBodySource : MonoBehaviour
     {
         public Mesh original;
+        /// <summary>Parallel to original.vertices. True where a shell is the only surface.</summary>
+        public bool[] covered;
     }
 }

@@ -459,8 +459,9 @@ namespace Hollowmere
                 if (t.name.StartsWith("gear_") || t.name == "weapon") doomed.Add(t.gameObject);
             for (int i = 0; i < doomed.Count; i++)
             {
-                foreach (var r in doomed[i].GetComponentsInChildren<Renderer>(true)) r.enabled = false;
-                Object.Destroy(doomed[i]);
+                if (doomed[i] == null) continue;
+                // End-of-frame Destroy left the previous shells up for the gearmix audit and the shot.
+                Object.DestroyImmediate(doomed[i]);
             }
         }
 

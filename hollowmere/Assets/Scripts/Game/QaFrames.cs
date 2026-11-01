@@ -237,7 +237,8 @@ namespace Hollowmere
                     }
                     float unit = label == "death" ? 0.99f : label == "hit" ? 0.5f : 0.35f;
                     Sample(anim, clip, unit);
-                    FrameGear(actor, cam, rig, false);
+                    if (label == "hit") FrameFront(actor, cam, rig, 1.32f, 2.15f, 30f);
+                    else FrameGear(actor, cam, rig, false);
                     yield return new WaitForEndOfFrame();
                     Save("gearslots-" + label, shot++);
                     Debug.Log("Hollowmere gear frames pose " + label + " " + clip + " t=" + unit.ToString("0.00"));
@@ -404,6 +405,21 @@ namespace Hollowmere
             fwd.y = 0f;
             if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
             return fwd.normalized;
+        }
+
+        /// <summary>Front view, closer than the full-body paper doll. Used for the hit flinch.</summary>
+        static void FrameFront(HeroActor actor, Camera cam, CameraRig rig, float lookHeight, float dist, float fov)
+        {
+            if (cam == null || actor == null) return;
+            Vector3 face = FaceDir(actor);
+            Vector3 look = actor.Pos + Vector3.up * lookHeight;
+            Vector3 camPos = look + face * dist + Vector3.up * 0.04f;
+            cam.fieldOfView = fov;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+            PaperStage(actor, face, true);
+            PaperLight(actor, true, camPos, look);
         }
 
         static void FrameGear(HeroActor actor, Camera cam, CameraRig rig, bool paper)

@@ -8,10 +8,14 @@ namespace Hollowmere
     public static class CombatClock
     {
         public const string Pref = "hollowmere.shake";
-        static float holdUntil;
+        /// <summary>Scaled time stops. Exact 0 is the modal pause; this is close enough that a frame of deltaTime does not eat the hit-stop.</summary>
+        public const float PauseScale = 0.0001f;
+        static float holdUntilUnscaled;
+        static float savedScale = 1f;
+        static bool holding;
         static float amp;
 
-        public static bool Frozen => Time.time < holdUntil;
+        public static bool Frozen => holding && Time.unscaledTime < holdUntilUnscaled;
 
         public static bool ShakeEnabled
         {
@@ -21,12 +25,38 @@ namespace Hollowmere
 
         public static void Punch(string kind)
         {
-            float ms = DesignTable.HitStopMs(kind) / 1000f;
-            if (ms > 0f) holdUntil = Mathf.Max(holdUntil, Time.time + ms);
-            if (!ShakeEnabled) return;
-            float add = DesignTable.ShakeMm(kind) / 1000f;
-            float cap = DesignTable.ShakeMm("cap") / 1000f;
+            float ms = CombatFeelProfile.StopMs(kind) / 1000f;
+            if (ms > 0f)
+            {
+                float until = Time.unscaledTime + ms;
+                if (!holding)
+                {
+                    float cur = Time.timeScale;
+                    savedScale = cur > 0.05f ? cur : 1f;
+                    holding = true;
+                }
+                if (until > holdUntilUnscaled) holdUntilUnscaled = until;
+                Time.timeScale = PauseScale;
+            }
+            if (!ShakeEnabled || !CombatFeelProfile.KicksOn) return;
+            float add = CombatFeelProfile.KickMm(kind) / 1000f;
+            float cap = CombatFeelProfile.KickMm("cap") / 1000f;
             amp = Mathf.Min(cap, amp + add);
+        }
+
+        /// <summary>Re-apply the pause after anything else writes timeScale, and restore when the unscaled window ends.</summary>
+        public static void Tick()
+        {
+            if (!holding) return;
+            if (Time.unscaledTime >= holdUntilUnscaled)
+            {
+                holding = false;
+                holdUntilUnscaled = 0f;
+                bool modal = UiRoot.I != null && UiRoot.I.AnyModal;
+                Time.timeScale = modal ? 0f : savedScale;
+                return;
+            }
+            Time.timeScale = PauseScale;
         }
 
         public static Vector3 Offset(float dt)

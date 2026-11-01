@@ -246,7 +246,11 @@ namespace Hollowmere
 
         void Update()
         {
-            if (State == null) return;
+            if (State == null)
+            {
+                CombatClock.Tick();
+                return;
+            }
             float dt = Time.deltaTime;
             if (!Paused)
             {
@@ -261,6 +265,7 @@ namespace Hollowmere
                 }
             }
             if ((autosave += Time.unscaledDeltaTime) > 30f) { autosave = 0; Save(); }
+            CombatClock.Tick();
         }
 
         // ====================== events ======================

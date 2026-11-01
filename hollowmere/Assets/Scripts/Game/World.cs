@@ -29,6 +29,12 @@ namespace Hollowmere
                     if ((dx != 0 || dy != 0) && Map.Get(t.x + dx, t.y + dy) == Tile.Water) { shore = true; break; }
             if (shore) return "wade";
             if (Map.theme == Theme.Town) return (t.x + t.y) % 2 == 0 ? "stone" : "grass";
+            var biome = BiomeCatalog.ForTheme(Map.theme);
+            if (biome != null)
+            {
+                string cue = CombatFeelProfile.Step(biome.id);
+                if (!string.IsNullOrEmpty(cue)) return cue;
+            }
             if (Map.theme == Theme.Caverns || Map.theme == Theme.EmberDepths) return "dirt";
             return "stone";
         }

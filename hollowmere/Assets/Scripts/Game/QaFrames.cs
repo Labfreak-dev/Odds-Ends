@@ -46,6 +46,11 @@ namespace Hollowmere
                 yield return RunMonsterMode(gm, mode);
                 yield break;
             }
+            if (mode == "combatfeel")
+            {
+                yield return CombatFeelFrames(gm);
+                yield break;
+            }
             if (mode != "move" && mode != "pet" && mode != "combat")
             {
                 Debug.LogError("Hollowmere QA frames: unknown mode " + mode);
@@ -165,6 +170,8 @@ namespace Hollowmere
             "hm_cultist_smith", "hm_forest_brute", "hm_hellhound", "hm_imp",
             "hm_giant_mutant", "hm_lava_golem",
         };
+
+        public static IEnumerator RunCombatFeel(GameManager gm) => CombatFeelFrames(gm);
 
         public static IEnumerator RunMonsterMode(GameManager gm, string mode)
         {
@@ -546,6 +553,76 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere QA frame failed: " + e.Message);
             }
             UnityEngine.Object.Destroy(tex);
+        }
+
+        static IEnumerator CombatFeelFrames(GameManager gm)
+        {
+            var f = Feel.Active;
+            var profile = CombatFeelProfile.Active;
+            gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.45f);
+            Screen.SetResolution(f.width, f.height, FullScreenMode.Windowed);
+            yield return null;
+            var hero = HeroActor.I;
+            Vector3 origin = hero != null ? hero.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (hero != null) hero.transform.position = origin + Vector3.right * 18f;
+            int critMs = profile != null ? profile.critStopMs : DesignTable.HitStopMs("crit");
+            int killMs = profile != null ? profile.killStopMs : DesignTable.HitStopMs("kill");
+            int kick = profile != null ? profile.kickMm : DesignTable.ShakeMm("crit");
+            Debug.Log("Hollowmere QA combatfeel stop crit=" + critMs + " kill=" + killMs + " kickMm=" + kick);
+            if (critMs < 40 || critMs > 80 || killMs < 40 || killMs > 80)
+                Debug.LogError("Hollowmere QA combatfeel FAIL hit-stop outside 40-80 ms");
+            if (kick > 25)
+                Debug.LogError("Hollowmere QA combatfeel FAIL kick " + kick + "mm");
+            var def = MonsterDb.Get("bonewalker");
+            var ms = MonsterDb.Create(def, 8, MonsterRank.Normal, new Rng(4), 3);
+            ms.maxLife = 800f;
+            var monster = MonsterActor.Spawn(ms, origin + new Vector3(0f, 0f, 3.6f), 1);
+            monster.life = monster.maxLife = 800f;
+            monster.transform.rotation = Quaternion.LookRotation(Vector3.back);
+            var look = monster.Pos + Vector3.up * 1.3f;
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                cam.fieldOfView = 32f;
+                var rig = cam.GetComponent<CameraRig>();
+                if (rig != null)
+                    rig.Lock(look + Vector3.back * 4.2f + Vector3.up * 0.6f, Quaternion.LookRotation(look - (look + Vector3.back * 4.2f + Vector3.up * 0.6f), Vector3.up));
+            }
+            yield return new WaitForEndOfFrame();
+            Save("combatfeel", 0);
+            monster.TakeDamage(new Hit { amount = 86f, crit = true, element = Element.Physical }, null);
+            CombatClock.Punch("crit");
+            // Sample before yielding. One QA frame of scaled time is longer than the 60 ms stop,
+            // so a check after yield return null always saw the window already closed.
+            bool frozen = CombatClock.Frozen && Time.timeScale < 0.05f;
+            float windowEnd = Time.unscaledTime + critMs / 1000f;
+            float sampleAt = Time.unscaledTime + 0.030f;
+            while (Time.unscaledTime < sampleAt && Time.unscaledTime < windowEnd)
+                yield return null;
+            // A long QA frame can step past the stop. Only the sample that lands inside it counts.
+            if (Time.unscaledTime < windowEnd)
+                frozen = frozen && CombatClock.Frozen && Time.timeScale < 0.05f;
+            yield return null;
+            bool number = false;
+            foreach (var tm in UnityEngine.Object.FindObjectsByType<TextMesh>(FindObjectsSortMode.None))
+                if (tm != null && (tm.gameObject.name == "ftext" || tm.gameObject.name == "dmg")) number = true;
+            foreach (var tr in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+                if (tr != null && tr.name == "dmg") number = true;
+            var flash = monster.GetComponent<HitFlash>();
+            Debug.Log("Hollowmere QA combatfeel number=" + number + " flash=" + (flash != null) + " frozen=" + frozen + " scale=" + Time.timeScale.ToString("0.0000"));
+            if (!number) Debug.LogError("Hollowmere QA combatfeel FAIL no damage number");
+            if (flash == null) Debug.LogError("Hollowmere QA combatfeel FAIL no hit flash");
+            if (!frozen) Debug.LogError("Hollowmere QA combatfeel FAIL hit-stop did not freeze");
+            for (int i = 1; i <= 6; i++)
+            {
+                yield return new WaitForEndOfFrame();
+                Save("combatfeel", i);
+            }
+            Debug.Log("Hollowmere QA frames saved: 7 combatfeel");
+            Application.Quit();
         }
 
         static void Save(string mode, int index)

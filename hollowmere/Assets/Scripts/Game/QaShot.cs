@@ -110,6 +110,9 @@ namespace Hollowmere
                 case "skel-close":
                 case "propclose":
                 case "prop-close":
+                case "combatfeel":
+                case "lootbeam":
+                case "loot-beam":
                     return true;
             }
             return false;
@@ -128,6 +131,11 @@ namespace Hollowmere
             {
                 string mode = scene == "skel-close" ? "skelclose" : scene == "prop-close" ? "propclose" : scene;
                 yield return QaFrames.RunMonsterMode(gm, mode);
+                yield break;
+            }
+            if (scene == "combatfeel")
+            {
+                yield return QaFrames.RunCombatFeel(gm);
                 yield break;
             }
             bool title = scene == "title";
@@ -150,6 +158,7 @@ namespace Hollowmere
             bool monsters = scene == "monsters" || scene == "monster";
             bool monstersV6 = scene == "monsters-v6" || scene == "monstersv6";
             bool elites = scene == "elites" || scene == "eliteshot" || scene == "elite";
+            bool lootbeam = scene == "lootbeam" || scene == "loot-beam";
             bool dungeon = scene == "dungeon" || scene == "floor" || scene == "floor1" || scene == "1" || loot;
             if (title || newHero)
             {
@@ -191,6 +200,7 @@ namespace Hollowmere
                 if (monsters) FrameMonsters();
                 else if (monstersV6) FrameV6();
                 else if (elites) FrameElites();
+                else if (lootbeam) DropLootBeams();
                 else if (npcs) FrameNpcs();
                 Art.TameOversized(Camera.main);
                 var albedo = HeroActor.I != null ? Art.AlbedoOf(HeroActor.I.gameObject) : null;
@@ -682,6 +692,52 @@ namespace Hollowmere
             LogPlate(b, "elite");
             var look = origin + new Vector3(0f, 1.6f, 4.4f);
             var camPos = look + new Vector3(0f, 1.1f, -7.5f);
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.fieldOfView = 36f;
+            var rig = cam.GetComponent<CameraRig>();
+            if (rig != null)
+                rig.Lock(camPos, Quaternion.LookRotation(look - camPos, Vector3.up));
+        }
+
+        static void DropLootBeams()
+        {
+            var rng = new Rng(5);
+            Rarity[] rows = { Rarity.Common, Rarity.Magic, Rarity.Rare, Rarity.Legendary, Rarity.Set };
+            Vector3 origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 28f;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                var it = Loot.Generate(rng, 12, rows[i], HeroClass.Hexweaver, floor: 8);
+                Pickup.DropItem(it, origin + new Vector3((i - 2) * 1.7f, 0f, 4f));
+            }
+            int beams = 0;
+            foreach (var t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            {
+                if (t == null || t.name != "beam") continue;
+                beams++;
+                var mr = t.GetComponent<MeshRenderer>();
+                var c = mr != null && mr.sharedMaterial != null ? mr.sharedMaterial.color : Color.clear;
+                Debug.Log("Hollowmere QA lootbeam " + beams + " rgb=" + c.r.ToString("0.00") + "," + c.g.ToString("0.00") + "," + c.b.ToString("0.00"));
+                if (mr == null || c.maxColorComponent < 0.15f)
+                    Debug.LogError("Hollowmere QA lootbeam FAIL uncoloured beam");
+            }
+            if (beams < rows.Length)
+                Debug.LogError("Hollowmere QA lootbeam FAIL " + beams + "/" + rows.Length);
+            else
+                Debug.Log("Hollowmere QA lootbeam " + beams + " ok");
+            for (int i = 0; i < Sfx.StepSurfaces.Length; i++)
+            {
+                string surface = Sfx.StepSurfaces[i];
+                string clip = Sfx.StepCue(surface) + "_01";
+                if (!Sfx.HasStep(surface))
+                    Debug.LogError("Hollowmere QA step FAIL missing " + clip);
+                else
+                    Debug.Log("Hollowmere QA step " + surface + " " + clip);
+            }
+            var look = origin + new Vector3(0f, 1.1f, 4f);
+            var camPos = look + new Vector3(0f, 1.4f, -7.2f);
             var cam = Camera.main;
             if (cam == null) return;
             cam.fieldOfView = 36f;

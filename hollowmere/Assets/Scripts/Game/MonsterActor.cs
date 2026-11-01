@@ -355,6 +355,7 @@ namespace Hollowmere
             if (stats.affixes.Contains(EliteAffix.Armored)) h.amount *= 0.7f;
             float before = LifeFraction;
             Aggro();
+            CombatFeelProfile.Flash(this);
             base.TakeDamage(h, source);
             if (!Dead) AudioHub.Vary("monster_hurt", 0.7f);
             if (stats.IsEliteish)
@@ -390,7 +391,7 @@ namespace Hollowmere
                 GroundEffect.Monster(this, Pos, 3f, stats.damage * 1.5f, Element.Fire, 0.01f, 1.2f);
             GameManager.I.OnMonsterKilled(this);
             AudioHub.Vary("monster_death", 0.8f);
-            Fx.Burst(Pos + Vector3.up, Art.Hex(stats.def.color), 1.6f, 0.3f);
+            CombatFeelProfile.Death(Pos, CombatFeelProfile.Undead(stats.def));
             enabled = false;
             bool played = modelAnim != null && modelAnim.PlayClip("death", 2.2f);
             foreach (var hover in GetComponentsInChildren<BatHover>(true))

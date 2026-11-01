@@ -19,7 +19,7 @@ namespace Hollowmere
             if (dropped == null) Primitive(host, it);
             else if (it.kind == ItemKind.Gem) dropped.transform.localPosition = Vector3.up * 0.04f;
             var mote = DesignTable.Mote(it.rarity.ToString());
-            var c = Art.Hex(DesignTable.BeamHex(it.rarity.ToString()));
+            var c = CombatFeelProfile.BeamColor(it.rarity);
             if (mote.Motes > 0) CombatSparks.Burst(pickup.transform.position + Vector3.up * 0.4f, c, mote.Motes >= 12 ? "crit" : mote.Motes >= 8 ? "skill" : "normal");
             Beam(host, it.rarity, c);
             host.gameObject.AddComponent<DropHop>();

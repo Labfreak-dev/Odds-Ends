@@ -46,7 +46,26 @@ namespace Hollowmere
     /// </summary>
     public static class Sfx
     {
-        public static void Step(string surface) => AudioHub.Vary("step_" + surface, 0.5f);
+        /// <summary>Surfaces with a real audio_v3 take: Resources/Audio/step_&lt;surface&gt;_01.ogg.</summary>
+        public static readonly string[] StepSurfaces = { "stone", "dirt", "grass", "wood", "water", "wade" };
+
+        public static string StepCue(string surface)
+        {
+            if (string.IsNullOrEmpty(surface)) return null;
+            return "step_" + surface;
+        }
+
+        public static bool HasStep(string surface)
+        {
+            string cue = StepCue(surface);
+            return !string.IsNullOrEmpty(cue) && AudioHub.Has(cue + "_01");
+        }
+
+        public static void Step(string surface)
+        {
+            string cue = StepCue(surface);
+            if (!string.IsNullOrEmpty(cue)) AudioHub.Vary(cue, 0.5f);
+        }
         public static void Pet(string cue) => AudioHub.Vary("pet_" + cue, 0.75f);
         public static void Bag(string cue) => AudioHub.Vary(cue, cue == "hover_tick" ? 0.45f : 0.7f);
 

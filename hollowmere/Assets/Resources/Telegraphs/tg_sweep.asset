@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9c3e7b14d2f4a6e8b0c1d2e3f405162, type: 3}
+  m_Name: tg_sweep
+  m_EditorClassIdentifier: 
+  id: tg_sweep
+  shape: 0
+  element: 5
+  biomeId: 
+  reach: 6.0
+  width: 2.2
+  angle: 70
+  radius: 2
+  inner: 0.5
+  fillFromOrigin: 1
+  scroll: 0.8
+  weaponGlow: 1
+  trail: 1
+  charge: 0
+  eyeGlow: 1
+  windupSpeed: 0.35
+  noiseName: crack1
+  monsters: []
+  useAffix: 1
+  affix: 10
+  attack: affix
+  plainCircle: 0

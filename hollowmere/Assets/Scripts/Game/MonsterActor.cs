@@ -146,9 +146,18 @@ namespace Hollowmere
                     nextAttack = Time.time + stats.attackCooldown * PhaseCooldownScale();
                     winding = true;
                     windup = stats.def.role == MonsterRole.Brute || stats.rank == MonsterRank.Boss ? 0.6f : 0.3f;
-                    modelAnim?.BeginAttack(false);
-                    if (stats.def.role == MonsterRole.Brute || stats.rank == MonsterRank.Boss)
-                        Fx.Ring(Pos + transform.forward * 1.5f, 2.5f, new Color(1, 0.3f, 0.2f), windup);
+                    bool cast = ranged;
+                    modelAnim?.BeginAttack(cast, windup + 0.15f);
+                    var tg = TelegraphBook.ForMonster(stats.def.id);
+                    if (tg != null) modelAnim?.SetLeadIn(tg.windupSpeed);
+                    var fwd = to.sqrMagnitude > 0.0001f ? to.normalized : transform.forward;
+                    if (tg == null)
+                        Debug.LogError("Hollowmere telegraph FAIL " + stats.def.id + " has no TelegraphDef");
+                    else
+                    {
+                        TelegraphMark.Place(tg, Pos, fwd, windup, stats.def.element);
+                        TelegraphBody.Arm(this, tg, windup, stats.def.element);
+                    }
                 }
                 Present(dt);
                 return;
@@ -234,7 +243,6 @@ namespace Hollowmere
             {
                 AudioHub.Vary("monster_roar", 0.55f);
                 foreach (var a in InRadius(Team.Monster, Pos + transform.forward * 1.5f, 2.5f)) Deal(a, stats.damage, true);
-                Fx.Ring(Pos + transform.forward * 1.5f, 2.5f, Art.Element(stats.def.element), 0.25f);
                 return;
             }
             if (dist <= range + 0.6f) Deal(f, stats.damage, true);
@@ -261,22 +269,23 @@ namespace Hollowmere
             {
                 affixTimer = Random.Range(4f, 7f);
                 if (stats.affixes.Contains(EliteAffix.Molten))
-                    GroundEffect.Monster(this, Pos, 2f, stats.damage * 0.6f, Element.Fire, 4f, 0.2f);
+                    GroundEffect.Monster(this, Pos, 2f, stats.damage * 0.6f, Element.Fire, 4f, 0.2f, 0f, TelegraphBook.ForAffix(EliteAffix.Molten));
                 if (stats.affixes.Contains(EliteAffix.Plagued))
-                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 2.5f, stats.damage * 0.5f, Element.Poison, 5f, 0.8f);
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 2.5f, stats.damage * 0.5f, Element.Poison, 5f, 0.8f, 0f, TelegraphBook.ForAffix(EliteAffix.Plagued));
                 if (stats.affixes.Contains(EliteAffix.Frozen))
                     for (int i = 0; i < 3; i++)
-                        GroundEffect.Monster(this, World.ClampToFloor(hero.Pos + new Vector3(Random.Range(-3f, 3f), 0, Random.Range(-3f, 3f))), 1.8f, stats.damage * 1.2f, Element.Frost, 0.01f, 1.5f, 0.6f);
+                        GroundEffect.Monster(this, World.ClampToFloor(hero.Pos + new Vector3(Random.Range(-3f, 3f), 0, Random.Range(-3f, 3f))), 1.8f, stats.damage * 1.2f, Element.Frost, 0.01f, 1.5f, 0.6f, TelegraphBook.ForAffix(EliteAffix.Frozen));
                 if (stats.affixes.Contains(EliteAffix.Mortar))
-                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 2f, stats.damage, Element.Physical, 0.01f, 1f);
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 2f, stats.damage, Element.Physical, 0.01f, 1f, 0f, TelegraphBook.ForAffix(EliteAffix.Mortar));
                 if (stats.affixes.Contains(EliteAffix.Jailer))
-                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 1.4f, stats.damage * 0.4f, Element.Physical, 2f, 0.5f, 0.9f);
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), 1.4f, stats.damage * 0.4f, Element.Physical, 2f, 0.5f, 0.9f, TelegraphBook.ForAffix(EliteAffix.Jailer));
                 if (stats.affixes.Contains(EliteAffix.Pulse))
-                    GroundEffect.Monster(this, Pos, 5f, stats.damage, Element.Frost, 0.01f, 1.2f, 0.5f);
+                    GroundEffect.Monster(this, Pos, 5f, stats.damage, Element.Frost, 0.01f, 1.2f, 0.5f, TelegraphBook.ForAffix(EliteAffix.Pulse));
                 if (stats.affixes.Contains(EliteAffix.Sweep))
-                    GroundEffect.Monster(this, Pos + transform.forward * 3f, 1.2f, stats.damage, Element.Arcane, 0.4f, 0.4f);
+                    GroundEffect.Monster(this, Pos + transform.forward * 3f, 1.2f, stats.damage, Element.Arcane, 0.4f, 0.4f, 0f, TelegraphBook.ForAffix(EliteAffix.Sweep));
                 if (stats.affixes.Contains(EliteAffix.Waller))
                 {
+                    TelegraphMark.Place(TelegraphBook.ForAffix(EliteAffix.Waller), hero.Pos, hero.transform.right, 0.6f, Element.Physical, 4f);
                     for (int i = -2; i <= 2; i++)
                     {
                         var block = Art.Cube(null, hero.Pos + hero.transform.right * (i * 0.8f) + Vector3.up * 0.6f, new Vector3(0.7f, 1.2f, 0.25f), Art.Mat(new Color(0.45f, 0.42f, 0.38f)));
@@ -311,7 +320,7 @@ namespace Hollowmere
                 if (hazardTimer <= 0f)
                 {
                     hazardTimer = (float)DesignTable.PhaseThreeHazardSeconds;
-                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), (float)DesignTable.PhaseThreeHazardRadius, stats.damage, stats.def.element, 0.01f, (float)DesignTable.PhaseThreeHazardWarn);
+                    GroundEffect.Monster(this, World.ClampToFloor(hero.Pos), (float)DesignTable.PhaseThreeHazardRadius, stats.damage, stats.def.element, 0.01f, (float)DesignTable.PhaseThreeHazardWarn, 0f, TelegraphBook.ForAttack("boss-hazard"));
                 }
             }
             if ((bossTimer -= dt) > 0) return;
@@ -334,7 +343,7 @@ namespace Hollowmere
                 for (int i = 0; i < 5; i++)
                 {
                     var at = World.ClampToFloor(hero.Pos + Quaternion.Euler(0, i * 72, 0) * Vector3.forward * Random.Range(0f, 4f));
-                    GroundEffect.Monster(this, at, 2.2f, stats.damage * 0.8f, stats.def.element, 0.01f, 1.4f);
+                    GroundEffect.Monster(this, at, 2.2f, stats.damage * 0.8f, stats.def.element, 0.01f, 1.4f, 0f, TelegraphBook.ForAttack("boss-wave"));
                 }
             }
         }
@@ -378,7 +387,8 @@ namespace Hollowmere
             int next = DesignTable.BossPhase(LifeFraction);
             if (next == bossPhase) return;
             bossPhase = next;
-            Fx.Ring(Pos, 4f, new Color(1f, 0.45f, 0.2f), 0.6f);
+            var phase = TelegraphBook.ForMonster(stats.def.id);
+            if (phase != null) TelegraphMark.Place(phase, Pos, transform.forward, 0.6f, stats.def.element, 3.2f);
             GameManager.I.Toast($"{stats.displayName} — phase {bossPhase}");
         }
 

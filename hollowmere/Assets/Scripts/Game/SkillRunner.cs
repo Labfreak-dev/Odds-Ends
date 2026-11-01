@@ -344,6 +344,7 @@ namespace Hollowmere
         HeroActor hero; SkillCast cast;
         MonsterActor monster; float raw; Element el; float slow;
         Transform disc;
+        TelegraphMark mark;
         bool started;
         float share;
         const float TickEvery = 0.5f;
@@ -354,10 +355,20 @@ namespace Hollowmere
             g.team = Team.Hero; g.hero = h; g.cast = c; g.radius = radius; g.duration = duration; g.delay = delay; g.mult = mult;
         }
 
-        public static void Monster(MonsterActor m, Vector3 at, float radius, float raw, Element el, float duration, float delay, float slow = 0)
+        public static void Monster(MonsterActor m, Vector3 at, float radius, float raw, Element el, float duration, float delay, float slow = 0, TelegraphDef telegraph = null)
         {
-            var g = Make(at, radius, Art.Element(el) * 0.7f + Color.red * 0.3f);
+            var root = new GameObject("ground");
+            root.transform.position = new Vector3(at.x, 0.06f, at.z);
+            var g = root.AddComponent<GroundEffect>();
             g.team = Team.Monster; g.monster = m; g.raw = raw; g.el = el; g.radius = radius; g.duration = duration; g.delay = delay; g.slow = slow;
+            if (telegraph == null || !TelegraphBook.Shaped(telegraph))
+                Debug.LogError("Hollowmere telegraph FAIL ground effect has no TelegraphDef");
+            else
+            {
+                var fwd = m != null ? m.transform.forward : Vector3.forward;
+                g.mark = TelegraphMark.Place(telegraph, at, fwd, Mathf.Max(0.05f, delay), el, radius);
+                if (g.mark != null) g.mark.transform.SetParent(root.transform, true);
+            }
         }
 
         static GroundEffect Make(Vector3 at, float radius, Color c)
@@ -374,11 +385,20 @@ namespace Hollowmere
             if (!started)
             {
                 delay -= Time.deltaTime;
-                float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 20);
-                disc.localScale = new Vector3(radius * 2, 0.01f, radius * 2) * (0.9f + pulse * 0.1f);
+                if (mark == null && disc != null)
+                {
+                    float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 20);
+                    disc.localScale = new Vector3(radius * 2, 0.01f, radius * 2) * (0.9f + pulse * 0.1f);
+                }
                 if (delay > 0) return;
                 started = true;
-                Fx.Ring(transform.position, radius, disc.GetComponent<Renderer>().sharedMaterial.color * 2, 0.3f);
+                if (mark != null) mark.SetFill(1f);
+                else if (disc != null)
+                {
+                    var rend = disc.GetComponent<Renderer>();
+                    var col = rend != null && rend.sharedMaterial != null ? rend.sharedMaterial.color * 2f : Color.white;
+                    Fx.Ring(transform.position, radius, col, 0.3f);
+                }
                 tick = 0;
                 // Instant effects (duration ~0) deal the whole hit once; lingering ones deal it twice over, spread across ticks.
                 share = duration <= TickEvery ? 1f : 2f * TickEvery / (duration + TickEvery);

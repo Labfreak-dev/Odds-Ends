@@ -15,6 +15,7 @@ namespace Hollowmere
     ///   Hollowmere -qaFrames monsterdeath
     ///   Hollowmere -qaFrames skelclose
     ///   Hollowmere -qaFrames propclose
+    ///   Hollowmere -qaFrames telegraphs
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -49,6 +50,11 @@ namespace Hollowmere
             if (mode == "combatfeel")
             {
                 yield return CombatFeelFrames(gm);
+                yield break;
+            }
+            if (mode == "telegraphs")
+            {
+                yield return TelegraphFrames(gm);
                 yield break;
             }
             if (mode != "move" && mode != "pet" && mode != "combat")
@@ -553,6 +559,103 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere QA frame failed: " + e.Message);
             }
             UnityEngine.Object.Destroy(tex);
+        }
+
+        static IEnumerator TelegraphFrames(GameManager gm)
+        {
+            var f = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Hexweaver, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.4f);
+            Screen.SetResolution(f.width, f.height, FullScreenMode.Windowed);
+            yield return null;
+            CheapMonsterStage();
+            var origin = HeroActor.I != null ? HeroActor.I.Pos : Vector3.zero;
+            origin.y = 0f;
+            if (HeroActor.I != null) HeroActor.I.transform.position = origin + Vector3.right * 40f;
+            int fails = 0;
+            TelegraphBook.Audit(msg =>
+            {
+                fails++;
+                Debug.LogError("Hollowmere QA telegraph FAIL " + msg);
+            });
+            if (fails == 0) Debug.Log("Hollowmere QA telegraph audit ok");
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            floor.name = "telegraphFloor";
+            floor.transform.position = origin;
+            floor.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
+            var floorCol = floor.GetComponent<Collider>();
+            if (floorCol != null) UnityEngine.Object.Destroy(floorCol);
+            var floorR = floor.GetComponent<Renderer>();
+            if (floorR != null)
+            {
+                floorR.sharedMaterial = Art.Mat(new Color(0.16f, 0.15f, 0.14f));
+                floorR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            string[] shapes = { "cone", "line", "ring", "rune" };
+            string[] ids = { "bonewalker", "boneslinger", "stonehulk", "bogshaman" };
+            TelegraphShape[] expect = { TelegraphShape.Cone, TelegraphShape.Line, TelegraphShape.Ring, TelegraphShape.Rune };
+            float[] fills = { 0f, 0.5f, 1f };
+            var cam = Camera.main;
+            var look = origin + Vector3.forward * 1.5f + Vector3.up * 0.7f;
+            var camPos = origin + new Vector3(-2.6f, 5.2f, -5.1f);
+            if (cam != null)
+            {
+                cam.fieldOfView = 36f;
+                var rig = cam.GetComponent<CameraRig>();
+                var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+                if (rig != null) rig.Lock(camPos, rot);
+                else cam.transform.SetPositionAndRotation(camPos, rot);
+            }
+            int shots = 0;
+            for (int s = 0; s < shapes.Length; s++)
+            {
+                var mon = MonsterDb.Get(ids[s]);
+                var ms = MonsterDb.Create(mon, 8, MonsterRank.Normal, new Rng(4), 3);
+                var actor = MonsterActor.Spawn(ms, origin, 1);
+                actor.transform.rotation = Quaternion.LookRotation(Vector3.forward);
+                var tg = TelegraphBook.ForMonster(ids[s]);
+                if (tg == null || !TelegraphBook.Shaped(tg) || tg.shape != expect[s])
+                    Debug.LogError("Hollowmere QA telegraph FAIL " + ids[s] + " uses the default circle");
+                var anim = actor.GetComponentInChildren<ModelAnim>();
+                if (anim != null)
+                {
+                    bool cast = expect[s] == TelegraphShape.Rune || expect[s] == TelegraphShape.Line;
+                    anim.BeginAttack(cast, 1.4f);
+                    if (tg != null) anim.SetLeadIn(tg.windupSpeed);
+                    anim.Tick(0f, 0.04f);
+                }
+                var body = TelegraphBody.Arm(actor, tg, 3f, ms.def.element);
+                var mark = TelegraphMark.Place(tg, actor.Pos, Vector3.forward, 3f, ms.def.element);
+                if (mark == null || mark.shape != expect[s])
+                    Debug.LogError("Hollowmere QA telegraph FAIL " + shapes[s] + " mark is not a shaped TelegraphDef");
+                for (int i = 0; i < fills.Length; i++)
+                {
+                    if (mark != null) mark.SetFill(fills[i]);
+                    if (body != null) body.SetSwing(fills[i]);
+                    yield return new WaitForEndOfFrame();
+                    bool wind = anim != null && anim.Attacking;
+                    Debug.Log("Hollowmere QA telegraph " + shapes[s]
+                        + " fill=" + fills[i].ToString("0.00")
+                        + " shape=" + (mark != null ? mark.shape.ToString() : "circle")
+                        + " windup=" + wind
+                        + " glow=" + (body != null && body.Armed));
+                    if (!wind) Debug.LogError("Hollowmere QA telegraph FAIL " + shapes[s] + " has no wind-up");
+                    if (mark == null || mark.shape != expect[s])
+                        Debug.LogError("Hollowmere QA telegraph FAIL " + shapes[s] + " uses the default circle");
+                    Save("telegraphs-" + shapes[s], i);
+                    shots++;
+                }
+                if (mark != null)
+                {
+                    mark.transform.position += Vector3.right * 80f;
+                    UnityEngine.Object.Destroy(mark.gameObject);
+                }
+                actor.transform.position += Vector3.right * 80f;
+                UnityEngine.Object.Destroy(actor.gameObject);
+            }
+            Debug.Log("Hollowmere QA frames saved: " + shots + " telegraphs");
+            Application.Quit();
         }
 
         static IEnumerator CombatFeelFrames(GameManager gm)

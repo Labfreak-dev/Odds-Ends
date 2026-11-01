@@ -1,0 +1,145 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4e91c77b2d64f0e9c5a1b8d3e7f6240, type: 3}
+  m_Name: RarityLook
+  m_EditorClassIdentifier: 
+  rows:
+  - rarity: 0
+    tier: 1
+    r: 0.58
+    g: 0.36
+    b: 0.22
+    metal: 0.04
+    smooth: 0.1
+    blend: 1
+    emit: 0
+    rim: 0
+    uniqueModel: 0
+    vfx: 0
+    glowR: 0.45
+    glowG: 0.4
+    glowB: 0.32
+    rate: 0
+    size: 0.03
+    lift: 0.04
+  - rarity: 1
+    tier: 1
+    r: 0.7
+    g: 0.82
+    b: 1.12
+    metal: 0.16
+    smooth: 0.28
+    blend: 0.85
+    emit: 0
+    rim: 0
+    uniqueModel: 0
+    vfx: 0
+    glowR: 0.45
+    glowG: 0.62
+    glowB: 1
+    rate: 0
+    size: 0.03
+    lift: 0.04
+  - rarity: 2
+    tier: 2
+    r: 1.12
+    g: 1.16
+    b: 1.24
+    metal: 0.42
+    smooth: 0.4
+    blend: 0.7
+    emit: 0.16
+    rim: 0.55
+    uniqueModel: 0
+    vfx: 0
+    glowR: 0.35
+    glowG: 0.58
+    glowB: 1
+    rate: 0
+    size: 0.03
+    lift: 0.04
+  - rarity: 3
+    tier: 3
+    r: 1.05
+    g: 1.02
+    b: 0.94
+    metal: 0.52
+    smooth: 0.48
+    blend: 0.35
+    emit: 0.38
+    rim: 0.85
+    uniqueModel: 1
+    vfx: 1
+    glowR: 1
+    glowG: 0.72
+    glowB: 0.28
+    rate: 14
+    size: 0.04
+    lift: 0.04
+  - rarity: 4
+    tier: 3
+    r: 1.02
+    g: 1
+    b: 0.98
+    metal: 0.48
+    smooth: 0.46
+    blend: 0.3
+    emit: 0.34
+    rim: 0.8
+    uniqueModel: 1
+    vfx: 1
+    glowR: 0.95
+    glowG: 0.92
+    glowB: 0.78
+    rate: 12
+    size: 0.035
+    lift: 0.04
+  sets:
+  - family: plate
+    r: 1
+    g: 0.78
+    b: 0.32
+  - family: leather
+    r: 0.45
+    g: 0.85
+    b: 0.35
+  - family: arcane
+    r: 0.55
+    g: 0.45
+    b: 1
+  - family: bone
+    r: 0.95
+    g: 0.9
+    b: 0.7
+  - family: infernal
+    r: 1
+    g: 0.35
+    b: 0.12
+  trails:
+  - kind: ember
+    r: 1
+    g: 0.38
+    b: 0.08
+  - kind: frost
+    r: 0.55
+    g: 0.86
+    b: 1
+  - kind: arcane
+    r: 0.62
+    g: 0.35
+    b: 1
+  - kind: shadow
+    r: 0.28
+    g: 0.24
+    b: 0.36
+  vfxPad: 0.15
+  emitPresent: 0.05

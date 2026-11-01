@@ -488,6 +488,212 @@ namespace Hollowmere
             Application.Quit();
         }
 
+        /// <summary>Paper and in-world shots of every rarity, at 2340x1080, plus a five-rarity sheet.</summary>
+        public static IEnumerator RunRarity(GameManager gm)
+        {
+            gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.State.hero.classless = true;
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.35f);
+            Screen.SetResolution(2340, 1080, FullScreenMode.Windowed);
+            yield return null;
+            var actor = HeroActor.I;
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            if (actor == null || cam == null)
+            {
+                Debug.LogError("Hollowmere rarity FAIL no hero");
+                Application.Quit();
+                yield break;
+            }
+            (EquipSlot slot, string id)[] pieces =
+            {
+                (EquipSlot.Head, "helm"),
+                (EquipSlot.Shoulders, "pauldrons"),
+                (EquipSlot.Chest, "plate"),
+                (EquipSlot.Hands, "gauntlets"),
+                (EquipSlot.Wrists, "bracers"),
+                (EquipSlot.Waist, "belt"),
+                (EquipSlot.Legs, "greaves"),
+                (EquipSlot.Feet, "boots"),
+            };
+            string[] anims = { "idle", "run", "attack", "death" };
+            var sheet = new System.Collections.Generic.List<Texture2D>();
+            foreach (Rarity rarity in System.Enum.GetValues(typeof(Rarity)))
+            {
+                    WearRaritySet(gm, pieces, rarity);
+                    yield return null;
+                    PoseRarity(actor.transform, "idle");
+                    FrameGear(actor, cam, rig, true);
+                    yield return new WaitForEndOfFrame();
+                    var cell = ScreenCapture.CaptureScreenshotAsTexture();
+                    if (cell != null) sheet.Add(cell);
+                    AuditWorn(actor.transform, rarity);
+                    for (int s = 0; s < pieces.Length; s++)
+                    {
+                        WearOne(gm, pieces[s].slot, pieces[s].id, rarity, true);
+                        yield return null;
+                        for (int a = 0; a < anims.Length; a++)
+                        {
+                            PoseRarity(actor.transform, anims[a]);
+                            FrameGear(actor, cam, rig, true);
+                            yield return new WaitForEndOfFrame();
+                            SaveNamed("rarity-paper-" + pieces[s].id + "-" + rarity.ToString().ToLowerInvariant() + "-" + anims[a]);
+                            AuditWorn(actor.transform, rarity);
+                            FrameGear(actor, cam, rig, false);
+                            yield return new WaitForEndOfFrame();
+                            SaveNamed("rarity-world-" + pieces[s].id + "-" + rarity.ToString().ToLowerInvariant() + "-" + anims[a]);
+                            AuditWorn(actor.transform, rarity);
+                        }
+                    }
+                    var types = GearTable.WeaponTypes;
+                    for (int t = 0; t < types.Count; t++)
+                    {
+                        string id = GearTable.Signature(types[t]);
+                        WearOne(gm, EquipSlot.MainHand, id, rarity, false);
+                        yield return null;
+                        for (int a = 0; a < anims.Length; a++)
+                        {
+                            PoseRarity(actor.transform, anims[a]);
+                            FrameGear(actor, cam, rig, true);
+                            yield return new WaitForEndOfFrame();
+                            SaveNamed("rarity-paper-" + types[t] + "-" + rarity.ToString().ToLowerInvariant() + "-" + anims[a]);
+                            AuditWorn(actor.transform, rarity);
+                            FrameGear(actor, cam, rig, false);
+                            yield return new WaitForEndOfFrame();
+                            SaveNamed("rarity-world-" + types[t] + "-" + rarity.ToString().ToLowerInvariant() + "-" + anims[a]);
+                            AuditWorn(actor.transform, rarity);
+                        }
+                    }
+            }
+            SaveRaritySheet(sheet, "rarity-sheet");
+            for (int i = 0; i < sheet.Count; i++)
+                if (sheet[i] != null) UnityEngine.Object.Destroy(sheet[i]);
+            Debug.Log("Hollowmere QA rarity done");
+            Application.Quit();
+        }
+
+        static void WearRaritySet(GameManager gm, (EquipSlot slot, string id)[] pieces, Rarity rarity)
+        {
+            var hero = gm.State.hero;
+            hero.classless = true;
+            hero.inventory.RemoveAll(it => it != null && it.kind == ItemKind.Equipment);
+            for (int i = 0; i < (int)EquipSlot.Count; i++) hero.equipment[i] = null;
+            for (int i = 0; i < pieces.Length; i++)
+                Give(hero, pieces[i].slot, pieces[i].id, rarity, true);
+            gm.OnEquipmentChanged();
+        }
+
+        static void WearOne(GameManager gm, EquipSlot slot, string id, Rarity rarity, bool armor)
+        {
+            var hero = gm.State.hero;
+            hero.classless = true;
+            hero.inventory.RemoveAll(it => it != null && it.kind == ItemKind.Equipment);
+            for (int i = 0; i < (int)EquipSlot.Count; i++) hero.equipment[i] = null;
+            Give(hero, slot, id, rarity, armor);
+            gm.OnEquipmentChanged();
+        }
+
+        static void Give(Hero hero, EquipSlot slot, string id, Rarity rarity, bool armor)
+        {
+            ItemSlot kind = ItemSlot.MainHand;
+            if (GearTable.TryRow(id, out var row)) kind = row.Slot;
+            else if (armor) kind = ItemSlotOf(slot);
+            // Roll at rare so a legendary or set drop does not swap the base id.
+            var it = Loot.Generate(new Rng((ulong)(21 + (int)rarity)), 12, Rarity.Rare, null, kind, id, 8);
+            if (it == null)
+            {
+                Debug.LogError("Hollowmere rarity FAIL could not roll " + id + " " + rarity);
+                return;
+            }
+            it.rarity = rarity;
+            it.family = "plate";
+            it.tier = GearTable.TierOf(0, rarity);
+            if (rarity == Rarity.Set) it.setId = "set_plate";
+            if (!hero.AddItem(it) || !hero.Equip(it))
+                Debug.LogError("Hollowmere rarity FAIL could not equip " + id + " " + rarity);
+        }
+
+        static void PoseRarity(Transform body, string which)
+        {
+            var anim = body != null ? body.GetComponentInChildren<Animation>() : null;
+            if (anim == null) return;
+            AnimationState pick = null;
+            foreach (AnimationState s in anim)
+            {
+                if (s == null || s.clip == null) continue;
+                string n = s.name.ToLowerInvariant();
+                bool match = which == "idle" ? (n == "idle" || n.EndsWith("|idle") || n.EndsWith("_idle"))
+                    : which == "run" ? n.Contains("run")
+                    : which == "death" ? n == "death" || n.EndsWith("|death")
+                    : n.Contains("attack") || n.Contains("swing") || n.Contains("chop") || n.Contains("slam");
+                if (match) { pick = s; break; }
+            }
+            if (pick == null) return;
+            foreach (AnimationState s in anim)
+            {
+                s.weight = 0f;
+                s.enabled = false;
+            }
+            pick.enabled = true;
+            pick.weight = 1f;
+            pick.time = which == "death" ? pick.length * 0.72f : pick.length * 0.35f;
+            anim.Sample();
+            var ik = body.GetComponentInChildren<OffHandIk>();
+            if (ik != null) ik.Apply();
+        }
+
+        static void AuditWorn(Transform body, Rarity rarity)
+        {
+            if (body == null) return;
+            var seen = new System.Collections.Generic.HashSet<GameObject>();
+            foreach (var t in body.GetComponentsInChildren<Transform>(true))
+            {
+                if (t == null || !t.name.StartsWith("gear_")) continue;
+                if (t.parent != null && t.parent.name.StartsWith("gear_")) continue;
+                if (!seen.Add(t.gameObject)) continue;
+                RarityVfx.Audit(t.gameObject, rarity);
+            }
+        }
+
+        static void SaveRaritySheet(System.Collections.Generic.List<Texture2D> cells, string name)
+        {
+            if (cells == null || cells.Count == 0) return;
+            const int width = 2340, height = 1080;
+            int cols = cells.Count;
+            int cw = width / cols;
+            var sheet = new Texture2D(width, height, TextureFormat.RGB24, false);
+            var clear = new Color32[width * height];
+            for (int i = 0; i < clear.Length; i++) clear[i] = new Color32(28, 28, 30, 255);
+            sheet.SetPixels32(clear);
+            for (int c = 0; c < cols; c++)
+            {
+                var src = cells[c];
+                if (src == null) continue;
+                for (int y = 0; y < height; y++)
+                {
+                    int sy = y * src.height / height;
+                    for (int x = 0; x < cw; x++)
+                    {
+                        int sx = x * src.width / cw;
+                        sheet.SetPixel(c * cw + x, y, src.GetPixel(sx, sy));
+                    }
+                }
+            }
+            sheet.Apply();
+            var path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "qa-" + name + ".png");
+            try
+            {
+                System.IO.File.WriteAllBytes(path, sheet.EncodeToPNG());
+                Debug.Log("Hollowmere QA frame saved: " + path);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Hollowmere rarity FAIL exception sheet " + e.Message);
+            }
+            UnityEngine.Object.Destroy(sheet);
+        }
+
         static System.Collections.Generic.List<GearTable.WeaponRow> OfType(string type)
         {
             var list = new System.Collections.Generic.List<GearTable.WeaponRow>();

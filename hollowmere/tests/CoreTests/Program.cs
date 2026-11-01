@@ -35,6 +35,7 @@ static class Program
         HeroFitLevel();
         GearFitLevel();
         GearCatalog();
+        RarityEscalation();
         Cc0PropFiles();
         ModularKitFiles();
         SpecTables();
@@ -861,6 +862,41 @@ static class Program
         Check(!GearFit.ChainCovered(false, 0.08f), "hidden skin farther than the seam is a chain gap");
         Check(GearFit.ChainCovered(false, 0.03f), "hidden skin under a piece is still covered");
         Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
+    }
+
+    static void RarityEscalation()
+    {
+        Check(RarityTable.Count == 5, "five rarity finishes");
+        var common = RarityTable.Get(Rarity.Common);
+        var magic = RarityTable.Get(Rarity.Magic);
+        var rare = RarityTable.Get(Rarity.Rare);
+        var legendary = RarityTable.Get(Rarity.Legendary);
+        var set = RarityTable.Get(Rarity.Set);
+        Check(common.Emit < 0.001f && magic.Emit < 0.001f, "common and magic stay matte");
+        Check(Math.Abs(common.R - magic.R) > 0.05f || Math.Abs(common.B - magic.B) > 0.2f, "magic does not wear the common tint");
+        Check(rare.Emit > RarityTable.EmitPresent && legendary.Emit > rare.Emit && set.Emit > RarityTable.EmitPresent, "rare and above carry emission");
+        Check(legendary.UniqueModel && legendary.Vfx && set.UniqueModel && set.Vfx, "legendary and set take a distinct model and persistent vfx");
+        Check(!common.Vfx && !rare.Vfx, "trails start at legendary");
+        Check(Math.Abs(RarityTable.VfxPad - 0.15f) < 0.001f, "vfx stays within 15 cm of the piece");
+        var plate = RarityTable.SetGlow("plate");
+        var arcane = RarityTable.SetGlow("arcane");
+        Check(Math.Abs(plate.R - arcane.R) > 0.2f, "set families do not share a glow");
+        Check(RarityTable.TrailKind(Element.Fire) == "ember" && RarityTable.TrailKind(Element.Frost) == "frost"
+            && RarityTable.TrailKind(Element.Arcane) == "arcane" && RarityTable.TrailKind(Element.Poison) == "shadow",
+            "weapon trails follow the element");
+        string sword = GearTable.ModelFor("sword");
+        string legendSword = GearTable.PresentModel("sword", Rarity.Legendary);
+        string setSword = GearTable.PresentModel("sword", Rarity.Set);
+        Check(GearTable.PresentModel("sword", Rarity.Common) == sword && GearTable.PresentModel("sword", Rarity.Magic) == sword, "common and magic keep the base model");
+        Check(legendSword != sword && setSword != sword && legendSword != setSword, "legendary and set swords are different meshes");
+        Check(GearTable.PresentFamily("plate", Rarity.Common) == "plate"
+            && GearTable.PresentFamily("plate", Rarity.Legendary) != "plate"
+            && GearTable.PresentFamily("plate", Rarity.Set) != GearTable.PresentFamily("plate", Rarity.Legendary),
+            "legendary and set armour change silhouette");
+        string asset = File.ReadAllText(Path.Combine("Assets", "Resources", "RarityLook.asset"));
+        Check(asset.Contains("emit: 0") && asset.Contains("emit: 0.16") && asset.Contains("emit: 0.38")
+            && asset.Contains("vfxPad: 0.15") && asset.Contains("family: infernal"),
+            "the rarity scriptable object carries the finishes");
     }
 
     static void GearCatalog()

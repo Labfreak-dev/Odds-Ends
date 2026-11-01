@@ -206,6 +206,54 @@ namespace Hollowmere.Core
         public static string ModelFor(string baseId)
             => TryRow(baseId, out var row) ? row.Model : baseId;
 
+        /// <summary>
+        /// Legendary and set draw a different mesh from the same type's pool.
+        /// Common, magic, and rare keep the base's own model.
+        /// </summary>
+        public static string PresentModel(string baseId, Rarity rarity)
+        {
+            string own = ModelFor(baseId);
+            if (rarity != Rarity.Legendary && rarity != Rarity.Set) return own;
+            if (!TryRow(baseId, out var row)) return own;
+            string legendary = null;
+            string setPick = null;
+            for (int i = 0; i < Rows.Length; i++)
+            {
+                if (Rows[i].Type != row.Type || Rows[i].Model == own) continue;
+                if (Rows[i].Signature && legendary == null) legendary = Rows[i].Model;
+                else if (setPick == null) setPick = Rows[i].Model;
+            }
+            if (legendary == null)
+            {
+                for (int i = 0; i < Rows.Length; i++)
+                    if (Rows[i].Type == row.Type && Rows[i].Model != own) { legendary = Rows[i].Model; break; }
+            }
+            if (string.IsNullOrEmpty(setPick) || setPick == legendary)
+            {
+                for (int i = 0; i < Rows.Length; i++)
+                {
+                    if (Rows[i].Type != row.Type) continue;
+                    if (Rows[i].Model == own || Rows[i].Model == legendary) continue;
+                    setPick = Rows[i].Model;
+                    break;
+                }
+            }
+            if (rarity == Rarity.Set) return string.IsNullOrEmpty(setPick) ? (legendary ?? own) : setPick;
+            return string.IsNullOrEmpty(legendary) ? own : legendary;
+        }
+
+        /// <summary>Legendary and set armour use a different family's mesh so the silhouette changes. The glow stays on the item's own family.</summary>
+        public static string PresentFamily(string family, Rarity rarity)
+        {
+            if (string.IsNullOrEmpty(family)) family = "plate";
+            if (rarity != Rarity.Legendary && rarity != Rarity.Set) return family;
+            int i = 0;
+            for (int k = 0; k < Families.Length; k++)
+                if (Families[k] == family) { i = k; break; }
+            int step = rarity == Rarity.Legendary ? 1 : 2;
+            return Families[(i + step) % Families.Length];
+        }
+
         public static string TypeOf(string baseId)
             => TryRow(baseId, out var row) ? row.Type : null;
 

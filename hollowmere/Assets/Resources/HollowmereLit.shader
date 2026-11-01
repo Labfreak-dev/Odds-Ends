@@ -173,7 +173,9 @@ Shader "Hollowmere/Lit"
                 }
                 #endif
 
-                lit += _EmissionColor.rgb;
+                // Rarity rim. Emission black on common and magic, so those stay matte.
+                half rim = pow(saturate(1.0 - dot(n, view)), 3.0);
+                lit += _EmissionColor.rgb * (0.35 + rim);
                 if (unity_FogParams.z < -0.0001)
                 {
                     float dist = distance(i.positionWS, GetCameraPositionWS());

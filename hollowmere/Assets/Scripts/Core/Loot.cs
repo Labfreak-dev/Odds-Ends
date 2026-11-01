@@ -50,15 +50,18 @@ namespace Hollowmere.Core
         public static IEnumerable<ItemBase> BasesFor(HeroClass? cls, ItemSlot? slot, int ilvl)
             => ItemDb.Bases.Where(b => (slot == null || b.slot == slot) && b.minLevel <= ilvl && (b.classOnly == null || cls == null || b.classOnly == cls));
 
-        /// <summary>Generate one equipment item. smartFor = the class whose gear this should favour.</summary>
-        public static Item Generate(Rng rng, int ilvl, Rarity rarity, HeroClass? smartFor, ItemSlot? slot = null, string forceBase = null, int floor = 0)
+        /// <summary>Generate one equipment item. smartFor = the class whose gear this should favour.
+        /// tier 1–3 picks the visible armour tier (0 lets the rarity pick). forceSet and forceLegendary
+        /// pin the set or legendary power the roll would otherwise draw at random.</summary>
+        public static Item Generate(Rng rng, int ilvl, Rarity rarity, HeroClass? smartFor, ItemSlot? slot = null, string forceBase = null, int floor = 0,
+            int tier = 0, string forceSet = null, string forceLegendary = null)
         {
             ItemBase b;
             string legendaryId = null, setId = null;
 
             if (rarity == Rarity.Legendary)
             {
-                var pool = ItemDb.Legendaries.Where(l => (smartFor == null || l.classOnly == null || l.classOnly == smartFor)
+                var pool = ItemDb.Legendaries.Where(l => (forceLegendary != null ? l.id == forceLegendary : smartFor == null || l.classOnly == null || l.classOnly == smartFor)
                     && (slot == null || ItemDb.Base(l.baseId).slot == slot)).ToList();
                 if (pool.Count == 0) rarity = Rarity.Rare;
                 else
@@ -70,9 +73,9 @@ namespace Hollowmere.Core
             }
             if (rarity == Rarity.Set)
             {
-                var sets = ItemDb.Sets.Where(s => smartFor == null || s.classOnly == null || s.classOnly == smartFor).ToList();
+                var sets = ItemDb.Sets.Where(s => forceSet != null ? s.id == forceSet : smartFor == null || s.classOnly == null || s.classOnly == smartFor).ToList();
                 var options = sets.SelectMany(s => s.pieces.Select(p => (s, p)))
-                    .Where(x => slot == null || ItemDb.Base(x.p).slot == slot).ToList();
+                    .Where(x => (slot == null || ItemDb.Base(x.p).slot == slot) && (forceSet == null || forceBase == null || x.p == forceBase)).ToList();
                 if (options.Count == 0) rarity = Rarity.Rare;
                 else
                 {
@@ -112,7 +115,7 @@ namespace Hollowmere.Core
             }
             if (GearTable.VisibleArmor(b.slot))
             {
-                it.tier = GearTable.TierOf(0, rarity);
+                it.tier = GearTable.TierOf(tier, rarity);
                 it.family = GearTable.FamilyFromSet(setId) ?? GearTable.RollFamily(rng);
                 if (it.armor > 0)
                     it.armor = Math.Max(1, (int)Math.Round(it.armor * GearTable.ArmorMul(it.tier)));

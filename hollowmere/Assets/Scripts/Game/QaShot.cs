@@ -34,6 +34,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot biome-caverns
     ///   Hollowmere -qaShot biome-forge
     ///   Hollowmere -qaShot biome-infernal
+    ///   Hollowmere -qaShot teststart
     /// The shot is written to qa-&lt;scene&gt;.png in the working directory, then the player quits.
     /// Dungeon also fires Hex Bolt so the projectile is in the frame.
     /// Weapon shots equip one sword, bow, or staff on the classless hero and log the family.
@@ -125,6 +126,8 @@ namespace Hollowmere
                 case "tiers":
                 case "geartiers":
                 case "rarity":
+                case "teststart":
+                case "test-start":
                     return true;
             }
             return false;
@@ -173,6 +176,11 @@ namespace Hollowmere
             if (scene == "rarity")
             {
                 yield return QaFrames.RunRarity(gm);
+                yield break;
+            }
+            if (scene == "teststart" || scene == "test-start")
+            {
+                yield return QaFrames.RunTestStart(gm);
                 yield break;
             }
             bool title = scene == "title";

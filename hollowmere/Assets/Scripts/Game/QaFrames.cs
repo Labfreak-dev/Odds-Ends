@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using Hollowmere.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -19,6 +20,7 @@ namespace Hollowmere
     ///   Hollowmere -qaFrames propclose
     ///   Hollowmere -qaFrames telegraphs
     ///   Hollowmere -qaFrames gearslots
+    ///   Hollowmere -qaFrames teststart
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -63,6 +65,11 @@ namespace Hollowmere
             if (mode == "gearslots" || mode == "gear-slots")
             {
                 yield return RunGearSlots(gm, true);
+                yield break;
+            }
+            if (mode == "teststart" || mode == "test-start")
+            {
+                yield return RunTestStart(gm);
                 yield break;
             }
             if (mode != "move" && mode != "pet" && mode != "combat")
@@ -2289,6 +2296,161 @@ namespace Hollowmere
             st.weight = 1f;
             st.time = Mathf.Max(0.05f, st.length) * Mathf.Clamp01(unit);
             anim.Sample();
+        }
+
+        /// <summary>
+        /// The test-build start, through the creator's new-hero path with the switch forced on:
+        /// hero sheet and HUD at level 20, the skill list, the stash (first and last page), then the
+        /// hero wearing each rarity, each tier and each weapon class, and one gem socketed.
+        /// </summary>
+        public static IEnumerator RunTestStart(GameManager gm)
+        {
+            var feel = Feel.Active;
+            Debug.Log("Hollowmere teststart BuildConfig.TestStart=" + BuildConfig.TestStart);
+            gm.State = GameManager.MakeCustom("Qa", 1, 2, 1, 0, 0.85f, 0.7f, 0.45f, PetSpecies.Hound, "Moss", 1, 0, true);
+            gm.EnterTown(false);
+            Screen.SetResolution(feel.width, feel.height, FullScreenMode.Windowed);
+            yield return new WaitForSecondsRealtime(0.6f);
+            var s = gm.State;
+            var h = s.hero;
+            int fails = 0;
+            void Fail(string what)
+            {
+                fails++;
+                Debug.LogError("Hollowmere teststart FAIL " + what);
+            }
+
+            if (h.level != TestStart.Level) Fail("level " + h.level);
+            if (h.xp < 0 || h.xp >= Balance.XpToNext(h.level)) Fail("xp " + h.xp + " of " + Balance.XpToNext(h.level));
+            if (h.skills.unspent != TestStart.ExpectedUnspent(h)) Fail("points " + h.skills.unspent + " expected " + TestStart.ExpectedUnspent(h));
+            if (s.stash.Count > s.stashCapacity) Fail("overflow " + s.stash.Count + "/" + s.stashCapacity);
+            foreach (var model in TestStart.MeshyModels)
+                if (!s.stash.Any(i => i.kind == ItemKind.Equipment && GearTable.ModelFor(i.baseId) == model)) Fail("missing weapon model " + model);
+            Debug.Log("Hollowmere teststart hero level=" + h.level + " xp=" + h.xp + " unspent=" + h.skills.unspent
+                + " stash=" + s.stash.Count + "/" + s.stashCapacity + " pages=" + Town.StashPages(s));
+
+            // Hero: HUD (level badge, XP bar, skill points) and the character sheet.
+            yield return new WaitForSecondsRealtime(0.3f);
+            yield return new WaitForEndOfFrame();
+            SaveNamed("teststart-hud");
+            InventoryScreen.Show(UiRoot.I);
+            yield return new WaitForSecondsRealtime(0.6f);
+            yield return new WaitForEndOfFrame();
+            SaveNamed("teststart-hero");
+
+            UiRoot.I.CloseAll();
+            SkillScreen.Show(UiRoot.I);
+            yield return new WaitForSecondsRealtime(0.6f);
+            yield return new WaitForEndOfFrame();
+            SaveNamed("teststart-skills");
+
+            UiRoot.I.CloseAll();
+            TownScreen.StashPage = 0;
+            TownScreen.Show(UiRoot.I, TownTab.Stash);
+            yield return new WaitForSecondsRealtime(0.6f);
+            yield return new WaitForEndOfFrame();
+            SaveNamed("teststart-stash");
+            UiRoot.I.CloseAll();
+            TownScreen.StashPage = Town.StashPages(s) - 1;
+            TownScreen.Show(UiRoot.I, TownTab.Stash);
+            yield return new WaitForSecondsRealtime(0.6f);
+            yield return new WaitForEndOfFrame();
+            SaveNamed("teststart-stash-last");
+            TownScreen.StashPage = 0;
+            UiRoot.I.CloseAll();
+            Time.timeScale = 1f;
+            yield return null;
+
+            var actor = HeroActor.I;
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            if (actor == null || cam == null) Fail("no hero to dress");
+            else
+            {
+                // The starter bag goes to the stash so every swap has room.
+                foreach (var it in h.inventory.Where(i => i.kind == ItemKind.Equipment).ToList()) Town.ToStash(s, it);
+
+                foreach (var r in TestStart.Rarities)
+                {
+                    foreach (var slot in TestStart.ArmourSlots)
+                        TsWear(gm, s.stash.FirstOrDefault(i => TsArmour(i, slot) && i.rarity == r && i.tier == 2), "rarity " + r + " " + slot, Fail);
+                    yield return TsShot(actor, cam, rig, "rarity-" + r.ToString().ToLowerInvariant());
+                }
+                for (int tier = 1; tier <= GearTable.TierCount; tier++)
+                {
+                    int t = tier;
+                    foreach (var slot in TestStart.ArmourSlots)
+                        TsWear(gm, s.stash.FirstOrDefault(i => TsArmour(i, slot) && i.rarity == Rarity.Rare && i.tier == t), "tier " + t + " " + slot, Fail);
+                    yield return TsShot(actor, cam, rig, "tier-" + t);
+                }
+
+                (string tag, string model, string main, WeaponFamily family)[] weapons =
+                {
+                    ("melee", "sword_3", null, WeaponFamily.Melee),
+                    ("ranged", "bow_1", null, WeaponFamily.Ranged),
+                    ("magic", "staff_1", null, WeaponFamily.Magic),
+                    ("fist_1", "fist_1", null, WeaponFamily.Melee),
+                    ("fist_2", "fist_2", null, WeaponFamily.Melee),
+                    ("fist_3", "fist_3", null, WeaponFamily.Melee),
+                    ("flail_2", "flail_2", null, WeaponFamily.Melee),
+                    ("flail_3", "flail_3", null, WeaponFamily.Melee),
+                    ("orb_2", "orb_2", "wand_1", WeaponFamily.Magic),
+                    ("orb_3", "orb_3", "wand_1", WeaponFamily.Magic),
+                };
+                foreach (var w in weapons)
+                {
+                    var off = h.Equipped(EquipSlot.OffHand);
+                    if (off != null && h.Unequip(EquipSlot.OffHand)) Town.ToStash(s, off);
+                    if (w.main != null) TsWear(gm, TsModel(s, w.main, ItemSlot.MainHand), "weapon " + w.tag + " main " + w.main, Fail);
+                    var pick = TsModel(s, w.model, null);
+                    TsWear(gm, pick, "weapon " + w.tag, Fail);
+                    var fam = h.AttackFamily();
+                    Debug.Log("Hollowmere teststart weapon " + w.tag + " base=" + (pick != null ? pick.baseId : "none") + " family=" + fam + " anim=" + h.AnimSet());
+                    if (fam != w.family) Fail("weapon " + w.tag + " family " + fam + " expected " + w.family);
+                    yield return TsShot(actor, cam, rig, w.tag);
+                }
+            }
+
+            // Socket a gem through the jeweler's API.
+            var gear = s.stash.FirstOrDefault(i => i.kind == ItemKind.Equipment && i.sockets > 0 && string.IsNullOrEmpty(i.gemId));
+            var gem = s.stash.FirstOrDefault(i => i.kind == ItemKind.Gem && i.baseId == "salt_3");
+            if (gear == null || gem == null) Fail("socket no socketed gear or gem in the stash");
+            else if (!Town.FromStash(s, gear) || !Town.FromStash(s, gem)) Fail("socket could not take gear and gem from the stash");
+            else if (!Gems.Socket(h, gear, gem.baseId) || gear.gemId != "salt_3") Fail("socket " + gear.baseId + " refused " + gem.baseId);
+            else Debug.Log("Hollowmere teststart socket ok " + gear.baseId + " <- " + gear.gemId);
+
+            if (s.stash.Count > s.stashCapacity) Fail("overflow after swaps " + s.stash.Count + "/" + s.stashCapacity);
+            Debug.Log("Hollowmere teststart fails=" + fails);
+            Debug.Log("Hollowmere QA teststart done");
+            Application.Quit();
+        }
+
+        static bool TsArmour(Item i, ItemSlot slot) => i.kind == ItemKind.Equipment && i.Base != null && i.Base.slot == slot;
+
+        static Item TsModel(GameState s, string model, ItemSlot? slot)
+            => s.stash.FirstOrDefault(i => i.kind == ItemKind.Equipment && i.Base != null && (slot == null || i.Base.slot == slot)
+                && GearTable.ModelFor(i.baseId) == model && string.IsNullOrEmpty(i.legendaryId) && string.IsNullOrEmpty(i.setId));
+
+        /// <summary>Stash to bag to body. Whatever comes off goes back to the stash.</summary>
+        static void TsWear(GameManager gm, Item it, string what, Action<string> fail)
+        {
+            var s = gm.State;
+            var h = s.hero;
+            if (it == null) { fail("equip " + what + " not in the stash"); return; }
+            if (!Town.FromStash(s, it)) { fail("equip " + what + " could not leave the stash"); return; }
+            if (!h.Equip(it)) { fail("equip " + what + " " + it.baseId + " refused"); Town.ToStash(s, it); return; }
+            foreach (var off in h.inventory.Where(i => i.kind == ItemKind.Equipment).ToList()) Town.ToStash(s, off);
+            gm.OnEquipmentChanged();
+        }
+
+        static IEnumerator TsShot(HeroActor actor, Camera cam, CameraRig rig, string tag)
+        {
+            yield return null;
+            StandIdle(actor);
+            FrameGear(actor, cam, rig, true);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            SaveNamed("teststart-equip-" + tag);
         }
 
         static void SaveNamed(string name)

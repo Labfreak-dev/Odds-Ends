@@ -49,6 +49,8 @@ namespace Hollowmere.Core
         public Hero hero = new Hero();
         public PetState pet = new PetState();
         public List<Item> stash = new List<Item>();
+        /// <summary>Stash slots on this save, in pages of Balance.StashSize. A test start raises it.</summary>
+        public int stashCapacity = Balance.StashSize;
         public Materials materials = new Materials();
         public Counters counters = new Counters();
         public int depth;            // 0 = town. Floor depth is the only difficulty.
@@ -61,17 +63,19 @@ namespace Hollowmere.Core
         public List<int> clearedBossFloors = new List<int>();
         public int questSerial;
 
-        public static GameState NewGame(HeroClass cls, string heroName, PetSpecies pet, string petName, ulong seed)
+        /// <summary>testStart: the test-build start (see TestStart). Game code passes BuildConfig's switch.</summary>
+        public static GameState NewGame(HeroClass cls, string heroName, PetSpecies pet, string petName, ulong seed, bool testStart = false)
         {
             var rng = new Rng(seed);
             var s = new GameState { version = 3, seed = (long)seed, hero = Hero.Create(cls, heroName, rng) };
             s.pet.species = pet;
             s.pet.name = petName;
+            if (testStart) TestStart.Apply(s, rng);
             Town.RefreshQuests(s, rng);
             return s;
         }
 
-        public static GameState NewCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, ulong seed, int plate = 0)
+        public static GameState NewCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, ulong seed, int plate = 0, bool testStart = false)
         {
             var rng = new Rng(seed);
             var s = new GameState
@@ -82,6 +86,7 @@ namespace Hollowmere.Core
             };
             s.pet.species = pet;
             s.pet.name = petName;
+            if (testStart) TestStart.Apply(s, rng);
             Town.RefreshQuests(s, rng);
             return s;
         }
@@ -98,6 +103,7 @@ namespace Hollowmere.Core
                 version = 3;
             }
             stash.RemoveAll(Item.IsNone);
+            if (stashCapacity < Balance.StashSize) stashCapacity = Balance.StashSize;
             pet.pack.RemoveAll(Item.IsNone);
             quests.RemoveAll(q => string.IsNullOrEmpty(q.id));
         }
@@ -234,10 +240,21 @@ namespace Hollowmere.Core
 
         public static bool ToStash(GameState s, Item it)
         {
-            if (s.stash.Count >= Balance.StashSize || !s.hero.inventory.Remove(it)) return false;
+            if (s.stash.Count >= s.stashCapacity || !s.hero.inventory.Remove(it)) return false;
             s.stash.Add(it);
             return true;
         }
+
+        /// <summary>Place an item straight into the stash, not from the bag. False when the stash is full.</summary>
+        public static bool AddToStash(GameState s, Item it)
+        {
+            if (Item.IsNone(it) || s.stash.Count >= s.stashCapacity) return false;
+            s.stash.Add(it);
+            return true;
+        }
+
+        /// <summary>Stash pages of Balance.StashSize slots each.</summary>
+        public static int StashPages(GameState s) => Math.Max(1, (s.stashCapacity + Balance.StashSize - 1) / Balance.StashSize);
 
         public static bool FromStash(GameState s, Item it)
         {

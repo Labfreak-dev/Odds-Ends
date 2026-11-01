@@ -873,14 +873,15 @@ static class Program
         var legendary = RarityTable.Get(Rarity.Legendary);
         var set = RarityTable.Get(Rarity.Set);
         Check(common.Emit < 0.001f && magic.Emit < 0.001f, "common and magic stay matte");
-        Check(Math.Abs(common.R - magic.R) > 0.05f || Math.Abs(common.B - magic.B) > 0.2f, "magic does not wear the common tint");
-        Check(rare.Emit > RarityTable.EmitPresent && legendary.Emit > rare.Emit && set.Emit > RarityTable.EmitPresent, "rare and above carry emission");
+        Check(magic.B > 0.95f && magic.Blend > 0.8f && magic.R > common.R + 0.3f, "magic is bright silver-blue");
+        Check(rare.Emit > 0.8f && rare.GlowB > rare.GlowR, "rare carries a coloured rim");
+        Check(legendary.Emit > rare.Emit && legendary.GlowR > 0.9f && legendary.GlowB < 0.2f, "legendary accents are orange");
         Check(legendary.UniqueModel && legendary.Vfx && set.UniqueModel && set.Vfx, "legendary and set take a distinct model and persistent vfx");
         Check(!common.Vfx && !rare.Vfx, "trails start at legendary");
         Check(Math.Abs(RarityTable.VfxPad - 0.15f) < 0.001f, "vfx stays within 15 cm of the piece");
         var plate = RarityTable.SetGlow("plate");
         var arcane = RarityTable.SetGlow("arcane");
-        Check(Math.Abs(plate.R - arcane.R) > 0.2f, "set families do not share a glow");
+        Check(plate.G > 0.8f && plate.G > plate.R && Math.Abs(plate.G - arcane.G) < 0.01f, "set pieces share a green glow");
         Check(RarityTable.TrailKind(Element.Fire) == "ember" && RarityTable.TrailKind(Element.Frost) == "frost"
             && RarityTable.TrailKind(Element.Arcane) == "arcane" && RarityTable.TrailKind(Element.Poison) == "shadow",
             "weapon trails follow the element");
@@ -894,7 +895,7 @@ static class Program
             && GearTable.PresentFamily("plate", Rarity.Set) != GearTable.PresentFamily("plate", Rarity.Legendary),
             "legendary and set armour change silhouette");
         string asset = File.ReadAllText(Path.Combine("Assets", "Resources", "RarityLook.asset"));
-        Check(asset.Contains("emit: 0") && asset.Contains("emit: 0.16") && asset.Contains("emit: 0.38")
+        Check(asset.Contains("emit: 0") && asset.Contains("emit: 1.15") && asset.Contains("emit: 1.8")
             && asset.Contains("vfxPad: 0.15") && asset.Contains("family: infernal"),
             "the rarity scriptable object carries the finishes");
     }

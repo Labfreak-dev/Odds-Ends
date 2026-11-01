@@ -27,17 +27,15 @@ namespace Hollowmere
                 {
                     var m = mats[i];
                     if (m == null) continue;
+                    if (emit > 0.02f) UseRimShader(m);
                     if (m.HasProperty("_BaseColor"))
                     {
                         var c = m.GetColor("_BaseColor");
-                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
-                        m.SetColor("_BaseColor", Color.Lerp(c, scaled, row.blend));
+                        m.SetColor("_BaseColor", Lift(c, mul, row.blend));
                     }
                     else
                     {
-                        var c = m.color;
-                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
-                        m.color = Color.Lerp(c, scaled, row.blend);
+                        m.color = Lift(m.color, mul, row.blend);
                     }
                     if (emit > 0.02f)
                     {
@@ -58,8 +56,14 @@ namespace Hollowmere
             var row = RarityBook.Row(it.rarity);
             if (row.vfx == 0) return;
             var glow = RarityBook.Glow(it.rarity, it.family);
-            Vector3 lift = Outward(piece) * Mathf.Max(0.02f, row.lift);
-            Spawn(piece.transform, glow, row, lift);
+            var root = piece.transform.root;
+            if (Paired(slot))
+            {
+                Spawn(Bone(root, LeftOf(slot)) ?? piece.transform, glow, row, OnSurface(piece));
+                Spawn(Bone(root, RightOf(slot)) ?? piece.transform, glow, row, OnSurface(piece));
+            }
+            else
+                Spawn(Bone(root, CenterOf(slot)) ?? piece.transform, glow, row, OnSurface(piece));
         }
 
         public static void AttachWeapon(GameObject weapon, Item it)
@@ -70,76 +74,150 @@ namespace Hollowmere
             Element element = it.Base != null ? it.Base.weaponElement : Element.Physical;
             var tint = RarityBook.TrailColor(RarityTable.TrailKind(element));
             if (it.rarity == Rarity.Set) tint = RarityBook.Glow(it.rarity, it.family);
-            // Along the blade, not the grip, so the motes stay off the hand and the face.
-            Spawn(weapon.transform, tint, row, new Vector3(0f, 0.28f, 0.02f));
+            Spawn(weapon.transform, tint, row, MeshCenter(weapon));
         }
 
         /// <summary>Emission for rare and above. Legendary and set motes stay inside the piece bounds plus the pad.</summary>
-        public static void Audit(GameObject piece, Rarity rarity)
+        public static void AuditBody(Transform body, Rarity rarity)
         {
-            if (piece == null) return;
-            if (RarityTable.NeedsEmission(rarity) && !HasEmission(piece))
-                Debug.LogError("Hollowmere rarity FAIL emission " + piece.name + " " + rarity);
-            var row = RarityBook.Row(rarity);
-            var vfx = FindVfx(piece);
-            if (row.vfx != 0 && piece.name != "gear_head")
+            if (body == null) return;
+            var pieces = new System.Collections.Generic.List<Renderer>();
+            foreach (var t in body.GetComponentsInChildren<Transform>(true))
             {
-                if (vfx == null)
-                {
-                    Debug.LogError("Hollowmere rarity FAIL vfx missing " + piece.name + " " + rarity);
-                    return;
-                }
-                if (!Within(piece, vfx, RarityBook.Pad))
-                    Debug.LogError("Hollowmere rarity FAIL vfx bounds " + piece.name + " " + rarity);
+                if (t == null || !t.name.StartsWith("gear_")) continue;
+                if (t.parent != null && t.parent.name.StartsWith("gear_")) continue;
+                Debug.Log("Hollowmere rarity cover " + t.name + " " + rarity);
+                if (RarityTable.NeedsEmission(rarity) && !HasEmission(t.gameObject))
+                    Debug.LogError("Hollowmere rarity FAIL emission " + t.name + " " + rarity);
+                foreach (var r in t.GetComponents<Renderer>())
+                    if (r != null && !(r is ParticleSystemRenderer)) pieces.Add(r);
             }
-            else if (vfx != null && !Within(piece, vfx, RarityBook.Pad))
-                Debug.LogError("Hollowmere rarity FAIL vfx bounds " + piece.name + " " + rarity);
+            var row = RarityBook.Row(rarity);
+            int motes = 0;
+            foreach (var t in body.GetComponentsInChildren<Transform>(true))
+            {
+                if (t == null || t.name != Name) continue;
+                motes++;
+                var psr = t.GetComponent<ParticleSystemRenderer>();
+                if (psr != null && !Within(pieces, psr, RarityBook.Pad))
+                    Debug.LogError("Hollowmere rarity FAIL vfx bounds " + NearName(pieces, t.position) + " " + rarity);
+            }
+            if (row.vfx != 0 && motes == 0)
+                Debug.LogError("Hollowmere rarity FAIL vfx missing " + rarity);
+        }
+
+        static Color Lift(Color src, Color tint, float blend)
+        {
+            float luma = Mathf.Clamp01((src.r + src.g + src.b) / 3f);
+            var shaped = tint * Mathf.Lerp(0.7f, 1.15f, luma);
+            shaped.a = src.a;
+            return Color.Lerp(src, shaped, blend);
+        }
+
+        static void UseRimShader(Material m)
+        {
+            var shader = Shader.Find("Hollowmere/Lit");
+            if (shader == null || m.shader == shader) return;
+            var albedo = m.HasProperty("_BaseMap") ? m.GetTexture("_BaseMap") : m.mainTexture;
+            var normal = m.HasProperty("_BumpMap") ? m.GetTexture("_BumpMap") : null;
+            m.shader = shader;
+            if (albedo != null)
+            {
+                if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", albedo);
+                m.mainTexture = albedo;
+                if (m.HasProperty("_HasMap")) m.SetFloat("_HasMap", 1f);
+            }
+            if (normal != null && m.HasProperty("_BumpMap"))
+            {
+                m.SetTexture("_BumpMap", normal);
+                if (m.HasProperty("_HasNormal")) m.SetFloat("_HasNormal", 1f);
+                m.EnableKeyword("_NORMALMAP");
+            }
         }
 
         static void Spawn(Transform host, Color color, RarityLookProfile.RarityRow row, Vector3 local)
         {
+            if (host == null) return;
             var go = new GameObject(Name);
             go.transform.SetParent(host, false);
             go.transform.localPosition = local;
+            go.transform.localRotation = Quaternion.identity;
             go.layer = host.gameObject.layer;
             var ps = go.AddComponent<ParticleSystem>();
             var main = ps.main;
             main.playOnAwake = false;
             main.loop = true;
-            main.startLifetime = 0.35f;
-            main.startSpeed = 0.1f;
-            main.startSize = Mathf.Max(0.02f, row.size);
-            main.maxParticles = 12;
+            main.startLifetime = 0.16f;
+            main.startSpeed = 0.02f;
+            main.startSize = Mathf.Clamp(row.size, 0.02f, 0.05f);
+            main.maxParticles = 8;
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.gravityModifier = 0f;
             main.startColor = color;
             var emission = ps.emission;
-            emission.rateOverTime = Mathf.Max(4f, row.rate);
+            emission.rateOverTime = Mathf.Clamp(row.rate <= 0f ? 8f : row.rate, 6f, 12f);
             var shape = ps.shape;
+            shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.025f;
-            var col = ps.colorOverLifetime;
-            col.enabled = true;
-            var grad = new Gradient();
-            grad.SetKeys(
-                new[] { new GradientColorKey(color, 0f), new GradientColorKey(color, 1f) },
-                new[] { new GradientAlphaKey(0.7f, 0f), new GradientAlphaKey(0f, 1f) });
-            col.color = grad;
+            shape.radius = 0.012f;
             var pr = ps.GetComponent<ParticleSystemRenderer>();
-            pr.material = Art.Mat(color, 1.2f);
+            pr.material = Art.Mat(color, 1.6f);
             pr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            pr.maxParticleSize = 0.08f;
-            ps.Simulate(0.2f, true, true);
+            pr.maxParticleSize = 0.06f;
+            ps.Simulate(0.12f, true, true);
             ps.Play();
         }
 
-        static Vector3 Outward(GameObject piece)
+        static Vector3 OnSurface(GameObject piece) => new Vector3(0.015f, 0.02f, 0.015f);
+
+        static Vector3 MeshCenter(GameObject go)
         {
-            var spine = piece.transform.root != null ? FindBone(piece.transform.root, "Spine2") : null;
-            Vector3 from = spine != null ? piece.transform.position - spine.position : piece.transform.forward;
-            from.y = 0f;
-            if (from.sqrMagnitude < 1e-4f) from = Vector3.back;
-            return from.normalized;
+            var mf = go.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null) return mf.sharedMesh.bounds.center;
+            var smr = go.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (smr != null && smr.sharedMesh != null) return smr.sharedMesh.bounds.center;
+            return Vector3.zero;
         }
+
+        static bool Paired(EquipSlot slot)
+            => slot == EquipSlot.Shoulders || slot == EquipSlot.Wrists || slot == EquipSlot.Hands
+               || slot == EquipSlot.Legs || slot == EquipSlot.Feet;
+
+        static string LeftOf(EquipSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipSlot.Shoulders: return "LeftArm";
+                case EquipSlot.Wrists: return "LeftForeArm";
+                case EquipSlot.Hands: return "LeftHand";
+                case EquipSlot.Legs: return "LeftUpLeg";
+                default: return "LeftFoot";
+            }
+        }
+
+        static string RightOf(EquipSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipSlot.Shoulders: return "RightArm";
+                case EquipSlot.Wrists: return "RightForeArm";
+                case EquipSlot.Hands: return "RightHand";
+                case EquipSlot.Legs: return "RightUpLeg";
+                default: return "RightFoot";
+            }
+        }
+
+        static string CenterOf(EquipSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipSlot.Chest: return "Spine2";
+                case EquipSlot.Waist: return "Spine";
+                default: return "Spine1";
+            }
+        }
+
+        static Transform Bone(Transform root, string name) => root == null ? null : FindBone(root, name);
 
         static Transform FindBone(Transform root, string name)
         {
@@ -170,34 +248,23 @@ namespace Hollowmere
             return false;
         }
 
-        static ParticleSystemRenderer FindVfx(GameObject piece)
+        static bool Within(System.Collections.Generic.List<Renderer> pieces, ParticleSystemRenderer vfx, float pad)
         {
-            var marked = piece.transform.Find(Name);
-            if (marked != null)
+            if (vfx == null || pieces == null || pieces.Count == 0) return false;
+            Renderer near = null;
+            float best = float.MaxValue;
+            for (int i = 0; i < pieces.Count; i++)
             {
-                var pr = marked.GetComponent<ParticleSystemRenderer>();
-                if (pr != null) return pr;
+                float d = Vector3.Distance(pieces[i].bounds.ClosestPoint(vfx.transform.position), vfx.transform.position);
+                if (d < best) { best = d; near = pieces[i]; }
             }
-            return piece.GetComponentInChildren<ParticleSystemRenderer>(true);
-        }
-
-        static bool Within(GameObject piece, ParticleSystemRenderer vfx, float pad)
-        {
-            bool any = false;
-            Bounds box = new Bounds(piece.transform.position, Vector3.zero);
-            foreach (var r in piece.GetComponentsInChildren<Renderer>(true))
-            {
-                if (r == null || r is ParticleSystemRenderer) continue;
-                if (!any) { box = r.bounds; any = true; }
-                else box.Encapsulate(r.bounds);
-            }
-            if (!any) return false;
+            if (near == null) return false;
+            var box = near.bounds;
             box.Expand(pad * 2f);
             var ps = vfx.GetComponent<ParticleSystem>();
-            var parts = new ParticleSystem.Particle[24];
+            var parts = new ParticleSystem.Particle[16];
             int n = ps != null ? ps.GetParticles(parts) : 0;
-            if (n <= 0)
-                return box.Contains(vfx.transform.position);
+            if (n <= 0) return box.Contains(vfx.transform.position);
             for (int i = 0; i < n; i++)
             {
                 Vector3 world = ps.main.simulationSpace == ParticleSystemSimulationSpace.Local
@@ -206,6 +273,18 @@ namespace Hollowmere
                 if (!box.Contains(world)) return false;
             }
             return true;
+        }
+
+        static string NearName(System.Collections.Generic.List<Renderer> pieces, Vector3 pos)
+        {
+            string name = "gear";
+            float best = float.MaxValue;
+            for (int i = 0; i < pieces.Count; i++)
+            {
+                float d = Vector3.Distance(pieces[i].bounds.ClosestPoint(pos), pos);
+                if (d < best) { best = d; name = pieces[i].name; }
+            }
+            return name;
         }
     }
 }

@@ -37,20 +37,20 @@ namespace Hollowmere.Core
 
         static readonly Row[] Rows =
         {
-            new Row(Rarity.Common, 1, 0.58f, 0.36f, 0.22f, 0.04f, 0.10f, 1.00f, 0.00f, 0.00f, false, false, 0.45f, 0.40f, 0.32f, 0f, 0.03f, 0.04f),
-            new Row(Rarity.Magic, 1, 0.70f, 0.82f, 1.12f, 0.16f, 0.28f, 0.85f, 0.00f, 0.00f, false, false, 0.45f, 0.62f, 1.00f, 0f, 0.03f, 0.04f),
-            new Row(Rarity.Rare, 2, 1.12f, 1.16f, 1.24f, 0.42f, 0.40f, 0.70f, 0.16f, 0.55f, false, false, 0.35f, 0.58f, 1.00f, 0f, 0.03f, 0.04f),
-            new Row(Rarity.Legendary, 3, 1.05f, 1.02f, 0.94f, 0.52f, 0.48f, 0.35f, 0.38f, 0.85f, true, true, 1.00f, 0.72f, 0.28f, 14f, 0.04f, 0.04f),
-            new Row(Rarity.Set, 3, 1.02f, 1.00f, 0.98f, 0.48f, 0.46f, 0.30f, 0.34f, 0.80f, true, true, 0.95f, 0.92f, 0.78f, 12f, 0.035f, 0.04f),
+            new Row(Rarity.Common, 1, 0.36f, 0.32f, 0.28f, 0.06f, 0.12f, 0.55f, 0.00f, 0.00f, false, false, 0.36f, 0.32f, 0.28f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Magic, 1, 0.78f, 0.88f, 1.05f, 0.42f, 0.62f, 0.90f, 0.00f, 0.00f, false, false, 0.72f, 0.84f, 1.00f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Rare, 2, 0.55f, 0.72f, 0.95f, 0.28f, 0.48f, 0.40f, 1.15f, 1.00f, false, false, 0.20f, 0.78f, 1.00f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Legendary, 3, 0.95f, 0.46f, 0.16f, 0.30f, 0.40f, 0.48f, 1.80f, 1.00f, true, true, 1.00f, 0.40f, 0.06f, 10f, 0.05f, 0.02f),
+            new Row(Rarity.Set, 3, 0.28f, 0.86f, 0.34f, 0.22f, 0.40f, 0.62f, 1.40f, 1.00f, true, true, 0.22f, 0.95f, 0.32f, 10f, 0.05f, 0.02f),
         };
 
         static readonly Glow[] Sets =
         {
-            new Glow("plate", 1.00f, 0.78f, 0.32f),
-            new Glow("leather", 0.45f, 0.85f, 0.35f),
-            new Glow("arcane", 0.55f, 0.45f, 1.00f),
-            new Glow("bone", 0.95f, 0.90f, 0.70f),
-            new Glow("infernal", 1.00f, 0.35f, 0.12f),
+            new Glow("plate", 0.22f, 0.95f, 0.32f),
+            new Glow("leather", 0.22f, 0.95f, 0.32f),
+            new Glow("arcane", 0.22f, 0.95f, 0.32f),
+            new Glow("bone", 0.22f, 0.95f, 0.32f),
+            new Glow("infernal", 0.22f, 0.95f, 0.32f),
         };
 
         static readonly Glow[] Trails =

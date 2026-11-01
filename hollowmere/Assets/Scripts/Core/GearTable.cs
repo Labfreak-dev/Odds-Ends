@@ -242,16 +242,13 @@ namespace Hollowmere.Core
             return string.IsNullOrEmpty(legendary) ? own : legendary;
         }
 
-        /// <summary>Legendary and set armour use a different family's mesh so the silhouette changes. The glow stays on the item's own family.</summary>
+        /// <summary>Legendary wears the horned infernal mesh. Set wears the arcane robes. The glow stays on the item's own family.</summary>
         public static string PresentFamily(string family, Rarity rarity)
         {
             if (string.IsNullOrEmpty(family)) family = "plate";
-            if (rarity != Rarity.Legendary && rarity != Rarity.Set) return family;
-            int i = 0;
-            for (int k = 0; k < Families.Length; k++)
-                if (Families[k] == family) { i = k; break; }
-            int step = rarity == Rarity.Legendary ? 1 : 2;
-            return Families[(i + step) % Families.Length];
+            if (rarity == Rarity.Legendary) return family == "infernal" ? "bone" : "infernal";
+            if (rarity == Rarity.Set) return family == "arcane" ? "leather" : "arcane";
+            return family;
         }
 
         public static string TypeOf(string baseId)

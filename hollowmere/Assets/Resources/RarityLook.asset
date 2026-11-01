@@ -15,115 +15,115 @@ MonoBehaviour:
   rows:
   - rarity: 0
     tier: 1
-    r: 0.58
-    g: 0.36
-    b: 0.22
-    metal: 0.04
-    smooth: 0.1
-    blend: 1
+    r: 0.36
+    g: 0.32
+    b: 0.28
+    metal: 0.06
+    smooth: 0.12
+    blend: 0.55
     emit: 0
     rim: 0
     uniqueModel: 0
     vfx: 0
-    glowR: 0.45
-    glowG: 0.4
-    glowB: 0.32
+    glowR: 0.36
+    glowG: 0.32
+    glowB: 0.28
     rate: 0
-    size: 0.03
-    lift: 0.04
+    size: 0.02
+    lift: 0.02
   - rarity: 1
     tier: 1
-    r: 0.7
-    g: 0.82
-    b: 1.12
-    metal: 0.16
-    smooth: 0.28
-    blend: 0.85
+    r: 0.78
+    g: 0.88
+    b: 1.05
+    metal: 0.42
+    smooth: 0.62
+    blend: 0.9
     emit: 0
     rim: 0
     uniqueModel: 0
     vfx: 0
-    glowR: 0.45
-    glowG: 0.62
+    glowR: 0.72
+    glowG: 0.84
     glowB: 1
     rate: 0
-    size: 0.03
-    lift: 0.04
+    size: 0.02
+    lift: 0.02
   - rarity: 2
     tier: 2
-    r: 1.12
-    g: 1.16
-    b: 1.24
-    metal: 0.42
-    smooth: 0.4
-    blend: 0.7
-    emit: 0.16
-    rim: 0.55
+    r: 0.55
+    g: 0.72
+    b: 0.95
+    metal: 0.28
+    smooth: 0.48
+    blend: 0.4
+    emit: 1.15
+    rim: 1
     uniqueModel: 0
     vfx: 0
-    glowR: 0.35
-    glowG: 0.58
+    glowR: 0.2
+    glowG: 0.78
     glowB: 1
     rate: 0
-    size: 0.03
-    lift: 0.04
+    size: 0.02
+    lift: 0.02
   - rarity: 3
     tier: 3
-    r: 1.05
-    g: 1.02
-    b: 0.94
-    metal: 0.52
-    smooth: 0.48
-    blend: 0.35
-    emit: 0.38
-    rim: 0.85
+    r: 0.95
+    g: 0.46
+    b: 0.16
+    metal: 0.3
+    smooth: 0.4
+    blend: 0.48
+    emit: 1.8
+    rim: 1
     uniqueModel: 1
     vfx: 1
     glowR: 1
-    glowG: 0.72
-    glowB: 0.28
-    rate: 14
-    size: 0.04
-    lift: 0.04
+    glowG: 0.4
+    glowB: 0.06
+    rate: 10
+    size: 0.05
+    lift: 0.02
   - rarity: 4
     tier: 3
-    r: 1.02
-    g: 1
-    b: 0.98
-    metal: 0.48
-    smooth: 0.46
-    blend: 0.3
-    emit: 0.34
-    rim: 0.8
+    r: 0.28
+    g: 0.86
+    b: 0.34
+    metal: 0.22
+    smooth: 0.4
+    blend: 0.62
+    emit: 1.4
+    rim: 1
     uniqueModel: 1
     vfx: 1
-    glowR: 0.95
-    glowG: 0.92
-    glowB: 0.78
-    rate: 12
-    size: 0.035
-    lift: 0.04
+    glowR: 0.22
+    glowG: 0.95
+    glowB: 0.32
+    rate: 10
+    size: 0.05
+    lift: 0.02
   sets:
   - family: plate
-    r: 1
-    g: 0.78
+    r: 0.22
+    g: 0.95
     b: 0.32
   - family: leather
-    r: 0.45
-    g: 0.85
-    b: 0.35
+    r: 0.22
+    g: 0.95
+    b: 0.32
   - family: arcane
-    r: 0.55
-    g: 0.45
-    b: 1
+    r: 0.22
+    g: 0.95
+    b: 0.32
   - family: bone
-    r: 0.95
-    g: 0.9
-    b: 0.7
+    r: 0.22
+    g: 0.95
+    b: 0.32
   - family: infernal
-    r: 1
-    g: 0.35
-    b: 0.12
+    r: 0.22
+    g: 0.95
+    b: 0.32
   trails:
   - kind: ember
     r: 1

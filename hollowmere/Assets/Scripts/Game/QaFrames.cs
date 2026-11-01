@@ -252,9 +252,11 @@ namespace Hollowmere
                 yield return null;
                 yield return new WaitForEndOfFrame();
                 FrameGear(actor, cam, rig, true);
+                yield return null;
                 yield return new WaitForEndOfFrame();
                 SaveNamed("gearslots-paper-" + GearFit.SlotName(pieces[i].slot));
                 FrameGear(actor, cam, rig, false);
+                yield return null;
                 yield return new WaitForEndOfFrame();
                 SaveNamed("gearslots-world-" + GearFit.SlotName(pieces[i].slot));
                 Debug.Log("Hollowmere gear " + pieces[i].id + " shot");
@@ -269,9 +271,12 @@ namespace Hollowmere
 
         public static IEnumerator RunGearMix(GameManager gm)
         {
+            var feel = Feel.Active;
             gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
             gm.EnterTown(false);
             yield return new WaitForSeconds(0.35f);
+            Screen.SetResolution(feel.width, feel.height, FullScreenMode.Windowed);
+            yield return null;
             var actor = HeroActor.I;
             if (actor == null)
             {
@@ -314,6 +319,16 @@ namespace Hollowmere
                 else
                     Debug.Log("Hollowmere gear mix " + i + " ok");
             }
+            Wear(gm, pieces);
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            FrameGear(actor, cam, rig, true);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            SaveNamed("gearmix-paper");
+            FrameGear(actor, cam, rig, false);
             Debug.Log("Hollowmere QA gearmix done");
             Application.Quit();
         }
@@ -328,13 +343,17 @@ namespace Hollowmere
         static void Wear(GameManager gm, (EquipSlot slot, string id)[] pieces)
         {
             var hero = gm.State.hero;
-            for (int i = 0; i < GearFit.Visible.Length; i++) hero.Unequip(GearFit.Visible[i]);
+            // Unequip puts the piece back in the bag. A mix run then fills all 30 slots
+            // and Equip refuses because there is nowhere to put what comes off.
+            hero.inventory.RemoveAll(it => it != null && it.kind == ItemKind.Equipment);
+            for (int i = 0; i < GearFit.Visible.Length; i++)
+                hero.equipment[(int)GearFit.Visible[i]] = null;
             var rng = new Rng(11);
             for (int i = 0; i < pieces.Length; i++)
             {
                 var it = Loot.Generate(rng, 12, Rarity.Rare, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
-                if (!hero.AddItem(it) || !hero.Equip(it))
-                    Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id);
+                if (it == null || !hero.AddItem(it) || !hero.Equip(it))
+                    Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id + " free=" + hero.FreeSlots);
             }
             gm.OnEquipmentChanged();
         }
@@ -355,25 +374,77 @@ namespace Hollowmere
         }
 
         static Light paperLight;
+        static GameObject paperCard;
+        static bool loggedFace;
         static readonly System.Collections.Generic.Dictionary<Light, float> paperDim = new System.Collections.Generic.Dictionary<Light, float>();
+
+        /// <summary>Nose direction from the HeadFront bone, so the paper camera is not the follow cam.</summary>
+        static Vector3 FaceDir(HeroActor actor)
+        {
+            var head = Art.Bone(actor.transform, "Head");
+            var front = Art.Bone(actor.transform, "HeadFront");
+            if (head != null && front != null)
+            {
+                var f = front.position - head.position;
+                f.y = 0f;
+                if (f.sqrMagnitude > 0.0004f) return f.normalized;
+            }
+            var fwd = actor.transform.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
+            return fwd.normalized;
+        }
 
         static void FrameGear(HeroActor actor, Camera cam, CameraRig rig, bool paper)
         {
             if (cam == null || actor == null) return;
-            Vector3 look = actor.Pos + Vector3.up * (paper ? 0.95f : 1.05f);
-            Vector3 fwd = actor.transform.forward;
-            fwd.y = 0f;
-            if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
-            fwd.Normalize();
-            // The face is along forward. The paper camera stands in front of it.
+            Vector3 face = FaceDir(actor);
+            const float height = 1.85f;
+            Vector3 look = actor.Pos + Vector3.up * (paper ? height * 0.48f : 1.05f);
+            float fov = paper ? 28f : 38f;
+            // Full body, helm included. The old 24° lens aimed at the chest cut the forehead off.
+            float dist = paper ? (height * 0.64f) / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) : 7.2f;
             Vector3 camPos = paper
-                ? look + fwd * 3.15f + Vector3.up * 0.12f
-                : actor.Pos - fwd * 7.2f + Vector3.up * 5.6f;
-            cam.fieldOfView = paper ? 24f : 38f;
+                ? look + face * dist + Vector3.up * 0.08f
+                : actor.Pos - face * dist + Vector3.up * 5.6f;
+            if (paper && !loggedFace)
+            {
+                loggedFace = true;
+                Debug.Log("Hollowmere gear paper face " + face.ToString("0.00") + " dist " + dist.ToString("0.00"));
+            }
+            cam.fieldOfView = fov;
             var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
             if (rig != null) rig.Lock(camPos, rot);
             else cam.transform.SetPositionAndRotation(camPos, rot);
+            PaperStage(actor, face, paper);
             PaperLight(actor, paper, camPos, look);
+        }
+
+        static void PaperStage(HeroActor actor, Vector3 face, bool on)
+        {
+            if (UiRoot.I != null && UiRoot.I.Hud != null) UiRoot.I.Hud.gameObject.SetActive(!on);
+            if (PetActor.I != null) PetActor.I.gameObject.SetActive(!on);
+            if (!on)
+            {
+                if (paperCard != null) paperCard.SetActive(false);
+                return;
+            }
+            if (paperCard == null)
+            {
+                paperCard = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                paperCard.name = "paperCard";
+                var col = paperCard.GetComponent<Collider>();
+                if (col != null) UnityEngine.Object.Destroy(col);
+                var rend = paperCard.GetComponent<Renderer>();
+                rend.sharedMaterial = Art.Mat(new Color(0.17f, 0.16f, 0.15f));
+                rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                rend.receiveShadows = false;
+            }
+            paperCard.SetActive(true);
+            paperCard.transform.SetPositionAndRotation(
+                actor.Pos - face * 1.15f + Vector3.up * 0.95f,
+                Quaternion.LookRotation(face, Vector3.up));
+            paperCard.transform.localScale = new Vector3(8f, 4.8f, 1f);
         }
 
         static void PaperLight(HeroActor actor, bool on, Vector3 camPos, Vector3 look)
@@ -390,7 +461,9 @@ namespace Hollowmere
                     paperLight.intensity = 1.15f;
                 }
                 paperLight.gameObject.SetActive(true);
-                paperLight.transform.rotation = Quaternion.LookRotation(look - camPos, Vector3.up);
+                Vector3 side = Vector3.Cross(Vector3.up, look - camPos);
+                paperLight.transform.rotation = Quaternion.LookRotation((look - camPos) + Vector3.up * -0.45f + side.normalized * 0.65f, Vector3.up);
+                paperLight.intensity = 0.9f;
                 var lights = actor.GetComponentsInChildren<Light>(true);
                 for (int i = 0; i < lights.Length; i++)
                 {

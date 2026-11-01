@@ -68,11 +68,14 @@ namespace Hollowmere
             bool attack = false;
             foreach (AnimationState s in ma.anim)
                 if (s != null && GearFit.PoseMatch(s.name, "attack")) attack = true;
-            if (attack) return;
-            CombatClipPlayer.Attach(ma, "hero_ironclad");
-            CombatClipPlayer.Attach(ma, "hero_stalker");
-            CombatClipPlayer.Attach(ma, "hero_hexweaver");
-            CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+            if (!attack)
+            {
+                CombatClipPlayer.Attach(ma, "hero_ironclad");
+                CombatClipPlayer.Attach(ma, "hero_stalker");
+                CombatClipPlayer.Attach(ma, "hero_hexweaver");
+                CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+            }
+            HeroReact.Attach(ma);
         }
 
         static string First(string[] names, string[] group)

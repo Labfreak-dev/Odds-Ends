@@ -37,6 +37,7 @@ namespace Hollowmere
                 if (!Item.IsNone(hero.Equipped(slot))) worn.Add(slot);
             }
             var hide = new bool[source.vertexCount];
+            var seam = new bool[source.vertexCount];
             int hidden = 0;
             for (int s = 0; s < worn.Count; s++)
             {
@@ -53,10 +54,17 @@ namespace Hollowmere
                     continue;
                 }
                 Attach(body, skin, mesh, worn[s]);
+                bool helm = worn[s] == EquipSlot.Head;
                 for (int v = 0; v < region.Length; v++)
-                    if (region[v]) { hide[v] = true; hidden++; }
+                {
+                    if (!region[v]) continue;
+                    hide[v] = true;
+                    hidden++;
+                    // The helm's one-vert seam left a pale line of the face around the cut.
+                    if (helm) seam[v] = true;
+                }
             }
-            skin.sharedMesh = hidden > 0 ? Hide(source, hide) : source;
+            skin.sharedMesh = hidden > 0 ? Hide(source, hide, seam) : source;
         }
 
         static Mesh TryMeshy(Transform body, SkinnedMeshRenderer heroSkin, Mesh heroMesh, EquipSlot slot)
@@ -224,8 +232,8 @@ namespace Hollowmere
             var nv = new Vector3[n];
             var nn = new Vector3[n];
             var nw = new BoneWeight[n];
-            var uv = source.uv;
-            var nuv = uv != null && uv.Length == verts.Length ? new Vector2[n] : null;
+            // The body UVs are a face atlas. Tiling metal across them draws the island borders as white seams.
+            var nuv = new Vector2[n];
             int w = 0;
             for (int i = 0; i < verts.Length; i++)
             {
@@ -233,10 +241,11 @@ namespace Hollowmere
                 map[i] = w;
                 Vector3 normal = normals != null && normals.Length == verts.Length ? normals[i] : Vector3.up;
                 if (normal.sqrMagnitude < 1e-8f) normal = Vector3.up;
-                nv[w] = verts[i] + normal.normalized * offset;
-                nn[w] = normal.normalized;
+                normal.Normalize();
+                nv[w] = verts[i] + normal * offset;
+                nn[w] = normal;
                 nw[w] = weights[i];
-                if (nuv != null) nuv[w] = uv[i];
+                nuv[w] = new Vector2(verts[i].x + verts[i].z * 0.37f, verts[i].y);
                 w++;
             }
             var tris = source.triangles;
@@ -256,21 +265,46 @@ namespace Hollowmere
             mesh.bindposes = source.bindposes;
             if (nuv != null) mesh.uv = nuv;
             mesh.triangles = keep.ToArray();
+            WeldNormals(mesh, nn);
+            mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             return mesh;
         }
 
-        static Mesh Hide(Mesh source, bool[] hide)
+        /// <summary>Split body normals follow the face UV seams and read as bright lines on metal.
+        /// Weld them, and flip the result if it turned the shell inside out.</summary>
+        static void WeldNormals(Mesh mesh, Vector3[] pushed)
+        {
+            mesh.RecalculateNormals();
+            var welded = mesh.normals;
+            if (welded == null || pushed == null || welded.Length != pushed.Length) return;
+            Vector3 want = Vector3.zero, got = Vector3.zero;
+            int step = Mathf.Max(1, welded.Length / 48);
+            for (int i = 0; i < welded.Length; i += step)
+            {
+                want += pushed[i];
+                got += welded[i];
+            }
+            if (Vector3.Dot(want, got) < 0f)
+            {
+                for (int i = 0; i < welded.Length; i++) welded[i] = -welded[i];
+                mesh.normals = welded;
+            }
+        }
+
+        static Mesh Hide(Mesh source, bool[] hide, bool[] seam)
         {
             var tris = source.triangles;
             var keep = new List<int>(tris.Length);
             for (int i = 0; i + 2 < tris.Length; i += 3)
             {
-                int n = (hide[tris[i]] ? 1 : 0) + (hide[tris[i + 1]] ? 1 : 0) + (hide[tris[i + 2]] ? 1 : 0);
-                if (n >= 2) continue;
-                keep.Add(tris[i]);
-                keep.Add(tris[i + 1]);
-                keep.Add(tris[i + 2]);
+                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
+                int n = (hide[a] ? 1 : 0) + (hide[b] ? 1 : 0) + (hide[c] ? 1 : 0);
+                bool cut = seam != null && (seam[a] || seam[b] || seam[c]);
+                if (n >= 2 || (cut && n >= 1)) continue;
+                keep.Add(a);
+                keep.Add(b);
+                keep.Add(c);
             }
             var mesh = Object.Instantiate(source);
             mesh.name = "body_fit";
@@ -301,9 +335,13 @@ namespace Hollowmere
         static Material ShellMat(EquipSlot slot)
         {
             bool leather = slot == EquipSlot.Waist || slot == EquipSlot.Legs || slot == EquipSlot.Feet;
+            bool helm = slot == EquipSlot.Head;
             string surf = leather ? "rusted_iron" : "iron_plates";
-            var tint = leather ? new Color(0.78f, 0.62f, 0.46f) : new Color(0.86f, 0.88f, 0.92f);
-            return PbrKit.UrpLit(surf, leather ? 0.4f : 0.22f, tint, leather ? 0.12f : 0.7f, leather ? 0.38f : 0.52f, 0.75f);
+            // A near-white helm with a sharp smoothness throws a white rim along the cut.
+            var tint = leather ? new Color(0.78f, 0.62f, 0.46f) : helm ? new Color(0.58f, 0.60f, 0.64f) : new Color(0.74f, 0.76f, 0.80f);
+            float metal = leather ? 0.12f : helm ? 0.42f : 0.62f;
+            float smooth = leather ? 0.34f : helm ? 0.28f : 0.42f;
+            return PbrKit.UrpLit(surf, leather ? 0.4f : 0.22f, tint, metal, smooth, helm ? 0.4f : 0.65f);
         }
 
         static Color SlotTint(EquipSlot slot)

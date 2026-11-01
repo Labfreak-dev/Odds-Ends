@@ -38,19 +38,19 @@ namespace Hollowmere.Core
             (EquipSlot.Legs, EquipSlot.Feet),
         };
 
-        /// <summary>At least one clip in each group has to be on the hero.</summary>
+        /// <summary>At least one clip in each group has to be on the hero. Hit and death are skeletal clips, sampled with the rest.</summary>
         public static readonly string[][] RequiredPoses =
         {
             new[] { "idle" },
             new[] { "run", "walk" },
             new[] { "attack", "swing" },
+            new[] { "hit" },
+            new[] { "death" },
         };
 
-        /// <summary>Sampled when the hero actually has the clip. Death and hit are not on this rig.</summary>
+        /// <summary>Sampled when the hero actually has the clip.</summary>
         public static readonly string[][] OptionalPoses =
         {
-            new[] { "death" },
-            new[] { "hit" },
             new[] { "dodge", "roll" },
             new[] { "cast", "spell" },
             new[] { "fish" },

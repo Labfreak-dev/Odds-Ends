@@ -30,7 +30,7 @@ namespace Hollowmere
         SkillCast spinCast, pendingCast;
         Vector3 pendingDir;
         Actor pendingTarget;
-        float regenAcc;
+        float regenAcc, deathLeft;
         readonly Locomotion loco = new Locomotion();
         float stepDebt;
 
@@ -140,7 +140,18 @@ namespace Hollowmere
         protected override void Update()
         {
             base.Update();
-            if (Dead || GameManager.I.Paused) return;
+            if (Dead)
+            {
+                // The death screen pauses scaled time. The fall still has to play.
+                if (deathLeft > 0f && modelAnim != null)
+                {
+                    float step = Time.unscaledDeltaTime;
+                    deathLeft = Mathf.Max(0f, deathLeft - step);
+                    modelAnim.Advance(step);
+                }
+                return;
+            }
+            if (GameManager.I.Paused) return;
             float dt = Time.deltaTime;
             ctx.lifeFraction = LifeFraction;
 
@@ -388,14 +399,21 @@ namespace Hollowmere
         {
             Dead = true;
             spinUntil = 0;
-            if (body != null) body.localRotation = Quaternion.Euler(80, 0, 0);
+            pendingCast = null;
+            releaseIn = -1f;
+            deathLeft = 0f;
+            // The clip folds the skeleton. Tipping the body root left the gear in a T-pose.
+            if (modelAnim != null && modelAnim.PlayClip("death", 1.2f)) deathLeft = 1.2f;
+            else if (modelAnim != null) Debug.LogError("Hollowmere hero FAIL death clip missing");
             GameManager.I.OnHeroDied();
         }
 
         public void Revive(float fraction)
         {
             Dead = false;
+            deathLeft = 0f;
             if (body != null) body.localRotation = Quaternion.identity;
+            modelAnim?.CancelAttack();
             RefreshStats();
             life = maxLife * fraction;
         }

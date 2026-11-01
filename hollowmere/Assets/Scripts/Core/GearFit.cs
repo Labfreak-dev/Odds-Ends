@@ -205,6 +205,9 @@ namespace Hollowmere.Core
         /// </summary>
         public const float BendInsideDistance = 0.028f;
 
+        /// <summary>Thigh skin closer than this under leg plates is dropped.</summary>
+        public const float ThighInsideDistance = 0.018f;
+
         /// <summary>Bulky Meshy chest and pauldrons stand off the torso. Skin this close still counts as covered.</summary>
         public const float BendCoverDistance = 0.07f;
 
@@ -222,8 +225,10 @@ namespace Hollowmere.Core
                 case BodyRegion.UpperTorso:
                 case BodyRegion.UpperArm:
                 case BodyRegion.Waist:
-                case BodyRegion.Thigh:
                     return BendInsideDistance;
+                case BodyRegion.Thigh:
+                    // Thigh skin shows at a leg plate's edge in a deep crouch, so less of it is dropped.
+                    return ThighInsideDistance;
                 default:
                     return InsideDistance;
             }

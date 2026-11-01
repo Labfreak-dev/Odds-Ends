@@ -376,6 +376,8 @@ namespace Hollowmere
             if (grid.Hit(start, (n + t2 * tilt).normalized, reach)) tilts++;
             if (grid.Hit(start, (n - t2 * tilt).normalized, reach)) tilts++;
             // Torso skin under pauldrons and a cuirass rides into the piece when the arms come up. Two tilts are enough there.
+            // Thigh skin shows through the gap at a leg plate's edge in deep crouches, so it needs every tilt.
+            if (region == (int)GearFit.BodyRegion.Thigh) return tilts >= 4;
             return tilts >= (region == (int)GearFit.BodyRegion.UpperTorso ? 2 : 3);
         }
 

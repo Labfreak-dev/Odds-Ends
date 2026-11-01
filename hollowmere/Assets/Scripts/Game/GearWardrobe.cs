@@ -359,7 +359,7 @@ namespace Hollowmere
         /// Skin sealed under a piece: the outward normal and four tilted rays all meet the piece within 9 cm.
         /// Conservative: the normal ray and three of four tilted rays must hit, so a vert at an open edge keeps its skin and no gap opens.
         /// </summary>
-        static bool Shadowed(TriGrid grid, Vector3 p, Vector3[] normals, int v, int region)
+        static bool Shadowed(TriGrid grid, Vector3 p, Vector3[] normals, int v, int region, bool pauldron = false)
         {
             if (normals == null || v >= normals.Length || !GearFit.Bends(region)) return false;
             var n = normals[v];
@@ -378,6 +378,8 @@ namespace Hollowmere
             // Torso skin under pauldrons and a cuirass rides into the piece when the arms come up. Two tilts are enough there.
             // Thigh skin shows through the gap at a leg plate's edge in deep crouches, so it needs every tilt.
             if (region == (int)GearFit.BodyRegion.Thigh) return tilts >= 4;
+            // Upper-arm skin under a pauldron meets it when the arm lifts (volley, cast, reel), so two tilts are enough there too.
+            if (pauldron && region == (int)GearFit.BodyRegion.UpperArm) return tilts >= 2;
             return tilts >= (region == (int)GearFit.BodyRegion.UpperTorso ? 2 : 3);
         }
 
@@ -521,7 +523,7 @@ namespace Hollowmere
                         bool near = grids[p].Near(verts[v], GearFit.CoverFor(region));
                         if (near && hides) hit++;
                         bool under = (near && hides && grids[p].Near(verts[v], GearFit.InsideFor(region)))
-                            || Shadowed(grids[p], verts[v], normals, v, region);
+                            || Shadowed(grids[p], verts[v], normals, v, region, slots[p].Value == EquipSlot.Shoulders);
                         if (!under) continue;
                         if (!inside[v]) sealedN++;
                         inside[v] = true;

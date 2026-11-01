@@ -600,7 +600,11 @@ namespace Hollowmere
                         + " bone=" + bone
                         + " pos=(" + p.x.ToString("0.000") + "," + p.y.ToString("0.000") + "," + p.z.ToString("0.000") + ")"
                         + " nearest=" + nearest
-                        + " dist=" + dist.ToString("0.000"));
+                        + " dist=" + dist.ToString("0.000") + " hidden=" + hidden);
+                    if (pieces != null)
+                        for (int q = 0; q < pieces.Count; q++)
+                            if (pieces[q] != null && pieces[q].sharedMesh != null)
+                                Debug.Log("Hollowmere gear chain near " + pieces[q].name + " " + DistToTris(p, WorldTris(pieces[q])).ToString("0.000"));
                 }
                 Debug.Log("Hollowmere gear chain " + pose + " " + tail + " undrawn=" + undrawn + " far=" + far);
                 if (far > 0) fails += Fail(pose + " " + tail + " chain gap " + far);

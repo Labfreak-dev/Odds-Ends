@@ -205,6 +205,12 @@ namespace Hollowmere.Core
         /// </summary>
         public const float BendInsideDistance = 0.028f;
 
+        /// <summary>Waist skin closer than this under a belt or chest hem is dropped.</summary>
+        public const float WaistInsideDistance = 0.02f;
+
+        /// <summary>Foot skin closer than this under a boot is dropped.</summary>
+        public const float FootInsideDistance = 0.006f;
+
         /// <summary>Thigh skin closer than this under leg plates is dropped.</summary>
         public const float ThighInsideDistance = 0.018f;
 
@@ -224,8 +230,13 @@ namespace Hollowmere.Core
             {
                 case BodyRegion.UpperTorso:
                 case BodyRegion.UpperArm:
-                case BodyRegion.Waist:
                     return BendInsideDistance;
+                case BodyRegion.Waist:
+                    // A chest hem lifts off the waist in volley; skin just under it stays so no hole opens.
+                    return WaistInsideDistance;
+                case BodyRegion.Foot:
+                    // Boot toes flex off the foot in the reel crouch; only skin deep inside the boot is dropped.
+                    return FootInsideDistance;
                 case BodyRegion.Thigh:
                     // Thigh skin shows at a leg plate's edge in a deep crouch, so less of it is dropped.
                     return ThighInsideDistance;

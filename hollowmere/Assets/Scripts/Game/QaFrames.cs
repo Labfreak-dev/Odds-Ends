@@ -4,6 +4,7 @@ using System.IO;
 using Hollowmere.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Hollowmere
 {
@@ -570,10 +571,10 @@ namespace Hollowmere
             var cr = card.GetComponent<Renderer>();
             cr.sharedMaterial = Art.Mat(grey);
             cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 2.8f, Quaternion.Euler(48f, -24f, 0f));
-            AddLineupLight(root.transform, "lineupFill", new Color(0.86f, 0.90f, 1f), 1.8f, Quaternion.Euler(14f, 150f, 0f));
+            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 7.5f, Quaternion.Euler(48f, -24f, 0f));
+            AddLineupLight(root.transform, "lineupFill", new Color(0.86f, 0.90f, 1f), 3.6f, Quaternion.Euler(14f, 150f, 0f));
             // From the camera, brighter than the town sun, so this is the main light on the faces we see.
-            AddLineupLight(root.transform, "lineupFront", new Color(1f, 0.99f, 0.97f), 5.2f, Quaternion.Euler(8f, 180f, 0f));
+            AddLineupLight(root.transform, "lineupFront", new Color(1f, 0.99f, 0.97f), 9f, Quaternion.Euler(8f, 180f, 0f));
             AddLineupProbe(root.transform);
             float width = Mathf.Max(cell, (cols - 1) * cell + target);
             float height = Mathf.Max(cell, (nRows - 1) * cell + target * 1.35f);
@@ -659,6 +660,9 @@ namespace Hollowmere
             public Texture customReflection;
             public Material skybox;
             public bool fog;
+            public bool hadExposure;
+            public float exposure;
+            public ColorAdjustments grade;
 
             public static LineupLight Push()
             {
@@ -676,15 +680,16 @@ namespace Hollowmere
                 snap.fog = RenderSettings.fog;
                 RenderSettings.fog = false;
                 RenderSettings.ambientMode = AmbientMode.Trilight;
-                RenderSettings.ambientSkyColor = new Color(0.74f, 0.75f, 0.77f);
-                RenderSettings.ambientEquatorColor = new Color(0.64f, 0.64f, 0.66f);
-                RenderSettings.ambientGroundColor = new Color(0.52f, 0.52f, 0.54f);
-                RenderSettings.ambientLight = new Color(0.66f, 0.66f, 0.68f);
-                RenderSettings.ambientIntensity = 1.3f;
+                RenderSettings.ambientSkyColor = new Color(0.86f, 0.87f, 0.88f);
+                RenderSettings.ambientEquatorColor = new Color(0.80f, 0.80f, 0.82f);
+                RenderSettings.ambientGroundColor = new Color(0.74f, 0.74f, 0.76f);
+                RenderSettings.ambientLight = new Color(0.80f, 0.80f, 0.82f);
+                RenderSettings.ambientIntensity = 1.15f;
                 RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
                 SetCustomReflection(BrightCube());
-                RenderSettings.reflectionIntensity = 1.25f;
+                RenderSettings.reflectionIntensity = 1.45f;
                 DynamicGI.UpdateEnvironment();
+                BoostExposure(ref snap, 0.85f);
                 return snap;
             }
 
@@ -702,6 +707,19 @@ namespace Hollowmere
                 RenderSettings.skybox = snap.skybox;
                 RenderSettings.fog = snap.fog;
                 DynamicGI.UpdateEnvironment();
+                if (snap.hadExposure && snap.grade != null)
+                    snap.grade.postExposure.Override(snap.exposure);
+            }
+
+            static void BoostExposure(ref LineupLight snap, float stops)
+            {
+                var volume = UnityEngine.Object.FindFirstObjectByType<Volume>();
+                var profile = volume != null ? volume.sharedProfile : null;
+                if (profile == null || !profile.TryGet(out ColorAdjustments grade) || grade == null) return;
+                snap.hadExposure = true;
+                snap.grade = grade;
+                snap.exposure = grade.postExposure.value;
+                grade.postExposure.Override(snap.exposure + stops);
             }
         }
 
@@ -736,7 +754,7 @@ namespace Hollowmere
             if (brightCube != null) return brightCube;
             brightCube = new Cubemap(16, TextureFormat.RGB24, false);
             var cols = new Color[16 * 16];
-            for (int i = 0; i < cols.Length; i++) cols[i] = new Color(0.82f, 0.83f, 0.85f);
+            for (int i = 0; i < cols.Length; i++) cols[i] = new Color(0.94f, 0.94f, 0.95f);
             for (int face = 0; face < 6; face++)
                 brightCube.SetPixels(cols, (CubemapFace)face);
             brightCube.Apply();

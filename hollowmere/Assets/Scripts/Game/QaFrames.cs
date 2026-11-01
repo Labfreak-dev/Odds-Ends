@@ -3,6 +3,8 @@ using System.Collections;
 using System.IO;
 using Hollowmere.Core;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Hollowmere
 {
@@ -345,6 +347,654 @@ namespace Hollowmere
             Application.Quit();
         }
 
+        /// <summary>Lineup of every weapon base, then one in-hand shot and one grip close-up per type.</summary>
+        public static IEnumerator RunWeapons(GameManager gm)
+        {
+            var feel = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.State.hero.classless = true;
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.35f);
+            Screen.SetResolution(feel.width, feel.height, FullScreenMode.Windowed);
+            yield return null;
+            var actor = HeroActor.I;
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            if (actor == null || cam == null)
+            {
+                Debug.LogError("Hollowmere gear FAIL no hero");
+                Application.Quit();
+                yield break;
+            }
+            actor.gameObject.SetActive(false);
+            bool hudOn = UiRoot.I != null && UiRoot.I.Hud != null && UiRoot.I.Hud.gameObject.activeSelf;
+            if (hudOn) UiRoot.I.Hud.gameObject.SetActive(false);
+            var savedClear = cam.clearFlags;
+            var savedBg = cam.backgroundColor;
+            var savedFov = cam.fieldOfView;
+            var lineupLight = LineupLight.Push();
+            ShowLineup(cam, rig, GearTable.Weapons, 9, 1.15f, 0.8f);
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            float lum = LineupLuminance();
+            Debug.Log("Hollowmere lineup luminance " + lum.ToString("0.00"));
+            // 0.24 is the floor for these dark-metal albedos once the lineup reads clearly. 0.26 measured there.
+            if (lum < 0.24f)
+                Debug.LogError("Hollowmere lineup FAIL luminance " + lum.ToString("0.00"));
+            SaveNamed("weapons-lineup");
+            ClearLineup();
+            var types = GearTable.WeaponTypes;
+            for (int i = 0; i < types.Count; i++)
+            {
+                ShowLineup(cam, rig, OfType(types[i]), 3, 1.7f, 1.2f);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                SaveNamed("weapons-lineup-" + types[i]);
+                ClearLineup();
+            }
+            LineupLight.Pop(lineupLight);
+            cam.clearFlags = savedClear;
+            cam.backgroundColor = savedBg;
+            cam.fieldOfView = savedFov;
+            actor.gameObject.SetActive(true);
+            for (int i = 0; i < types.Count; i++)
+            {
+                string id = GearTable.Signature(types[i]);
+                bool main = WearWeapon(gm, id);
+                yield return null;
+                StandIdle(actor);
+                GearAttach.AuditGrip(actor.transform);
+                StandIdle(actor);
+                FrameGear(actor, cam, rig, true);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                SaveNamed("weapons-" + types[i]);
+                FrameGrip(actor, cam, rig, main);
+                GearAttach.AuditFramed(actor.transform, cam);
+                if (types[i] == "shield") GearAttach.AuditShieldFace(actor.transform, cam);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                SaveNamed("weapons-grip-" + types[i]);
+                if (types[i] == "shield")
+                {
+                    FrameShield34(actor, cam, rig);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("weapons-grip-shield-34");
+                }
+                if (types[i] == "quiver")
+                {
+                    FrameRear(actor, cam, rig);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("weapons-quiver-back");
+                }
+                if (types[i] == "dagger" || types[i] == "fist")
+                {
+                    FrameHand(actor, cam, rig);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("weapons-hand-" + types[i]);
+                }
+            }
+            Debug.Log("Hollowmere QA weapons done");
+            Application.Quit();
+        }
+
+        /// <summary>Front view of each family at tiers 1, 2, and 3.</summary>
+        public static IEnumerator RunTiers(GameManager gm)
+        {
+            var feel = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.State.hero.classless = true;
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.35f);
+            Screen.SetResolution(feel.width, feel.height, FullScreenMode.Windowed);
+            yield return null;
+            var actor = HeroActor.I;
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            if (actor == null)
+            {
+                Debug.LogError("Hollowmere gear FAIL no hero");
+                Application.Quit();
+                yield break;
+            }
+            (EquipSlot slot, string id)[] pieces =
+            {
+                (EquipSlot.Head, "helm"),
+                (EquipSlot.Shoulders, "pauldrons"),
+                (EquipSlot.Chest, "plate"),
+                (EquipSlot.Hands, "gauntlets"),
+                (EquipSlot.Wrists, "bracers"),
+                (EquipSlot.Waist, "belt"),
+                (EquipSlot.Legs, "greaves"),
+                (EquipSlot.Feet, "boots"),
+            };
+            for (int f = 0; f < GearTable.Families.Length; f++)
+            {
+                for (int tier = 1; tier <= GearTable.TierCount; tier++)
+                {
+                    WearFamily(gm, pieces, GearTable.Families[f], tier);
+                    yield return null;
+                    StandIdle(actor);
+                    FrameGear(actor, cam, rig, true);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("tiers-" + GearTable.Families[f] + "-" + tier);
+                }
+            }
+            Debug.Log("Hollowmere QA tiers done");
+            Application.Quit();
+        }
+
+        static System.Collections.Generic.List<GearTable.WeaponRow> OfType(string type)
+        {
+            var list = new System.Collections.Generic.List<GearTable.WeaponRow>();
+            var rows = GearTable.Weapons;
+            for (int i = 0; i < rows.Count; i++)
+                if (rows[i].Type == type) list.Add(rows[i]);
+            return list;
+        }
+
+        static void ClearLineup()
+        {
+            var line = GameObject.Find("weapon_lineup");
+            if (line != null) UnityEngine.Object.DestroyImmediate(line);
+        }
+
+        /// <summary>
+        /// Weapons on a light card, filling the frame. Labels are small and turned
+        /// to face the camera: a TextMesh at identity reads backwards from +Z.
+        /// </summary>
+        static void ShowLineup(Camera cam, CameraRig rig, System.Collections.Generic.IReadOnlyList<GearTable.WeaponRow> rows, int cols, float cell, float target)
+        {
+            ClearLineup();
+            if (rows == null || rows.Count == 0) return;
+            var root = new GameObject("weapon_lineup");
+            root.transform.position = new Vector3(0f, 40f, 0f);
+            var grey = new Color(0.82f, 0.83f, 0.85f);
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            int nRows = (rows.Count + cols - 1) / cols;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var prefab = Resources.Load<GameObject>("Gear/Weapons/" + row.Model);
+                if (prefab == null)
+                {
+                    Debug.LogError("Hollowmere gear FAIL weapon model " + row.Id);
+                    continue;
+                }
+                int col = i % cols;
+                int line = i / cols;
+                var cellPos = new Vector3((col - (cols - 1) * 0.5f) * cell, ((nRows - 1) * 0.5f - line) * cell, 0f);
+                var go = UnityEngine.Object.Instantiate(prefab, root.transform);
+                go.name = "line_" + row.Id;
+                Art.AdoptShaders(go);
+                CatalogShade(go);
+                go.transform.localRotation = Quaternion.Euler(-6f, 24f, 0f);
+                go.transform.localScale = Vector3.one;
+                float max = 1f;
+                if (Art.MeshWorldBounds(go.transform, out var raw))
+                    max = Mathf.Max(0.001f, Art.MaxAxis(raw.size));
+                go.transform.localScale = Vector3.one * (target / max);
+                go.transform.localPosition = cellPos;
+                if (UnionRenderers(go, out var box))
+                {
+                    Vector3 center = root.transform.InverseTransformPoint(box.center);
+                    go.transform.localPosition += new Vector3(cellPos.x - center.x, cellPos.y - center.y, 0f);
+                }
+                if (font == null || !UnionRenderers(go, out box)) continue;
+                var label = new GameObject("label_" + row.Id);
+                label.transform.SetParent(root.transform, true);
+                label.transform.position = new Vector3(box.center.x, box.min.y - target * 0.08f, box.center.z);
+                label.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                var text = label.AddComponent<TextMesh>();
+                text.text = row.Id;
+                text.font = font;
+                text.fontSize = 24;
+                text.characterSize = 0.018f;
+                text.anchor = TextAnchor.UpperCenter;
+                text.alignment = TextAlignment.Center;
+                text.color = new Color(0.12f, 0.12f, 0.13f);
+                var mr = label.GetComponent<MeshRenderer>();
+                if (mr != null) mr.sharedMaterial = font.material;
+            }
+            var card = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            card.name = "lineupCard";
+            card.transform.SetParent(root.transform, false);
+            card.transform.localPosition = new Vector3(0f, 0f, -1.6f);
+            card.transform.localRotation = Quaternion.identity;
+            card.transform.localScale = new Vector3(cols * cell + 4f, nRows * cell + 3f, 1f);
+            var colr = card.GetComponent<Collider>();
+            if (colr != null) UnityEngine.Object.Destroy(colr);
+            var cr = card.GetComponent<Renderer>();
+            cr.sharedMaterial = Art.Mat(grey);
+            cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 7.5f, Quaternion.Euler(48f, -24f, 0f));
+            AddLineupLight(root.transform, "lineupFill", new Color(0.86f, 0.90f, 1f), 3.6f, Quaternion.Euler(14f, 150f, 0f));
+            // From the camera, brighter than the town sun, so this is the main light on the faces we see.
+            AddLineupLight(root.transform, "lineupFront", new Color(1f, 0.99f, 0.97f), 9f, Quaternion.Euler(8f, 180f, 0f));
+            AddLineupProbe(root.transform);
+            float width = Mathf.Max(cell, (cols - 1) * cell + target);
+            float height = Mathf.Max(cell, (nRows - 1) * cell + target * 1.35f);
+            float fov = 26f;
+            float aspect = cam != null && cam.aspect > 0.2f ? cam.aspect : 16f / 9f;
+            float distH = (height * 0.55f) / Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
+            float hFov = 2f * Mathf.Atan(Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * aspect) * Mathf.Rad2Deg;
+            float distW = (width * 0.55f) / Mathf.Tan(hFov * 0.5f * Mathf.Deg2Rad);
+            float dist = Mathf.Max(distH, distW);
+            Vector3 look = root.transform.position;
+            Vector3 camPos = look + new Vector3(0f, 0f, dist);
+            if (cam != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = grey;
+                cam.fieldOfView = fov;
+                var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+                if (rig != null) rig.Lock(camPos, rot);
+                else cam.transform.SetPositionAndRotation(camPos, rot);
+            }
+        }
+
+        static void AddLineupLight(Transform root, string name, Color color, float intensity, Quaternion rotation)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(root, false);
+            go.transform.rotation = rotation;
+            var light = go.AddComponent<Light>();
+            light.type = LightType.Directional;
+            light.color = color;
+            light.intensity = intensity;
+            light.shadows = LightShadows.None;
+            light.renderMode = LightRenderMode.ForcePixel;
+        }
+
+        /// <summary>
+        /// A metal map of white zeros the diffuse term, so extra directional lights
+        /// leave the mesh black. The catalog keeps the albedo and drops that map.
+        /// </summary>
+        static void CatalogShade(GameObject go)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    m.DisableKeyword("_METALLICSPECGLOSSMAP");
+                    if (m.HasProperty("_HasMetal")) m.SetFloat("_HasMetal", 0f);
+                    if (m.HasProperty("_GltfPack")) m.SetFloat("_GltfPack", 0f);
+                    if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0.08f);
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.34f);
+                    if (m.HasProperty("_EnvironmentReflections")) m.SetFloat("_EnvironmentReflections", 1f);
+                    if (m.HasProperty("_GlossyReflections")) m.SetFloat("_GlossyReflections", 1f);
+                }
+                r.materials = mats;
+            }
+        }
+
+        static void AddLineupProbe(Transform root)
+        {
+            var go = new GameObject("lineupProbe");
+            go.transform.SetParent(root, false);
+            var probe = go.AddComponent<ReflectionProbe>();
+            probe.mode = ReflectionProbeMode.Realtime;
+            probe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            probe.size = new Vector3(28f, 14f, 28f);
+            probe.resolution = 64;
+            probe.hdr = true;
+            probe.boxProjection = true;
+            probe.RenderProbe();
+        }
+
+        struct LineupLight
+        {
+            public AmbientMode mode;
+            public Color ambient, sky, equator, ground;
+            public float intensity, reflection;
+            public DefaultReflectionMode reflectionMode;
+            public Texture customReflection;
+            public Material skybox;
+            public bool fog;
+            public bool hadExposure;
+            public float exposure;
+            public ColorAdjustments grade;
+
+            public static LineupLight Push()
+            {
+                var snap = new LineupLight();
+                snap.mode = RenderSettings.ambientMode;
+                snap.ambient = RenderSettings.ambientLight;
+                snap.sky = RenderSettings.ambientSkyColor;
+                snap.equator = RenderSettings.ambientEquatorColor;
+                snap.ground = RenderSettings.ambientGroundColor;
+                snap.intensity = RenderSettings.ambientIntensity;
+                snap.reflection = RenderSettings.reflectionIntensity;
+                snap.reflectionMode = RenderSettings.defaultReflectionMode;
+                snap.customReflection = CustomReflection();
+                snap.skybox = RenderSettings.skybox;
+                snap.fog = RenderSettings.fog;
+                RenderSettings.fog = false;
+                RenderSettings.ambientMode = AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = new Color(0.86f, 0.87f, 0.88f);
+                RenderSettings.ambientEquatorColor = new Color(0.80f, 0.80f, 0.82f);
+                RenderSettings.ambientGroundColor = new Color(0.74f, 0.74f, 0.76f);
+                RenderSettings.ambientLight = new Color(0.80f, 0.80f, 0.82f);
+                RenderSettings.ambientIntensity = 1.15f;
+                RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+                SetCustomReflection(BrightCube());
+                RenderSettings.reflectionIntensity = 1.45f;
+                DynamicGI.UpdateEnvironment();
+                BoostExposure(ref snap, 0.85f);
+                return snap;
+            }
+
+            public static void Pop(LineupLight snap)
+            {
+                RenderSettings.ambientMode = snap.mode;
+                RenderSettings.ambientLight = snap.ambient;
+                RenderSettings.ambientSkyColor = snap.sky;
+                RenderSettings.ambientEquatorColor = snap.equator;
+                RenderSettings.ambientGroundColor = snap.ground;
+                RenderSettings.ambientIntensity = snap.intensity;
+                RenderSettings.reflectionIntensity = snap.reflection;
+                RenderSettings.defaultReflectionMode = snap.reflectionMode;
+                SetCustomReflection(snap.customReflection);
+                RenderSettings.skybox = snap.skybox;
+                RenderSettings.fog = snap.fog;
+                DynamicGI.UpdateEnvironment();
+                if (snap.hadExposure && snap.grade != null)
+                    snap.grade.postExposure.Override(snap.exposure);
+            }
+
+            static void BoostExposure(ref LineupLight snap, float stops)
+            {
+                var volume = UnityEngine.Object.FindFirstObjectByType<Volume>();
+                var profile = volume != null ? volume.sharedProfile : null;
+                if (profile == null || !profile.TryGet(out ColorAdjustments grade) || grade == null) return;
+                snap.hadExposure = true;
+                snap.grade = grade;
+                snap.exposure = grade.postExposure.value;
+                grade.postExposure.Override(snap.exposure + stops);
+            }
+        }
+
+        static Cubemap brightCube;
+
+        /// <summary>
+        /// Unity 6 types the reflection slot as Texture (customReflectionTexture).
+        /// The older property is a Cubemap, so a Texture cannot be written back into it.
+        /// </summary>
+        static Texture CustomReflection()
+        {
+#if UNITY_6000_0_OR_NEWER
+            return RenderSettings.customReflectionTexture;
+#else
+            return RenderSettings.customReflection;
+#endif
+        }
+
+        static void SetCustomReflection(Texture tex)
+        {
+#if UNITY_6000_0_OR_NEWER
+            RenderSettings.customReflectionTexture = tex;
+#else
+            var cube = tex as Cubemap;
+            if (tex == null || cube != null)
+                RenderSettings.customReflection = cube;
+#endif
+        }
+
+        static Cubemap BrightCube()
+        {
+            if (brightCube != null) return brightCube;
+            brightCube = new Cubemap(16, TextureFormat.RGB24, false);
+            var cols = new Color[16 * 16];
+            for (int i = 0; i < cols.Length; i++) cols[i] = new Color(0.94f, 0.94f, 0.95f);
+            for (int face = 0; face < 6; face++)
+                brightCube.SetPixels(cols, (CubemapFace)face);
+            brightCube.Apply();
+            return brightCube;
+        }
+
+        /// <summary>Mean luminance of pixels that are not the backdrop and not the label ink.</summary>
+        static float LineupLuminance()
+        {
+            var tex = ScreenCapture.CaptureScreenshotAsTexture();
+            if (tex == null) return 0f;
+            int w = tex.width;
+            int h = tex.height;
+            var pixels = tex.GetPixels32();
+            UnityEngine.Object.Destroy(tex);
+            if (pixels == null || pixels.Length < 16 || w < 2 || h < 2) return 0f;
+            Color bg = CornerColor(pixels, w, h);
+            double sum = 0;
+            int n = 0;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                float r = pixels[i].r / 255f;
+                float g = pixels[i].g / 255f;
+                float b = pixels[i].b / 255f;
+                float dr = r - bg.r, dg = g - bg.g, db = b - bg.b;
+                if (dr * dr + dg * dg + db * db < 0.008f) continue;
+                if (Mathf.Max(r, Mathf.Max(g, b)) < 0.12f) continue;
+                sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                n++;
+            }
+            return n < 32 ? 0f : (float)(sum / n);
+        }
+
+        static Color CornerColor(Color32[] pixels, int w, int h)
+        {
+            int[] ids =
+            {
+                0, w - 1, (h - 1) * w, (h - 1) * w + w - 1,
+                w / 2, (h - 1) * w + w / 2
+            };
+            float r = 0f, g = 0f, b = 0f;
+            int n = 0;
+            for (int i = 0; i < ids.Length; i++)
+            {
+                int id = ids[i];
+                if (id < 0 || id >= pixels.Length) continue;
+                r += pixels[id].r;
+                g += pixels[id].g;
+                b += pixels[id].b;
+                n++;
+            }
+            if (n == 0) return new Color(0.82f, 0.83f, 0.85f);
+            return new Color(r / (255f * n), g / (255f * n), b / (255f * n));
+        }
+
+        static bool UnionRenderers(GameObject go, out Bounds box)
+        {
+            box = new Bounds(go.transform.position, Vector3.zero);
+            bool any = false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>())
+            {
+                if (r == null || !r.enabled) continue;
+                if (!any) { box = r.bounds; any = true; }
+                else box.Encapsulate(r.bounds);
+            }
+            return any;
+        }
+
+        /// <summary>Three-quarter view from behind, so a back-mounted quiver is in frame.</summary>
+        static void FrameRear(HeroActor actor, Camera cam, CameraRig rig)
+        {
+            if (cam == null || actor == null) return;
+            Vector3 face = FaceDir(actor);
+            Vector3 side = Vector3.Cross(Vector3.up, face);
+            if (side.sqrMagnitude < 0.001f) side = Vector3.right;
+            side.Normalize();
+            Vector3 look = actor.Pos + Vector3.up * 1.15f;
+            cam.fieldOfView = 28f;
+            Vector3 camPos = look - face * 2.2f + side * 1.25f + Vector3.up * 0.28f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+            PaperStage(actor, face, true);
+            if (paperCard != null)
+            {
+                paperCard.transform.SetPositionAndRotation(
+                    actor.Pos + face * 1.7f + Vector3.up * 1.05f,
+                    Quaternion.LookRotation(-face, Vector3.up));
+                paperCard.transform.localScale = new Vector3(8f, 5f, 1f);
+            }
+            PaperLight(actor, true, camPos, look);
+        }
+
+        /// <summary>Close three-quarter view of the shield face, from the front and the shield side.</summary>
+        static void FrameShield34(HeroActor actor, Camera cam, CameraRig rig)
+        {
+            if (cam == null || actor == null) return;
+            var propGo = GameObject.Find("gear_offhand");
+            Transform prop = propGo != null ? propGo.transform : null;
+            var arm = Art.Bone(actor.transform, "LeftForeArm");
+            Vector3 center = prop != null ? prop.position : arm != null ? arm.position : actor.Pos + Vector3.up;
+            Bounds box = new Bounds(center, Vector3.one * 0.35f);
+            if (prop != null)
+            {
+                foreach (var r in prop.GetComponentsInChildren<Renderer>())
+                {
+                    if (r == null || !r.enabled) continue;
+                    box.Encapsulate(r.bounds);
+                }
+            }
+            Vector3 face = FaceDir(actor);
+            Vector3 side = Vector3.Cross(face, Vector3.up);
+            if (side.sqrMagnitude < 1e-4f) side = Vector3.right;
+            side.Normalize();
+            // Left hand is on +X when the hero faces +Z, which is -Cross(forward, up).
+            Vector3 shieldSide = -side;
+            Vector3 look = box.center;
+            cam.fieldOfView = 22f;
+            float radius = Mathf.Max(box.extents.magnitude, 0.28f);
+            float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + 0.15f;
+            Vector3 camPos = look + (face * 0.75f + shieldSide * 0.65f).normalized * dist + Vector3.up * radius * 0.12f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+        }
+
+        /// <summary>Tight frame on the hand that holds a small weapon.</summary>
+        static void FrameHand(HeroActor actor, Camera cam, CameraRig rig)
+        {
+            if (cam == null || actor == null) return;
+            var propGo = GameObject.Find("gear_weapon") ?? GameObject.Find("gear_offhand");
+            Transform prop = propGo != null ? propGo.transform : null;
+            Transform hand = prop != null ? prop.parent : null;
+            if (hand == null) hand = Art.Bone(actor.transform, "RightHand") ?? Art.Bone(actor.transform, "hand");
+            if (hand == null) return;
+            Bounds box = new Bounds(hand.position, Vector3.one * 0.1f);
+            if (prop != null)
+            {
+                foreach (var r in prop.GetComponentsInChildren<Renderer>())
+                {
+                    if (r == null || !r.enabled) continue;
+                    box.Encapsulate(r.bounds);
+                }
+            }
+            Vector3 face = FaceDir(actor);
+            Vector3 look = box.center;
+            cam.fieldOfView = 22f;
+            float radius = Mathf.Max(box.extents.magnitude, 0.1f);
+            float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + 0.06f;
+            Vector3 camPos = look + face * dist + Vector3.up * radius * 0.12f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+        }
+
+        static void StandIdle(HeroActor actor)
+        {
+            if (actor == null) return;
+            if (actor.Dead) actor.Revive(1f);
+            if (actor.transform != null) actor.transform.localRotation = Quaternion.identity;
+            GearAttach.PoseIdle(actor.transform);
+            var ik = actor.GetComponentInChildren<OffHandIk>();
+            if (ik != null) ik.Apply();
+        }
+
+        static void FrameGrip(HeroActor actor, Camera cam, CameraRig rig, bool main)
+        {
+            if (cam == null || actor == null) return;
+            var right = Art.Bone(actor.transform, "RightHand") ?? Art.Bone(actor.transform, "hand");
+            var left = Art.Bone(actor.transform, "LeftHand") ?? Art.Bone(actor.transform, "LeftForeArm");
+            var prop = GameObject.Find("gear_weapon") ?? GameObject.Find("gear_offhand");
+            bool any = false;
+            Bounds box = new Bounds(actor.Pos + Vector3.up, Vector3.zero);
+            if (right != null) { box = new Bounds(right.position, Vector3.one * 0.08f); any = true; }
+            if (left != null)
+            {
+                if (!any) { box = new Bounds(left.position, Vector3.one * 0.08f); any = true; }
+                else box.Encapsulate(left.position);
+            }
+            if (prop != null)
+            {
+                foreach (var r in prop.GetComponentsInChildren<Renderer>())
+                {
+                    if (r == null || !r.enabled) continue;
+                    if (!any) { box = r.bounds; any = true; }
+                    else box.Encapsulate(r.bounds);
+                }
+            }
+            if (!any) return;
+            Vector3 face = FaceDir(actor);
+            Vector3 look = box.center;
+            float radius = Mathf.Max(box.extents.magnitude, 0.25f);
+            cam.fieldOfView = 32f;
+            float dist = radius / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + 0.35f;
+            Vector3 camPos = look + face * dist + Vector3.up * radius * 0.15f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+        }
+
+        static bool WearWeapon(GameManager gm, string baseId)
+        {
+            var hero = gm.State.hero;
+            hero.classless = true;
+            hero.inventory.RemoveAll(it => it != null && it.kind == ItemKind.Equipment);
+            for (int i = 0; i < (int)EquipSlot.Count; i++)
+                hero.equipment[i] = null;
+            var it = Loot.Generate(new Rng(5), 14, Rarity.Rare, null, null, baseId, 8);
+            bool main = it != null && it.Base != null && it.Base.slot == ItemSlot.MainHand;
+            if (it == null || !hero.AddItem(it) || !hero.Equip(it))
+                Debug.LogError("Hollowmere gear FAIL could not equip " + baseId + " free=" + hero.FreeSlots);
+            gm.OnEquipmentChanged();
+            return main;
+        }
+
+        static void WearFamily(GameManager gm, (EquipSlot slot, string id)[] pieces, string family, int tier)
+        {
+            var hero = gm.State.hero;
+            hero.classless = true;
+            hero.inventory.RemoveAll(it => it != null && it.kind == ItemKind.Equipment);
+            for (int i = 0; i < (int)EquipSlot.Count; i++)
+                hero.equipment[i] = null;
+            var rng = new Rng(11);
+            for (int i = 0; i < pieces.Length; i++)
+            {
+                var it = Loot.Generate(rng, 12, Rarity.Rare, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
+                if (it == null)
+                {
+                    Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id);
+                    continue;
+                }
+                it.family = family;
+                it.tier = tier;
+                if (!hero.AddItem(it) || !hero.Equip(it))
+                    Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id + " free=" + hero.FreeSlots);
+            }
+            gm.OnEquipmentChanged();
+        }
+
         static (EquipSlot slot, string id) Piece((EquipSlot slot, string id)[] pieces, EquipSlot slot)
         {
             for (int i = 0; i < pieces.Length; i++)
@@ -364,6 +1014,11 @@ namespace Hollowmere
             for (int i = 0; i < pieces.Length; i++)
             {
                 var it = Loot.Generate(rng, 12, Rarity.Rare, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
+                if (it != null)
+                {
+                    it.family = "plate";
+                    it.tier = 3;
+                }
                 if (it == null || !hero.AddItem(it) || !hero.Equip(it))
                     Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id + " free=" + hero.FreeSlots);
             }

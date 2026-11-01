@@ -241,7 +241,10 @@ namespace Hollowmere.Core
         {
             if (it == null || it.kind != ItemKind.Equipment) return false;
             var b = it.Base;
+            if (b == null) return false;
             if (classless) return true;
+            // The weapon in hand picks the attack. Main hand and off hand are not class-locked.
+            if (b.slot == ItemSlot.MainHand || b.slot == ItemSlot.OffHand) return true;
             return b.classOnly == null || b.classOnly == heroClass;
         }
 

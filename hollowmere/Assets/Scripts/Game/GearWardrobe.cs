@@ -89,12 +89,21 @@ namespace Hollowmere
                     Object.DestroyImmediate(extra);
                 }
                 var cover = covers[region];
-                if (cover.hideAll || full == null)
+                if (full == null)
                 {
                     smr.forceRenderingOff = true;
                     continue;
                 }
-                var open = Open(full, cover.fraction, cover.under);
+                // 85 percent and the whole region comes off, which is what kept the chest
+                // and the neck from cutting the plate in attack, roll, cast, and reel.
+                // Below that, drop only the triangles 1 cm inside so a partial piece
+                // does not open a hole in the chain check.
+                if (cover.hideAll)
+                {
+                    smr.forceRenderingOff = true;
+                    continue;
+                }
+                var open = Open(full, 0f, cover.under);
                 if (open == null)
                 {
                     smr.forceRenderingOff = false;
@@ -268,49 +277,105 @@ namespace Hollowmere
                 var slot = GearFit.Visible[i];
                 var it = hero.Equipped(slot);
                 if (Item.IsNone(it)) continue;
-                string folder = Folder(it);
+                int tier = GearTable.TierOf(it.tier, it.rarity);
+                string family = FamilyOf(it);
                 string slotName = GearFit.SlotName(slot);
-                var prefab = Load(folder, slotName, out bool lower);
+                var prefab = Load(family, slotName, tier, out bool lower);
                 if (prefab == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, folder);
+                var piece = Spawn(body, skin, slot, prefab, family, tier, !lower);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
                     continue;
                 }
                 placed.Add(piece);
-                if (!lower && folder != "plate")
-                    Debug.Log("Hollowmere gear " + slotName + " set " + folder);
+                Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + (lower ? " cc0" : tier < GearTable.TierCount ? " finish" : " authored"));
             }
             BodyRegions.Show(body, Coverage(body, placed));
         }
 
-        static string Folder(Item it)
+        static void Tint(GameObject go, string family, int tier)
         {
-            string id = it != null ? it.setId : null;
-            if (!string.IsNullOrEmpty(id))
+            if (go == null || !GearTable.TryFinish(family, tier, out var fin)) return;
+            // R, G, B multiply the authored base colour. They never replace the albedo,
+            // normal, or metal maps. A hard lerp toward a flat tint plus a strong
+            // emission is what washed tier 3 plate and arcane to white and infernal to orange.
+            var mul = new Color(fin.R, fin.G, fin.B, 1f);
+            var accent = FamilyAccent(family) * fin.Emit;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
-                if (id.StartsWith("set_")) id = id.Substring(4);
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    if (m.HasProperty("_BaseColor"))
+                    {
+                        var c = m.GetColor("_BaseColor");
+                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
+                        m.SetColor("_BaseColor", Color.Lerp(c, scaled, fin.Blend));
+                    }
+                    else
+                    {
+                        var c = m.color;
+                        var scaled = new Color(c.r * mul.r, c.g * mul.g, c.b * mul.b, c.a);
+                        m.color = Color.Lerp(c, scaled, fin.Blend);
+                    }
+                    if (fin.Emit > 0.02f)
+                    {
+                        if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", accent);
+                        if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", accent);
+                        m.EnableKeyword("_EMISSION");
+                    }
+                    if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", fin.Metal);
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", fin.Smooth);
+                }
+                r.materials = mats;
+            }
+        }
+
+        /// <summary>Small tier-3 trim. Kept off the albedo multiplier so a near-white modulate cannot blow the maps out.</summary>
+        static Color FamilyAccent(string family)
+        {
+            switch (family)
+            {
+                case "infernal": return new Color(1f, 0.32f, 0.06f);
+                case "arcane": return new Color(0.35f, 0.55f, 1f);
+                case "bone": return new Color(0.95f, 0.78f, 0.40f);
+                case "leather": return new Color(0.55f, 0.28f, 0.10f);
+                default: return new Color(1f, 0.78f, 0.35f);
+            }
+        }
+
+        static string FamilyOf(Item it)
+        {
+            string fromSet = GearTable.FamilyFromSet(it != null ? it.setId : null);
+            if (!string.IsNullOrEmpty(fromSet)) return fromSet;
+            if (it != null && !string.IsNullOrEmpty(it.family))
+            {
                 for (int i = 0; i < Sets.Length; i++)
-                    if (Sets[i] == id) return Sets[i];
+                    if (Sets[i] == it.family) return Sets[i];
             }
             return "plate";
         }
 
-        static GameObject Load(string setFolder, string slot, out bool lower)
+        static GameObject Load(string family, string slot, int tier, out bool lower)
         {
             lower = false;
-            var low = Resources.Load<GameObject>("Gear/Lower/" + slot);
-            if (low != null) { lower = true; return low; }
-            if (string.IsNullOrEmpty(setFolder)) return null;
-            return Resources.Load<GameObject>(PackRoot + "/" + setFolder + "/" + slot);
+            if (tier < GearTable.TierCount)
+            {
+                var low = Resources.Load<GameObject>("Gear/Lower/" + family + "/" + slot);
+                if (low != null) { lower = true; return low; }
+            }
+            if (string.IsNullOrEmpty(family)) return null;
+            return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string setFolder)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string family, int tier, bool finish)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -328,7 +393,7 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return null;
             }
-            FitPiece(mesh, slot, setFolder, heroSkin.bones);
+            FitPiece(mesh, slot, family, heroSkin.bones);
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;
@@ -347,6 +412,7 @@ namespace Hollowmere
             }
             smr.materials = mats;
             Art.AdoptShaders(go);
+            if (finish) Tint(go, family, tier);
             Object.DestroyImmediate(inst);
             return smr;
         }
@@ -354,7 +420,7 @@ namespace Hollowmere
         /// <summary>
         /// Fraction of each body region within 3 cm of a piece, measured in the bind pose once
         /// per equip. A piece hides a region it is allowed to hide only at 85 percent. Below
-        /// that, the triangles it fully covers are dropped and the rest of the skin stays.
+        /// that, only triangles at least 1 cm inside the piece are dropped.
         /// </summary>
         static BodyRegions.Cover[] Coverage(Transform body, List<SkinnedMeshRenderer> pieces)
         {
@@ -386,9 +452,10 @@ namespace Hollowmere
                 if (full == null || !full.isReadable) continue;
                 var verts = full.vertices;
                 if (verts == null || verts.Length == 0) continue;
-                var under = new bool[verts.Length];
+                var inside = new bool[verts.Length];
                 float best = 0f;
                 string who = "";
+                bool anyInside = false;
                 for (int p = 0; p < pieces.Count; p++)
                 {
                     if (grids[p] == null || slots[p] == null || !GearFit.Hides(slots[p].Value, region)) continue;
@@ -396,8 +463,10 @@ namespace Hollowmere
                     for (int v = 0; v < verts.Length; v++)
                     {
                         if (!grids[p].Near(verts[v], GearFit.CoverDistance)) continue;
-                        under[v] = true;
                         hit++;
+                        if (!grids[p].Near(verts[v], GearFit.InsideDistance)) continue;
+                        inside[v] = true;
+                        anyInside = true;
                     }
                     float fraction = hit / (float)verts.Length;
                     if (fraction > best)
@@ -408,7 +477,7 @@ namespace Hollowmere
                 }
                 covers[region].fraction = best;
                 covers[region].hideAll = GearFit.Covers(best);
-                covers[region].under = best > 0f ? under : null;
+                covers[region].under = anyInside ? inside : null;
                 if (best > 0.001f)
                     Debug.Log("Hollowmere gear cover " + who + " " + tail + " " + best.ToString("0.00")
                         + (covers[region].hideAll ? " hide" : " open"));

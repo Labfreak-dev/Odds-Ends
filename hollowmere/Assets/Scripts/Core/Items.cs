@@ -39,6 +39,10 @@ namespace Hollowmere.Core
         public string legendaryId;
         public float legendaryValue;
         public string setId;
+        /// <summary>1–3 depth of a visible armour family. 0 means the rarity picks the tier.</summary>
+        public int tier;
+        /// <summary>plate, leather, arcane, bone, or infernal. Empty until loot assigns one.</summary>
+        public string family;
         public List<AffixRoll> affixes = new List<AffixRoll>();
         public float weaponMin, weaponMax, attacksPerSecond;
         public int armor;

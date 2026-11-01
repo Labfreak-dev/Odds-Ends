@@ -34,6 +34,7 @@ static class Program
         PostVolumeLevel();
         HeroFitLevel();
         GearFitLevel();
+        GearCatalog();
         Cc0PropFiles();
         ModularKitFiles();
         SpecTables();
@@ -855,10 +856,53 @@ static class Program
         Check(GearFit.DrawTriangle(0.7f, true, true, false), "a partly covered region keeps the open corner");
         Check(!GearFit.DrawTriangle(0.7f, true, true, true), "a fully covered triangle stays under the piece");
         Check(GearFit.DrawTriangle(0.2f, false, false, false), "an uncovered region stays visible");
+        Check(System.Math.Abs(GearFit.InsideDistance - 0.01f) < 0.0001f, "only skin 1 cm inside a piece is dropped");
         Check(GearFit.ChainCovered(true, 1f), "a drawn limb is a surface");
         Check(!GearFit.ChainCovered(false, 0.08f), "hidden skin farther than the seam is a chain gap");
         Check(GearFit.ChainCovered(false, 0.03f), "hidden skin under a piece is still covered");
         Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
+    }
+
+    static void GearCatalog()
+    {
+        Check(GearTable.Families.Length == 5, "five armour families");
+        Check(GearTable.TierCount == 3, "three depth tiers");
+        Check(GearTable.TryFinish("plate", 1, out var dull) && dull.Metal < 0.1f && dull.Emit < 0.08f && dull.R < 0.7f && dull.R > dull.G && dull.G > dull.B, "tier 1 plate is worn and rusty");
+        Check(GearTable.TryFinish("plate", 2, out var steel) && steel.R > 1.1f && steel.Metal > 0.5f && steel.Emit < 0.05f && steel.R > dull.R + 0.4f, "tier 2 plate is clean steel");
+        Check(GearTable.TryFinish("infernal", 3, out var hot) && hot.Emit > 0.05f && hot.Emit < 0.22f && hot.R > 0.9f && hot.R < 1.15f, "tier 3 modulates the authored maps");
+        Check(Math.Abs(GearTable.ArmorMul(1) - 0.8f) < 0.001f && GearTable.ArmorMul(3) > 1f, "tier scales armour");
+        Check(GearTable.CountAll >= 40, "forty weapon and off-hand bases");
+        var seen = new Dictionary<string, string>();
+        foreach (var type in GearTable.WeaponTypes)
+        {
+            Check(GearTable.CountType(type) >= 3, type + " has three bases");
+            Check(GearTable.Signature(type) != null, type + " has a signature");
+        }
+        int signatures = 0;
+        foreach (var row in GearTable.Weapons)
+        {
+            Check(ItemDb.Base(row.Id) != null && ItemDb.Base(row.Id).model == row.Model, row.Id + " is a base with its own model");
+            if (row.Signature) signatures++;
+            if (seen.TryGetValue(row.Model, out var other))
+                Check(other == row.Type, row.Model + " is not shared across types");
+            else seen[row.Model] = row.Type;
+            Check(GearTable.TrySocket(row.Id, out var sock) && sock.Reach <= GearTable.GripLimit, row.Id + " grip stays within 5 cm");
+        }
+        Check(signatures == 12, "twelve signature weapons");
+        Check(ItemDb.Base("warscythe").name == "Glaive" && ItemDb.Base("warscythe").model == "scythe_3", "scythe_3 is labelled a glaive");
+        Check(ItemDb.Base("warhammer").name == "Warhammer" && ItemDb.Base("warhammer").model == "mace_3", "mace_3 is the warhammer");
+        foreach (var row in GearTable.Weapons)
+            Check(File.Exists(Path.Combine("Assets", "Resources", "Gear", "Weapons", row.Model + ".glb")), row.Model + " mesh is on disk");
+        Check(ItemDb.Set("set_plate") != null && ItemDb.Set("set_infernal").pieces.Length == 8, "each visual set lists eight slots");
+        var rolled = Loot.Generate(new Rng(9), 10, Rarity.Common, null, ItemSlot.Chest);
+        Check(rolled.tier == 1 && !string.IsNullOrEmpty(rolled.family), "a common chest is tier 1 of a family");
+        var set = Loot.Generate(new Rng(4), 20, Rarity.Set, null, ItemSlot.Head, "helm");
+        Check(set.tier == 3, "a set helm is tier 3");
+        var clad = Hero.Create(HeroClass.Ironclad, "Qa", new Rng(3));
+        var bow = Loot.Generate(new Rng(1), 8, Rarity.Rare, null, null, "bow", 4);
+        Check(clad.AddItem(bow) && clad.Equip(bow) && clad.Equipped(EquipSlot.MainHand).baseId == "bow", "a bow equips in the main hand");
+        var orb = Loot.Generate(new Rng(1), 8, Rarity.Rare, null, null, "orb", 4);
+        Check(clad.AddItem(orb) && clad.Equip(orb) && clad.Equipped(EquipSlot.OffHand).baseId == "orb", "an orb equips in the off hand");
     }
 
     /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh

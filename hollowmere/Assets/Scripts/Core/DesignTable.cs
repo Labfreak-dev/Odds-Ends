@@ -820,12 +820,27 @@ namespace Hollowmere.Core
             switch (id)
             {
                 case "bow":
-                case "crossbow": return Attacks[2];
+                case "shortbow":
+                case "longbow":
+                case "crossbow":
+                case "handcrossbow":
+                case "arbalest": return Attacks[2];
                 case "staff":
+                case "warstaff":
+                case "crook":
                 case "wand":
-                case "orb": return Attacks[3];
+                case "sceptre":
+                case "focus":
+                case "orb":
+                case "crystal":
+                case "phylactery": return Attacks[3];
                 case "greataxe":
-                case "warhammer": return Attacks[1];
+                case "warhammer":
+                case "greatsword":
+                case "spear":
+                case "pike":
+                case "scythe":
+                case "warscythe": return Attacks[1];
                 default: return Attacks[0];
             }
         }

@@ -158,6 +158,7 @@ namespace Hollowmere.Core
                     (4, Stat.PetDamage, 150f, "Your companion deals 150% more damage"),
                 },
             });
+            GearTable.Register(Bases, baseById, Sets);
         }
 
         static void Weapon(string id, string name, float lo, float hi, float aps, bool twoHanded = false, HeroClass? cls = null, Element element = Element.Physical)

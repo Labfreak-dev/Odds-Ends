@@ -14,6 +14,11 @@ namespace UnityEngine.Rendering
     public class VolumeProfile : ScriptableObject
     {
         public T Add<T>(bool overrides = false) where T : VolumeComponent, new() => new T();
+        public bool TryGet<T>(out T component) where T : VolumeComponent
+        {
+            component = null;
+            return false;
+        }
     }
 
     public class VolumeParameter<T>

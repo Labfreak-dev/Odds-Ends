@@ -185,9 +185,9 @@ namespace Hollowmere
             if (hand == null || it == null) return;
             string model = GearTable.ModelFor(it.baseId);
             string type = GearTable.TypeOf(it.baseId);
-            if (type == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name))
+            if (type == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name, model))
                 return;
-            if (type == "shield" && PlaceShield(body, "Gear/Weapons/" + model, name))
+            if (type == "shield" && PlaceShield(body, "Gear/Weapons/" + model, name, model))
                 return;
             if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name))
             {
@@ -200,7 +200,7 @@ namespace Hollowmere
             Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
         }
 
-        static bool PlaceQuiver(Transform body, string resource, string name)
+        static bool PlaceQuiver(Transform body, string resource, string name, string model)
         {
             var spine = Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1") ?? Art.Bone(body, "Spine");
             if (spine == null) return false;
@@ -208,39 +208,117 @@ namespace Hollowmere
             if (prefab == null) return false;
             var go = Object.Instantiate(prefab, spine);
             go.name = name;
-            // The tube is about 0.75 m on +Y. Stood upright on the chest it clears the head.
-            // Tip it across the back so the top ends at the shoulder and the tail at the hip.
-            var dir = new Vector3(0.42f, 0.72f, -0.38f).normalized;
-            go.transform.localRotation = Quaternion.FromToRotation(Vector3.up, dir);
-            float drop = 0.375f * dir.y - 0.02f;
-            go.transform.localPosition = MetresOn(spine, new Vector3(0.02f, -drop, -0.13f));
+            NameMesh(go, model);
+            // +Y is the arrow direction, +Z the thin axis. Lay the tube on the upper back
+            // and send the arrows up over the character's right shoulder.
+            Vector3 back = -spine.forward;
+            if (back.sqrMagnitude < 1e-6f) back = Vector3.back;
+            back.Normalize();
+            Vector3 right = spine.right.sqrMagnitude > 1e-6f ? -spine.right.normalized : Vector3.right;
+            Vector3 arrows = (Vector3.up * 0.88f + right * 0.42f + back * 0.12f).normalized;
+            go.transform.rotation = Quaternion.LookRotation(back, arrows);
             FitWorldScale(go.transform, spine);
-            PaintPlain(go, new Color(0.42f, 0.28f, 0.16f));
+            FitLongest(go.transform, 0.75f);
+            Vector3 backSkin = spine.position + back * 0.14f;
+            go.transform.position = backSkin + back * 0.09f + right * 0.05f + Vector3.down * 0.02f;
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            Art.AdoptShaders(go);
+            Reveal(go, spine.gameObject.layer);
             return true;
         }
 
         /// <summary>
-        /// Shield on the left forearm, face outward, about 0.8 m tall.
+        /// Shield on the outside of the left forearm, face outward, about 0.8 m tall.
         /// The pivot stays within 5 cm of the bone so the grip audit still passes.
+        /// A mirrored arm flips the winding; both sides are drawn or the plate vanishes
+        /// while its bounds still pass.
         /// </summary>
-        static bool PlaceShield(Transform body, string resource, string name)
+        static bool PlaceShield(Transform body, string resource, string name, string model)
         {
             var arm = Art.Bone(body, "LeftForeArm");
             if (arm == null) return false;
             var prefab = Resources.Load<GameObject>(resource);
             if (prefab == null) return false;
+            var hand = Art.Bone(body, "LeftHand");
+            var chest = Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1") ?? Art.Bone(body, "Spine");
             var go = Object.Instantiate(prefab, arm);
             go.name = name;
-            // Forearm -X points away from the chest. Yaw -90 turns the shield's broad face that way
-            // and leaves its long axis along the forearm.
-            go.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
-            go.transform.localPosition = MetresOn(arm, new Vector3(-0.03f, 0.03f, 0f));
+            NameMesh(go, model);
+            Vector3 along = hand != null ? hand.position - arm.position : arm.up;
+            if (along.sqrMagnitude < 1e-6f) along = Vector3.down;
+            along.Normalize();
+            Vector3 outward = arm.position - (chest != null ? chest.position : arm.position);
+            outward -= Vector3.Project(outward, along);
+            if (outward.sqrMagnitude < 1e-4f) outward = Vector3.Cross(along, Vector3.up);
+            outward.Normalize();
+            go.transform.rotation = Quaternion.LookRotation(outward, along);
+            go.transform.position = arm.position + outward * 0.035f + along * 0.02f;
             FitWorldScale(go.transform, arm);
             FitLongest(go.transform, 0.82f);
+            if (arm.localToWorldMatrix.determinant < 0f)
+            {
+                var s = go.transform.localScale;
+                s.x = -s.x;
+                go.transform.localScale = s;
+            }
             foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
             Art.AdoptShaders(go);
-            PaintPlain(go, new Color(0.55f, 0.52f, 0.48f));
+            Reveal(go, arm.gameObject.layer);
             return true;
+        }
+
+        /// <summary>Keep the imported mesh, and name the copy after the equipped model so the audit can match it.</summary>
+        static void NameMesh(GameObject go, string model)
+        {
+            if (go == null || string.IsNullOrEmpty(model)) return;
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null || mf.sharedMesh.name == model) continue;
+                var copy = Object.Instantiate(mf.sharedMesh);
+                copy.name = model;
+                mf.sharedMesh = copy;
+            }
+        }
+
+        /// <summary>Opaque, both sides, on the body layer. A one-sided material on a mirrored bone draws nothing.</summary>
+        static void Reveal(GameObject go, int layer)
+        {
+            if (go == null) return;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null) continue;
+                r.gameObject.layer = layer;
+                r.enabled = true;
+                r.forceRenderingOff = false;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                var mats = r.materials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    if (m.HasProperty("_Cull")) m.SetFloat("_Cull", 0f);
+                    m.doubleSidedGI = true;
+                    if (m.HasProperty("_Surface")) m.SetFloat("_Surface", 0f);
+                    if (m.HasProperty("_AlphaClip")) m.SetFloat("_AlphaClip", 0f);
+                    m.DisableKeyword("_ALPHATEST_ON");
+                    m.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                    m.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                    m.renderQueue = 2000;
+                    if (m.HasProperty("_BaseColor"))
+                    {
+                        var c = m.GetColor("_BaseColor");
+                        c.a = 1f;
+                        m.SetColor("_BaseColor", c);
+                    }
+                    if (m.HasProperty("_Color"))
+                    {
+                        var c = m.color;
+                        c.a = 1f;
+                        m.color = c;
+                    }
+                }
+                r.materials = mats;
+            }
         }
 
         /// <summary>Scale so the longest world axis is exactly <paramref name="metres"/>.</summary>
@@ -466,6 +544,7 @@ namespace Hollowmere
             if (!IsHandBone(prop.parent))
             {
                 Debug.Log("Hollowmere grip " + type + " bounds back");
+                if (type == "quiver") AuditQuiver(body, prop);
                 return;
             }
             if (!TryRendererGap(hand, prop, out float gap))
@@ -477,24 +556,80 @@ namespace Hollowmere
             if (type == "shield") AuditShield(body, prop);
         }
 
-        /// <summary>Shield must be a real plate on the forearm, not a speck at the hip.</summary>
+        /// <summary>Shield must be a real plate on the forearm, and the renderer that owns the bounds has to be drawing.</summary>
         static void AuditShield(Transform body, Transform prop)
         {
             if (prop == null) return;
             var arm = Art.Bone(body, "LeftForeArm");
             float dist = arm != null ? Vector3.Distance(prop.position, arm.position) : 99f;
             float height = 0f;
+            bool drawn = false;
             foreach (var r in prop.GetComponentsInChildren<Renderer>(true))
             {
-                if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                if (r == null || !r.gameObject.activeInHierarchy) continue;
+                if (!r.enabled || r.forceRenderingOff) continue;
+                drawn = true;
                 float axis = Art.MaxAxis(r.bounds.size);
                 if (axis > height) height = axis;
             }
+            var scale = prop.lossyScale;
+            float big = Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
             string line = "Hollowmere grip shield forearm " + (dist * 100f).ToString("0.0")
-                + "cm height " + (height * 100f).ToString("0.0") + "cm";
+                + "cm height " + (height * 100f).ToString("0.0") + "cm"
+                + (drawn ? " drawn" : " hidden");
             Debug.Log(line);
-            if (height < 0.5f || dist > 0.10f)
+            if (!drawn || height < 0.5f || dist > 0.10f || big < 0.2f)
                 Debug.LogError("Hollowmere grip shield FAIL " + line);
+        }
+
+        /// <summary>The quiver mesh has to be the equipped model, sitting on the back rather than spiked off it.</summary>
+        static void AuditQuiver(Transform body, Transform prop)
+        {
+            if (prop == null) return;
+            string model = EquippedModel(body, EquipSlot.OffHand);
+            bool named = MeshNamed(prop, model);
+            var spine = Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1") ?? Art.Bone(body, "Spine");
+            float gap = 99f;
+            if (spine != null)
+            {
+                Vector3 back = -spine.forward;
+                if (back.sqrMagnitude < 1e-6f) back = Vector3.back;
+                Vector3 backSkin = spine.position + back.normalized * 0.14f;
+                foreach (var r in prop.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                    float d = Vector3.Distance(r.bounds.ClosestPoint(backSkin), backSkin);
+                    if (d < gap) gap = d;
+                }
+            }
+            string mesh = named ? model : "mismatch";
+            string line = "Hollowmere grip quiver mesh " + mesh + " back " + (gap * 100f).ToString("0.0") + "cm";
+            Debug.Log(line);
+            if (!named || gap > 0.05f)
+                Debug.LogError("Hollowmere grip quiver FAIL " + line);
+        }
+
+        static string EquippedModel(Transform body, EquipSlot slot)
+        {
+            var actor = body != null ? body.GetComponentInParent<HeroActor>() : null;
+            var hero = actor != null ? actor.Hero : null;
+            var it = hero != null ? hero.Equipped(slot) : null;
+            if (Item.IsNone(it)) return "";
+            return GearTable.ModelFor(it.baseId);
+        }
+
+        static bool MeshNamed(Transform prop, string model)
+        {
+            if (prop == null || string.IsNullOrEmpty(model)) return false;
+            foreach (var mf in prop.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh != null && mf.sharedMesh.name == model) return true;
+            }
+            foreach (var r in prop.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (r.sharedMesh != null && r.sharedMesh.name == model) return true;
+            }
+            return false;
         }
 
         public static void AuditFramed(Transform body, Camera cam)

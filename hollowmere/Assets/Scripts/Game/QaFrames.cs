@@ -554,8 +554,9 @@ namespace Hollowmere
             var cr = card.GetComponent<Renderer>();
             cr.sharedMaterial = Art.Mat(grey);
             cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 1.85f, Quaternion.Euler(42f, -32f, 0f));
-            AddLineupLight(root.transform, "lineupFill", new Color(0.80f, 0.86f, 1f), 0.9f, Quaternion.Euler(16f, 148f, 0f));
+            AddLineupLight(root.transform, "lineupKey", new Color(1f, 0.98f, 0.94f), 3.6f, Quaternion.Euler(48f, -24f, 0f));
+            AddLineupLight(root.transform, "lineupFill", new Color(0.84f, 0.90f, 1f), 2.2f, Quaternion.Euler(14f, 150f, 0f));
+            AddLineupLight(root.transform, "lineupFront", new Color(1f, 0.99f, 0.96f), 2.5f, Quaternion.Euler(8f, 180f, 0f));
             float width = Mathf.Max(cell, (cols - 1) * cell + target);
             float height = Mathf.Max(cell, (nRows - 1) * cell + target * 1.35f);
             float fov = 26f;

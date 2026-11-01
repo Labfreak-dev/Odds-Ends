@@ -33,6 +33,7 @@ static class Program
         ModelAlbedo();
         PostVolumeLevel();
         HeroFitLevel();
+        GearFitLevel();
         Cc0PropFiles();
         ModularKitFiles();
         SpecTables();
@@ -784,6 +785,32 @@ static class Program
             Check(!HeroFit.IconCard(false, 684, false, null), mode + " accepts a steel pauldron mesh");
             Check(!HeroFit.IconCard(false, 3500, false, "Image_0"), mode + " accepts a weapon albedo");
         }
+    }
+
+    static void GearFitLevel()
+    {
+        Check(GearFit.SlotForBone("mixamorig:Head") == EquipSlot.Head, "head bone maps to the helm slot");
+        Check(GearFit.SlotForBone("LeftForeArm") == EquipSlot.Wrists, "forearm maps to the wrist slot");
+        Check(GearFit.SlotForBone("RightToeBase") == EquipSlot.Feet, "toe maps to the boot slot");
+        Check(GearFit.SlotForBone("Jaw") == null, "an unbound bone is not a slot");
+        Check(!GearFit.IsVisible(EquipSlot.Amulet) && !GearFit.IsVisible(EquipSlot.Ring1), "rings and the amulet stay invisible");
+        Check(GearFit.Visible.Length == 8, "eight armour slots are skinned");
+        Check(GearFit.Adjacent.Length >= 7, "adjacent slots are all paired");
+        Check(GearFit.WeightsOk(1f) && !GearFit.WeightsOk(0.2f), "bone weights have to sum to one");
+        Check(GearFit.GapOk(GearFit.ShellOffset) && !GearFit.GapOk(0.001f) && !GearFit.GapOk(0.2f), "the shell sits off the skin without floating");
+        Check(GearFit.StretchOk(1f) && !GearFit.StretchOk(8f), "a vertex that flies off its bone is a stretch");
+        Check(GearFit.Covered(0.02f) && !GearFit.Covered(0.2f), "a hidden body vertex must sit under its piece");
+        Check(GearFit.VisibleClear(0.02f) && !GearFit.VisibleClear(0.001f), "visible skin must stay clear of the shell");
+        var names = new[] { "hero|idle", "Run", "attack_01", "death" };
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[0]), "idle is a required pose");
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[1]), "run or walk is a required pose");
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[2]), "attack is a required pose");
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[3]), "death is a required pose");
+        Check(!GearFit.HasRequiredPose(new[] { "idle" }, GearFit.RequiredPoses[3]), "death cannot be skipped");
+        var mix = GearFit.Mix(7, 4);
+        var again = GearFit.Mix(7, 4);
+        Check(mix.Length == 4 && mix[0] == again[0] && mix[3] == again[3], "a set mix is deterministic");
+        Check(GearFit.PoseMatch("hero|fish_idle|0", "fish"), "fishing clips count as a pose");
     }
 
     /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh

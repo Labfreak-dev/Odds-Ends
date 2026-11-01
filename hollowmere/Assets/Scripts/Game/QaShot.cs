@@ -20,6 +20,7 @@ namespace Hollowmere
     ///   Hollowmere -qaShot monsterdeath
     ///   Hollowmere -qaShot skelclose
     ///   Hollowmere -qaShot propclose
+    ///   Hollowmere -qaShot gearslots
     ///   Hollowmere -qaShot creator
     ///   Hollowmere -qaShot weapon-melee
     ///   Hollowmere -qaShot weapon-ranged
@@ -113,6 +114,8 @@ namespace Hollowmere
                 case "combatfeel":
                 case "lootbeam":
                 case "loot-beam":
+                case "gearslots":
+                case "gear-slots":
                     return true;
             }
             return false;
@@ -136,6 +139,11 @@ namespace Hollowmere
             if (scene == "combatfeel")
             {
                 yield return QaFrames.RunCombatFeel(gm);
+                yield break;
+            }
+            if (scene == "gearslots" || scene == "gear-slots")
+            {
+                yield return QaFrames.RunGearSlots(gm, false);
                 yield break;
             }
             bool title = scene == "title";

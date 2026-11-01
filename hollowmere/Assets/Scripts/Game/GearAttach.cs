@@ -37,8 +37,13 @@ namespace Hollowmere
                 var off = hero.Equipped(EquipSlot.OffHand);
                 if (!Item.IsNone(off))
                     Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
-                Armor(body, hero, EquipSlot.Head, "helm");
-                Armor(body, hero, EquipSlot.Chest, "chest");
+                if (v5)
+                    GearShell.Fit(body, hero);
+                else
+                {
+                    Armor(body, hero, EquipSlot.Head, "helm");
+                    Armor(body, hero, EquipSlot.Chest, "chest");
+                }
             }
             finally
             {

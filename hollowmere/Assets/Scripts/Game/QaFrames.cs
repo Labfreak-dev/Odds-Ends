@@ -16,6 +16,7 @@ namespace Hollowmere
     ///   Hollowmere -qaFrames skelclose
     ///   Hollowmere -qaFrames propclose
     ///   Hollowmere -qaFrames telegraphs
+    ///   Hollowmere -qaFrames gearslots
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
@@ -55,6 +56,11 @@ namespace Hollowmere
             if (mode == "telegraphs")
             {
                 yield return TelegraphFrames(gm);
+                yield break;
+            }
+            if (mode == "gearslots" || mode == "gear-slots")
+            {
+                yield return RunGearSlots(gm, true);
                 yield break;
             }
             if (mode != "move" && mode != "pet" && mode != "combat")
@@ -178,6 +184,182 @@ namespace Hollowmere
         };
 
         public static IEnumerator RunCombatFeel(GameManager gm) => CombatFeelFrames(gm);
+
+        public static IEnumerator RunGearSlots(GameManager gm, bool frames)
+        {
+            var feel = Feel.Active;
+            gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
+            gm.EnterTown(false);
+            yield return new WaitForSeconds(0.45f);
+            Screen.SetResolution(feel.width, feel.height, FullScreenMode.Windowed);
+            yield return null;
+            var actor = HeroActor.I;
+            if (actor == null)
+            {
+                Debug.LogError("Hollowmere gear FAIL no hero");
+                Application.Quit();
+                yield break;
+            }
+            var cam = Camera.main;
+            var rig = cam != null ? cam.GetComponent<CameraRig>() : null;
+            (EquipSlot slot, string id)[] pieces =
+            {
+                (EquipSlot.Head, "helm"),
+                (EquipSlot.Shoulders, "pauldrons"),
+                (EquipSlot.Chest, "plate"),
+                (EquipSlot.Hands, "gauntlets"),
+                (EquipSlot.Wrists, "bracers"),
+                (EquipSlot.Waist, "belt"),
+                (EquipSlot.Legs, "greaves"),
+                (EquipSlot.Feet, "boots"),
+            };
+            if (frames)
+            {
+                Wear(gm, pieces);
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                var anim = actor.GetComponentInChildren<Animation>();
+                var names = GearAudit.ClipNames(anim);
+                int shot = 0;
+                for (int g = 0; g < GearFit.RequiredPoses.Length; g++)
+                {
+                    string clip = FirstPose(names, GearFit.RequiredPoses[g]);
+                    if (clip == null) continue;
+                    Sample(anim, clip, 0.35f);
+                    FrameGear(actor, cam, rig, false);
+                    yield return new WaitForEndOfFrame();
+                    Save("gearslots-" + GearFit.RequiredPoses[g][0], shot++);
+                }
+                int fails = GearAudit.Run(actor.transform);
+                Debug.Log("Hollowmere gear frames fails=" + fails);
+                Debug.Log("Hollowmere QA frames saved: " + shot + " gearslots");
+                Application.Quit();
+                yield break;
+            }
+            for (int i = 0; i < pieces.Length; i++)
+            {
+                Wear(gm, new[] { pieces[i] });
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                FrameGear(actor, cam, rig, true);
+                yield return new WaitForEndOfFrame();
+                SaveNamed("gearslots-paper-" + GearFit.SlotName(pieces[i].slot));
+                FrameGear(actor, cam, rig, false);
+                yield return new WaitForEndOfFrame();
+                SaveNamed("gearslots-world-" + GearFit.SlotName(pieces[i].slot));
+                int fails = GearAudit.Run(actor.transform);
+                if (fails > 0)
+                    Debug.LogError("Hollowmere gear FAIL " + pieces[i].id + " poses " + fails);
+                else
+                    Debug.Log("Hollowmere gear " + pieces[i].id + " fit ok");
+            }
+            for (int i = 0; i < GearFit.Adjacent.Length; i++)
+            {
+                var pair = GearFit.Adjacent[i];
+                Wear(gm, new[] { Piece(pieces, pair.a), Piece(pieces, pair.b) });
+                yield return null;
+                int fails = GearAudit.Run(actor.transform);
+                if (fails > 0)
+                    Debug.LogError("Hollowmere gear FAIL pair " + pair.a + "+" + pair.b + " " + fails);
+                else
+                    Debug.Log("Hollowmere gear pair " + pair.a + "+" + pair.b + " ok");
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                var mix = GearFit.Mix(1000 + i, 4);
+                var worn = new (EquipSlot, string)[mix.Length];
+                for (int k = 0; k < mix.Length; k++) worn[k] = Piece(pieces, mix[k]);
+                Wear(gm, worn);
+                yield return null;
+                int fails = GearAudit.Run(actor.transform);
+                if (fails > 0)
+                    Debug.LogError("Hollowmere gear FAIL mix " + i + " " + fails);
+                else
+                    Debug.Log("Hollowmere gear mix " + i + " ok");
+            }
+            Debug.Log("Hollowmere QA gearslots saved");
+            Application.Quit();
+        }
+
+        static (EquipSlot slot, string id) Piece((EquipSlot slot, string id)[] pieces, EquipSlot slot)
+        {
+            for (int i = 0; i < pieces.Length; i++)
+                if (pieces[i].slot == slot) return pieces[i];
+            return (slot, "helm");
+        }
+
+        static void Wear(GameManager gm, (EquipSlot slot, string id)[] pieces)
+        {
+            var hero = gm.State.hero;
+            for (int i = 0; i < GearFit.Visible.Length; i++) hero.Unequip(GearFit.Visible[i]);
+            var rng = new Rng(11);
+            for (int i = 0; i < pieces.Length; i++)
+            {
+                var it = Loot.Generate(rng, 12, Rarity.Rare, null, ItemSlotOf(pieces[i].slot), pieces[i].id, 8);
+                if (!hero.AddItem(it) || !hero.Equip(it))
+                    Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id);
+            }
+            gm.OnEquipmentChanged();
+        }
+
+        static ItemSlot ItemSlotOf(EquipSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipSlot.Head: return ItemSlot.Head;
+                case EquipSlot.Shoulders: return ItemSlot.Shoulders;
+                case EquipSlot.Chest: return ItemSlot.Chest;
+                case EquipSlot.Hands: return ItemSlot.Hands;
+                case EquipSlot.Wrists: return ItemSlot.Wrists;
+                case EquipSlot.Waist: return ItemSlot.Waist;
+                case EquipSlot.Legs: return ItemSlot.Legs;
+                default: return ItemSlot.Feet;
+            }
+        }
+
+        static void FrameGear(HeroActor actor, Camera cam, CameraRig rig, bool paper)
+        {
+            if (cam == null || actor == null) return;
+            Vector3 look = actor.Pos + Vector3.up * (paper ? 0.95f : 1.05f);
+            Vector3 fwd = actor.transform.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
+            fwd.Normalize();
+            Vector3 camPos = paper
+                ? look - fwd * 3.6f + Vector3.up * 0.05f
+                : actor.Pos - fwd * 7.2f + Vector3.up * 5.6f;
+            cam.fieldOfView = paper ? 26f : 38f;
+            var rot = Quaternion.LookRotation(look - camPos, Vector3.up);
+            if (rig != null) rig.Lock(camPos, rot);
+            else cam.transform.SetPositionAndRotation(camPos, rot);
+        }
+
+        static string FirstPose(string[] names, string[] group)
+        {
+            if (names == null || group == null) return null;
+            for (int g = 0; g < group.Length; g++)
+                for (int i = 0; i < names.Length; i++)
+                    if (GearFit.PoseMatch(names[i], group[g])) return names[i];
+            return null;
+        }
+
+        static void Sample(Animation anim, string clip, float unit)
+        {
+            if (anim == null) return;
+            AnimationState st = null;
+            foreach (AnimationState s in anim)
+                if (s != null && s.name == clip) { st = s; break; }
+            if (st == null || st.clip == null) return;
+            foreach (AnimationState s in anim)
+            {
+                s.weight = 0f;
+                s.enabled = false;
+            }
+            st.enabled = true;
+            st.weight = 1f;
+            st.time = Mathf.Max(0.05f, st.length) * Mathf.Clamp01(unit);
+            anim.Sample();
+        }
 
         public static IEnumerator RunMonsterMode(GameManager gm, string mode)
         {

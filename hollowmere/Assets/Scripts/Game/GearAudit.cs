@@ -1,0 +1,312 @@
+using System.Collections.Generic;
+using Hollowmere.Core;
+using UnityEngine;
+
+namespace Hollowmere
+{
+    /// <summary>
+    /// Samples every clip on the hero and checks each fitted piece: weights, gap,
+    /// coverage, stretch, and that visible skin is not inside the shell.
+    /// </summary>
+    public static class GearAudit
+    {
+        public static int Run(Transform body)
+        {
+            if (body == null) return Fail("missing hero");
+            var anim = body.GetComponentInChildren<Animation>();
+            var names = ClipNames(anim);
+            int fails = 0;
+            for (int g = 0; g < GearFit.RequiredPoses.Length; g++)
+            {
+                if (GearFit.HasRequiredPose(names, GearFit.RequiredPoses[g])) continue;
+                fails += Fail("missing pose " + GearFit.RequiredPoses[g][0]);
+            }
+            if (anim == null) return fails + Fail("no animation");
+            var pieces = Pieces(body);
+            if (pieces.Count == 0) return fails + Fail("no fitted pieces");
+            fails += Weights(pieces);
+            var figure = body;
+            foreach (AnimationState st in anim)
+            {
+                if (st == null || st.clip == null) continue;
+                float len = Mathf.Max(0.05f, st.length);
+                for (int i = 0; i < 4; i++)
+                {
+                    Pose(anim, st, len * (i / 3f));
+                    fails += Measure(figure, pieces, st.name + "@" + i);
+                }
+            }
+            return fails;
+        }
+
+        public static string[] ClipNames(Animation anim)
+        {
+            if (anim == null) return new string[0];
+            var list = new List<string>();
+            foreach (AnimationState st in anim)
+                if (st != null && st.clip != null) list.Add(st.name);
+            return list.ToArray();
+        }
+
+        static void Pose(Animation anim, AnimationState st, float time)
+        {
+            foreach (AnimationState s in anim)
+            {
+                s.weight = 0f;
+                s.enabled = false;
+            }
+            st.enabled = true;
+            st.weight = 1f;
+            st.time = time;
+            anim.Sample();
+        }
+
+        static int Weights(List<SkinnedMeshRenderer> pieces)
+        {
+            int fails = 0;
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                var mesh = pieces[p].sharedMesh;
+                var w = mesh != null ? mesh.boneWeights : null;
+                if (w == null || w.Length < GearFit.MinShellVerts)
+                {
+                    fails += Fail(pieces[p].name + " weights missing");
+                    continue;
+                }
+                int bad = 0;
+                int step = Mathf.Max(1, w.Length / 120);
+                int seen = 0;
+                for (int i = 0; i < w.Length; i += step)
+                {
+                    float sum = w[i].weight0 + w[i].weight1 + w[i].weight2 + w[i].weight3;
+                    if (!GearFit.WeightsOk(sum)) bad++;
+                    seen++;
+                }
+                if (bad * 10 > seen) fails += Fail(pieces[p].name + " bone weights do not sum to 1");
+            }
+            return fails;
+        }
+
+        static int Measure(Transform body, List<SkinnedMeshRenderer> pieces, string pose)
+        {
+            int fails = 0;
+            var bodySkin = Body(body);
+            if (bodySkin == null || bodySkin.sharedMesh == null) return Fail(pose + " no body");
+            var bodyPts = WorldPoints(bodySkin);
+            var bodyHide = Hidden(bodySkin, body);
+            var bodyGrid = new Grid(bodyPts);
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                var piece = pieces[p];
+                var pts = WorldPoints(piece);
+                if (pts == null || pts.Length < GearFit.MinShellVerts)
+                {
+                    fails += Fail(pose + " " + piece.name + " bounds empty");
+                    continue;
+                }
+                var pieceGrid = new Grid(pts);
+                if (!Art.MeshWorldBounds(piece.transform, out var box))
+                    fails += Fail(pose + " " + piece.name + " bounds missing");
+                else if (!HeroFit.GearSizeOk(Art.MaxAxis(box.size)))
+                    fails += Fail(pose + " " + piece.name + " bounds " + Art.MaxAxis(box.size).ToString("0.00") + "m");
+
+                int gapBad = 0, coverBad = 0, clearBad = 0, stretchBad = 0, seen = 0;
+                int step = Mathf.Max(1, pts.Length / 240);
+                var bind = piece.sharedMesh.bindposes;
+                var baked = piece.sharedMesh.boneWeights;
+                var rest = piece.sharedMesh.vertices;
+                var local = LocalPoints(piece);
+                for (int i = 0; i < pts.Length; i += step)
+                {
+                    seen++;
+                    float gap = bodyGrid.Nearest(pts[i]);
+                    if (!GearFit.GapOk(gap)) gapBad++;
+                    if (baked != null && bind != null && local != null && i < baked.Length && i < rest.Length && i < local.Length)
+                    {
+                        int d = GearShell.Dominant(baked[i]);
+                        if (d >= 0 && d < bind.Length && piece.bones != null && d < piece.bones.Length && piece.bones[d] != null)
+                        {
+                            Vector3 origin = bind[d].inverse.MultiplyPoint3x4(Vector3.zero);
+                            float restLen = Vector3.Distance(rest[i], origin);
+                            Vector3 boneLocal = piece.transform.InverseTransformPoint(piece.bones[d].position);
+                            float animLen = Vector3.Distance(local[i], boneLocal);
+                            float ratio = animLen / Mathf.Max(0.01f, restLen);
+                            if (baked[i].weight0 >= 0.65f && !GearFit.StretchOk(ratio)) stretchBad++;
+                        }
+                    }
+                }
+                var mine = SlotFromName(piece.name);
+                var bw = bodySkin.sharedMesh.boneWeights;
+                var bones = bodySkin.bones;
+                if (bodyPts != null && bodyHide != null && bw != null)
+                {
+                    int bstep = Mathf.Max(1, bodyPts.Length / 280);
+                    for (int i = 0; i < bodyPts.Length; i += bstep)
+                    {
+                        float dist = pieceGrid.Nearest(bodyPts[i]);
+                        EquipSlot? vs = null;
+                        if (i < bw.Length && bones != null)
+                        {
+                            int d = GearShell.Dominant(bw[i]);
+                            if (d >= 0 && d < bones.Length && bones[d] != null)
+                                vs = GearFit.SlotForBone(bones[d].name);
+                        }
+                        if (mine != null && vs == mine)
+                        {
+                            if (!GearFit.Covered(dist)) coverBad++;
+                        }
+                        else if (i >= bodyHide.Length || !bodyHide[i])
+                        {
+                            if (!GearFit.VisibleClear(dist)) clearBad++;
+                        }
+                    }
+                }
+                string slot = piece.name;
+                if (gapBad * 8 > seen) fails += Fail(pose + " " + slot + " gap");
+                if (coverBad > 8) fails += Fail(pose + " " + slot + " hole in the body");
+                if (clearBad > 8) fails += Fail(pose + " " + slot + " clips the body");
+                if (stretchBad * 8 > seen) fails += Fail(pose + " " + slot + " stretched");
+                if (fails == 0)
+                    Debug.Log("Hollowmere gear fit " + pose + " " + slot + " ok");
+            }
+            return fails;
+        }
+
+        static bool[] Hidden(SkinnedMeshRenderer skin, Transform figure)
+        {
+            var mesh = skin.sharedMesh;
+            if (mesh == null || !mesh.isReadable || mesh.boneWeights == null) return null;
+            var hide = new bool[mesh.vertexCount];
+            var bones = skin.bones;
+            var w = mesh.boneWeights;
+            for (int i = 0; i < w.Length && i < hide.Length; i++)
+            {
+                int d = GearShell.Dominant(w[i]);
+                if (bones == null || d < 0 || d >= bones.Length || bones[d] == null) continue;
+                var slot = GearFit.SlotForBone(bones[d].name);
+                if (slot == null) continue;
+                hide[i] = FindPiece(figure, "gear_" + GearFit.SlotName(slot.Value)) != null;
+            }
+            return hide;
+        }
+
+        static EquipSlot? SlotFromName(string name)
+        {
+            for (int i = 0; i < GearFit.Visible.Length; i++)
+                if (name == "gear_" + GearFit.SlotName(GearFit.Visible[i])) return GearFit.Visible[i];
+            return null;
+        }
+
+        static Transform FindPiece(Transform figure, string name)
+        {
+            if (figure == null) return null;
+            var hits = figure.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < hits.Length; i++)
+                if (hits[i].name == name) return hits[i];
+            return null;
+        }
+
+        static List<SkinnedMeshRenderer> Pieces(Transform body)
+        {
+            var list = new List<SkinnedMeshRenderer>();
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr != null && smr.gameObject.name.StartsWith("gear_")) list.Add(smr);
+            }
+            return list;
+        }
+
+        static SkinnedMeshRenderer Body(Transform body)
+        {
+            SkinnedMeshRenderer best = null;
+            int n = 0;
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr == null || smr.gameObject.name.StartsWith("gear_")) continue;
+                int c = smr.sharedMesh != null ? smr.sharedMesh.vertexCount : 0;
+                if (c > n) { n = c; best = smr; }
+            }
+            return best;
+        }
+
+        static Vector3[] WorldPoints(SkinnedMeshRenderer smr)
+        {
+            if (smr == null || smr.sharedMesh == null) return null;
+            var baked = new Mesh();
+            smr.BakeMesh(baked);
+            var local = baked.vertices;
+            Object.Destroy(baked);
+            var pts = new Vector3[local.Length];
+            var m = smr.transform.localToWorldMatrix;
+            for (int i = 0; i < local.Length; i++) pts[i] = m.MultiplyPoint3x4(local[i]);
+            return pts;
+        }
+
+        static Vector3[] LocalPoints(SkinnedMeshRenderer smr)
+        {
+            if (smr == null || smr.sharedMesh == null) return null;
+            var baked = new Mesh();
+            smr.BakeMesh(baked);
+            var local = baked.vertices;
+            Object.Destroy(baked);
+            return local;
+        }
+
+        static int Fail(string why)
+        {
+            Debug.LogError("Hollowmere gear FAIL " + why);
+            return 1;
+        }
+
+        sealed class Grid
+        {
+            readonly List<Vector3>[] cells;
+            const float Cell = 0.08f;
+            const int Buckets = 4096;
+
+            public Grid(Vector3[] pts)
+            {
+                cells = new List<Vector3>[Buckets];
+                if (pts == null) return;
+                for (int i = 0; i < pts.Length; i++)
+                {
+                    int k = Key(pts[i]);
+                    if (cells[k] == null) cells[k] = new List<Vector3>(4);
+                    cells[k].Add(pts[i]);
+                }
+            }
+
+            public float Nearest(Vector3 p)
+            {
+                float best = 1f;
+                int cx = Mathf.FloorToInt(p.x / Cell);
+                int cy = Mathf.FloorToInt(p.y / Cell);
+                int cz = Mathf.FloorToInt(p.z / Cell);
+                for (int z = -1; z <= 1; z++)
+                    for (int y = -1; y <= 1; y++)
+                        for (int x = -1; x <= 1; x++)
+                        {
+                            var list = cells[Key(cx + x, cy + y, cz + z)];
+                            if (list == null) continue;
+                            for (int i = 0; i < list.Count; i++)
+                            {
+                                float d = Vector3.Distance(p, list[i]);
+                                if (d < best) best = d;
+                            }
+                        }
+                return best;
+            }
+
+            static int Key(Vector3 p) => Key(Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.y / Cell), Mathf.FloorToInt(p.z / Cell));
+
+            static int Key(int x, int y, int z)
+            {
+                unchecked
+                {
+                    int h = x * 73856093 ^ y * 19349663 ^ z * 83492791;
+                    return (h & 0x7fffffff) % Buckets;
+                }
+            }
+        }
+    }
+}

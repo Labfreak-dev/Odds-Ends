@@ -21,7 +21,9 @@ namespace Hollowmere
         {
             public int rarity;
             public int tier = 1;
-            public float r = 1f, g = 1f, b = 1f, metal, smooth = 0.3f, blend = 1f, emit, rim;
+            public float r = 1f, g = 1f, b = 1f, metal, smooth = 0.3f, desat, finish, emit, rim = 4f, edge;
+            public int modelPick;
+            public string meshFamily;
             public int uniqueModel;
             public int vfx;
             public float glowR = 1f, glowG = 1f, glowB = 1f;
@@ -54,7 +56,9 @@ namespace Hollowmere
                     rarity = (int)src.Rarity,
                     tier = src.Tier,
                     r = src.R, g = src.G, b = src.B,
-                    metal = src.Metal, smooth = src.Smooth, blend = src.Blend, emit = src.Emit, rim = src.Rim,
+                    metal = src.Metal, smooth = src.Smooth, desat = src.Desat, finish = src.Finish,
+                    emit = src.Emit, rim = src.Rim, edge = src.Edge,
+                    modelPick = src.ModelPick, meshFamily = src.MeshFamily ?? "",
                     uniqueModel = src.UniqueModel ? 1 : 0,
                     vfx = src.Vfx ? 1 : 0,
                     glowR = src.GlowR, glowG = src.GlowG, glowB = src.GlowB,
@@ -134,5 +138,28 @@ namespace Hollowmere
 
         public static float Pad => Active.vfxPad > 0.01f ? Active.vfxPad : RarityTable.VfxPad;
         public static float EmitFloor => Active.emitPresent > 0f ? Active.emitPresent : RarityTable.EmitPresent;
+
+        public static int ModelPick(Rarity rarity)
+        {
+            var row = Row(rarity);
+            return row != null ? row.modelPick : RarityTable.Get(rarity).ModelPick;
+        }
+
+        /// <summary>Empty mesh family keeps the item family. A named one is the set folder to load.</summary>
+        public static string MeshFamily(string family, Rarity rarity)
+        {
+            if (string.IsNullOrEmpty(family)) family = "plate";
+            var row = Row(rarity);
+            if (row == null || string.IsNullOrEmpty(row.meshFamily) || row.meshFamily == family) return family;
+            return row.meshFamily;
+        }
+
+        /// <summary>Visual tier from the asset, so a later row edit picks up Gear/Lower without a code change.</summary>
+        public static int VisualTier(Rarity rarity, int stored)
+        {
+            var row = Row(rarity);
+            if (row != null && row.tier >= 1 && row.tier <= GearTable.TierCount) return row.tier;
+            return GearTable.TierOf(stored, rarity);
+        }
     }
 }

@@ -488,13 +488,15 @@ namespace Hollowmere
             Application.Quit();
         }
 
-        /// <summary>Paper and in-world shots of every rarity, at 2340x1080, plus a five-rarity sheet.</summary>
+        /// <summary>
+        /// Paper shots of every rarity, in-world only from rare up, at 2340x1080, plus a five-rarity sheet.
+        /// The town is built once. Weapon swaps leave the armour on the body.
+        /// </summary>
         public static IEnumerator RunRarity(GameManager gm)
         {
             gm.State = GameState.NewGame(HeroClass.Ironclad, "Qa", PetSpecies.Hound, "Moss", 1);
             gm.State.hero.classless = true;
             gm.EnterTown(false);
-            yield return new WaitForSeconds(0.35f);
             Screen.SetResolution(2340, 1080, FullScreenMode.Windowed);
             yield return null;
             var actor = HeroActor.I;
@@ -524,45 +526,56 @@ namespace Hollowmere
             {
                 string tag = rarity.ToString().ToLowerInvariant();
                 WearRaritySet(gm, pieces, rarity);
-                yield return null;
                 PoseRarity(actor.transform, "idle");
                 FrameGear(actor, cam, rig, true);
                 yield return new WaitForEndOfFrame();
-                SaveNamed("rarity-paper-" + tag + "-front");
                 var front = ScreenCapture.CaptureScreenshotAsTexture();
-                if (front != null) fronts.Add(front);
+                if (front != null)
+                {
+                    SaveTexture(front, "rarity-paper-" + tag + "-front");
+                    fronts.Add(front);
+                    CheckFace(front, cam, actor.transform, rarity);
+                }
                 FrameThreeQuarter(actor, cam, rig);
                 yield return new WaitForEndOfFrame();
                 SaveNamed("rarity-paper-" + tag + "-34");
-                FrameGear(actor, cam, rig, false);
-                yield return new WaitForEndOfFrame();
-                SaveNamed("rarity-world-" + tag + "-idle");
                 RarityVfx.AuditBody(actor.transform, rarity);
-                PoseRarity(actor.transform, "run");
-                RarityVfx.AuditBody(actor.transform, rarity);
-                PoseRarity(actor.transform, "attack");
-                FrameGear(actor, cam, rig, false);
-                yield return new WaitForEndOfFrame();
-                SaveNamed("rarity-world-" + tag + "-attack");
-                RarityVfx.AuditBody(actor.transform, rarity);
-                PoseRarity(actor.transform, "death");
-                FrameGear(actor, cam, rig, false);
-                yield return new WaitForEndOfFrame();
-                SaveNamed("rarity-world-" + tag + "-death");
-                RarityVfx.AuditBody(actor.transform, rarity);
+                if (rarity >= Rarity.Rare)
+                {
+                    FrameGear(actor, cam, rig, false);
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("rarity-world-" + tag + "-idle");
+                    PoseRarity(actor.transform, "run");
+                    RarityVfx.AuditBody(actor.transform, rarity);
+                    PoseRarity(actor.transform, "attack");
+                    FrameGear(actor, cam, rig, false);
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("rarity-world-" + tag + "-attack");
+                    RarityVfx.AuditBody(actor.transform, rarity);
+                    PoseRarity(actor.transform, "death");
+                    FrameGear(actor, cam, rig, false);
+                    yield return new WaitForEndOfFrame();
+                    SaveNamed("rarity-world-" + tag + "-death");
+                    RarityVfx.AuditBody(actor.transform, rarity);
+                    PoseRarity(actor.transform, "idle");
+                }
                 for (int w = 0; w < weapons.Length; w++)
                 {
                     AddHand(gm, GearTable.Signature(weapons[w]), rarity);
-                    yield return null;
                     PoseRarity(actor.transform, "idle");
                     FrameGrip(actor, cam, rig, weapons[w] != "shield");
                     yield return new WaitForEndOfFrame();
-                    SaveNamed("rarity-weapon-" + weapons[w] + "-" + tag);
                     if (w == 0)
                     {
                         var close = ScreenCapture.CaptureScreenshotAsTexture();
-                        if (close != null) closes.Add(close);
+                        if (close != null)
+                        {
+                            SaveTexture(close, "rarity-weapon-" + weapons[w] + "-" + tag);
+                            closes.Add(close);
+                        }
                     }
+                    else
+                        SaveNamed("rarity-weapon-" + weapons[w] + "-" + tag);
                     RarityVfx.AuditBody(actor.transform, rarity);
                 }
             }
@@ -652,7 +665,7 @@ namespace Hollowmere
             if (hero.Equipped(EquipSlot.MainHand) != null) hero.equipment[(int)EquipSlot.MainHand] = null;
             if (hero.Equipped(EquipSlot.OffHand) != null) hero.equipment[(int)EquipSlot.OffHand] = null;
             Give(hero, EquipSlot.MainHand, id, rarity, false);
-            gm.OnEquipmentChanged();
+            if (HeroActor.I != null) GearAttach.SwapHeld(HeroActor.I.transform, hero);
         }
 
         static void FrameThreeQuarter(HeroActor actor, Camera cam, CameraRig rig)
@@ -678,7 +691,12 @@ namespace Hollowmere
         {
             if (fronts == null || fronts.Count < 2) return;
             var means = new Color[fronts.Count];
-            for (int i = 0; i < fronts.Count; i++) means[i] = MeanFigure(fronts[i]);
+            var spread = new float[fronts.Count];
+            for (int i = 0; i < fronts.Count; i++)
+            {
+                means[i] = MeanFigure(fronts[i]);
+                spread[i] = LumaStd(fronts[i]);
+            }
             string[] names = { "common", "magic", "rare", "legendary", "set" };
             for (int i = 1; i < means.Length && i < names.Length; i++)
             {
@@ -686,6 +704,100 @@ namespace Hollowmere
                 Debug.Log("Hollowmere rarity colour " + names[i - 1] + "-" + names[i] + " " + d.ToString("0.00"));
                 if (d < 0.06f)
                     Debug.LogError("Hollowmere rarity FAIL colour " + names[i - 1] + "-" + names[i] + " " + d.ToString("0.00"));
+            }
+            float common = spread.Length > 0 ? spread[0] : 0f;
+            Debug.Log("Hollowmere rarity variance common " + common.ToString("0.000"));
+            for (int i = 1; i < spread.Length && i < names.Length; i++)
+            {
+                float ratio = common > 0.004f ? spread[i] / common : 1f;
+                Debug.Log("Hollowmere rarity variance " + names[i] + " " + ratio.ToString("0.00"));
+                if (ratio < 0.60f)
+                    Debug.LogError("Hollowmere rarity FAIL variance " + names[i] + " " + ratio.ToString("0.00"));
+            }
+        }
+
+        static void CheckFace(Texture2D src, Camera cam, Transform body, Rarity rarity)
+        {
+            if (src == null || cam == null || body == null || rarity < Rarity.Rare) return;
+            var head = Art.Bone(body, "Head");
+            if (head == null) return;
+            Vector3 sp = cam.WorldToScreenPoint(head.position);
+            if (sp.z < 0.01f) return;
+            sp.x *= src.width / (float)Mathf.Max(1, Screen.width);
+            sp.y *= src.height / (float)Mathf.Max(1, Screen.height);
+            float dist = Vector3.Distance(cam.transform.position, head.position);
+            // The opening in the helm, not the 18 cm exclusion sphere. That sphere also covers the collar.
+            float radius = 0.09f / Mathf.Max(0.25f, 2f * dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad)) * src.height;
+            radius = Mathf.Clamp(radius, 28f, src.height * 0.16f);
+            var glow = RarityBook.Glow(rarity, "plate");
+            int bad = 0, n = 0;
+            int r = Mathf.CeilToInt(radius);
+            int cx = Mathf.RoundToInt(sp.x);
+            int cy = Mathf.RoundToInt(sp.y);
+            float r2 = radius * radius;
+            for (int y = cy - r; y <= cy + r; y += 2)
+            for (int x = cx - r; x <= cx + r; x += 2)
+            {
+                if (x < 0 || y < 0 || x >= src.width || y >= src.height) continue;
+                float dx = x - cx, dy = y - cy;
+                if (dx * dx + dy * dy > r2) continue;
+                n++;
+                if (RarityPixel(src.GetPixel(x, y), glow)) bad++;
+            }
+            Debug.Log("Hollowmere rarity face " + rarity + " " + bad + "/" + n);
+            if (n > 0 && bad * 50 > n)
+                Debug.LogError("Hollowmere rarity FAIL face " + rarity + " " + bad + "/" + n);
+        }
+
+        static bool RarityPixel(Color p, Color glow)
+        {
+            float mx = Mathf.Max(p.r, Mathf.Max(p.g, p.b));
+            float mn = Mathf.Min(p.r, Mathf.Min(p.g, p.b));
+            if (mx - mn < 0.28f || mx < 0.50f) return false;
+            var a = new Vector3(p.r - mn, p.g - mn, p.b - mn);
+            var b = new Vector3(glow.r, glow.g, glow.b);
+            if (a.sqrMagnitude < 1e-4f || b.sqrMagnitude < 1e-4f) return false;
+            return Vector3.Dot(a.normalized, b.normalized) > 0.92f;
+        }
+
+        static float LumaStd(Texture2D src)
+        {
+            if (src == null) return 0f;
+            int x0 = src.width * 3 / 10;
+            int x1 = src.width * 7 / 10;
+            int y0 = src.height / 8;
+            int y1 = src.height * 7 / 8;
+            Color corner = src.GetPixel(4, 4);
+            double sum = 0, sum2 = 0;
+            int n = 0;
+            for (int y = y0; y < y1; y += 4)
+            for (int x = x0; x < x1; x += 4)
+            {
+                var p = src.GetPixel(x, y);
+                if (Mathf.Abs(p.r - corner.r) + Mathf.Abs(p.g - corner.g) + Mathf.Abs(p.b - corner.b) < 0.12f) continue;
+                float luma = 0.299f * p.r + 0.587f * p.g + 0.114f * p.b;
+                sum += luma;
+                sum2 += luma * luma;
+                n++;
+            }
+            if (n < 8) return 0f;
+            double mean = sum / n;
+            double v = sum2 / n - mean * mean;
+            return Mathf.Sqrt((float)System.Math.Max(0.0, v));
+        }
+
+        static void SaveTexture(Texture2D tex, string name)
+        {
+            if (tex == null) return;
+            var path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "qa-" + name + ".png");
+            try
+            {
+                System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+                Debug.Log("Hollowmere QA frame saved: " + path);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Hollowmere QA frame failed: " + e.Message);
             }
         }
 

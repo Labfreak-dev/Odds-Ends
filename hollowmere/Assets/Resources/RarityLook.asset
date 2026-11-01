@@ -15,35 +15,43 @@ MonoBehaviour:
   rows:
   - rarity: 0
     tier: 1
-    r: 0.36
-    g: 0.32
-    b: 0.28
-    metal: 0.06
-    smooth: 0.12
-    blend: 0.55
+    r: 0.96
+    g: 0.88
+    b: 0.8
+    metal: 0.08
+    smooth: 0.14
+    desat: 0.4
+    finish: 0.62
     emit: 0
-    rim: 0
+    rim: 4
+    edge: 0
+    modelPick: 0
+    meshFamily: 
     uniqueModel: 0
     vfx: 0
-    glowR: 0.36
-    glowG: 0.32
+    glowR: 0.55
+    glowG: 0.42
     glowB: 0.28
     rate: 0
     size: 0.02
     lift: 0.02
   - rarity: 1
     tier: 1
-    r: 0.78
-    g: 0.88
-    b: 1.05
-    metal: 0.42
-    smooth: 0.62
-    blend: 0.9
+    r: 1.1
+    g: 1.15
+    b: 1.2
+    metal: 0.58
+    smooth: 0.74
+    desat: 0
+    finish: 0.4
     emit: 0
-    rim: 0
+    rim: 4
+    edge: 0
+    modelPick: 0
+    meshFamily: 
     uniqueModel: 0
     vfx: 0
-    glowR: 0.72
+    glowR: 0.75
     glowG: 0.84
     glowB: 1
     rate: 0
@@ -51,57 +59,69 @@ MonoBehaviour:
     lift: 0.02
   - rarity: 2
     tier: 2
-    r: 0.55
-    g: 0.72
-    b: 0.95
-    metal: 0.28
-    smooth: 0.48
-    blend: 0.4
-    emit: 1.15
-    rim: 1
+    r: 1
+    g: 1
+    b: 1
+    metal: 0
+    smooth: 0
+    desat: 0
+    finish: 0
+    emit: 0.45
+    rim: 4
+    edge: 0
+    modelPick: 0
+    meshFamily: 
     uniqueModel: 0
     vfx: 0
-    glowR: 0.2
-    glowG: 0.78
+    glowR: 0.25
+    glowG: 0.72
     glowB: 1
     rate: 0
     size: 0.02
     lift: 0.02
   - rarity: 3
     tier: 3
-    r: 0.95
-    g: 0.46
-    b: 0.16
-    metal: 0.3
-    smooth: 0.4
-    blend: 0.48
-    emit: 1.8
-    rim: 1
+    r: 1.02
+    g: 1
+    b: 0.98
+    metal: 0.35
+    smooth: 0.48
+    desat: 0
+    finish: 0.12
+    emit: 0.62
+    rim: 4
+    edge: 2.6
+    modelPick: 1
+    meshFamily: infernal
     uniqueModel: 1
     vfx: 1
     glowR: 1
-    glowG: 0.4
-    glowB: 0.06
-    rate: 10
-    size: 0.05
+    glowG: 0.42
+    glowB: 0.08
+    rate: 8
+    size: 0.035
     lift: 0.02
   - rarity: 4
     tier: 3
-    r: 0.28
-    g: 0.86
-    b: 0.34
-    metal: 0.22
-    smooth: 0.4
-    blend: 0.62
-    emit: 1.4
-    rim: 1
+    r: 1
+    g: 1.02
+    b: 0.98
+    metal: 0.3
+    smooth: 0.44
+    desat: 0
+    finish: 0.12
+    emit: 0.55
+    rim: 4
+    edge: 2.6
+    modelPick: 2
+    meshFamily: arcane
     uniqueModel: 1
     vfx: 1
     glowR: 0.22
     glowG: 0.95
     glowB: 0.32
-    rate: 10
-    size: 0.05
+    rate: 8
+    size: 0.035
     lift: 0.02
   sets:
   - family: plate

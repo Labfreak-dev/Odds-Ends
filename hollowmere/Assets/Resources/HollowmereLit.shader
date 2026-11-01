@@ -20,6 +20,11 @@ Shader "Hollowmere/Lit"
         _Metallic ("Metallic", Range(0,1)) = 0
         _Smoothness ("Smoothness", Range(0,1)) = 0.35
         _EmissionColor ("Emission", Color) = (0,0,0,1)
+        _Desat ("Desaturate", Range(0,1)) = 0
+        _Finish ("Finish", Range(0,1)) = 0
+        _RimPower ("Rim Power", Float) = 4
+        _EdgeBoost ("Edge", Float) = 0
+        _RimOnly ("Rim Only", Float) = 0
         _TintMask ("Tint Mask", 2D) = "black" {}
         _HasTint ("Has Tint", Float) = 0
         _TintArmour ("Armour Tint", Color) = (1,1,1,1)
@@ -74,7 +79,16 @@ Shader "Hollowmere/Lit"
                 half _HasMetal;
                 half _GltfPack;
                 half _HasTint;
+                half _Desat;
+                half _Finish;
+                half _RimPower;
+                half _EdgeBoost;
+                half _RimOnly;
             CBUFFER_END
+
+            // Hero face sphere. Set from the head bone. Zero radius disables the cut.
+            float4 _HmFaceCenter;
+            float _HmFaceRadius;
 
             struct Attributes
             {
@@ -122,6 +136,9 @@ Shader "Hollowmere/Lit"
                     half remain = saturate(1.0 - min(sum, 1.0));
                     albedo = acc + tex * _TintSkin.rgb * remain;
                 }
+                // Desaturate the sampled map. A flat colour multiply would erase it.
+                half luma = dot(albedo, half3(0.299, 0.587, 0.114));
+                albedo = lerp(albedo, luma.xxx, saturate(_Desat));
 
                 half3 n = normalize(i.normalWS);
                 half3 view = normalize(GetCameraPositionWS() - i.positionWS);
@@ -151,6 +168,9 @@ Shader "Hollowmere/Lit"
                         smoothness = mr.a;
                     }
                 }
+                // Pull toward the rarity scalars. The map's variation stays in the leftover weight.
+                metallic = lerp(metallic, _Metallic, saturate(_Finish));
+                smoothness = lerp(smoothness, _Smoothness, saturate(_Finish));
                 half3 specCol = lerp(half3(0.04, 0.04, 0.04), albedo, metallic);
                 albedo *= 1.0 - metallic;
 
@@ -173,9 +193,17 @@ Shader "Hollowmere/Lit"
                 }
                 #endif
 
-                // Rarity rim. Emission black on common and magic, so those stay matte.
-                half rim = pow(saturate(1.0 - dot(n, view)), 3.0);
-                lit += _EmissionColor.rgb * (0.35 + rim);
+                // Rarity sets _RimOnly and gets a view-dependent fresnel plus an optional edge mask.
+                // Other emission (hit flashes, props) keeps the previous coverage.
+                half ndv = saturate(dot(n, view));
+                half fres = pow(1.0 - ndv, max(_RimPower, 0.5));
+                half edge = saturate(length(fwidth(n)) * _EdgeBoost);
+                half legacy = 0.35 + pow(1.0 - ndv, 3.0);
+                half mask = _RimOnly > 0.5 ? max(fres, edge) : legacy;
+                float face = 1.0;
+                if (_RimOnly > 0.5 && _HmFaceRadius > 0.001)
+                    face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - _HmFaceRadius) * 33.333);
+                lit += _EmissionColor.rgb * mask * face;
                 if (unity_FogParams.z < -0.0001)
                 {
                     float dist = distance(i.positionWS, GetCameraPositionWS());

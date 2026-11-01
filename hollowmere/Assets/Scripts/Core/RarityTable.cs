@@ -8,22 +8,27 @@ namespace Hollowmere.Core
     {
         public const float VfxPad = 0.15f;
         public const float EmitPresent = 0.05f;
+        /// <summary>No emission or motes inside this sphere around the head bone.</summary>
+        public const float FaceRadius = 0.18f;
 
         public readonly struct Row
         {
             public readonly Rarity Rarity;
             public readonly int Tier;
-            public readonly float R, G, B, Metal, Smooth, Blend, Emit, Rim;
+            public readonly float R, G, B, Metal, Smooth, Desat, Finish, Emit, Rim, Edge;
+            public readonly int ModelPick;
+            public readonly string MeshFamily;
             public readonly bool UniqueModel, Vfx;
             public readonly float GlowR, GlowG, GlowB;
             public readonly float Rate, Size, Lift;
 
-            public Row(Rarity rarity, int tier, float r, float g, float b, float metal, float smooth, float blend,
-                float emit, float rim, bool unique, bool vfx, float glowR, float glowG, float glowB,
-                float rate, float size, float lift)
+            public Row(Rarity rarity, int tier, float r, float g, float b, float metal, float smooth, float desat, float finish,
+                float emit, float rim, float edge, int modelPick, string meshFamily, bool unique, bool vfx,
+                float glowR, float glowG, float glowB, float rate, float size, float lift)
             {
-                Rarity = rarity; Tier = tier; R = r; G = g; B = b; Metal = metal; Smooth = smooth; Blend = blend;
-                Emit = emit; Rim = rim; UniqueModel = unique; Vfx = vfx;
+                Rarity = rarity; Tier = tier; R = r; G = g; B = b; Metal = metal; Smooth = smooth; Desat = desat; Finish = finish;
+                Emit = emit; Rim = rim; Edge = edge; ModelPick = modelPick; MeshFamily = meshFamily;
+                UniqueModel = unique; Vfx = vfx;
                 GlowR = glowR; GlowG = glowG; GlowB = glowB; Rate = rate; Size = size; Lift = lift;
             }
         }
@@ -37,11 +42,13 @@ namespace Hollowmere.Core
 
         static readonly Row[] Rows =
         {
-            new Row(Rarity.Common, 1, 0.36f, 0.32f, 0.28f, 0.06f, 0.12f, 0.55f, 0.00f, 0.00f, false, false, 0.36f, 0.32f, 0.28f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Magic, 1, 0.78f, 0.88f, 1.05f, 0.42f, 0.62f, 0.90f, 0.00f, 0.00f, false, false, 0.72f, 0.84f, 1.00f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Rare, 2, 0.55f, 0.72f, 0.95f, 0.28f, 0.48f, 0.40f, 1.15f, 1.00f, false, false, 0.20f, 0.78f, 1.00f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Legendary, 3, 0.95f, 0.46f, 0.16f, 0.30f, 0.40f, 0.48f, 1.80f, 1.00f, true, true, 1.00f, 0.40f, 0.06f, 10f, 0.05f, 0.02f),
-            new Row(Rarity.Set, 3, 0.28f, 0.86f, 0.34f, 0.22f, 0.40f, 0.62f, 1.40f, 1.00f, true, true, 0.22f, 0.95f, 0.32f, 10f, 0.05f, 0.02f),
+            // r,g,b multiply the authored albedo. Finish pulls metal and smoothness toward the scalars
+            // without discarding the maps. Rare leaves the maps alone and only adds a fresnel rim.
+            new Row(Rarity.Common, 1, 0.96f, 0.88f, 0.80f, 0.08f, 0.14f, 0.40f, 0.62f, 0f, 4f, 0f, 0, "", false, false, 0.55f, 0.42f, 0.28f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Magic, 1, 1.10f, 1.15f, 1.20f, 0.58f, 0.74f, 0f, 0.40f, 0f, 4f, 0f, 0, "", false, false, 0.75f, 0.84f, 1.00f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Rare, 2, 1f, 1f, 1f, 0f, 0f, 0f, 0f, 0.45f, 4f, 0f, 0, "", false, false, 0.25f, 0.72f, 1.00f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Legendary, 3, 1.02f, 1.00f, 0.98f, 0.35f, 0.48f, 0f, 0.12f, 0.62f, 4f, 2.6f, 1, "infernal", true, true, 1.00f, 0.42f, 0.08f, 8f, 0.035f, 0.02f),
+            new Row(Rarity.Set, 3, 1.00f, 1.02f, 0.98f, 0.30f, 0.44f, 0f, 0.12f, 0.55f, 4f, 2.6f, 2, "arcane", true, true, 0.22f, 0.95f, 0.32f, 8f, 0.035f, 0.02f),
         };
 
         static readonly Glow[] Sets =

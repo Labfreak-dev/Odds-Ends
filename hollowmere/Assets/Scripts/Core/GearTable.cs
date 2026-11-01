@@ -211,9 +211,16 @@ namespace Hollowmere.Core
         /// Common, magic, and rare keep the base's own model.
         /// </summary>
         public static string PresentModel(string baseId, Rarity rarity)
+            => PresentModel(baseId, RarityTable.Get(rarity).ModelPick);
+
+        /// <summary>
+        /// ModelPick 0 keeps the base mesh. 1 and 2 are the other two meshes of the same type,
+        /// so a later table edit can point legendary or set at a new file without a code change.
+        /// </summary>
+        public static string PresentModel(string baseId, int pick)
         {
             string own = ModelFor(baseId);
-            if (rarity != Rarity.Legendary && rarity != Rarity.Set) return own;
+            if (pick == 0) return own;
             if (!TryRow(baseId, out var row)) return own;
             string legendary = null;
             string setPick = null;
@@ -238,17 +245,20 @@ namespace Hollowmere.Core
                     break;
                 }
             }
-            if (rarity == Rarity.Set) return string.IsNullOrEmpty(setPick) ? (legendary ?? own) : setPick;
+            if (pick == 2) return string.IsNullOrEmpty(setPick) ? (legendary ?? own) : setPick;
             return string.IsNullOrEmpty(legendary) ? own : legendary;
         }
 
-        /// <summary>Legendary wears the horned infernal mesh. Set wears the arcane robes. The glow stays on the item's own family.</summary>
+        /// <summary>
+        /// Mesh family comes from the rarity table so a later tier-2 drop can be named there.
+        /// An empty value keeps the item's own family.
+        /// </summary>
         public static string PresentFamily(string family, Rarity rarity)
         {
             if (string.IsNullOrEmpty(family)) family = "plate";
-            if (rarity == Rarity.Legendary) return family == "infernal" ? "bone" : "infernal";
-            if (rarity == Rarity.Set) return family == "arcane" ? "leather" : "arcane";
-            return family;
+            string pick = RarityTable.Get(rarity).MeshFamily;
+            if (string.IsNullOrEmpty(pick) || pick == family) return family;
+            return pick;
         }
 
         public static string TypeOf(string baseId)

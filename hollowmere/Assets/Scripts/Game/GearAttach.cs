@@ -31,6 +31,8 @@ namespace Hollowmere
                 bool v5 = V5Hero(body);
                 if (HeroFit.SkinnedGear(v5)) StripClassHeld(body);
                 Clear(body);
+                RarityVfx.Clear(body);
+                RarityVfx.EnsureFace(body);
                 var weapon = hero.Equipped(EquipSlot.MainHand);
                 if (!Item.IsNone(weapon))
                     Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
@@ -50,6 +52,26 @@ namespace Hollowmere
                 RestoreBones(saved);
             }
             Art.LogHeroBounds(body.gameObject, Art.PlayMode());
+        }
+
+        /// <summary>Replace the held props and leave the worn armour in place.</summary>
+        public static void SwapHeld(Transform body, Hero hero)
+        {
+            if (body == null || hero == null) return;
+            DestroyNamed(body, "gear_weapon");
+            DestroyNamed(body, "gear_offhand");
+            var weapon = hero.Equipped(EquipSlot.MainHand);
+            if (!Item.IsNone(weapon))
+                Weapon(body, DesignTable.WeaponKey(hero.PresentationClass, weapon.baseId), "gear_weapon", weapon, true);
+            var off = hero.Equipped(EquipSlot.OffHand);
+            if (!Item.IsNone(off))
+                Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+        }
+
+        static void DestroyNamed(Transform body, string name)
+        {
+            var hit = Find(body, name);
+            if (hit != null) Object.DestroyImmediate(hit.gameObject);
         }
 
         /// <summary>The fishing rod uses the same grip as a weapon and hides the equipped one.</summary>
@@ -183,7 +205,7 @@ namespace Hollowmere
         {
             var hand = HoldHand(body, it.baseId, main);
             if (hand == null || it == null) return;
-            string model = GearTable.PresentModel(it.baseId, it.rarity);
+            string model = GearTable.PresentModel(it.baseId, RarityBook.ModelPick(it.rarity));
             string type = GearTable.TypeOf(it.baseId);
             if (type == "quiver" && PlaceQuiver(body, "Gear/Weapons/" + model, name, model, it))
                 return;
@@ -643,7 +665,7 @@ namespace Hollowmere
             var hero = actor != null ? actor.Hero : null;
             var it = hero != null ? hero.Equipped(slot) : null;
             if (Item.IsNone(it)) return "";
-            return GearTable.PresentModel(it.baseId, it.rarity);
+            return GearTable.PresentModel(it.baseId, RarityBook.ModelPick(it.rarity));
         }
 
         static bool MeshNamed(Transform prop, string model)

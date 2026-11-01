@@ -277,9 +277,9 @@ namespace Hollowmere
                 var slot = GearFit.Visible[i];
                 var it = hero.Equipped(slot);
                 if (Item.IsNone(it)) continue;
-                int tier = GearTable.TierOf(it.tier, it.rarity);
+                int tier = RarityBook.VisualTier(it.rarity, it.tier);
                 string family = FamilyOf(it);
-                string meshFamily = GearTable.PresentFamily(family, it.rarity);
+                string meshFamily = RarityBook.MeshFamily(family, it.rarity);
                 string slotName = GearFit.SlotName(slot);
                 var prefab = Load(meshFamily, slotName, tier, out bool lower);
                 if (prefab == null)
@@ -287,7 +287,7 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it, tier, !lower);
+                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
@@ -330,6 +330,10 @@ namespace Hollowmere
             return "plate";
         }
 
+        /// <summary>
+        /// Tier 1 and 2 look in Gear/Lower/&lt;family&gt;/&lt;slot&gt; first. A later Meshy drop
+        /// lands in that folder and is picked up from the rarity row's tier and mesh family.
+        /// </summary>
         static GameObject Load(string family, string slot, int tier, out bool lower)
         {
             lower = false;
@@ -342,7 +346,7 @@ namespace Hollowmere
             return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it, int tier, bool finish)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -379,7 +383,7 @@ namespace Hollowmere
             }
             smr.materials = mats;
             Art.AdoptShaders(go);
-            if (finish) Tint(go, glowFamily, it, slot);
+            Tint(go, glowFamily, it, slot);
             RarityVfx.AttachArmor(go, it, slot);
             Object.DestroyImmediate(inst);
             return smr;

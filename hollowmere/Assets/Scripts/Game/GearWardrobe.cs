@@ -385,7 +385,7 @@ namespace Hollowmere
         /// <summary>
         /// Fraction of each body region within 3 cm of a piece, measured in the bind pose once
         /// per equip. A piece hides a region it is allowed to hide only at 85 percent. Below
-        /// that, the triangles it fully covers are dropped and the rest of the skin stays.
+        /// that, only triangles at least 1 cm inside the piece are dropped.
         /// </summary>
         static BodyRegions.Cover[] Coverage(Transform body, List<SkinnedMeshRenderer> pieces)
         {
@@ -417,9 +417,10 @@ namespace Hollowmere
                 if (full == null || !full.isReadable) continue;
                 var verts = full.vertices;
                 if (verts == null || verts.Length == 0) continue;
-                var under = new bool[verts.Length];
+                var inside = new bool[verts.Length];
                 float best = 0f;
                 string who = "";
+                bool anyInside = false;
                 for (int p = 0; p < pieces.Count; p++)
                 {
                     if (grids[p] == null || slots[p] == null || !GearFit.Hides(slots[p].Value, region)) continue;
@@ -427,8 +428,10 @@ namespace Hollowmere
                     for (int v = 0; v < verts.Length; v++)
                     {
                         if (!grids[p].Near(verts[v], GearFit.CoverDistance)) continue;
-                        under[v] = true;
                         hit++;
+                        if (!grids[p].Near(verts[v], GearFit.InsideDistance)) continue;
+                        inside[v] = true;
+                        anyInside = true;
                     }
                     float fraction = hit / (float)verts.Length;
                     if (fraction > best)
@@ -439,7 +442,7 @@ namespace Hollowmere
                 }
                 covers[region].fraction = best;
                 covers[region].hideAll = GearFit.Covers(best);
-                covers[region].under = best > 0f ? under : null;
+                covers[region].under = anyInside ? inside : null;
                 if (best > 0.001f)
                     Debug.Log("Hollowmere gear cover " + who + " " + tail + " " + best.ToString("0.00")
                         + (covers[region].hideAll ? " hide" : " open"));

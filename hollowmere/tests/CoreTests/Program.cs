@@ -856,6 +856,7 @@ static class Program
         Check(GearFit.DrawTriangle(0.7f, true, true, false), "a partly covered region keeps the open corner");
         Check(!GearFit.DrawTriangle(0.7f, true, true, true), "a fully covered triangle stays under the piece");
         Check(GearFit.DrawTriangle(0.2f, false, false, false), "an uncovered region stays visible");
+        Check(System.Math.Abs(GearFit.InsideDistance - 0.01f) < 0.0001f, "only skin 1 cm inside a piece is dropped");
         Check(GearFit.ChainCovered(true, 1f), "a drawn limb is a surface");
         Check(!GearFit.ChainCovered(false, 0.08f), "hidden skin farther than the seam is a chain gap");
         Check(GearFit.ChainCovered(false, 0.03f), "hidden skin under a piece is still covered");
@@ -893,6 +894,11 @@ static class Program
         Check(rolled.tier == 1 && !string.IsNullOrEmpty(rolled.family), "a common chest is tier 1 of a family");
         var set = Loot.Generate(new Rng(4), 20, Rarity.Set, null, ItemSlot.Head, "helm");
         Check(set.tier == 3, "a set helm is tier 3");
+        var clad = Hero.Create(HeroClass.Ironclad, "Qa", new Rng(3));
+        var bow = Loot.Generate(new Rng(1), 8, Rarity.Rare, null, null, "bow", 4);
+        Check(clad.AddItem(bow) && clad.Equip(bow) && clad.Equipped(EquipSlot.MainHand).baseId == "bow", "a bow equips in the main hand");
+        var orb = Loot.Generate(new Rng(1), 8, Rarity.Rare, null, null, "orb", 4);
+        Check(clad.AddItem(orb) && clad.Equip(orb) && clad.Equipped(EquipSlot.OffHand).baseId == "orb", "an orb equips in the off hand");
     }
 
     /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh

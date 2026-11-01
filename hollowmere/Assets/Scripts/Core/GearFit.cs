@@ -193,8 +193,11 @@ namespace Hollowmere.Core
         /// <summary>Share of a piece's weight that has to sit on the slot's own bones.</summary>
         public const float SlotCoverage = 0.70f;
 
-        /// <summary>A body vertex this close to a piece is under that piece.</summary>
+        /// <summary>A body vertex this close to a piece counts toward the 85 percent coverage.</summary>
         public const float CoverDistance = 0.03f;
+
+        /// <summary>A triangle is dropped only when every corner is at least this far inside the piece.</summary>
+        public const float InsideDistance = 0.01f;
 
         /// <summary>Hide a whole region only when one piece covers at least this share of its vertices.</summary>
         public const float CoverFraction = 0.85f;
@@ -202,8 +205,8 @@ namespace Hollowmere.Core
         public static bool Covers(float fraction) => fraction >= CoverFraction;
 
         /// <summary>
-        /// At 85 percent the whole region is hidden. Below that, a triangle is drawn unless the
-        /// piece covers all three corners, so the uncovered skin stays in the gap.
+        /// At 85 percent the whole region is hidden. Below that, a triangle is drawn unless
+        /// every corner is at least 1 cm inside the piece. The edge of the shell stays skin.
         /// </summary>
         public static bool DrawTriangle(float fraction, bool a, bool b, bool c)
         {

@@ -350,13 +350,19 @@ namespace Hollowmere
             pos = new Vector3(0f, palm, 0f);
         }
 
-        /// <summary>Distance from the weapon origin (the grip) to the palm bone. Logs idle, walk, and attack. Over 5 cm fails.</summary>
+        /// <summary>Distance from the prop origin to the hand that holds it. Every clip. Over 5 cm fails. Restores idle.</summary>
         public static void AuditGrip(Transform body)
         {
             if (body == null) return;
-            var hand = Hand(body);
-            var weapon = Find(body, "gear_weapon");
-            if (hand == null || weapon == null)
+            Transform hand = null;
+            Transform prop = Find(body, "gear_weapon");
+            if (prop != null) hand = Hand(body);
+            if (prop == null || hand == null)
+            {
+                prop = Find(body, "gear_offhand");
+                hand = Art.Bone(body, "LeftHand") ?? Art.Bone(body, "LeftForeArm");
+            }
+            if (hand == null || prop == null)
             {
                 Debug.LogError("Hollowmere grip missing hand or weapon");
                 return;
@@ -365,10 +371,35 @@ namespace Hollowmere
             if (anim == null)
             {
                 Debug.Log("Hollowmere grip no clips");
+                PoseIdle(body);
                 return;
             }
             foreach (AnimationState s in anim)
-                SampleGrip(anim, s, hand, weapon);
+                SampleGrip(anim, s, hand, prop);
+            PoseIdle(body);
+        }
+
+        public static void PoseIdle(Transform body)
+        {
+            var anim = body != null ? body.GetComponentInChildren<Animation>() : null;
+            if (anim == null) return;
+            AnimationState idle = null;
+            foreach (AnimationState s in anim)
+            {
+                if (s == null || s.clip == null) continue;
+                string n = s.name.ToLowerInvariant();
+                if (n == "idle" || n.EndsWith("|idle") || n.EndsWith("_idle")) { idle = s; break; }
+            }
+            if (idle == null) return;
+            foreach (AnimationState s in anim)
+            {
+                s.weight = 0f;
+                s.enabled = false;
+            }
+            idle.enabled = true;
+            idle.weight = 1f;
+            idle.time = 0.1f;
+            anim.Sample();
         }
 
         static void SampleGrip(Animation anim, AnimationState st, Transform hand, Transform weapon)

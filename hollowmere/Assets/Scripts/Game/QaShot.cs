@@ -122,6 +122,8 @@ namespace Hollowmere
                 case "gear-mix":
                 case "weapons":
                 case "weaponline":
+                case "tiers":
+                case "geartiers":
                     return true;
             }
             return false;
@@ -160,6 +162,11 @@ namespace Hollowmere
             if (scene == "weapons" || scene == "weaponline")
             {
                 yield return QaFrames.RunWeapons(gm);
+                yield break;
+            }
+            if (scene == "tiers" || scene == "geartiers")
+            {
+                yield return QaFrames.RunTiers(gm);
                 yield break;
             }
             bool title = scene == "title";

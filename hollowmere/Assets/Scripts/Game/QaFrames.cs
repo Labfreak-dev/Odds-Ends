@@ -539,7 +539,18 @@ namespace Hollowmere
                     var crop = ArmorCrop(actor.transform, cam, front, tag);
                     crops.Add(crop);
                     SaveCrop(front, crop, tag);
-                    CheckFace(front, cam, actor.transform, rarity);
+                    if (rarity >= Rarity.Rare)
+                    {
+                        // Two renders of the same pose in one frame: with and without rarity emission.
+                        // Only light the glow adds counts against the face, not authored helm trim.
+                        var lit = RenderNow(cam, front.width, front.height, 0f);
+                        var matte = RenderNow(cam, front.width, front.height, 1f);
+                        if (matte != null) SaveTexture(matte, "rarity-paper-" + tag + "-matte");
+                        if (lit != null) SaveTexture(lit, "rarity-paper-" + tag + "-glow");
+                        CheckFace(lit, cam, actor.transform, rarity, matte);
+                        if (lit != null) UnityEngine.Object.Destroy(lit);
+                        if (matte != null) UnityEngine.Object.Destroy(matte);
+                    }
                 }
                 FrameThreeQuarter(actor, cam, rig);
                 yield return new WaitForEndOfFrame();
@@ -812,7 +823,8 @@ namespace Hollowmere
             Color corner = src.GetPixel(2, 2);
             float dn = ColorDistance(src.GetPixel(Mathf.Clamp((int)native.x, 0, src.width - 1), Mathf.Clamp((int)native.y, 0, src.height - 1)), corner);
             float df = ColorDistance(src.GetPixel(Mathf.Clamp((int)flipped.x, 0, src.width - 1), Mathf.Clamp((int)flipped.y, 0, src.height - 1)), corner);
-            return df > dn + 0.08f;
+            // Capture is y-up here. Flip only when the native spine pixel is background and the flipped one is not.
+            return dn < 0.12f && df > dn + 0.08f;
         }
 
         static bool Project(Camera cam, Texture2D src, Vector3 world, bool flipY, out Vector2 pix)
@@ -858,11 +870,11 @@ namespace Hollowmere
             UnityEngine.Object.Destroy(tex);
         }
 
-        static void CheckFace(Texture2D src, Camera cam, Transform body, Rarity rarity)
+        static void CheckFace(Texture2D src, Camera cam, Transform body, Rarity rarity, Texture2D baseline)
         {
             if (src == null || cam == null || body == null || rarity < Rarity.Rare) return;
             RarityVfx.LogFace(body, cam);
-            var head = Art.Bone(body, "Head");
+            var head = RarityVfx.SkinHead(body);
             if (head == null) return;
             Vector3 sp = cam.WorldToScreenPoint(head.position);
             if (sp.z < 0.01f) return;
@@ -886,11 +898,34 @@ namespace Hollowmere
                 float dx = x - cx, dy = y - cy;
                 if (dx * dx + dy * dy > r2) continue;
                 n++;
-                if (RarityPixel(src.GetPixel(x, y), glow)) bad++;
+                // Glow the rarity adds. Authored trim that reads this hue with emission off is not glow.
+                if (RarityPixel(src.GetPixel(x, y), glow)
+                    && (baseline == null || baseline.width != src.width || !RarityPixel(baseline.GetPixel(x, y), glow)))
+                    bad++;
             }
             Debug.Log("Hollowmere rarity face " + rarity + " " + bad + "/" + n);
             if (bad > 0)
                 Debug.LogError("Hollowmere rarity FAIL face " + rarity + " " + bad + "/" + n);
+        }
+
+        static Texture2D RenderNow(Camera cam, int w, int h, float noEmit)
+        {
+            if (cam == null) return null;
+            var rt = RenderTexture.GetTemporary(w, h, 24, RenderTextureFormat.ARGB32);
+            var prev = cam.targetTexture;
+            var prevActive = RenderTexture.active;
+            Shader.SetGlobalFloat("_HmQaNoEmit", noEmit);
+            cam.targetTexture = rt;
+            cam.Render();
+            RenderTexture.active = rt;
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            tex.Apply();
+            cam.targetTexture = prev;
+            RenderTexture.active = prevActive;
+            RenderTexture.ReleaseTemporary(rt);
+            Shader.SetGlobalFloat("_HmQaNoEmit", 0f);
+            return tex;
         }
 
         static bool RarityPixel(Color p, Color glow)

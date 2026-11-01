@@ -93,6 +93,8 @@ Shader "Hollowmere/Lit"
             // Hero face sphere. Set from the head bone. Zero radius disables the cut.
             float4 _HmFaceCenter;
             float _HmFaceRadius;
+            // QA only: 1 renders the same frame without rarity emission.
+            float _HmQaNoEmit;
 
             struct Attributes
             {
@@ -157,6 +159,9 @@ Shader "Hollowmere/Lit"
                     float faceKill = saturate(((_HmFaceRadius + 0.06) - distance(i.positionWS, _HmFaceCenter.xyz)) * 25.0);
                     albedo = lerp(albedo, luma.xxx, faceKill);
                 }
+                // Chest and shoulder collar: authored lava and trim near the neck go matte too.
+                if (_RimOnly > 0.5 && _UseNeck > 0.5)
+                    albedo = lerp(albedo, luma.xxx * 0.85, i.neckMask);
 
                 half3 n = normalize(i.normalWS);
                 half3 view = normalize(GetCameraPositionWS() - i.positionWS);
@@ -232,11 +237,13 @@ Shader "Hollowmere/Lit"
                 if (mask > 0.0 && _HmFaceRadius > 0.001)
                 {
                     face = saturate((distance(i.positionWS, _HmFaceCenter.xyz) - (_HmFaceRadius + 0.06)) * 25.0);
-                    // Smooth collar falloff: off inside 20 cm of the head bone, full by 34 cm.
-                    face *= smoothstep(0.20, 0.34, distance(i.positionWS, _HmFaceCenter.xyz));
+                    // Chest and shoulders: smooth collar falloff from the live head bone. Spiky pauldrons
+                    // rise behind the jaw, so the ramp runs from 20 cm (off) to 62 cm (full). The hero rig is taller than 1.8 m.
+                    if (_UseNeck > 0.5)
+                        face *= smoothstep(0.20, 0.62, distance(i.positionWS, _HmFaceCenter.xyz));
                 }
                 face *= 1.0 - i.neckMask * step(0.5, _UseNeck);
-                lit += _EmissionColor.rgb * mask * face;
+                lit += _EmissionColor.rgb * mask * face * (1.0 - saturate(_HmQaNoEmit));
                 if (unity_FogParams.z < -0.0001)
                 {
                     float dist = distance(i.positionWS, GetCameraPositionWS());

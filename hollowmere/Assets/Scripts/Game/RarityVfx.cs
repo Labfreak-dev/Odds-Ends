@@ -108,7 +108,7 @@ namespace Hollowmere
         public static void LogFace(Transform body, Camera cam)
         {
             if (body == null) return;
-            var head = Art.Bone(body, "Head");
+            var head = SkinHead(body);
             if (head == null) return;
             float limit = RarityTable.FaceRadius;
             foreach (var r in body.GetComponentsInChildren<Renderer>(true))
@@ -209,7 +209,7 @@ namespace Hollowmere
                     if (r != null && !(r is ParticleSystemRenderer)) pieces.Add(r);
             }
             var row = RarityBook.Row(rarity);
-            var head = Art.Bone(body, "Head");
+            var head = SkinHead(body);
             int motes = 0;
             foreach (var t in body.GetComponentsInChildren<Transform>(true))
             {
@@ -225,11 +225,22 @@ namespace Hollowmere
                 Debug.LogError("Hollowmere rarity FAIL vfx missing " + rarity);
         }
 
+        /// <summary>The Head bone the hero skin is bound to. A name search can hit a second, undriven rig.</summary>
+        public static Transform SkinHead(Transform body)
+        {
+            if (body == null) return null;
+            var skin = BodyRegions.Source(body);
+            if (skin != null && skin.bones != null)
+                for (int i = 0; i < skin.bones.Length; i++)
+                    if (skin.bones[i] != null && Tail(skin.bones[i].name) == "Head") return skin.bones[i];
+            return Art.Bone(body, "Head");
+        }
+
         static Transform HeadOf(Transform host)
         {
             if (host == null) return null;
             var actor = host.GetComponentInParent<HeroActor>();
-            return Art.Bone(actor != null ? actor.transform : host.root, "Head");
+            return SkinHead(actor != null ? actor.transform : host.root);
         }
 
         static bool HeadPiece(string name) => CoversHeadName(name);
@@ -359,27 +370,38 @@ namespace Hollowmere
             return src;
         }
 
-        /// <summary>uv2.x = Neck/Head skin weight, or bind-pose nearness to the head bone (off inside 20 cm, smooth to 34 cm).</summary>
+        /// <summary>uv2.x = Neck/Head skin weight, or bind-pose nearness to the head bone (off inside 20 cm, smooth to 62 cm).</summary>
         public static bool BakeNeckMask(SkinnedMeshRenderer smr)
         {
             var src = smr.sharedMesh;
             if (src == null) return false;
-            if (src.name.EndsWith("_neck")) return true;
+            if (src.name.EndsWith("_nkm")) return true;
             var bones = smr.bones;
             if (bones == null || bones.Length == 0) return false;
             var mesh = Object.Instantiate(src);
-            mesh.name = src.name + "_neck";
+            mesh.name = src.name + "_nkm";
             var verts = mesh.vertices;
             var bw = mesh.boneWeights;
             var bp = mesh.bindposes;
             int head = -1;
             for (int b = 0; b < bones.Length; b++)
                 if (bones[b] != null && Tail(bones[b].name) == "Head") { head = b; break; }
-            Vector3 headPos = Vector3.zero; float scale = 1f;
-            if (head >= 0 && head < bp.Length)
+            // World-space distance in the current pose. Bind-pose units differ between packs (cm vs m).
+            Vector3[] world = null;
+            Vector3 headPos = Vector3.zero;
+            if (head >= 0 && bones[head] != null)
             {
-                headPos = bp[head].inverse.MultiplyPoint3x4(Vector3.zero);
-                var lossy = smr.transform.lossyScale; scale = Mathf.Max(1e-4f, Mathf.Abs(lossy.x));
+                headPos = bones[head].position;
+                var baked = new Mesh();
+                smr.BakeMesh(baked, false);
+                var bv = baked.vertices;
+                if (bv.Length == verts.Length)
+                {
+                    world = new Vector3[bv.Length];
+                    var l2w = smr.transform.localToWorldMatrix;
+                    for (int v = 0; v < bv.Length; v++) world[v] = l2w.MultiplyPoint3x4(bv[v]);
+                }
+                Object.Destroy(baked);
             }
             var uv2 = new Vector2[verts.Length];
             for (int v = 0; v < verts.Length; v++)
@@ -394,15 +416,18 @@ namespace Hollowmere
                     if (Hb(bones, k.boneIndex3)) w += k.weight3;
                 }
                 float near = 0f;
-                if (head >= 0)
+                if (world != null)
                 {
-                    float d = Vector3.Distance(verts[v], headPos) * scale;
-                    near = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.20f, 0.34f, d));
+                    float d = Vector3.Distance(world[v], headPos);
+                    near = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.20f, 0.62f, d));
                 }
                 uv2[v] = new Vector2(Mathf.Clamp01(Mathf.Max(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(w * 2f)), near)), 0f);
             }
             mesh.uv2 = uv2;
             smr.sharedMesh = mesh;
+            int masked = 0;
+            for (int v = 0; v < uv2.Length; v++) if (uv2[v].x > 0.5f) masked++;
+            Debug.Log("Hollowmere rarity neckmask " + smr.name + " " + masked + "/" + uv2.Length + (world != null ? " world" : " weights-only"));
             return true;
         }
 
@@ -615,12 +640,18 @@ namespace Hollowmere
     [DefaultExecutionOrder(600)]
     public sealed class FaceGuard : MonoBehaviour
     {
+        static MaterialPropertyBlock block;
+
         void LateUpdate() => Push(transform);
 
+        /// <summary>
+        /// Per-renderer face centre. A global was last-writer-wins, so a second hero (paper doll,
+        /// stage) moved every other hero's sphere half a metre off its head.
+        /// </summary>
         public static void Push(Transform body)
         {
             if (body == null) return;
-            var head = Art.Bone(body, "Head");
+            var head = RarityVfx.SkinHead(body);
             if (head == null)
             {
                 Shader.SetGlobalFloat("_HmFaceRadius", 0f);
@@ -628,6 +659,15 @@ namespace Hollowmere
             }
             Shader.SetGlobalVector("_HmFaceCenter", head.position);
             Shader.SetGlobalFloat("_HmFaceRadius", RarityTable.FaceRadius);
+            if (block == null) block = new MaterialPropertyBlock();
+            foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || r is ParticleSystemRenderer) continue;
+                r.GetPropertyBlock(block);
+                block.SetVector("_HmFaceCenter", head.position);
+                block.SetFloat("_HmFaceRadius", RarityTable.FaceRadius);
+                r.SetPropertyBlock(block);
+            }
             RarityVfx.CullFace(body, head.position);
         }
     }

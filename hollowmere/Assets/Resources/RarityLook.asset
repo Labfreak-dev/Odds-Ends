@@ -15,9 +15,9 @@ MonoBehaviour:
   rows:
   - rarity: 0
     tier: 1
-    r: 0.96
-    g: 0.88
-    b: 0.8
+    r: 0.84
+    g: 0.77
+    b: 0.7
     metal: 0.08
     smooth: 0.14
     desat: 0.4

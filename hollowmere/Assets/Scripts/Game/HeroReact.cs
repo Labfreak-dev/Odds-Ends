@@ -24,22 +24,16 @@ namespace Hollowmere
             public Vector3 Delta;
         }
 
-        // Negative spine X stacked into a bow (head down at the hips). Positive X is the
-        // opposite lean: a short rock backward, plus a twist to the side. Kept small so
-        // the quaternion cannot take the long way around.
+        // Death falls forward on +X of the hips. The flinch is the opposite sign, on the
+        // hips and the head only, so it cannot fold the chest down to the belt.
         static readonly Key[] Hit =
         {
-            new Key { T = 0.10f, Bone = "Spine2", Euler = new Vector3(8f, 8f, 0f) },
-            new Key { T = 0.10f, Bone = "Head", Euler = new Vector3(10f, -12f, 0f) },
-            new Key { T = 0.10f, Bone = "Hips", Euler = new Vector3(0f, 6f, 0f) },
+            new Key { T = 0.12f, Bone = "Hips", Euler = new Vector3(-10f, 8f, 0f) },
+            new Key { T = 0.12f, Bone = "Head", Euler = new Vector3(-8f, -14f, 0f) },
 
-            new Key { T = 0.30f, Bone = "Spine1", Euler = new Vector3(6f, 6f, 0f) },
-            new Key { T = 0.30f, Bone = "Spine2", Euler = new Vector3(14f, 14f, 0f) },
-            new Key { T = 0.30f, Bone = "Neck", Euler = new Vector3(6f, -8f, 0f) },
-            new Key { T = 0.30f, Bone = "Head", Euler = new Vector3(16f, -22f, 6f) },
-            new Key { T = 0.30f, Bone = "Hips", Euler = new Vector3(0f, 10f, 0f) },
-            new Key { T = 0.30f, Bone = "LeftShoulder", Euler = new Vector3(0f, 0f, 10f) },
-            new Key { T = 0.30f, Bone = "RightShoulder", Euler = new Vector3(0f, 0f, -8f) },
+            new Key { T = 0.30f, Bone = "Hips", Euler = new Vector3(-18f, 14f, 0f) },
+            new Key { T = 0.30f, Bone = "Spine2", Euler = new Vector3(-8f, 0f, 0f) },
+            new Key { T = 0.30f, Bone = "Head", Euler = new Vector3(-16f, -24f, 0f) },
         };
 
         static readonly Key[] Death =

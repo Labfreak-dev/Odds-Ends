@@ -38,7 +38,7 @@ namespace Hollowmere
                 if (!Item.IsNone(off))
                     Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
                 if (v5)
-                    GearShell.Fit(body, hero);
+                    GearWardrobe.Apply(body, hero);
                 else
                 {
                     Armor(body, hero, EquipSlot.Head, "helm");

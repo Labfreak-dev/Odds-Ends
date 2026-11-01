@@ -181,9 +181,7 @@ namespace Hollowmere
             var bodySkin = Body(body);
             if (bodySkin == null || bodySkin.sharedMesh == null) return Fail(pose + " no body");
             var bodyPts = WorldPoints(bodySkin);
-            var bodyHide = Hidden(bodySkin, body);
             var bodyGrid = new Grid(bodyPts);
-            var shellGrids = new List<Grid>();
             for (int p = 0; p < pieces.Count; p++)
             {
                 var piece = pieces[p];
@@ -193,14 +191,12 @@ namespace Hollowmere
                     fails += Fail(pose + " " + piece.name + " bounds empty");
                     continue;
                 }
-                var pieceGrid = new Grid(pts);
-                shellGrids.Add(pieceGrid);
                 if (!Art.MeshWorldBounds(piece.transform, out var box))
                     fails += Fail(pose + " " + piece.name + " bounds missing");
                 else if (!HeroFit.GearSizeOk(Art.MaxAxis(box.size)))
                     fails += Fail(pose + " " + piece.name + " bounds " + Art.MaxAxis(box.size).ToString("0.00") + "m");
 
-                int gapBad = 0, clearBad = 0, stretchBad = 0, seen = 0;
+                int gapBad = 0, stretchBad = 0, seen = 0;
                 int step = Mathf.Max(1, pts.Length / 240);
                 var bind = piece.sharedMesh.bindposes;
                 var baked = piece.sharedMesh.boneWeights;
@@ -225,37 +221,136 @@ namespace Hollowmere
                         }
                     }
                 }
-                var mine = SlotFromName(piece.name);
-                var bw = bodySkin.sharedMesh.boneWeights;
-                var bones = bodySkin.bones;
-                if (bodyPts != null && bodyHide != null && bw != null)
-                {
-                    int bstep = Mathf.Max(1, bodyPts.Length / 280);
-                    for (int i = 0; i < bodyPts.Length; i += bstep)
-                    {
-                        float dist = pieceGrid.Nearest(bodyPts[i]);
-                        EquipSlot? vs = null;
-                        if (i < bw.Length && bones != null)
-                        {
-                            int d = GearShell.Dominant(bw[i]);
-                            if (d >= 0 && d < bones.Length && bones[d] != null)
-                                vs = GearFit.SlotForBone(bones[d].name);
-                        }
-                        if (mine != null && vs == mine) continue;
-                        if (i >= bodyHide.Length || !bodyHide[i])
-                        {
-                            if (!GearFit.VisibleClear(dist)) clearBad++;
-                        }
-                    }
-                }
                 string slot = piece.name;
                 if (gapBad * 8 > seen) fails += Fail(pose + " " + slot + " gap");
-                if (clearBad > 8) fails += Fail(pose + " " + slot + " clips the body");
                 if (stretchBad * 8 > seen) fails += Fail(pose + " " + slot + " stretched");
             }
-            fails += Holes(body, bodyPts, pieces, shellGrids, pose);
-            fails += Overlap(bodyPts, shellGrids, pose);
+            fails += ClipPieces(body, pieces, pose);
             return fails;
+        }
+
+        /// <summary>Visible region vertices against each piece's skinned triangles. Same mask equip uses.</summary>
+        static int ClipPieces(Transform body, List<SkinnedMeshRenderer> pieces, string pose)
+        {
+            int fails = 0;
+            var regions = BodyRegions.Visible(body);
+            if (pieces == null) return 0;
+
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                var piece = pieces[p];
+                if (piece == null || !piece.enabled || piece.sharedMesh == null) 
+                {
+                    Debug.Log("Hollowmere gear clip " + pose + " " + (piece != null ? piece.name : "none") + " no mesh");
+                    continue;
+                }
+                var tris = WorldTris(piece);
+                if (tris == null || tris.Length < 3)
+                {
+                    Debug.Log("Hollowmere gear clip " + pose + " " + piece.name + " no mesh");
+                    continue;
+                }
+                int bad = 0;
+                string bone = "none";
+                int boneN = 0;
+                var tally = new Dictionary<string, int>();
+                for (int r = 0; r < regions.Count; r++)
+                {
+                    var skin = regions[r];
+                    if (skin == null || !skin.enabled || !skin.gameObject.activeInHierarchy) continue;
+                    var pts = WorldPoints(skin);
+                    var weights = skin.sharedMesh != null ? skin.sharedMesh.boneWeights : null;
+                    var bones = skin.bones;
+                    if (pts == null) continue;
+                    int step = Mathf.Max(1, pts.Length / 48);
+                    for (int i = 0; i < pts.Length; i += step)
+                    {
+                        float dist = DistToTris(pts[i], tris);
+                        if (dist >= GearFit.MinGap) continue;
+                        bad++;
+                        string name = "none";
+                        if (weights != null && i < weights.Length && bones != null)
+                        {
+                            int d = GearShell.Dominant(weights[i]);
+                            if (d >= 0 && d < bones.Length && bones[d] != null) name = bones[d].name;
+                        }
+                        tally.TryGetValue(name, out int n);
+                        tally[name] = n + 1;
+                        if (n + 1 > boneN) { boneN = n + 1; bone = name; }
+                    }
+                }
+                Debug.Log("Hollowmere gear clip " + pose + " " + piece.name + " verts=" + bad + " bone=" + bone + " regions=" + regions.Count);
+                if (bad > 8) fails += Fail(pose + " " + piece.name + " clips the body verts=" + bad + " bone=" + bone);
+            }
+            if (pieces.Count == 0)
+                Debug.Log("Hollowmere gear clip " + pose + " verts=0 bone=none");
+            return fails;
+        }
+
+        static float DistToTris(Vector3 p, Vector3[] tris)
+        {
+            float best = 1f;
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                float d = DistPointTri(p, tris[i], tris[i + 1], tris[i + 2]);
+                if (d < best) best = d;
+                if (best <= 0.0001f) break;
+            }
+            return best;
+        }
+
+        static float DistPointTri(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
+        {
+            Vector3 ab = b - a, ac = c - a, ap = p - a;
+            float d1 = Vector3.Dot(ab, ap);
+            float d2 = Vector3.Dot(ac, ap);
+            if (d1 <= 0f && d2 <= 0f) return Vector3.Distance(p, a);
+            Vector3 bp = p - b;
+            float d3 = Vector3.Dot(ab, bp);
+            float d4 = Vector3.Dot(ac, bp);
+            if (d3 >= 0f && d4 <= d3) return Vector3.Distance(p, b);
+            float vc = d1 * d4 - d3 * d2;
+            if (vc <= 0f && d1 >= 0f && d3 <= 0f)
+            {
+                float v = d1 / (d1 - d3);
+                return Vector3.Distance(p, a + v * ab);
+            }
+            Vector3 cp = p - c;
+            float d5 = Vector3.Dot(ab, cp);
+            float d6 = Vector3.Dot(ac, cp);
+            if (d6 >= 0f && d5 <= d6) return Vector3.Distance(p, c);
+            float vb = d5 * d2 - d1 * d6;
+            if (vb <= 0f && d2 >= 0f && d6 <= 0f)
+            {
+                float w = d2 / (d2 - d6);
+                return Vector3.Distance(p, a + w * ac);
+            }
+            float va = d3 * d6 - d5 * d4;
+            if (va <= 0f && (d4 - d3) >= 0f && (d5 - d6) >= 0f)
+            {
+                float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+                return Vector3.Distance(p, b + w * (c - b));
+            }
+            float denom = va + vb + vc;
+            if (Mathf.Abs(denom) < 1e-8f) return Vector3.Distance(p, a);
+            float v2 = vb / denom;
+            float w2 = vc / denom;
+            return Vector3.Distance(p, a + ab * v2 + ac * w2);
+        }
+
+        static Vector3[] WorldTris(SkinnedMeshRenderer smr)
+        {
+            var pts = WorldPoints(smr);
+            if (pts == null || smr.sharedMesh == null) return null;
+            var tris = smr.sharedMesh.triangles;
+            if (tris == null) return null;
+            var world = new Vector3[tris.Length];
+            for (int i = 0; i < tris.Length; i++)
+            {
+                int idx = tris[i];
+                world[i] = idx >= 0 && idx < pts.Length ? pts[idx] : Vector3.zero;
+            }
+            return world;
         }
 
         /// <summary>A covered body vertex may sit under a neighbouring shell. The outer piece wins an overlap.</summary>

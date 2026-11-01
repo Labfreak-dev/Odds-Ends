@@ -102,6 +102,83 @@ namespace Hollowmere.Core
             return null;
         }
 
+        /// <summary>Body regions cut once from dominant bone weight. Equip toggles whole regions.</summary>
+        public enum BodyRegion
+        {
+            Head = 0,
+            UpperTorso = 1,
+            UpperArm = 2,
+            LowerArm = 3,
+            Hand = 4,
+            Waist = 5,
+            Thigh = 6,
+            Shin = 7,
+            Foot = 8,
+            Count = 9,
+        }
+
+        /// <summary>Earlier slots win when two pieces hide the same region. Chest beats shoulders.</summary>
+        public static readonly EquipSlot[] HidePriority =
+        {
+            EquipSlot.Chest, EquipSlot.Shoulders, EquipSlot.Head, EquipSlot.Waist,
+            EquipSlot.Legs, EquipSlot.Feet, EquipSlot.Wrists, EquipSlot.Hands,
+        };
+
+        public static int RegionForBone(string bone)
+        {
+            string n = Tail(bone);
+            if (n.Length == 0) return -1;
+            if (Same(n, "Head") || Same(n, "HeadFront") || Same(n, "HeadTop_End")) return (int)BodyRegion.Head;
+            if (Same(n, "Neck") || Same(n, "Spine1") || Same(n, "Spine2")) return (int)BodyRegion.UpperTorso;
+            if (Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "LeftArm") || Same(n, "RightArm"))
+                return (int)BodyRegion.UpperArm;
+            if (Same(n, "LeftForeArm") || Same(n, "RightForeArm")) return (int)BodyRegion.LowerArm;
+            if (Same(n, "LeftHand") || Same(n, "RightHand")) return (int)BodyRegion.Hand;
+            if (Same(n, "Hips") || Same(n, "Spine")) return (int)BodyRegion.Waist;
+            if (Same(n, "LeftUpLeg") || Same(n, "RightUpLeg")) return (int)BodyRegion.Thigh;
+            if (Same(n, "LeftLeg") || Same(n, "RightLeg")) return (int)BodyRegion.Shin;
+            if (Same(n, "LeftFoot") || Same(n, "RightFoot") || Same(n, "LeftToeBase") || Same(n, "RightToeBase"))
+                return (int)BodyRegion.Foot;
+            return -1;
+        }
+
+        public static string RegionName(int region)
+        {
+            if (region < 0 || region >= (int)BodyRegion.Count) return "none";
+            return ((BodyRegion)region).ToString();
+        }
+
+        /// <summary>Which body regions a piece turns off. Shoulders do not take the torso; chest does.</summary>
+        public static bool Hides(EquipSlot slot, int region)
+        {
+            switch (slot)
+            {
+                case EquipSlot.Head: return region == (int)BodyRegion.Head;
+                case EquipSlot.Shoulders: return region == (int)BodyRegion.UpperArm;
+                case EquipSlot.Chest: return region == (int)BodyRegion.UpperTorso;
+                case EquipSlot.Hands: return region == (int)BodyRegion.Hand;
+                case EquipSlot.Wrists: return region == (int)BodyRegion.LowerArm;
+                case EquipSlot.Waist: return region == (int)BodyRegion.Waist;
+                case EquipSlot.Legs: return region == (int)BodyRegion.Thigh || region == (int)BodyRegion.Shin;
+                case EquipSlot.Feet: return region == (int)BodyRegion.Foot;
+                default: return false;
+            }
+        }
+
+        /// <summary>The worn piece that draws a region. Null when the skin stays on.</summary>
+        public static EquipSlot? RegionOwner(bool[] worn, int region)
+        {
+            if (worn == null) return null;
+            for (int i = 0; i < HidePriority.Length; i++)
+            {
+                var slot = HidePriority[i];
+                int idx = (int)slot;
+                if (idx < 0 || idx >= worn.Length || !worn[idx]) continue;
+                if (Hides(slot, region)) return slot;
+            }
+            return null;
+        }
+
         public static bool WeightsOk(float sum) => sum >= MinWeightSum && sum <= MaxWeightSum;
 
         public static bool GapOk(float metres) => metres >= MinGap && metres <= MaxGap;

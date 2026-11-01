@@ -15,8 +15,12 @@ namespace Hollowmere
     {
         const string CacheName = "gear_source";
 
+        /// <summary>Debug only. The shipped equip path is GearWardrobe, which toggles whole regions.</summary>
+        public static bool DebugShells;
+
         public static void Fit(Transform body, Hero hero)
         {
+            if (!DebugShells) return;
             if (body == null || hero == null) return;
             var skin = BodySkin(body);
             if (skin == null || skin.sharedMesh == null)

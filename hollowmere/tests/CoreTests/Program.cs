@@ -822,6 +822,17 @@ static class Program
         var again = GearFit.Mix(7, 4);
         Check(mix.Length == 4 && mix[0] == again[0] && mix[3] == again[3], "a set mix is deterministic");
         Check(GearFit.PoseMatch("hero|fish_idle|0", "fish"), "fishing clips count as a pose");
+        Check(GearFit.RegionForBone("mixamorig:HeadFront") == (int)GearFit.BodyRegion.Head, "the face is part of the head region");
+        Check(GearFit.RegionForBone("mixamorig:Neck") == (int)GearFit.BodyRegion.UpperTorso, "the neck is part of the upper torso");
+        Check(GearFit.RegionForBone("LeftForeArm") == (int)GearFit.BodyRegion.LowerArm, "the forearm is its own region");
+        Check(GearFit.Hides(EquipSlot.Chest, (int)GearFit.BodyRegion.UpperTorso), "the chest piece hides the upper torso");
+        Check(!GearFit.Hides(EquipSlot.Shoulders, (int)GearFit.BodyRegion.UpperTorso), "pauldrons do not take the torso");
+        var worn = new bool[(int)EquipSlot.Count];
+        worn[(int)EquipSlot.Chest] = true;
+        worn[(int)EquipSlot.Shoulders] = true;
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperTorso) == EquipSlot.Chest, "chest beats shoulders for the upper torso");
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperArm) == EquipSlot.Shoulders, "shoulders own the upper arm");
+        Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
     }
 
     /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh

@@ -211,6 +211,10 @@ namespace Hollowmere.Core
         public static float CoverFor(int region)
             => CoverDistance;
 
+        public static bool Bends(int region)
+            => region == (int)BodyRegion.UpperTorso || region == (int)BodyRegion.UpperArm
+            || region == (int)BodyRegion.Foot;
+
         public static float InsideFor(int region)
         {
             switch ((BodyRegion)region)

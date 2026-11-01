@@ -472,8 +472,10 @@ namespace Hollowmere
                 (EquipSlot.Feet, "boots"),
             };
             int tierFails = 0;
+            string only = System.Environment.GetEnvironmentVariable("HM_QA_FAMILY");
             for (int f = 0; f < GearTable.Families.Length; f++)
             {
+                if (!string.IsNullOrEmpty(only) && GearTable.Families[f] != only) continue;
                 var seen = new System.Collections.Generic.Dictionary<EquipSlot, string>[GearTable.TierCount + 1];
                 for (int tier = 1; tier <= GearTable.TierCount; tier++)
                 {

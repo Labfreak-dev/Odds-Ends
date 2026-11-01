@@ -44,8 +44,8 @@ namespace Hollowmere.Core
         {
             // r,g,b multiply the authored albedo. Finish pulls metal and smoothness toward the scalars
             // without discarding the maps. Rare leaves the maps alone and only adds a fresnel rim.
-            new Row(Rarity.Common, 1, 0.84f, 0.77f, 0.70f, 0.08f, 0.14f, 0.40f, 0.62f, 0f, 4f, 0f, 0, "", false, false, 0.55f, 0.42f, 0.28f, 0f, 0.02f, 0.02f),
-            new Row(Rarity.Magic, 1, 1.30f, 1.35f, 1.40f, 0.90f, 0.75f, 0f, 0.90f, 0f, 4f, 0f, 0, "", false, false, 0.78f, 0.84f, 0.92f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Common, 1, 0.88f, 0.82f, 0.80f, 0.08f, 0.14f, 0.45f, 0.62f, 0f, 4f, 0f, 0, "", false, false, 0.55f, 0.42f, 0.28f, 0f, 0.02f, 0.02f),
+            new Row(Rarity.Magic, 1, 1.26f, 1.35f, 1.44f, 0.90f, 0.75f, 0f, 0.90f, 0f, 4f, 0f, 0, "", false, false, 0.78f, 0.84f, 0.92f, 0f, 0.02f, 0.02f),
             new Row(Rarity.Rare, 2, 1f, 1f, 1f, 0f, 0f, 0f, 0f, 1.20f, 2.5f, 0f, 0, "", false, false, 0.18f, 0.40f, 1.00f, 0f, 0.02f, 0.02f),
             new Row(Rarity.Legendary, 3, 1.02f, 1.00f, 0.98f, 0.35f, 0.48f, 0f, 0.12f, 0.70f, 4f, 2.6f, 1, "infernal", true, true, 1.00f, 0.42f, 0.08f, 8f, 0.035f, 0.02f),
             new Row(Rarity.Set, 3, 1.00f, 1.02f, 0.98f, 0.30f, 0.44f, 0f, 0.12f, 0.40f, 4f, 1.8f, 2, "arcane", true, true, 0.38f, 0.84f, 0.46f, 8f, 0.035f, 0.02f),

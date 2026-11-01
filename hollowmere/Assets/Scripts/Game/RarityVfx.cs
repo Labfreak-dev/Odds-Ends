@@ -93,9 +93,69 @@ namespace Hollowmere
                 if (r == null || r is ParticleSystemRenderer || !CoversHead(r)) continue;
                 var mats = r.materials;
                 for (int i = 0; i < mats.Length; i++)
-                    if (mats[i] != null) KillEmission(mats[i]);
+                {
+                    if (mats[i] == null) continue;
+                    UseLit(mats[i]);
+                    KillEmission(mats[i]);
+                }
                 r.materials = mats;
             }
+        }
+
+        /// <summary>Name every renderer and mote that overlaps the face sphere, then delete those motes.</summary>
+        public static void LogFace(Transform body, Camera cam)
+        {
+            if (body == null) return;
+            var head = Art.Bone(body, "Head");
+            if (head == null) return;
+            float limit = RarityTable.FaceRadius;
+            foreach (var r in body.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r == null || !r.enabled) continue;
+                if (r.bounds.SqrDistance(head.position) > limit * limit) continue;
+                if (r is ParticleSystemRenderer || r.name == Name)
+                {
+                    string parent = r.transform.parent != null ? r.transform.parent.name : r.name;
+                    Debug.Log("Hollowmere rarity face hit particle " + parent + " at " + r.transform.position.ToString("0.00"));
+                    continue;
+                }
+                var m = r.sharedMaterial;
+                string map = "none";
+                if (m != null)
+                {
+                    if (m.HasProperty("_EmissionMap") && m.GetTexture("_EmissionMap") != null)
+                        map = m.GetTexture("_EmissionMap").name;
+                    else if (m.HasProperty("emissiveTexture") && m.GetTexture("emissiveTexture") != null)
+                        map = m.GetTexture("emissiveTexture").name;
+                }
+                string col = "none";
+                if (m != null && m.HasProperty("_EmissionColor"))
+                    col = m.GetColor("_EmissionColor").ToString("0.00");
+                else if (m != null && m.HasProperty("emissiveFactor"))
+                    col = m.GetColor("emissiveFactor").ToString("0.00");
+                string shader = m != null && m.shader != null ? m.shader.name : "none";
+                Debug.Log("Hollowmere rarity face hit " + r.name
+                    + " mat " + (m != null ? m.name : "none")
+                    + " shader " + shader
+                    + " map " + map
+                    + " color " + col);
+            }
+            CullFace(body, head.position);
+        }
+
+        public static void CullFace(Transform body, Vector3 head)
+        {
+            if (body == null) return;
+            var doomed = new System.Collections.Generic.List<GameObject>();
+            foreach (var t in body.GetComponentsInChildren<Transform>(true))
+            {
+                if (t == null || t.name != Name || !InFace(t, head)) continue;
+                string parent = t.parent != null ? t.parent.name : t.name;
+                Debug.Log("Hollowmere rarity face drop " + parent);
+                doomed.Add(t.gameObject);
+            }
+            for (int i = 0; i < doomed.Count; i++)
+                if (doomed[i] != null) Object.DestroyImmediate(doomed[i]);
         }
 
         public static void AttachArmor(GameObject piece, Item it, EquipSlot slot)
@@ -197,12 +257,32 @@ namespace Hollowmere
 
         static void KillEmission(Material m)
         {
+            if (m == null) return;
+            var shader = m.shader;
+            if (shader != null)
+            {
+                int count = shader.GetPropertyCount();
+                for (int i = 0; i < count; i++)
+                {
+                    string prop = shader.GetPropertyName(i);
+                    if (prop.IndexOf("emiss", System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                    var kind = shader.GetPropertyType(i);
+                    if (kind == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                        m.SetTexture(prop, null);
+                    else if (kind == UnityEngine.Rendering.ShaderPropertyType.Color)
+                        m.SetColor(prop, Color.black);
+                }
+            }
+            if (m.HasProperty("_EmissionMap")) m.SetTexture("_EmissionMap", null);
+            if (m.HasProperty("emissiveTexture")) m.SetTexture("emissiveTexture", null);
             if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
             if (m.HasProperty("_EmissiveColor")) m.SetColor("_EmissiveColor", Color.black);
+            if (m.HasProperty("emissiveFactor")) m.SetColor("emissiveFactor", Color.black);
             if (m.HasProperty("_EdgeBoost")) m.SetFloat("_EdgeBoost", 0f);
             if (m.HasProperty("_RimOnly")) m.SetFloat("_RimOnly", 0f);
             if (m.HasProperty("_KillEmit")) m.SetFloat("_KillEmit", 1f);
             m.DisableKeyword("_EMISSION");
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
         }
 
         static bool InFace(Transform vfx, Vector3 head)
@@ -291,9 +371,19 @@ namespace Hollowmere
         {
             if (bone == null || HeadBone(bone)) return false;
             string n = Tail(bone.name);
-            return n != "Spine2" && n.IndexOf("Hair", System.StringComparison.OrdinalIgnoreCase) < 0
-                && n.IndexOf("Jaw", System.StringComparison.OrdinalIgnoreCase) < 0
-                && n.IndexOf("Head", System.StringComparison.OrdinalIgnoreCase) < 0;
+            // Arms swing through the face. Motes stay on the torso and the legs.
+            if (n.IndexOf("Arm", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Hand", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Shoulder", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Clavicle", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+            if (n == "Spine2") return false;
+            if (n.IndexOf("Hair", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Jaw", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Head", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || n.IndexOf("Neck", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+            return true;
         }
 
         static string Tail(string name)
@@ -487,6 +577,7 @@ namespace Hollowmere
             }
             Shader.SetGlobalVector("_HmFaceCenter", head.position);
             Shader.SetGlobalFloat("_HmFaceRadius", RarityTable.FaceRadius);
+            RarityVfx.CullFace(body, head.position);
         }
     }
 }

@@ -145,6 +145,12 @@ Shader "Hollowmere/Lit"
                 // Desaturate the sampled map. A flat colour multiply would erase it.
                 half luma = dot(albedo, half3(0.299, 0.587, 0.114));
                 albedo = lerp(albedo, luma.xxx, saturate(_Desat));
+                // Authored lava in the albedo still crosses the face. Drop its colour inside the sphere.
+                if (_RimOnly > 0.5 && _HmFaceRadius > 0.001)
+                {
+                    float faceKill = saturate(((_HmFaceRadius + 0.06) - distance(i.positionWS, _HmFaceCenter.xyz)) * 25.0);
+                    albedo = lerp(albedo, luma.xxx, faceKill);
+                }
 
                 half3 n = normalize(i.normalWS);
                 half3 view = normalize(GetCameraPositionWS() - i.positionWS);

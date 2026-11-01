@@ -280,6 +280,9 @@ namespace Hollowmere
                 int tier = RarityBook.VisualTier(it.rarity, it.tier);
                 string family = FamilyOf(it);
                 string meshFamily = RarityBook.MeshFamily(family, it.rarity);
+                // The infernal helm authors lava cracks into its emission map and its albedo.
+                if (slot == EquipSlot.Head && meshFamily == "infernal")
+                    meshFamily = family;
                 string slotName = GearFit.SlotName(slot);
                 var prefab = Load(meshFamily, slotName, tier, out bool lower);
                 if (prefab == null)

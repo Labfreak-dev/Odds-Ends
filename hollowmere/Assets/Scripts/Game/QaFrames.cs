@@ -536,7 +536,9 @@ namespace Hollowmere
                 {
                     SaveTexture(front, "rarity-paper-" + tag + "-front");
                     fronts.Add(front);
-                    crops.Add(ArmorCrop(actor.transform, cam, front.width, front.height));
+                    var crop = ArmorCrop(actor.transform, cam, front, tag);
+                    crops.Add(crop);
+                    SaveCrop(front, crop, tag);
                     CheckFace(front, cam, actor.transform, rarity);
                 }
                 FrameThreeQuarter(actor, cam, rig);
@@ -695,6 +697,7 @@ namespace Hollowmere
 
         static bool rarityEnvOn;
         static LineupLight rarityEnv;
+        static bool cropFlip;
 
         /// <summary>Studio ambient and a bright reflection, so a metallic finish is silver instead of black. Rarity shots only.</summary>
         static void RarityEnv(bool on)
@@ -757,65 +760,115 @@ namespace Hollowmere
             }
         }
 
-        /// <summary>Screen rect of the worn armour, head excluded, from the camera that took this shot.</summary>
-        static Rect ArmorCrop(Transform body, Camera cam, int width, int height)
+        /// <summary>
+        /// Torso rect from the spine and shoulder bones. Renderer bounds were pulling in the path stones,
+        /// and a flipped screenshot puts those bones in the sky. The orientation that lands on the figure wins.
+        /// </summary>
+        static Rect ArmorCrop(Transform body, Camera cam, Texture2D src, string tag)
         {
-            bool any = false;
-            Bounds world = new Bounds();
-            if (body != null)
-            {
-                foreach (var r in body.GetComponentsInChildren<Renderer>(true))
-                {
-                    if (r == null || r is ParticleSystemRenderer || !r.enabled) continue;
-                    if (!r.name.StartsWith("gear_")) continue;
-                    if (r.name.Contains("head") || r.name.Contains("helm")) continue;
-                    if (!any) { world = r.bounds; any = true; }
-                    else world.Encapsulate(r.bounds);
-                }
-            }
-            if (!any)
-            {
-                var chest = body != null ? Art.Bone(body, "Spine2") : null;
-                Vector3 at = chest != null ? chest.position : Vector3.up;
-                world = new Bounds(at, new Vector3(0.42f, 0.7f, 0.32f));
-            }
-            else
-                world.extents *= 0.7f;
+            int width = src != null ? src.width : Screen.width;
+            int height = src != null ? src.height : Screen.height;
+            bool flip = FigureFlipped(body, cam, src);
+            cropFlip = flip;
+            string[] bones = { "Spine2", "Spine1", "Spine", "Hips", "LeftArm", "RightArm", "LeftUpLeg", "RightUpLeg" };
             float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
-            var c = world.center;
-            var e = world.extents;
             int seen = 0;
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < bones.Length; i++)
             {
-                var p = c + new Vector3((i & 1) == 0 ? -e.x : e.x, (i & 2) == 0 ? -e.y : e.y, (i & 4) == 0 ? -e.z : e.z);
-                var s = cam.WorldToScreenPoint(p);
-                if (s.z < 0.05f) continue;
+                var bone = body != null ? Art.Bone(body, bones[i]) : null;
+                if (bone == null || !Project(cam, src, bone.position, flip, out var pix)) continue;
                 seen++;
-                if (s.x < minX) minX = s.x;
-                if (s.x > maxX) maxX = s.x;
-                if (s.y < minY) minY = s.y;
-                if (s.y > maxY) maxY = s.y;
+                if (pix.x < minX) minX = pix.x;
+                if (pix.x > maxX) maxX = pix.x;
+                if (pix.y < minY) minY = pix.y;
+                if (pix.y > maxY) maxY = pix.y;
             }
-            if (seen < 2 || width < 2 || height < 2)
-                return new Rect(width * 0.42f, height * 0.28f, width * 0.16f, height * 0.48f);
-            float sx = width / (float)Mathf.Max(1, Screen.width);
-            float sy = height / (float)Mathf.Max(1, Screen.height);
-            minX = Mathf.Clamp(minX * sx, 0f, width - 2f);
-            maxX = Mathf.Clamp(maxX * sx, minX + 2f, width);
-            minY = Mathf.Clamp(minY * sy, 0f, height - 2f);
-            maxY = Mathf.Clamp(maxY * sy, minY + 2f, height);
-            return Rect.MinMaxRect(minX, minY, maxX, maxY);
+            Rect rect;
+            if (seen < 2)
+                rect = new Rect(width * 0.42f, height * 0.32f, width * 0.16f, height * 0.36f);
+            else
+            {
+                float padX = (maxX - minX) * 0.35f + 10f;
+                float padY = (maxY - minY) * 0.22f + 10f;
+                minX = Mathf.Clamp(minX - padX, 0f, width - 2f);
+                maxX = Mathf.Clamp(maxX + padX, minX + 2f, width);
+                minY = Mathf.Clamp(minY - padY, 0f, height - 2f);
+                maxY = Mathf.Clamp(maxY + padY, minY + 2f, height);
+                rect = Rect.MinMaxRect(minX, minY, maxX, maxY);
+            }
+            Debug.Log("Hollowmere rarity crop " + tag + " orient " + (flip ? "flip" : "native")
+                + " " + rect.x.ToString("0") + "," + rect.y.ToString("0")
+                + " " + rect.width.ToString("0") + "x" + rect.height.ToString("0"));
+            return rect;
+        }
+
+        static bool FigureFlipped(Transform body, Camera cam, Texture2D src)
+        {
+            if (src == null || cam == null || body == null) return false;
+            var spine = Art.Bone(body, "Spine2") ?? Art.Bone(body, "Spine1");
+            if (spine == null) return false;
+            if (!Project(cam, src, spine.position, false, out var native)) return false;
+            if (!Project(cam, src, spine.position, true, out var flipped)) return false;
+            Color corner = src.GetPixel(2, 2);
+            float dn = ColorDistance(src.GetPixel(Mathf.Clamp((int)native.x, 0, src.width - 1), Mathf.Clamp((int)native.y, 0, src.height - 1)), corner);
+            float df = ColorDistance(src.GetPixel(Mathf.Clamp((int)flipped.x, 0, src.width - 1), Mathf.Clamp((int)flipped.y, 0, src.height - 1)), corner);
+            return df > dn + 0.08f;
+        }
+
+        static bool Project(Camera cam, Texture2D src, Vector3 world, bool flipY, out Vector2 pix)
+        {
+            pix = default;
+            if (cam == null || src == null) return false;
+            var s = cam.WorldToScreenPoint(world);
+            if (s.z < 0.05f) return false;
+            float x = s.x * src.width / Mathf.Max(1f, Screen.width);
+            float y = s.y * src.height / Mathf.Max(1f, Screen.height);
+            if (flipY) y = src.height - 1f - y;
+            pix = new Vector2(x, y);
+            return true;
+        }
+
+        static float ColorDistance(Color a, Color b)
+            => Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b);
+
+        static void SaveCrop(Texture2D src, Rect crop, string tag)
+        {
+            if (src == null) return;
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(crop.x), 0, src.width - 1);
+            int y0 = Mathf.Clamp(Mathf.FloorToInt(crop.y), 0, src.height - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt(crop.xMax), x0 + 1, src.width);
+            int y1 = Mathf.Clamp(Mathf.CeilToInt(crop.yMax), y0 + 1, src.height);
+            int w = Mathf.Max(1, x1 - x0);
+            int h = Mathf.Max(1, y1 - y0);
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                tex.SetPixel(x, y, src.GetPixel(x0 + x, y0 + y));
+            tex.Apply();
+            var path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "qa-rarity-crop-" + tag + ".png");
+            try
+            {
+                System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+                Debug.Log("Hollowmere QA frame saved: " + path);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Hollowmere rarity FAIL exception crop " + e.Message);
+            }
+            UnityEngine.Object.Destroy(tex);
         }
 
         static void CheckFace(Texture2D src, Camera cam, Transform body, Rarity rarity)
         {
             if (src == null || cam == null || body == null || rarity < Rarity.Rare) return;
+            RarityVfx.LogFace(body, cam);
             var head = Art.Bone(body, "Head");
             if (head == null) return;
             Vector3 sp = cam.WorldToScreenPoint(head.position);
             if (sp.z < 0.01f) return;
             sp.x *= src.width / (float)Mathf.Max(1, Screen.width);
             sp.y *= src.height / (float)Mathf.Max(1, Screen.height);
+            if (cropFlip) sp.y = src.height - 1f - sp.y;
             float dist = Vector3.Distance(cam.transform.position, head.position);
             // Same 22 cm sphere the shader uses to cut emission off the head and the chest top.
             float radius = RarityTable.FaceRadius / Mathf.Max(0.25f, 2f * dist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad)) * src.height;

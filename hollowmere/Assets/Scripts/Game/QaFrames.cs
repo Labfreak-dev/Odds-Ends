@@ -1717,6 +1717,7 @@ namespace Hollowmere
                     Debug.LogError("Hollowmere gear FAIL could not equip " + pieces[i].id);
                     continue;
                 }
+                it.rarity = rarity;
                 it.family = family;
                 it.tier = tier;
                 if (!hero.AddItem(it) || !hero.Equip(it))

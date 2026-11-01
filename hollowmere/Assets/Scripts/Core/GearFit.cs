@@ -199,6 +199,32 @@ namespace Hollowmere.Core
         /// <summary>A triangle is dropped only when every corner is at least this far inside the piece.</summary>
         public const float InsideDistance = 0.01f;
 
+        /// <summary>
+        /// Torso, upper arm, waist, and thigh skin bends hardest under chest, pauldrons, belt, and legs
+        /// (volley, cast, roll, reel, crouch). Skin this close under the piece at rest is dropped, so it cannot poke out in a pose.
+        /// </summary>
+        public const float BendInsideDistance = 0.028f;
+
+        /// <summary>Bulky Meshy chest and pauldrons stand off the torso. Skin this close still counts as covered.</summary>
+        public const float BendCoverDistance = 0.07f;
+
+        public static float CoverFor(int region)
+            => CoverDistance;
+
+        public static float InsideFor(int region)
+        {
+            switch ((BodyRegion)region)
+            {
+                case BodyRegion.UpperTorso:
+                case BodyRegion.UpperArm:
+                case BodyRegion.Waist:
+                case BodyRegion.Thigh:
+                    return BendInsideDistance;
+                default:
+                    return InsideDistance;
+            }
+        }
+
         /// <summary>Hide a whole region only when one piece covers at least this share of its vertices.</summary>
         public const float CoverFraction = 0.85f;
 

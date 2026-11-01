@@ -293,7 +293,7 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it);
+                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it, lower);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
@@ -354,9 +354,26 @@ namespace Hollowmere
             return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
 
+        static bool LowerChest(List<SkinnedMeshRenderer> pieces)
+        {
+            for (int i = 0; i < pieces.Count; i++)
+                if (pieces[i] != null && pieces[i].name == "gear_chest" && pieces[i].GetComponent<LowerTierMark>() != null) return true;
+            return false;
+        }
+
+        static void Inflate(Mesh mesh, float metres)
+        {
+            var v = mesh.vertices;
+            var n = mesh.normals;
+            if (n == null || n.Length != v.Length) { mesh.RecalculateNormals(); n = mesh.normals; }
+            for (int i = 0; i < v.Length; i++) v[i] += n[i] * metres;
+            mesh.vertices = v;
+            mesh.RecalculateBounds();
+        }
+
         public static string LowerPath(string family, string slot, int tier) => "Gear/Lower/" + family + "/t" + tier + "_" + slot;
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it, bool lower = false)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -382,6 +399,7 @@ namespace Hollowmere
             go.transform.localRotation = heroSkin.transform.localRotation;
             go.transform.localScale = heroSkin.transform.localScale;
             var smr = go.AddComponent<SkinnedMeshRenderer>();
+            if (lower) go.AddComponent<LowerTierMark>();
             smr.sharedMesh = mesh;
             smr.bones = heroSkin.bones;
             smr.rootBone = heroSkin.rootBone;
@@ -445,9 +463,9 @@ namespace Hollowmere
                     int hit = 0;
                     for (int v = 0; v < verts.Length; v++)
                     {
-                        if (!grids[p].Near(verts[v], GearFit.CoverDistance)) continue;
+                        if (!grids[p].Near(verts[v], GearFit.CoverFor(region))) continue;
                         hit++;
-                        if (!grids[p].Near(verts[v], GearFit.InsideDistance)) continue;
+                        if (!grids[p].Near(verts[v], GearFit.InsideFor(region))) continue;
                         inside[v] = true;
                         anyInside = true;
                     }
@@ -881,3 +899,4 @@ namespace Hollowmere
         }
     }
 }
+

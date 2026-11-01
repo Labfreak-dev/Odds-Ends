@@ -114,7 +114,8 @@ namespace Hollowmere.Core
             Thigh = 6,
             Shin = 7,
             Foot = 8,
-            Count = 9,
+            Face = 9,
+            Count = 10,
         }
 
         /// <summary>Earlier slots win when two pieces hide the same region. Chest beats shoulders.</summary>
@@ -128,7 +129,8 @@ namespace Hollowmere.Core
         {
             string n = Tail(bone);
             if (n.Length == 0) return -1;
-            if (Same(n, "Head") || Same(n, "HeadFront") || Same(n, "HeadTop_End")) return (int)BodyRegion.Head;
+            if (Same(n, "HeadFront")) return (int)BodyRegion.Face;
+            if (Same(n, "Head") || Same(n, "HeadTop_End")) return (int)BodyRegion.Head;
             if (Same(n, "Neck") || Same(n, "Spine1") || Same(n, "Spine2")) return (int)BodyRegion.UpperTorso;
             if (Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "LeftArm") || Same(n, "RightArm"))
                 return (int)BodyRegion.UpperArm;
@@ -148,14 +150,17 @@ namespace Hollowmere.Core
             return ((BodyRegion)region).ToString();
         }
 
-        /// <summary>Which body regions a piece turns off. Shoulders do not take the torso; chest does.</summary>
+        /// <summary>Which body regions a piece turns off. Chest takes the torso, the waist, and the upper arms. A helm leaves the face.</summary>
         public static bool Hides(EquipSlot slot, int region)
         {
             switch (slot)
             {
                 case EquipSlot.Head: return region == (int)BodyRegion.Head;
                 case EquipSlot.Shoulders: return region == (int)BodyRegion.UpperArm;
-                case EquipSlot.Chest: return region == (int)BodyRegion.UpperTorso || region == (int)BodyRegion.Waist;
+                case EquipSlot.Chest:
+                    return region == (int)BodyRegion.UpperTorso
+                        || region == (int)BodyRegion.Waist
+                        || region == (int)BodyRegion.UpperArm;
                 case EquipSlot.Hands: return region == (int)BodyRegion.Hand;
                 case EquipSlot.Wrists: return region == (int)BodyRegion.LowerArm;
                 case EquipSlot.Waist: return region == (int)BodyRegion.Waist;
@@ -191,7 +196,7 @@ namespace Hollowmere.Core
         public static bool CoverageOk(float inSlot, float total)
             => total > 0.0001f && inSlot / total >= SlotCoverage;
 
-        /// <summary>A bone this slot is allowed to move.</summary>
+        /// <summary>A bone this slot is allowed to move: the slot bones plus their parents.</summary>
         public static bool BoneInSlot(EquipSlot slot, string bone)
         {
             string n = Tail(bone);
@@ -199,21 +204,29 @@ namespace Hollowmere.Core
             switch (slot)
             {
                 case EquipSlot.Head:
-                    return Same(n, "Head") || Same(n, "HeadFront") || Same(n, "HeadTop_End") || Same(n, "Neck");
+                    return Same(n, "Head") || Same(n, "HeadFront") || Same(n, "HeadTop_End")
+                        || Same(n, "Neck") || Same(n, "Spine1") || Same(n, "Spine2");
                 case EquipSlot.Shoulders:
-                    return Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "LeftArm") || Same(n, "RightArm");
+                    return Same(n, "LeftShoulder") || Same(n, "RightShoulder")
+                        || Same(n, "LeftArm") || Same(n, "RightArm")
+                        || Same(n, "Spine") || Same(n, "Spine1") || Same(n, "Spine2") || Same(n, "Hips");
                 case EquipSlot.Chest:
-                    return Same(n, "Spine") || Same(n, "Spine1") || Same(n, "Spine2") || Same(n, "Neck");
+                    return Same(n, "Spine") || Same(n, "Spine1") || Same(n, "Spine2") || Same(n, "Neck")
+                        || Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "Hips");
                 case EquipSlot.Hands:
-                    return Same(n, "LeftHand") || Same(n, "RightHand");
+                    return Same(n, "LeftHand") || Same(n, "RightHand")
+                        || Same(n, "LeftForeArm") || Same(n, "RightForeArm")
+                        || Same(n, "LeftArm") || Same(n, "RightArm");
                 case EquipSlot.Wrists:
                     return Same(n, "LeftForeArm") || Same(n, "RightForeArm");
                 case EquipSlot.Waist:
                     return Same(n, "Hips") || Same(n, "Spine");
                 case EquipSlot.Legs:
-                    return Same(n, "LeftUpLeg") || Same(n, "RightUpLeg") || Same(n, "LeftLeg") || Same(n, "RightLeg");
+                    return Same(n, "LeftUpLeg") || Same(n, "RightUpLeg") || Same(n, "LeftLeg") || Same(n, "RightLeg")
+                        || Same(n, "Hips");
                 case EquipSlot.Feet:
-                    return Same(n, "LeftFoot") || Same(n, "RightFoot") || Same(n, "LeftToeBase") || Same(n, "RightToeBase");
+                    return Same(n, "LeftFoot") || Same(n, "RightFoot") || Same(n, "LeftToeBase") || Same(n, "RightToeBase")
+                        || Same(n, "LeftLeg") || Same(n, "RightLeg") || Same(n, "LeftUpLeg") || Same(n, "RightUpLeg");
                 default:
                     return false;
             }

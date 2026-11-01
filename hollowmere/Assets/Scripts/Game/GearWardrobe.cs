@@ -179,8 +179,9 @@ namespace Hollowmere
     /// <summary>
     /// Authored armour on the v5 hero. Top-tier sets load Gear/Sets/&lt;set&gt;/&lt;slot&gt;.
     /// A piece with no set wears Gear/Lower/&lt;slot&gt; when a CC0 file is there, otherwise
-    /// the plate set, which is a real mesh and not a generated shell. Wrists have no file
-    /// yet, so the bracers do not hide the forearms.
+    /// the plate set, which is a real mesh and not a generated shell. Each set includes
+    /// wrists. The infernal helm is shifted down, bracers are scaled around the forearm,
+    /// and the plate gloves drop a stray strap.
     /// </summary>
     public static class GearWardrobe
     {
@@ -210,7 +211,7 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                if (!Spawn(body, skin, slot, prefab))
+                if (!Spawn(body, skin, slot, prefab, folder))
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
                     continue;
@@ -247,7 +248,7 @@ namespace Hollowmere
             return Resources.Load<GameObject>(PackRoot + "/" + setFolder + "/" + slot);
         }
 
-        static bool Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab)
+        static bool Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string setFolder)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return false;
             var inst = Object.Instantiate(prefab);
@@ -265,6 +266,7 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return false;
             }
+            FitPiece(mesh, slot, setFolder, heroSkin.bones);
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;
@@ -285,6 +287,132 @@ namespace Hollowmere
             Art.AdoptShaders(go);
             Object.DestroyImmediate(inst);
             return true;
+        }
+
+        /// <summary>
+        /// Per-piece corrections that stay in code. The infernal helm's bind box sits 11 cm
+        /// above the plate helm, so its vertices drop by that much. Bracers are thin, so
+        /// they scale 1.2× around the forearm axis and keep their length. The plate gloves
+        /// have four triangles hanging 11 cm below the hand; those are dropped.
+        /// </summary>
+        const float BracerScale = 1.20f;
+        const float HelmDrop = 0.11f;
+        const float StrapBelow = 0.08f;
+
+        static void FitPiece(Mesh mesh, EquipSlot slot, string setFolder, Transform[] heroBones)
+        {
+            if (slot == EquipSlot.Hands && setFolder == "plate") DropPlateStrap(mesh);
+            if (slot == EquipSlot.Head && setFolder == "infernal") Offset(mesh, new Vector3(0f, -HelmDrop, 0f));
+            if (slot == EquipSlot.Wrists) ScaleAroundForearms(mesh, heroBones, BracerScale);
+        }
+
+        static void Offset(Mesh mesh, Vector3 delta)
+        {
+            var v = mesh.vertices;
+            for (int i = 0; i < v.Length; i++) v[i] += delta;
+            mesh.vertices = v;
+            mesh.RecalculateBounds();
+        }
+
+        static void DropPlateStrap(Mesh mesh)
+        {
+            var v = mesh.vertices;
+            var tris = mesh.triangles;
+            if (v == null || tris == null || v.Length == 0 || tris.Length < 3) return;
+            var neg = new List<float>();
+            var pos = new List<float>();
+            for (int i = 0; i < v.Length; i++)
+            {
+                if (v[i].x < 0f) neg.Add(v[i].y);
+                else pos.Add(v[i].y);
+            }
+            float cutNeg = Percentile(neg, 0.10f) - StrapBelow;
+            float cutPos = Percentile(pos, 0.10f) - StrapBelow;
+            var bad = new bool[v.Length];
+            int n = 0;
+            for (int i = 0; i < v.Length; i++)
+            {
+                float cut = v[i].x < 0f ? cutNeg : cutPos;
+                if (v[i].y < cut) { bad[i] = true; n++; }
+            }
+            if (n == 0) return;
+            var keep = new List<int>(tris.Length);
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
+                if (a < 0 || b < 0 || c < 0 || a >= bad.Length || b >= bad.Length || c >= bad.Length) continue;
+                if (bad[a] || bad[b] || bad[c]) continue;
+                keep.Add(a); keep.Add(b); keep.Add(c);
+            }
+            if (keep.Count == tris.Length) return;
+            mesh.triangles = keep.ToArray();
+            mesh.RecalculateBounds();
+        }
+
+        static float Percentile(List<float> values, float p)
+        {
+            if (values == null || values.Count == 0) return 0f;
+            values.Sort();
+            int i = (int)(p * (values.Count - 1));
+            if (i < 0) i = 0;
+            if (i >= values.Count) i = values.Count - 1;
+            return values[i];
+        }
+
+        /// <summary>Radial scale about each forearm. Bone local +Y is the bone axis, so length is unchanged.</summary>
+        static void ScaleAroundForearms(Mesh mesh, Transform[] bones, float scale)
+        {
+            if (bones == null || mesh.bindposes == null) return;
+            int left = BoneIndex(bones, "LeftForeArm");
+            int right = BoneIndex(bones, "RightForeArm");
+            if (left < 0 && right < 0) return;
+            var v = mesh.vertices;
+            var w = mesh.boneWeights;
+            var bind = mesh.bindposes;
+            if (w == null || v.Length != w.Length) return;
+            bool moved = false;
+            for (int i = 0; i < v.Length; i++)
+            {
+                float wl = WeightOn(w[i], left);
+                float wr = WeightOn(w[i], right);
+                int bone = wl >= wr ? left : right;
+                if (bone < 0 || bone >= bind.Length || (wl <= 0f && wr <= 0f)) continue;
+                var inv = bind[bone].inverse;
+                Vector3 origin = inv.MultiplyPoint3x4(Vector3.zero);
+                Vector3 axis = inv.MultiplyVector(Vector3.up);
+                if (axis.sqrMagnitude < 1e-8f) continue;
+                axis.Normalize();
+                Vector3 d = v[i] - origin;
+                float along = Vector3.Dot(d, axis);
+                Vector3 radial = d - axis * along;
+                v[i] = origin + axis * along + radial * scale;
+                moved = true;
+            }
+            if (!moved) return;
+            mesh.vertices = v;
+            mesh.RecalculateBounds();
+        }
+
+        static int BoneIndex(Transform[] bones, string tail)
+        {
+            for (int i = 0; i < bones.Length; i++)
+            {
+                if (bones[i] == null) continue;
+                if (string.Equals(GearFit.Tail(bones[i].name), tail, System.StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+            return -1;
+        }
+
+        static float WeightOn(BoneWeight w, int bone)
+        {
+            if (bone < 0) return 0f;
+            float s = 0f;
+            if (w.boneIndex0 == bone) s += w.weight0;
+            if (w.boneIndex1 == bone) s += w.weight1;
+            if (w.boneIndex2 == bone) s += w.weight2;
+            if (w.boneIndex3 == bone) s += w.weight3;
+            return s;
         }
 
         /// <summary>GLB inverse bind, written into the hero bone's slot. Unmatched hero bones keep the hero bind.</summary>

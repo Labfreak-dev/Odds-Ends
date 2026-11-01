@@ -33,6 +33,7 @@ static class Program
         ModelAlbedo();
         PostVolumeLevel();
         HeroFitLevel();
+        GearFitLevel();
         Cc0PropFiles();
         ModularKitFiles();
         SpecTables();
@@ -784,6 +785,80 @@ static class Program
             Check(!HeroFit.IconCard(false, 684, false, null), mode + " accepts a steel pauldron mesh");
             Check(!HeroFit.IconCard(false, 3500, false, "Image_0"), mode + " accepts a weapon albedo");
         }
+    }
+
+    static void GearFitLevel()
+    {
+        Check(GearFit.SlotForBone("mixamorig:Head") == EquipSlot.Head, "head bone maps to the helm slot");
+        Check(GearFit.SlotForBone("LeftForeArm") == EquipSlot.Wrists, "forearm maps to the wrist slot");
+        Check(GearFit.SlotForBone("RightToeBase") == EquipSlot.Feet, "toe maps to the boot slot");
+        Check(GearFit.SlotForBone("Jaw") == null, "an unbound bone is not a slot");
+        Check(!GearFit.IsVisible(EquipSlot.Amulet) && !GearFit.IsVisible(EquipSlot.Ring1), "rings and the amulet stay invisible");
+        Check(GearFit.Visible.Length == 8, "eight armour slots are skinned");
+        Check(GearFit.Adjacent.Length >= 7, "adjacent slots are all paired");
+        Check(GearFit.WeightsOk(1f) && !GearFit.WeightsOk(0.2f), "bone weights have to sum to one");
+        Check(GearFit.GapOk(0.012f) && GearFit.GapOk(0.04f) && !GearFit.GapOk(0.2f), "authored armour may sit 4 cm off the seam and still cover it");
+        Check(GearFit.StretchOk(1f) && !GearFit.StretchOk(8f), "a vertex that flies off its bone is a stretch");
+        Check(GearFit.Covered(0.02f) && !GearFit.Covered(0.2f), "a hidden body vertex must sit under its piece");
+        Check(GearFit.VisibleClear(0.02f) && !GearFit.VisibleClear(0.001f), "visible skin must stay clear of the shell");
+        var names = new[] { "hero|idle", "Run", "attack_01", "death" };
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[0]), "idle is a required pose");
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[1]), "run or walk is a required pose");
+        Check(GearFit.HasRequiredPose(names, GearFit.RequiredPoses[2]), "attack is a required pose");
+        Check(GearFit.HasRequiredPose(new[] { "ic_attack_cleave" }, GearFit.RequiredPoses[2]), "ic_attack_cleave is an attack pose");
+        Check(GearFit.RequiredPoses.Length == 5, "idle, run, attack, hit and death are required poses");
+        Check(GearFit.HasRequiredPose(new[] { "hit" }, GearFit.RequiredPoses[3]), "hit is a required pose");
+        Check(GearFit.HasRequiredPose(new[] { "death" }, GearFit.RequiredPoses[4]), "death is a required pose");
+        Check(GearFit.HasRequiredPose(new[] { "st_roll_fire" }, GearFit.OptionalPoses[0]), "st_roll_fire is a dodge pose");
+        Check(GearFit.HasRequiredPose(new[] { "ic_cast_warcry" }, GearFit.OptionalPoses[1]), "ic_cast_warcry is a spell pose");
+        Check(GearFit.HasRequiredPose(new[] { "fish_idle" }, GearFit.OptionalPoses[2]), "fish_idle is a fishing pose");
+        Check(GearFit.GapOk(0.0026f), "a dense helm shell 2.6 mm off the skin still fits");
+        Check(GearFit.ShellsOverlap(0.002f, 0.012f, 0.013f), "shells 2 mm apart over the same skin z-fight");
+        Check(!GearFit.ShellsOverlap(0.02f, 0.012f, 0.03f), "shells 2 cm apart are a seam, not an overlap");
+        Check(GearFit.DeathFlat(0.04f, 0.06f, 0.42f), "a body lying on the floor passes the death-flat check");
+        Check(!GearFit.DeathFlat(0.72f, 0.02f, 0.84f), "a hunched kneel fails the death-flat check");
+        Check(!GearFit.DeathFlat(0.04f, 0.6f, 0.42f), "a flat body floating off the floor fails");
+        var mix = GearFit.Mix(7, 4);
+        var again = GearFit.Mix(7, 4);
+        Check(mix.Length == 4 && mix[0] == again[0] && mix[3] == again[3], "a set mix is deterministic");
+        Check(GearFit.PoseMatch("hero|fish_idle|0", "fish"), "fishing clips count as a pose");
+        Check(GearFit.RegionForBone("mixamorig:HeadFront") == (int)GearFit.BodyRegion.Face, "the face is its own region");
+        Check(GearFit.RegionForBone("mixamorig:Head") == (int)GearFit.BodyRegion.Head, "the skull stays the head region");
+        Check(!GearFit.Hides(EquipSlot.Head, (int)GearFit.BodyRegion.Face), "a helm leaves the face showing");
+        Check(GearFit.Hides(EquipSlot.Head, (int)GearFit.BodyRegion.Head), "a helm hides the rest of the head");
+        Check(GearFit.RegionForBone("mixamorig:Neck") == (int)GearFit.BodyRegion.UpperTorso, "the neck is part of the upper torso");
+        Check(GearFit.RegionForBone("LeftForeArm") == (int)GearFit.BodyRegion.LowerArm, "the forearm is its own region");
+        Check(GearFit.Hides(EquipSlot.Chest, (int)GearFit.BodyRegion.UpperTorso), "the chest piece hides the upper torso");
+        Check(GearFit.Hides(EquipSlot.Chest, (int)GearFit.BodyRegion.UpperArm), "the chest hides the upper arms");
+        Check(GearFit.Hides(EquipSlot.Hands, (int)GearFit.BodyRegion.Hand), "gloves hide the hands");
+        Check(GearFit.Hides(EquipSlot.Wrists, (int)GearFit.BodyRegion.LowerArm), "bracers hide the forearms");
+        Check(GearFit.Hides(EquipSlot.Legs, (int)GearFit.BodyRegion.Thigh) && GearFit.Hides(EquipSlot.Legs, (int)GearFit.BodyRegion.Shin), "greaves hide the thighs and the shins");
+        Check(!GearFit.Hides(EquipSlot.Shoulders, (int)GearFit.BodyRegion.UpperTorso), "pauldrons do not take the torso");
+        var worn = new bool[(int)EquipSlot.Count];
+        worn[(int)EquipSlot.Shoulders] = true;
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperArm) == EquipSlot.Shoulders, "shoulders own the upper arm when the chest is off");
+        worn[(int)EquipSlot.Chest] = true;
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperTorso) == EquipSlot.Chest, "chest beats shoulders for the upper torso");
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.UpperArm) == EquipSlot.Chest, "chest beats shoulders for the upper arm");
+        worn[(int)EquipSlot.Waist] = true;
+        Check(GearFit.Hides(EquipSlot.Chest, (int)GearFit.BodyRegion.Waist), "the chest hides the waist");
+        Check(GearFit.RegionOwner(worn, (int)GearFit.BodyRegion.Waist) == EquipSlot.Chest, "chest beats the belt for the hips");
+        Check(GearFit.BoneInSlot(EquipSlot.Legs, "mixamorig:RightUpLeg"), "a greave may be weighted to the thigh");
+        Check(GearFit.BoneInSlot(EquipSlot.Chest, "LeftShoulder"), "a chest may be weighted to the shoulder");
+        Check(GearFit.BoneInSlot(EquipSlot.Feet, "RightLeg"), "a boot may be weighted to the shin");
+        Check(GearFit.BoneInSlot(EquipSlot.Hands, "LeftForeArm"), "a glove may be weighted to the forearm");
+        Check(!GearFit.BoneInSlot(EquipSlot.Wrists, "LeftHand"), "a bracer is not weighted to the hand");
+        Check(!GearFit.BoneInSlot(EquipSlot.Waist, "mixamorig:RightForeArm"), "a belt is not weighted to the forearm");
+        Check(GearFit.CoverageOk(0.70f, 1f) && !GearFit.CoverageOk(0.69f, 1f), "a piece needs 70 percent of its weight on the slot");
+        Check(GearFit.Covers(0.85f) && !GearFit.Covers(0.84f), "a region hides only when a piece covers 85 percent of it");
+        Check(!GearFit.DrawTriangle(0.9f, false, false, false), "a covered region draws no skin");
+        Check(GearFit.DrawTriangle(0.7f, true, true, false), "a partly covered region keeps the open corner");
+        Check(!GearFit.DrawTriangle(0.7f, true, true, true), "a fully covered triangle stays under the piece");
+        Check(GearFit.DrawTriangle(0.2f, false, false, false), "an uncovered region stays visible");
+        Check(GearFit.ChainCovered(true, 1f), "a drawn limb is a surface");
+        Check(!GearFit.ChainCovered(false, 0.08f), "hidden skin farther than the seam is a chain gap");
+        Check(GearFit.ChainCovered(false, 0.03f), "hidden skin under a piece is still covered");
+        Check(GearFit.HidePriority[0] == EquipSlot.Chest, "chest is first in the hide priority");
     }
 
     /// <summary>Each CC0 prop keeps a real base, normal, and roughness image, and the mesh

@@ -37,8 +37,13 @@ namespace Hollowmere
                 var off = hero.Equipped(EquipSlot.OffHand);
                 if (!Item.IsNone(off))
                     Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
-                Armor(body, hero, EquipSlot.Head, "helm");
-                Armor(body, hero, EquipSlot.Chest, "chest");
+                if (v5)
+                    GearWardrobe.Apply(body, hero);
+                else
+                {
+                    Armor(body, hero, EquipSlot.Head, "helm");
+                    Armor(body, hero, EquipSlot.Chest, "chest");
+                }
             }
             finally
             {
@@ -447,15 +452,26 @@ namespace Hollowmere
 
         static Transform Hand(Transform body) => Art.Bone(body, "RightHand") ?? Art.Bone(body, "hand");
 
+        static bool IsGearDebris(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            if (name.StartsWith("body_")) return false;
+            if (name.StartsWith("gear_") || name == "weapon") return true;
+            // A Meshy GLB parents its piece and a spare rig under the hero if a previous spawn leaked.
+            return name.StartsWith("plate_") || name.StartsWith("leather_") || name.StartsWith("arcane_")
+                || name.StartsWith("infernal_") || name.StartsWith("bone_");
+        }
+
         static void Clear(Transform body)
         {
             var doomed = new System.Collections.Generic.List<GameObject>();
             foreach (var t in body.GetComponentsInChildren<Transform>(true))
-                if (t.name.StartsWith("gear_") || t.name == "weapon") doomed.Add(t.gameObject);
+                if (IsGearDebris(t.name)) doomed.Add(t.gameObject);
             for (int i = 0; i < doomed.Count; i++)
             {
-                foreach (var r in doomed[i].GetComponentsInChildren<Renderer>(true)) r.enabled = false;
-                Object.Destroy(doomed[i]);
+                if (doomed[i] == null) continue;
+                // End-of-frame Destroy left the previous shells up for the gearmix audit and the shot.
+                Object.DestroyImmediate(doomed[i]);
             }
         }
 

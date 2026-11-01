@@ -346,6 +346,17 @@ namespace Hollowmere
                 CombatClipPlayer.Attach(ma, key);
                 CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
             }
+            // The v5 body only ships idle, walk and run. Attack, spell, dodge and fishing
+            // live in the class packs and have to be rebound onto mixamorig bones.
+            if (v5 && (key == "hero" || key == "hero_plate"))
+            {
+                CombatClipPlayer.Attach(ma, "hero_ironclad");
+                CombatClipPlayer.Attach(ma, "hero_stalker");
+                CombatClipPlayer.Attach(ma, "hero_hexweaver");
+                CombatClipPlayer.AddPack(ma, "Combat/hero_fishing");
+            }
+            if (key == "hero" || key == "hero_plate" || key.StartsWith("hero_"))
+                HeroReact.Attach(ma);
             if (v5) DressNpc(bodyKey, go.transform);
             if (key.StartsWith("cc0_")) AuditCc0(holder, key);
             if (v5m)
@@ -1662,7 +1673,19 @@ namespace Hollowmere
             skill = st;
             attackLeft = Mathf.Max(0.2f, seconds);
             attackTotal = attackLeft;
+            st.time = 0f;
+            anim.Sample();
             return true;
+        }
+
+        /// <summary>Step the clip that PlayClip started. Used while scaled time is frozen.</summary>
+        public void Advance(float dt)
+        {
+            if (anim == null || skill == null || skill.clip == null || dt <= 0f) return;
+            skill.enabled = true;
+            skill.weight = 1f;
+            skill.time = Mathf.Min(skill.length, skill.time + dt);
+            anim.Sample();
         }
 
         public void BeginAttack(bool cast, float seconds = -1f, string clipName = null)

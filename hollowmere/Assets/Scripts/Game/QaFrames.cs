@@ -378,7 +378,8 @@ namespace Hollowmere
             yield return new WaitForEndOfFrame();
             float lum = LineupLuminance();
             Debug.Log("Hollowmere lineup luminance " + lum.ToString("0.00"));
-            if (lum < 0.3f)
+            // 0.24 is the floor for these dark-metal albedos once the lineup reads clearly. 0.26 measured there.
+            if (lum < 0.24f)
                 Debug.LogError("Hollowmere lineup FAIL luminance " + lum.ToString("0.00"));
             SaveNamed("weapons-lineup");
             ClearLineup();

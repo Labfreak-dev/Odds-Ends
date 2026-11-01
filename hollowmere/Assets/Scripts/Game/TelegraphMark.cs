@@ -33,6 +33,7 @@ namespace Hollowmere
             var go = new GameObject("telegraph");
             go.transform.position = new Vector3(at.x, 0.045f, at.z);
             bool disc = def.shape == TelegraphShape.Ring || def.shape == TelegraphShape.Rune;
+            bool cone = def.shape == TelegraphShape.Cone;
             if (disc)
                 go.transform.rotation = Quaternion.identity;
             else
@@ -45,14 +46,12 @@ namespace Hollowmere
                 if (disc) radius = size;
                 else reach = Mathf.Max(reach, size);
             }
-            if (def.shape == TelegraphShape.Cone)
-            {
-                float half = Mathf.Tan(Mathf.Clamp(def.angle, 20f, 140f) * 0.5f * Mathf.Deg2Rad);
-                width = Mathf.Max(0.4f, reach * half * 2f);
-            }
-            go.transform.localScale = disc
-                ? new Vector3(radius * 2f, 1f, radius * 2f)
-                : new Vector3(width, 1f, reach);
+            if (cone)
+                go.transform.localScale = new Vector3(reach * 2f, 1f, reach * 2f);
+            else if (disc)
+                go.transform.localScale = new Vector3(radius * 2f, 1f, radius * 2f);
+            else
+                go.transform.localScale = new Vector3(Mathf.Max(0.35f, width), 1f, Mathf.Max(0.4f, reach));
             var mark = go.AddComponent<TelegraphMark>();
             mark.def = def;
             mark.shape = def.shape;
@@ -71,7 +70,8 @@ namespace Hollowmere
         void Build(Element element)
         {
             var filt = gameObject.AddComponent<MeshFilter>();
-            filt.sharedMesh = (shape == TelegraphShape.Ring || shape == TelegraphShape.Rune) ? Disc() : Forward();
+            bool round = shape == TelegraphShape.Ring || shape == TelegraphShape.Rune || shape == TelegraphShape.Cone;
+            filt.sharedMesh = round ? Disc() : Forward();
             var rend = gameObject.AddComponent<MeshRenderer>();
             rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             rend.receiveShadows = false;
@@ -86,6 +86,11 @@ namespace Hollowmere
             if (mat.HasProperty("_Inner")) mat.SetFloat("_Inner", def != null ? def.inner : 0.58f);
             if (mat.HasProperty("_FromOrigin")) mat.SetFloat("_FromOrigin", def != null && def.fillFromOrigin != 0 ? 1f : 0f);
             if (mat.HasProperty("_Scroll")) mat.SetFloat("_Scroll", def != null ? def.scroll : 0.45f);
+            if (mat.HasProperty("_Angle")) mat.SetFloat("_Angle", def != null ? def.angle : 80f);
+            float aspect = 0.2f;
+            var sc = transform.localScale;
+            if (sc.z > 0.001f) aspect = sc.x / sc.z;
+            if (mat.HasProperty("_Aspect")) mat.SetFloat("_Aspect", aspect);
             var noise = Noise(def != null ? def.noiseName : null);
             if (noise != null && mat.HasProperty("_MainTex"))
             {
@@ -204,8 +209,15 @@ namespace Hollowmere
         Transform eyes;
         TrailRenderer trail;
         GameObject weaponGlow;
+        GameObject weaponCore;
         GameObject eyeGlow;
+        GameObject torsoGlow;
         GameObject charge;
+        Renderer[] rimRenderers;
+        Material[] rimMats;
+        Color[] rimEmit;
+        Color[] rimBase;
+        bool[] rimHaveBase;
         bool armed;
 
         public bool Armed => armed;
@@ -233,17 +245,23 @@ namespace Hollowmere
             left = Mathf.Max(0.15f, seconds);
             armed = true;
             var col = TelegraphBook.Paint(d, element);
+            var hot = Color.Lerp(col, new Color(1f, 0.97f, 0.9f), 0.82f);
             hand = Find(host.transform, "hand") ?? Find(host.transform, "weapon");
             eyes = Find(host.transform, "eye") ?? Find(host.transform, "head");
             float lift = 1.15f * Mathf.Max(0.6f, host.stats.def.scale);
+            LightRim(host, hot);
+            torsoGlow = Art.GlowSprite(null, 1.45f, new Color(hot.r, hot.g, hot.b, 1f));
+            if (torsoGlow != null) torsoGlow.name = "rimGlow";
             if (d.weaponGlow != 0)
             {
-                weaponGlow = Art.GlowSprite(null, 0.42f, col);
+                weaponGlow = Art.GlowSprite(null, 0.85f, Color.Lerp(col, hot, 0.65f));
                 weaponGlow.name = "weaponGlow";
+                weaponCore = Art.GlowSprite(null, 0.32f, Color.white);
+                if (weaponCore != null) weaponCore.name = "weaponCore";
             }
             if (d.eyeGlow != 0)
             {
-                eyeGlow = Art.GlowSprite(null, 0.22f, Color.Lerp(col, Color.white, 0.35f));
+                eyeGlow = Art.GlowSprite(null, 0.48f, Color.Lerp(hot, Color.white, 0.45f));
                 eyeGlow.name = "eyeGlow";
             }
             if (d.charge != 0)
@@ -292,19 +310,24 @@ namespace Hollowmere
             Vector3 eyeAt = eyes != null
                 ? eyes.position
                 : host.Pos + Vector3.up * (lift + 0.45f) + host.transform.forward * 0.18f;
+            Vector3 chest = host.Pos + Vector3.up * (lift + 0.15f);
             if (weaponGlow != null) weaponGlow.transform.position = handAt;
+            if (weaponCore != null) weaponCore.transform.position = handAt;
             if (trail != null) trail.transform.position = handAt;
             if (charge != null) charge.transform.position = handAt;
             if (eyeGlow != null) eyeGlow.transform.position = eyeAt;
+            if (torsoGlow != null) torsoGlow.transform.position = chest;
         }
 
         void Update()
         {
             if (!armed) return;
             left -= Time.deltaTime;
-            float pulse = 0.85f + 0.2f * Mathf.Sin(Time.time * 16f);
-            if (weaponGlow != null) weaponGlow.transform.localScale = Vector3.one * (0.42f * pulse);
-            if (eyeGlow != null) eyeGlow.transform.localScale = Vector3.one * (0.18f + 0.06f * pulse);
+            float pulse = 0.82f + 0.28f * Mathf.Sin(Time.time * 16f);
+            if (weaponGlow != null) weaponGlow.transform.localScale = Vector3.one * (0.85f * pulse);
+            if (weaponCore != null) weaponCore.transform.localScale = Vector3.one * (0.32f * pulse);
+            if (eyeGlow != null) eyeGlow.transform.localScale = Vector3.one * (0.48f * pulse);
+            if (torsoGlow != null) torsoGlow.transform.localScale = Vector3.one * (1.45f * pulse);
             if (left <= 0f) Clear();
         }
 
@@ -318,11 +341,80 @@ namespace Hollowmere
                 trail = null;
             }
             if (weaponGlow != null) Destroy(weaponGlow);
+            if (weaponCore != null) Destroy(weaponCore);
             if (eyeGlow != null) Destroy(eyeGlow);
+            if (torsoGlow != null) Destroy(torsoGlow);
             if (charge != null) Destroy(charge);
             weaponGlow = null;
+            weaponCore = null;
             eyeGlow = null;
+            torsoGlow = null;
             charge = null;
+            RestoreRim();
+        }
+
+        void LightRim(MonsterActor host, Color hot)
+        {
+            var all = host.GetComponentsInChildren<Renderer>(true);
+            int n = 0;
+            for (int i = 0; i < all.Length; i++)
+                if (RimTarget(all[i])) n++;
+            if (n == 0) return;
+            rimRenderers = new Renderer[n];
+            rimMats = new Material[n];
+            rimEmit = new Color[n];
+            rimBase = new Color[n];
+            rimHaveBase = new bool[n];
+            var emit = hot * 2.8f;
+            int w = 0;
+            for (int i = 0; i < all.Length; i++)
+            {
+                var r = all[i];
+                if (!RimTarget(r)) continue;
+                var mats = r.materials;
+                if (mats == null || mats.Length == 0 || mats[0] == null) continue;
+                var mat = mats[0];
+                rimRenderers[w] = r;
+                rimMats[w] = mat;
+                rimHaveBase[w] = mat.HasProperty("_BaseColor");
+                if (rimHaveBase[w]) rimBase[w] = mat.GetColor("_BaseColor");
+                if (mat.HasProperty("_EmissionColor"))
+                {
+                    rimEmit[w] = mat.GetColor("_EmissionColor");
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", emit);
+                }
+                if (rimHaveBase[w]) mat.SetColor("_BaseColor", Color.Lerp(rimBase[w], hot, 0.28f));
+                w++;
+            }
+        }
+
+        void RestoreRim()
+        {
+            if (rimMats == null) return;
+            for (int i = 0; i < rimMats.Length; i++)
+            {
+                var mat = rimMats[i];
+                if (mat == null) continue;
+                if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", rimEmit[i]);
+                if (rimHaveBase != null && rimHaveBase[i] && mat.HasProperty("_BaseColor"))
+                    mat.SetColor("_BaseColor", rimBase[i]);
+            }
+            rimRenderers = null;
+            rimMats = null;
+            rimEmit = null;
+            rimBase = null;
+            rimHaveBase = null;
+        }
+
+        static bool RimTarget(Renderer r)
+        {
+            if (r == null) return false;
+            if (r is TrailRenderer || r is ParticleSystemRenderer || r is LineRenderer) return false;
+            string n = r.gameObject.name;
+            if (n == "label" || n == "telegraph" || n == "rimGlow") return false;
+            if (n.IndexOf("glow", System.StringComparison.OrdinalIgnoreCase) >= 0) return false;
+            return r is MeshRenderer || r is SkinnedMeshRenderer;
         }
 
         void OnDestroy() => Clear();

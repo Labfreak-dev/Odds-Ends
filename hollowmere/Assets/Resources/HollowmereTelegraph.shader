@@ -16,6 +16,8 @@ Shader "Hollowmere/Telegraph"
         _FromOrigin ("From Origin", Float) = 1
         _Scroll ("Scroll", Float) = 0.45
         _Phase ("Phase", Float) = 0
+        _Angle ("Angle", Float) = 80
+        _Aspect ("Aspect", Float) = 0.2
         _HasNoise ("Has Noise", Float) = 0
     }
     SubShader
@@ -55,6 +57,8 @@ Shader "Hollowmere/Telegraph"
                 half _FromOrigin;
                 half _Scroll;
                 half _Phase;
+                half _Angle;
+                half _Aspect;
                 half _HasNoise;
             CBUFFER_END
 
@@ -91,7 +95,6 @@ Shader "Hollowmere/Telegraph"
             float2 TgMask(float2 uv, float shape, float fill, float inner, float fromOrigin, float hasNoise, float phase)
             {
                 float along = uv.y;
-                float across = abs(uv.x * 2.0 - 1.0);
                 float2 p = uv * 2.0 - 1.0;
                 float r = length(p);
                 float n = TgNoise(uv * 7.0 + float2(phase, phase * 0.35));
@@ -105,23 +108,51 @@ Shader "Hollowmere/Telegraph"
                 float rim = 0;
                 if (shape < 0.5)
                 {
-                    float wedge = smoothstep(0.0, 0.06, along - across);
-                    float cap = smoothstep(0.0, 0.04, 1.02 - along);
-                    float inside = wedge * cap;
-                    float front = fromOrigin > 0.5 ? along : 1.0 - along;
-                    body = inside * (1.0 - smoothstep(fill - 0.01, fill + 0.03, front));
-                    rim = inside * saturate(1.0 - abs(along - across) * 10.0);
-                    rim += inside * saturate(1.0 - abs(along - 1.0) * 16.0);
-                    rim += inside * saturate(1.0 - abs(front - fill) * 28.0);
+                    // Arc sector on a disc. +Y in uv space is the attack direction.
+                    float ang = atan2(abs(p.x), p.y);
+                    float halfA = radians(max(_Angle, 24.0)) * 0.5;
+                    float inArc = 1.0 - smoothstep(halfA - 0.07, halfA + 0.02, ang);
+                    float inDisc = 1.0 - smoothstep(0.94, 1.03, r);
+                    float inside = inArc * inDisc * smoothstep(-0.04, 0.05, p.y);
+                    float reach = fromOrigin > 0.5 ? r : 1.0 - r;
+                    float filled = 1.0 - smoothstep(fill - 0.02, fill + 0.045, reach);
+                    float grad = lerp(0.22, 1.0, saturate(r * 0.85 + 0.15));
+                    float mid = saturate(1.0 - ang / max(halfA, 0.05));
+                    body = inside * lerp(0.16, grad * lerp(0.65, 1.0, mid), filled);
+                    rim = saturate(1.0 - abs(r - 0.96) * 28.0) * inArc * smoothstep(0.0, 0.08, p.y);
+                    rim += saturate(1.0 - abs(ang - halfA) * 16.0) * inDisc * smoothstep(0.04, 0.16, r);
+                    rim += inside * saturate(1.0 - abs(r - fill) * 34.0) * filled;
                 }
                 else if (shape < 1.5)
                 {
-                    float inside = smoothstep(0.0, 0.03, along) * smoothstep(0.0, 0.04, 1.0 - across);
-                    float front = fromOrigin > 0.5 ? along : 1.0 - along;
-                    body = inside * (1.0 - smoothstep(fill - 0.01, fill + 0.03, front));
-                    rim = saturate(1.0 - abs(across - 1.0) * 14.0) * smoothstep(0.0, 0.02, along);
-                    rim += saturate(1.0 - abs(along - 1.0) * 18.0);
-                    rim += inside * saturate(1.0 - abs(front - fill) * 28.0);
+                    // Rounded shaft, arrow tip, chevrons scrolling toward the target.
+                    float aspect = max(_Aspect, 0.035);
+                    float halfW = aspect * 0.5;
+                    float2 q = float2((uv.x - 0.5) * aspect, along);
+                    float head = clamp(halfW * 3.4, 0.07, 0.2);
+                    float2 segA = float2(0.0, halfW);
+                    float2 segB = float2(0.0, 1.0 - head);
+                    float2 pa = q - segA;
+                    float2 ba = segB - segA;
+                    float h = saturate(dot(pa, ba) / max(dot(ba, ba), 0.0001));
+                    float shaft = length(pa - ba * h) - halfW * 0.92;
+                    float ay = (q.y - (1.0 - head)) / max(head, 0.001);
+                    float arrowHalf = halfW * 2.25 * saturate(1.05 - ay);
+                    float arrow = (ay > -0.05 && ay < 1.05) ? abs(q.x) - arrowHalf : 1.0;
+                    float d = min(shaft, arrow);
+                    float inside = 1.0 - smoothstep(-0.002, max(halfW * 0.55, 0.008), d);
+                    float reach = fromOrigin > 0.5 ? q.y : 1.0 - q.y;
+                    float filled = 1.0 - smoothstep(fill - 0.015, fill + 0.03, reach);
+                    float v = abs(q.x) / max(halfW, 0.001);
+                    float grad = lerp(0.32, 1.0, saturate(q.y / max(fill, 0.05))) * lerp(1.0, 0.45, saturate(v));
+                    float chevU = frac(q.y * 7.0 - phase * 1.35);
+                    float chev = smoothstep(0.16, 0.02, abs(chevU - 0.2 - saturate(v) * 0.18));
+                    float core = smoothstep(0.42, 0.0, v);
+                    body = inside * lerp(0.14, grad, filled);
+                    body += inside * filled * chev * 0.85;
+                    body += inside * filled * core * 0.4;
+                    rim = saturate(1.0 - abs(d) / max(halfW * 0.42, 0.01));
+                    rim += inside * saturate(1.0 - abs(q.y - fill) * 28.0);
                 }
                 else if (shape < 2.5)
                 {
@@ -199,7 +230,7 @@ Shader "Hollowmere/Telegraph"
             float4 _MainTex_ST;
             fixed4 _BaseColor;
             fixed4 _EdgeColor;
-            float _Fill, _Shape, _Inner, _FromOrigin, _Scroll, _Phase, _HasNoise;
+            float _Fill, _Shape, _Inner, _FromOrigin, _Scroll, _Phase, _Angle, _Aspect, _HasNoise;
 
             struct appdata
             {
@@ -229,7 +260,6 @@ Shader "Hollowmere/Telegraph"
             float2 TgMask(float2 uv)
             {
                 float along = uv.y;
-                float across = abs(uv.x * 2.0 - 1.0);
                 float2 p = uv * 2.0 - 1.0;
                 float r = length(p);
                 float n = TgNoise(uv * 7.0 + float2(_Phase, 0));
@@ -239,19 +269,48 @@ Shader "Hollowmere/Telegraph"
                 float rim = 0;
                 if (_Shape < 0.5)
                 {
-                    float inside = smoothstep(0.0, 0.06, along - across) * smoothstep(0.0, 0.04, 1.02 - along);
-                    float front = _FromOrigin > 0.5 ? along : 1.0 - along;
-                    body = inside * (1.0 - smoothstep(_Fill - 0.01, _Fill + 0.03, front));
-                    rim = inside * saturate(1.0 - abs(along - across) * 10.0);
-                    rim += inside * saturate(1.0 - abs(front - _Fill) * 28.0);
+                    float ang = atan2(abs(p.x), p.y);
+                    float halfA = radians(max(_Angle, 24.0)) * 0.5;
+                    float inArc = 1.0 - smoothstep(halfA - 0.07, halfA + 0.02, ang);
+                    float inDisc = 1.0 - smoothstep(0.94, 1.03, r);
+                    float inside = inArc * inDisc * smoothstep(-0.04, 0.05, p.y);
+                    float reach = _FromOrigin > 0.5 ? r : 1.0 - r;
+                    float filled = 1.0 - smoothstep(_Fill - 0.02, _Fill + 0.045, reach);
+                    float grad = lerp(0.22, 1.0, saturate(r * 0.85 + 0.15));
+                    float mid = saturate(1.0 - ang / max(halfA, 0.05));
+                    body = inside * lerp(0.16, grad * lerp(0.65, 1.0, mid), filled);
+                    rim = saturate(1.0 - abs(r - 0.96) * 28.0) * inArc * smoothstep(0.0, 0.08, p.y);
+                    rim += saturate(1.0 - abs(ang - halfA) * 16.0) * inDisc * smoothstep(0.04, 0.16, r);
+                    rim += inside * saturate(1.0 - abs(r - _Fill) * 34.0);
                 }
                 else if (_Shape < 1.5)
                 {
-                    float inside = smoothstep(0.0, 0.03, along) * smoothstep(0.0, 0.04, 1.0 - across);
-                    float front = _FromOrigin > 0.5 ? along : 1.0 - along;
-                    body = inside * (1.0 - smoothstep(_Fill - 0.01, _Fill + 0.03, front));
-                    rim = saturate(1.0 - abs(across - 1.0) * 14.0);
-                    rim += inside * saturate(1.0 - abs(front - _Fill) * 28.0);
+                    float aspect = max(_Aspect, 0.035);
+                    float halfW = aspect * 0.5;
+                    float2 q = float2((uv.x - 0.5) * aspect, along);
+                    float head = clamp(halfW * 3.4, 0.07, 0.2);
+                    float2 segA = float2(0.0, halfW);
+                    float2 segB = float2(0.0, 1.0 - head);
+                    float2 pa = q - segA;
+                    float2 ba = segB - segA;
+                    float h = saturate(dot(pa, ba) / max(dot(ba, ba), 0.0001));
+                    float shaft = length(pa - ba * h) - halfW * 0.92;
+                    float ay = (q.y - (1.0 - head)) / max(head, 0.001);
+                    float arrowHalf = halfW * 2.25 * saturate(1.05 - ay);
+                    float arrow = (ay > -0.05 && ay < 1.05) ? abs(q.x) - arrowHalf : 1.0;
+                    float d = min(shaft, arrow);
+                    float inside = 1.0 - smoothstep(-0.002, max(halfW * 0.55, 0.008), d);
+                    float reach = _FromOrigin > 0.5 ? q.y : 1.0 - q.y;
+                    float filled = 1.0 - smoothstep(_Fill - 0.015, _Fill + 0.03, reach);
+                    float v = abs(q.x) / max(halfW, 0.001);
+                    float grad = lerp(0.32, 1.0, saturate(q.y / max(_Fill, 0.05))) * lerp(1.0, 0.45, saturate(v));
+                    float chevU = frac(q.y * 7.0 - _Phase * 1.35);
+                    float chev = smoothstep(0.16, 0.02, abs(chevU - 0.2 - saturate(v) * 0.18));
+                    body = inside * lerp(0.14, grad, filled);
+                    body += inside * filled * chev * 0.85;
+                    body += inside * filled * smoothstep(0.42, 0.0, v) * 0.4;
+                    rim = saturate(1.0 - abs(d) / max(halfW * 0.42, 0.01));
+                    rim += inside * saturate(1.0 - abs(q.y - _Fill) * 28.0);
                 }
                 else if (_Shape < 2.5)
                 {

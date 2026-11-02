@@ -135,7 +135,7 @@ namespace Hollowmere.Core
             if (Same(n, "LeftShoulder") || Same(n, "RightShoulder") || Same(n, "LeftArm") || Same(n, "RightArm"))
                 return (int)BodyRegion.UpperArm;
             if (Same(n, "LeftForeArm") || Same(n, "RightForeArm")) return (int)BodyRegion.LowerArm;
-            if (Same(n, "LeftHand") || Same(n, "RightHand") || n.Contains("Hand_hmf")) return (int)BodyRegion.Hand;
+            if (Same(n, "LeftHand") || Same(n, "RightHand") || n.Contains("Hand_hmf") || System.Text.RegularExpressions.Regex.IsMatch(n, "(Left|Right)Hand(Index|Middle|Ring|Pinky|Thumb)[0-9]")) return (int)BodyRegion.Hand;
             if (Same(n, "Hips") || Same(n, "Spine")) return (int)BodyRegion.Waist;
             if (Same(n, "LeftUpLeg") || Same(n, "RightUpLeg")) return (int)BodyRegion.Thigh;
             if (Same(n, "LeftLeg") || Same(n, "RightLeg")) return (int)BodyRegion.Shin;

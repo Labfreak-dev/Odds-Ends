@@ -276,6 +276,7 @@ namespace Hollowmere
             BodyRegions.Ensure(body);
             var skin = BodyRegions.Source(body);
             var placed = new List<SkinnedMeshRenderer>();
+            LightenHands(body);
             for (int i = 0; i < GearFit.Visible.Length; i++)
             {
                 var slot = GearFit.Visible[i];
@@ -319,11 +320,27 @@ namespace Hollowmere
         /// saturation and the shine so it reads as a starter rather than loot. No VFX, no rim.
         /// </summary>
         public static bool StarterOutfit = true;
+        public static float HandLighten = 1.75f;
+        /// The body texture paints the hands near-black leather; on the phone the fist vanished. Own material, lifted.
+        static void LightenHands(Transform body)
+        {
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.name != "body_Hand" || smr.GetComponent<HandLit>() != null) continue;
+                smr.gameObject.AddComponent<HandLit>();
+                var m = new Material(smr.sharedMaterial) { name = smr.sharedMaterial.name + "_hand" };
+                foreach (var prop in new[] { "_BaseColor", "_Color" })
+                    if (m.HasProperty(prop)) { var c = m.GetColor(prop); m.SetColor(prop, new Color(c.r * HandLighten, c.g * HandLighten * 0.95f, c.b * HandLighten * 0.9f, c.a)); }
+                smr.sharedMaterial = m;
+            }
+        }
         static SkinnedMeshRenderer Starter(Transform body, SkinnedMeshRenderer skin, EquipSlot slot)
         {
             if (!StarterOutfit) return null;
+            // Hands: no starter gauntlet (the leather t3 glove is a boxy cuff that hid the fist); the body's own fitted
+            // hand shows instead, lightened in LightenHands.
             if (slot != EquipSlot.Chest && slot != EquipSlot.Waist && slot != EquipSlot.Legs && slot != EquipSlot.Feet
-                && slot != EquipSlot.Hands && slot != EquipSlot.Wrists) return null;
+                && slot != EquipSlot.Wrists) return null;
             var prefab = Load("leather", GearFit.SlotName(slot), GearTable.TierCount, out bool lower);
             if (prefab == null) return null;
             var piece = Spawn(body, skin, slot, prefab, "leather", "leather", null, lower);
@@ -878,6 +895,7 @@ namespace Hollowmere
     }
 
     /// <summary>The uncut region mesh. Equip swaps in an opened copy and restores this one.</summary>
+    public sealed class HandLit : MonoBehaviour { }
     public sealed class RegionMesh : MonoBehaviour
     {
         public Mesh full;

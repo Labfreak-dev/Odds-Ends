@@ -116,6 +116,7 @@ namespace Hollowmere
                         side2.Normalize(); if (Vector3.Dot(side2, outv) < 0f) side2 = -side2; if (System.Environment.GetEnvironmentVariable("HM_GRIPFLIP") == "1") { side2 = -side2; outv = -outv; }
                         var cdir = (outv + side2 * 0.6f + Vector3.up * 0.2f).normalized;
                         if (p.ok) { var sv = Vector3.Cross(axis, p.normal).normalized; if (Vector3.Dot(sv, outv) < 0f) sv = -sv; float nk = System.Environment.GetEnvironmentVariable("HM_GRIPN") is string ns && float.TryParse(ns, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var nv) ? nv : 0f; cdir = (sv + p.normal * nk + Vector3.up * 0.1f).normalized; } // knuckle side, haft crossing frame
+                        if (checks <= 1) foreach (var sm in actor.GetComponentsInChildren<SkinnedMeshRenderer>(true)) Debug.Log("Hollowmere grip smr " + sm.name + " en=" + sm.enabled + " off=" + sm.forceRenderingOff + " tris=" + (sm.sharedMesh != null ? sm.sharedMesh.triangles.Length / 3 : -1) + " mat=" + (sm.sharedMaterial != null ? sm.sharedMaterial.name : "null"));
                         var gcam = new GameObject("qa_gripcam").AddComponent<Camera>();
                         gcam.CopyFrom(cam); gcam.fieldOfView = 35f; gcam.nearClipPlane = 0.05f; gcam.depth = cam.depth + 10;
                         look = grip; gcam.transform.position = look + cdir * GripDist; gcam.transform.LookAt(look, Vector3.up);

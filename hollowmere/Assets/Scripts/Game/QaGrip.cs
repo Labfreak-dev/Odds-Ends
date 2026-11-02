@@ -99,7 +99,13 @@ namespace Hollowmere
                         // a near plane that cuts anything between the lens and the hand (torso, shoulder pads).
                         var look = p.ok ? p.centre : hand.position;
                         // Hide every skinned renderer except the bare body (armour, starter cloth, cape, hair) so only skin hand + weapon show.
-                        var capes = actor.GetComponentsInChildren<Renderer>(true).Where(r => r.enabled && (r.name.Contains("cloak") || r.name.Contains("cape") || r.name == "gear_chest" || r.name == "gear_shoulders")).ToList();
+                        var capes = actor.GetComponentsInChildren<Renderer>(true).Where(r => r.enabled && (r.name.Contains("cloak") || r.name.Contains("cape") || (BareHand && (r.name == "gear_chest" || r.name == "gear_shoulders" || r.name == "gear_hands" || r.name == "gear_wrists")))).ToList();
+                        // Bare hand, untrimmed (gloves trim the skin under them), so the fist itself is what we see.
+                        var trimmed = new List<(SkinnedMeshRenderer, Mesh)>(); var trimOff = new List<(SkinnedMeshRenderer, bool)>();
+                        foreach (var rm in actor.GetComponentsInChildren<RegionMesh>(true)) { var sm = rm.GetComponent<SkinnedMeshRenderer>(); if (BareHand && sm != null && rm.full != null && (rm.name == "body_Hand" || rm.name == "body_LowerArm")) { trimmed.Add((sm, sm.sharedMesh)); trimOff.Add((sm, sm.forceRenderingOff)); sm.sharedMesh = rm.full; sm.forceRenderingOff = false; } }
+                        // Bright neutral key + fill on the close-up only.
+                        var keyL = new GameObject("qa_gripkey").AddComponent<Light>(); keyL.type = LightType.Directional; keyL.color = Color.white; keyL.intensity = 1.3f; keyL.shadows = LightShadows.None;
+                        var fillL = new GameObject("qa_gripfill").AddComponent<Light>(); fillL.type = LightType.Directional; fillL.color = Color.white; fillL.intensity = 0.6f; fillL.shadows = LightShadows.None;
                         foreach (var r in capes) r.enabled = false;
                         var bodies = new List<SkinnedMeshRenderer>();
 
@@ -109,6 +115,7 @@ namespace Hollowmere
                         var side2 = Vector3.Cross(axis, Vector3.up); if (side2.sqrMagnitude < 0.05f) side2 = Vector3.Cross(axis, actor.transform.forward);
                         side2.Normalize(); if (Vector3.Dot(side2, outv) < 0f) side2 = -side2; if (System.Environment.GetEnvironmentVariable("HM_GRIPFLIP") == "1") { side2 = -side2; outv = -outv; }
                         var cdir = (outv + side2 * 0.6f + Vector3.up * 0.2f).normalized;
+                        if (p.ok) { var sv = Vector3.Cross(axis, p.normal).normalized; if (Vector3.Dot(sv, outv) < 0f) sv = -sv; float nk = System.Environment.GetEnvironmentVariable("HM_GRIPN") is string ns && float.TryParse(ns, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var nv) ? nv : 0f; cdir = (sv + p.normal * nk + Vector3.up * 0.1f).normalized; } // knuckle side, haft crossing frame
                         var gcam = new GameObject("qa_gripcam").AddComponent<Camera>();
                         gcam.CopyFrom(cam); gcam.fieldOfView = 35f; gcam.nearClipPlane = 0.05f; gcam.depth = cam.depth + 10;
                         look = grip; gcam.transform.position = look + cdir * GripDist; gcam.transform.LookAt(look, Vector3.up);
@@ -118,7 +125,8 @@ namespace Hollowmere
                         foreach (AnimationState o in anim) { o.weight = 0f; o.enabled = false; }
                         st.enabled = true; st.weight = 1f; st.speed = 0f; st.time = st.length * (f / 2f) * 0.98f;
                         anim.Sample(); if (ik != null) ik.Apply(); if (curl != null) curl.Apply();
-                        { HandGrip.Held(weapon, type, out var g3, out _); gcam.transform.position = g3 + cdir * GripDist; gcam.transform.LookAt(g3, Vector3.up); }
+                        { HandGrip.Held(weapon, type, out var g3, out _); var lk = Vector3.Lerp(g3, hand.position, 0.35f); gcam.transform.position = lk + cdir * GripDist; gcam.transform.LookAt(lk, Vector3.up);
+                          keyL.transform.rotation = Quaternion.LookRotation(-cdir + Vector3.down * 0.4f); fillL.transform.rotation = Quaternion.LookRotation(cdir + Vector3.down * 0.2f); }
                         yield return new WaitForEndOfFrame();
                         { HandGrip.Held(weapon, type, out var g2, out var a2); float sk2 = SkinGap(actor, hand.position, g2, a2, type);
                           bool wb = type != "orb" && (sk2 > 0.035f || LastWrap < 0.6f);
@@ -127,6 +135,8 @@ namespace Hollowmere
                         SaveCrop("grip-" + model + "-" + Clean(st.name) + "-" + f, 600);
                         UnityEngine.Object.Destroy(gcam.gameObject);
                         foreach (var r in capes) r.enabled = true;
+                        foreach (var tm in trimmed) tm.Item1.sharedMesh = tm.Item2; foreach (var tm in trimOff) tm.Item1.forceRenderingOff = tm.Item2;
+                        UnityEngine.Object.Destroy(keyL.gameObject); UnityEngine.Object.Destroy(fillL.gameObject);
                         foreach (var r in bodies) r.enabled = false;
                     }
             }
@@ -143,6 +153,7 @@ namespace Hollowmere
             return null;
         }
 
+        static bool BareHand => System.Environment.GetEnvironmentVariable("HM_GRIPBARE") == "1";
         static Mesh _bake;
         /// Closest baked hand-skin vertex (near this hand bone) to the handle line around the grip point.
         static float SkinGap(HeroActor actor, Vector3 handPos, Vector3 grip, Vector3 axis, string type)

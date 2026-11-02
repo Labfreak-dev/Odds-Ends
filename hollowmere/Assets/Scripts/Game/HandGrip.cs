@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -289,8 +290,22 @@ namespace Hollowmere
                 var t = Find(side + "HandThumb" + j);
                 if (t != null) joints.Add((t, t.localRotation, (j == 1 ? 18f : 32f) * k));
             }
-            if (joints.Count == 0) BuildSynthetic();
+            if (joints.Count == 0) { BuildSynthetic(); return; }
+            // Authored fist (hero.glb "grip_fist", Blender-rigged finger bones): read the clip's finger rotations once.
+            fist.Clear();
+            var an = hand.GetComponentInParent<Animation>();
+            var clip = an != null ? an.GetClip("grip_fist") : null;
+            if (clip != null)
+            {
+                var all = an.GetComponentsInChildren<Transform>(true);
+                var saved = all.Select(t => (t, t.localPosition, t.localRotation, t.localScale)).ToList();
+                clip.SampleAnimation(an.gameObject, 0f);
+                foreach (var j in joints) fist[j.bone] = j.bone.localRotation;
+                foreach (var x in saved) { x.t.localPosition = x.Item2; x.t.localRotation = x.Item3; x.t.localScale = x.Item4; }
+            }
+            Debug.Log("Hollowmere fist " + hand.name + " joints=" + joints.Count + " authored=" + fist.Count);
         }
+        readonly Dictionary<Transform, Quaternion> fist = new Dictionary<Transform, Quaternion>();
 
         Transform Find(string tail)
         {
@@ -325,6 +340,7 @@ namespace Hollowmere
                 var hand = bones[hi];
                 if (hand == null || !(hand.name.EndsWith("LeftHand") || hand.name.EndsWith("RightHand"))) continue;
                 if (hand.Find(hand.name + "_hmf1") != null) continue;
+                if (hand.GetComponentsInChildren<Transform>(true).Any(t => t.name.EndsWith("HandIndex1"))) continue; // authored finger bones
                 if (!HandGrip.LocalFrame(hand, out var c, out var f, out var k, out var n)) continue;
                 if (mesh == null) { mesh = Instantiate(mesh0); mesh.name = mesh0.name; w = mesh.boneWeights; }
                 const float t0 = 0.010f, t1 = 0.045f;
@@ -379,6 +395,12 @@ namespace Hollowmere
         public void Apply()
         {
             if (hand == null || joints.Count == 0) return;
+            if (fist.Count > 0)
+            {
+                foreach (var j in joints)
+                    if (fist.TryGetValue(j.bone, out var q)) j.bone.localRotation = open ? Quaternion.Slerp(j.rest, q, 0.45f) : q;
+                return;
+            }
             foreach (var j in joints) j.bone.localRotation = j.rest;
             var p = HandGrip.Measure(hand);
             if (!p.ok) return;

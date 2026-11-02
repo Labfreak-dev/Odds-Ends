@@ -56,6 +56,15 @@ namespace Hollowmere
         {
             var scene = Requested;
             if (string.IsNullOrEmpty(scene)) return false;
+            // HM_QUALITY=Medium (Android default) forces the phone quality level, so QA sees 2-bone skinning and the phone LOD bias.
+            var q = Environment.GetEnvironmentVariable("HM_QUALITY");
+            if (!string.IsNullOrEmpty(q))
+            {
+                int idx = Array.IndexOf(QualitySettings.names, q);
+                if (idx < 0) int.TryParse(q, out idx);
+                if (idx >= 0) QualitySettings.SetQualityLevel(idx, true);
+                Debug.Log("Hollowmere QA quality " + QualitySettings.names[QualitySettings.GetQualityLevel()] + " skinWeights=" + QualitySettings.skinWeights + " lodBias=" + QualitySettings.lodBias);
+            }
             gm.StartCoroutine(Run(gm, scene.Trim().ToLowerInvariant()));
             return true;
         }

@@ -97,6 +97,52 @@ namespace Hollowmere
             gm.OnEquipmentChanged();
         }
 
+        /// <summary>
+        /// Bulge check against the bare body: every gear vertex's distance to the nearest body vertex in the live pose.
+        /// Logs p95/max per piece; FAIL when p95 &gt; limit (a mantle or blob standing off the body).
+        /// </summary>
+        public static int PhoneBulge(HeroActor actor, string tag)
+        {
+            var body = actor.transform;
+            var skin = BodyRegions.Source(body);
+            if (skin == null || !GearWardrobe.BakeWorld(skin, out var bp, out _)) return 0;
+            const float cell = 0.05f;
+            var grid = new System.Collections.Generic.Dictionary<Vector3Int, System.Collections.Generic.List<Vector3>>();
+            foreach (var p in bp)
+            {
+                var k = Vector3Int.FloorToInt(p / cell);
+                if (!grid.TryGetValue(k, out var l)) grid[k] = l = new System.Collections.Generic.List<Vector3>();
+                l.Add(p);
+            }
+            int fails = 0;
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if (!smr.gameObject.name.StartsWith("gear_") || smr.name == "gear_weapon" || smr.name == "gear_offhand") continue;
+                if (!GearWardrobe.BakeWorld(smr, out var gp, out _)) continue;
+                var d = new float[gp.Length];
+                for (int i = 0; i < gp.Length; i++)
+                {
+                    var k = Vector3Int.FloorToInt(gp[i] / cell);
+                    float best = 1f;
+                    for (int r = 0; r <= 6 && best > r * cell; r++)
+                        for (int x = -r; x <= r; x++) for (int y = -r; y <= r; y++) for (int z = -r; z <= r; z++)
+                        {
+                            if (Mathf.Max(Mathf.Abs(x), Mathf.Max(Mathf.Abs(y), Mathf.Abs(z))) != r) continue;
+                            if (!grid.TryGetValue(k + new Vector3Int(x, y, z), out var l)) continue;
+                            foreach (var q in l) { float dd = (q - gp[i]).magnitude; if (dd < best) best = dd; }
+                        }
+                    d[i] = best;
+                }
+                Array.Sort(d);
+                float p95 = d[(int)(d.Length * 0.95f)], max = d[d.Length - 1];
+                float limit = smr.name == "gear_head" ? 0.16f : smr.name == "gear_shoulders" ? 0.20f : 0.12f;
+                bool bad = p95 > limit;
+                if (bad) fails++;
+                Debug.Log("Hollowmere phone bulge " + tag + " " + smr.name + " p95=" + p95.ToString("F3") + " max=" + max.ToString("F3") + " limit=" + limit + (bad ? " FAIL" : " ok"));
+            }
+            return fails;
+        }
+
         static IEnumerator PhoneShots(HeroActor actor, string tag)
         {
             var joy = UnityEngine.Object.FindFirstObjectByType<Joystick>();
@@ -104,6 +150,7 @@ namespace Hollowmere
             yield return new WaitForSeconds(1.2f);
             yield return new WaitForEndOfFrame();
             SaveNamed("phone-" + tag + "-idle");
+            PhoneBulge(actor, tag);
             if (joy != null) joy.Value = new Vector2(0.3f, 0.95f);
             yield return new WaitForSeconds(0.9f);
             yield return new WaitForEndOfFrame();

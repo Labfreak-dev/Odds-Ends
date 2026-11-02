@@ -460,11 +460,12 @@ namespace Hollowmere
 
         static void PageButton(RectTransform at, string text, bool on, Action click)
         {
-            var b = Ui.Button(at, text, click, Ui.ButtonC, 24);
+            var b = Ui.Button(at, text, click, Ui.ButtonC, 20);
             var rt = (RectTransform)b.transform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
             b.interactable = on;
+            foreach (var t in b.GetComponentsInChildren<Text>()) { t.verticalOverflow = VerticalWrapMode.Overflow; t.horizontalOverflow = HorizontalWrapMode.Overflow; }
         }
 
         public static void Show(UiRoot ui, TownTab t)
@@ -497,7 +498,7 @@ namespace Hollowmere
                 Ui.Label(Ui.At(top, "lab", new Vector2(0, 1), Vector2.zero, new Vector2(600, 36)), $"Stash {s.stash.Count}/{s.stashCapacity}{paging} — tap to take", 24, TextAnchor.MiddleLeft, Ui.Gold);
                 if (pages > 1)
                 {
-                    Ui.Label(Ui.At(top, "pageLab", new Vector2(1, 1), new Vector2(-260, 0), new Vector2(420, 34)), $"{s.stash.Count}/{s.stashCapacity} · page {StashPage + 1}/{pages}", 22, TextAnchor.MiddleRight, Ui.Gold);
+                    Ui.Label(Ui.At(top, "pageLab", new Vector2(1, 1), new Vector2(-260, 0), new Vector2(420, 34)), $"{s.stash.Count}/{s.stashCapacity} · page {StashPage + 1}/{pages}", 22, TextAnchor.MiddleRight, Ui.Gold).verticalOverflow = VerticalWrapMode.Overflow;
                     PageButton(Ui.At(top, "prev", new Vector2(1, 1), new Vector2(-128, 0), new Vector2(120, 34)), "Prev", StashPage > 0, () => { StashPage--; Show(ui, tab); });
                     PageButton(Ui.At(top, "next", new Vector2(1, 1), Vector2.zero, new Vector2(120, 34)), "Next", StashPage < pages - 1, () => { StashPage++; Show(ui, tab); });
                 }

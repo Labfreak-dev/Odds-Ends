@@ -294,6 +294,15 @@ namespace Hollowmere
                 if (slot == EquipSlot.Head && meshFamily == "infernal")
                     meshFamily = family;
                 string slotName = GearFit.SlotName(slot);
+                // Fitted sets: modelled on the hero's own body in Blender (Tools/blender/leather_fitted.py), body skin
+                // weights, one palette per set. No conform pass, no rarity tint or overlay: rarity shows in the UI only.
+                var fitted = Resources.Load<GameObject>(FittedPath(family, slotName, tier));
+                if (fitted != null)
+                {
+                    var fp = Spawn(body, skin, slot, fitted, family, family, it, false, true);
+                    if (fp != null) { placed.Add(fp); Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + " fitted"); }
+                    continue;
+                }
                 var prefab = Load(meshFamily, slotName, tier, out bool lower);
                 if (prefab == null)
                 {
@@ -477,9 +486,11 @@ namespace Hollowmere
             mesh.RecalculateBounds();
         }
 
+        public static string FittedPath(string family, string slot, int tier) => "Gear/Fitted/" + family + "/t" + tier + "_" + slot;
+
         public static string LowerPath(string family, string slot, int tier) => "Gear/Lower/" + family + "/t" + tier + "_" + slot;
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it, bool lower = false)
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it, bool lower = false, bool fitted = false)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -498,8 +509,11 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return null;
             }
-            FitPiece(mesh, slot, meshFamily, heroSkin.bones);
-            GearConform.Apply(mesh, slot, heroSkin.sharedMesh);
+            if (!fitted)
+            {
+                FitPiece(mesh, slot, meshFamily, heroSkin.bones);
+                GearConform.Apply(mesh, slot, heroSkin.sharedMesh);
+            }
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;
@@ -519,8 +533,11 @@ namespace Hollowmere
             }
             smr.materials = mats;
             Art.AdoptShaders(go);
-            Tint(go, glowFamily, it, slot);
-            RarityVfx.AttachArmor(go, it, slot);
+            if (!fitted)
+            {
+                Tint(go, glowFamily, it, slot);
+                RarityVfx.AttachArmor(go, it, slot);
+            }
             Object.DestroyImmediate(inst);
             return smr;
         }

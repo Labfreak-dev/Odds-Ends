@@ -113,7 +113,7 @@ namespace Hollowmere
         }
 
         /// <summary>Five views of one root on a neutral backdrop with its own key/fill/rim, saved as one wide PNG.</summary>
-        static void TurnRender(Transform root, string tag, bool hero)
+        static void TurnRender(Transform root, string tag, bool hero, Action pose = null, Transform focus = null, float focusSize = 0f)
         {
             var saved = new Dictionary<GameObject, int>();
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
@@ -140,7 +140,9 @@ namespace Hollowmere
             var key = L(1.6f, new Color(1f, 0.97f, 0.92f)); var fill = L(0.8f, new Color(0.85f, 0.9f, 1f)); var rim = L(0.7f, Color.white);
             var amb = RenderSettings.ambientLight; var ambMode = RenderSettings.ambientMode;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat; RenderSettings.ambientLight = new Color(0.55f, 0.55f, 0.57f);
+            pose?.Invoke();
             var b = TurnBounds(root);
+            if (focus != null) b = new Bounds(focus.position, Vector3.one * focusSize);
             float hgt = Mathf.Max(b.size.y, b.size.x * PanelH / (float)PanelW * 0.8f, b.size.z * PanelH / (float)PanelW * 0.8f) * 1.12f;
             float dist = hgt * 0.5f / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
             Debug.Log("Hollowmere turn " + tag + " bounds=" + b.size.ToString("F2"));
@@ -158,6 +160,7 @@ namespace Hollowmere
                 key.transform.rotation = go.transform.rotation * Quaternion.Euler(30f, -35f, 0f);
                 fill.transform.rotation = go.transform.rotation * Quaternion.Euler(10f, 45f, 0f);
                 rim.transform.rotation = Quaternion.LookRotation(-dir + Vector3.down * 0.5f);
+                pose?.Invoke();
                 cam.Render();
                 var prev = RenderTexture.active; RenderTexture.active = rt;
                 outTex.ReadPixels(new Rect(0, 0, PanelW, PanelH), v * PanelW, 0);
@@ -211,6 +214,82 @@ namespace Hollowmere
             yield return new WaitForSeconds(0.9f);
             if (joy != null) joy.Value = Vector2.zero;
             yield return new WaitForSeconds(0.5f);
+        }
+
+        /// <summary>Freeze the hero on one clip (idle / run / attack) at a fraction of its length. Returns a re-apply action
+        /// for use right before each render (the game's anim driver re-poses the hero in Update).</summary>
+        static Action Freeze(HeroActor actor, string key, float frac)
+        {
+            var anim = actor.GetComponentInChildren<Animation>();
+            if (anim == null) return null;
+            AnimationState pick = null;
+            foreach (AnimationState st in anim)
+            {
+                string n = st.name.ToLowerInvariant();
+                bool ok = key == "attack" ? (n.Contains("attack") || n.Contains("slash") || n.Contains("chop")) : n.Contains(key);
+                if (ok && (pick == null || n.Length < pick.name.Length)) pick = st;
+            }
+            if (pick == null) { Debug.Log("Hollowmere leather no clip " + key); return null; }
+            Debug.Log("Hollowmere leather clip " + key + " = " + pick.name);
+            var curls = actor.GetComponentsInChildren<HandCurl>(true);
+            return () =>
+            {
+                foreach (AnimationState o in anim) { o.weight = 0f; o.enabled = false; }
+                pick.enabled = true; pick.weight = 1f; pick.speed = 0f; pick.time = pick.length * frac;
+                anim.Sample();
+                foreach (var c in curls) if (c != null) c.Apply();
+            };
+        }
+
+        static Transform Bone(Transform root, string tail)
+        {
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (t.name.EndsWith(tail)) return t;
+            return null;
+        }
+
+        /// <summary>-qaShot leather: fitted leather set proof. Per tier: 5-view turnaround in idle, run and attack;
+        /// close-ups of shoulders, elbows, hips, knees and hands in run and attack. Then game camera idle/run/attack per tier.</summary>
+        public static IEnumerator RunLeather(GameManager gm)
+        {
+            gm.State = GameManager.MakeCustom("Aldric", 2, 2, 1, 1, 0.85f, 0.85f, 0.88f, PetSpecies.Hound, "Mossy", 1, 0, true);
+            gm.EnterTown(false);
+            Screen.SetResolution(2340, 1080, FullScreenMode.Windowed);
+            yield return new WaitForSecondsRealtime(1.0f);
+            var actor = HeroActor.I;
+            string[] weps = { "sword", "axe", "spear" };
+            var poses = new (string key, float frac)[] { ("idle", 0.3f), ("run", 0.25f), ("attack", 0.45f) };
+            var parts = new (string name, string bone, float size)[] { ("shoulders", "Spine2", 0.62f), ("elbowR", "RightForeArm", 0.42f), ("elbowL", "LeftForeArm", 0.42f), ("hips", "Hips", 0.62f), ("knees", "RightLeg", 0.62f), ("handR", "RightHand", 0.36f), ("handL", "LeftHand", 0.36f) };
+            for (int t = 1; t <= GearTable.TierCount; t++)
+            {
+                WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
+                TurnWeapon(gm, weps[t - 1]);
+                yield return new WaitForSeconds(0.6f);
+                foreach (var ps in poses)
+                {
+                    var fr = Freeze(actor, ps.key, ps.frac);
+                    yield return new WaitForEndOfFrame();
+                    TurnRender(actor.transform, "leather-t" + t + "-" + weps[t - 1] + "-" + ps.key, true, fr);
+                    if (ps.key == "idle") continue;
+                    foreach (var pt in parts)
+                    {
+                        var bn = Bone(actor.transform, pt.bone);
+                        if (bn == null) continue;
+                        yield return new WaitForEndOfFrame();
+                        TurnRender(actor.transform, "leather-close-t" + t + "-" + ps.key + "-" + pt.name, true, fr, bn, pt.size);
+                    }
+                }
+            }
+            gm.EnterFloor(1);
+            yield return new WaitForSecondsRealtime(2.0f);
+            actor = HeroActor.I;
+            for (int t = 1; t <= GearTable.TierCount; t++)
+            {
+                WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
+                TurnWeapon(gm, weps[t - 1]);
+                yield return TurnCam(actor, "leather-t" + t + "-" + weps[t - 1]);
+            }
+            Debug.Log("Hollowmere QA leather done");
+            Application.Quit();
         }
 
         static IEnumerator TurnSkeleton(HeroActor actor)

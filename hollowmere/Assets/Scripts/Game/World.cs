@@ -145,10 +145,27 @@ namespace Hollowmere
             var floorB = town ? PbrKit.Surface("dirt_path", 4f, Color.white) : floorA;
             var floor = MakeMesh("floor", root, fv, fn, null, floorA, fuv);
             var fm = floor.GetComponent<MeshFilter>().sharedMesh;
-            fm.subMeshCount = 2;
-            fm.SetTriangles(ta, 0);
-            fm.SetTriangles(tb, 1);
-            floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { floorA, floorB };
+            var blend = town ? TownGround.Material() : null;
+            if (blend != null)
+            {
+                // One blended surface: cobble streets into dirt and grass from a continuous path field.
+                // The old two-submesh cobble/dirt split painted 2x2-tile squares (the phone "checkerboard").
+                var cols = new Color[fv.Count];
+                for (int i = 0; i < fv.Count; i++) cols[i] = new Color(TownGround.PathWeight(fv[i] + root.position, map), 0f, 0f, 1f);
+                fm.colors = cols;
+                var all = new List<int>(ta); all.AddRange(tb);
+                fm.subMeshCount = 1;
+                fm.SetTriangles(all, 0);
+                floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { blend };
+                floor.name = "floor";
+            }
+            else
+            {
+                fm.subMeshCount = 2;
+                fm.SetTriangles(ta, 0);
+                fm.SetTriangles(tb, 1);
+                floor.GetComponent<MeshRenderer>().sharedMaterials = new[] { floorA, floorB };
+            }
 
             var wallSide = town
                 ? PbrKit.Surface("town_plaster_wall", 3f, new Color(0.56f, 0.54f, 0.50f))

@@ -34,6 +34,7 @@ namespace Hollowmere
             var actor = HeroActor.I;
             if (actor == null) { Debug.LogError("Hollowmere phone FAIL no hero"); Application.Quit(); yield break; }
 
+            PhoneWorldChecks();
             // Plain clothes first: the starter outfit at the phone camera.
             yield return PhoneShots(actor, "plain");
             var s = gm.State;
@@ -209,6 +210,32 @@ namespace Hollowmere
                 bool bad = mean < 0.20f || hero < 0.18f || hn < 200;
                 if (bad) fails++;
                 Debug.Log("Hollowmere phone preview " + tag + " cam=" + c.name + " meanLuma=" + mean.ToString("F3") + " heroLuma=" + hero.ToString("F3") + " heroPx=" + hn + (bad ? " FAIL" : " ok"));
+            }
+            return fails;
+        }
+
+        /// <summary>Floor is the blended ground (not the two-material tile checker); hero ring is the rune decal, not a ring of cubes.</summary>
+        public static int PhoneWorldChecks()
+        {
+            int fails = 0;
+            foreach (var r in UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            {
+                if (r.name != "floor") continue;
+                var mats = r.sharedMaterials;
+                bool ok = mats.Length == 1 && mats[0] != null && mats[0].shader.name == "Hollowmere/GroundBlend";
+                if (!ok) fails++;
+                Debug.Log("Hollowmere phone floor materials=" + mats.Length + " shader=" + (mats.Length > 0 && mats[0] != null ? mats[0].shader.name : "none") + (ok ? " ok" : " FAIL tile checker"));
+            }
+            var hero = HeroActor.I;
+            var ring = hero != null ? hero.transform.Find("heroRing") : null;
+            if (ring == null) { foreach (var t in hero.GetComponentsInChildren<Transform>(true)) if (t.name == "heroRing") ring = t; }
+            if (ring == null) { fails++; Debug.Log("Hollowmere phone ring FAIL missing"); }
+            else
+            {
+                var rs = ring.GetComponentsInChildren<Renderer>(true);
+                bool rune = rs.Length == 1 && rs[0].sharedMaterial != null && rs[0].sharedMaterial.shader.name == "Hollowmere/HeroRune";
+                if (!rune) fails++;
+                Debug.Log("Hollowmere phone ring renderers=" + rs.Length + " shader=" + (rs.Length > 0 && rs[0].sharedMaterial != null ? rs[0].sharedMaterial.shader.name : "none") + (rune ? " ok" : " FAIL plain dashed circle"));
             }
             return fails;
         }

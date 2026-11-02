@@ -191,18 +191,44 @@ namespace Hollowmere
             return glowQuad;
         }
 
-        /// <summary>Dashed ring on the ground so a dark hero still reads at screen centre.</summary>
+        /// <summary>
+        /// Hero ground rune: one flat quad with Hollowmere/HeroRune (rings, rotating glyphs, fill sweep, pulse).
+        /// Replaces the 20-cube dashed white ring. Falls back to the dashed ring only when the shader is missing,
+        /// and QA fails that case.
+        /// </summary>
         public static void GroundRing(Transform parent, Color c, float radius = 0.95f)
         {
             var root = new GameObject("heroRing").transform;
             root.SetParent(parent, false);
-            var m = Mat(c, 1.8f);
+            var sh = Shader.Find("Hollowmere/HeroRune");
+            if (sh != null)
+            {
+                var q = new GameObject("heroRune");
+                q.transform.SetParent(root, false);
+                q.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+                q.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                q.transform.localScale = new Vector3(radius * 2.3f, radius * 2.3f, 1f);
+                q.AddComponent<MeshFilter>().sharedMesh = GlowQuadMesh();
+                var mr = q.AddComponent<MeshRenderer>();
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+                var m = new Material(sh) { name = "heroRune" };
+                // Warm gold by default, tinted toward the hero's colour, never pure white.
+                var gold = new Color(1f, 0.66f, 0.30f);
+                m.SetColor("_BaseColor", Color.Lerp(gold, c, 0.25f) * 0.9f);
+                m.SetColor("_Accent", new Color(1f, 0.9f, 0.65f));
+                m.SetFloat("_Intensity", 1.35f);
+                mr.sharedMaterial = m;
+                return;
+            }
+            Debug.LogError("Hollowmere telegraph FAIL hero rune shader missing, dashed ring fallback");
+            var mat = Mat(c, 1.8f);
             const int n = 20;
             for (int i = 0; i < n; i++)
             {
                 float a = i * Mathf.PI * 2f / n;
                 var pos = new Vector3(Mathf.Cos(a), 0.05f, Mathf.Sin(a)) * radius;
-                Cube(root, pos, new Vector3(radius * 0.28f, 0.03f, 0.09f), m, Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f));
+                Cube(root, pos, new Vector3(radius * 0.28f, 0.03f, 0.09f), mat, Quaternion.Euler(0f, -a * Mathf.Rad2Deg, 0f));
             }
         }
 
@@ -1046,7 +1072,7 @@ namespace Hollowmere
             return name == "Hollowmere/Color" || name == "Hollowmere/Text" || name == "Hollowmere/Glow"
                 || name == "Hollowmere/Sheet" || name == "Hollowmere/Lit"
                 || name == "Hollowmere/Pbr" || name == "Hollowmere/Water" || name == "Hollowmere/Portal"
-                || name == "Hollowmere/Sky"
+                || name == "Hollowmere/Sky" || name == "Hollowmere/GroundBlend" || name == "Hollowmere/HeroRune"
                 || name == "Universal Render Pipeline/Lit";
         }
 

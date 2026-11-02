@@ -79,7 +79,7 @@ namespace Hollowmere
                     try { GearWardrobe.Apply(model.transform, new Hero()); } catch (System.Exception e) { Debug.LogWarning("Hollowmere creator starter: " + e.Message); }
                 }
                 StageIdle.Attach(model);
-                else Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(armour));
+                if (model == null) Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(armour));
                 shownPlate = plate;
                 shownSkin = skin;
                 shownCloth = cloth;

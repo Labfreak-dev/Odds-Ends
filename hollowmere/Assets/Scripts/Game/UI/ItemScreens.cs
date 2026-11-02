@@ -497,8 +497,9 @@ namespace Hollowmere
                 Ui.Label(Ui.At(top, "lab", new Vector2(0, 1), Vector2.zero, new Vector2(600, 36)), $"Stash {s.stash.Count}/{s.stashCapacity}{paging} — tap to take", 24, TextAnchor.MiddleLeft, Ui.Gold);
                 if (pages > 1)
                 {
-                    PageButton(Ui.At(top, "prev", new Vector2(1, 1), new Vector2(-96, 0), new Vector2(88, 34)), "<", StashPage > 0, () => { StashPage--; Show(ui, tab); });
-                    PageButton(Ui.At(top, "next", new Vector2(1, 1), Vector2.zero, new Vector2(88, 34)), ">", StashPage < pages - 1, () => { StashPage++; Show(ui, tab); });
+                    Ui.Label(Ui.At(top, "pageLab", new Vector2(1, 1), new Vector2(-260, 0), new Vector2(420, 34)), $"{s.stash.Count}/{s.stashCapacity} · page {StashPage + 1}/{pages}", 22, TextAnchor.MiddleRight, Ui.Gold);
+                    PageButton(Ui.At(top, "prev", new Vector2(1, 1), new Vector2(-128, 0), new Vector2(120, 34)), "Prev", StashPage > 0, () => { StashPage--; Show(ui, tab); });
+                    PageButton(Ui.At(top, "next", new Vector2(1, 1), Vector2.zero, new Vector2(120, 34)), "Next", StashPage < pages - 1, () => { StashPage++; Show(ui, tab); });
                 }
                 var sg = Ui.Grid(Ui.Rect(top, "g", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0, -38)), new Vector2(120, 96), 6);
                 foreach (var it in s.stash.Skip(StashPage * Balance.StashSize).Take(Balance.StashSize)) { var itx = it; ItemUi.Cell(sg, it, it == selected, () => { if (!Town.FromStash(s, itx)) ui.Toast("Bag is full."); Show(ui, tab); }); }

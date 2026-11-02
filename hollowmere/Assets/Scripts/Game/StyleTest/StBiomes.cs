@@ -12,7 +12,15 @@ namespace Hollowmere.StyleTest
         public static readonly string[] Ids = { "crypt", "cave", "sewer", "mine" };
         public static readonly List<Transform> Built = new List<Transform>();
         public static readonly List<Vector3> Spawns = new List<Vector3>();
-        public static Vector3 Centre;
+        public static Vector3 Centre, Hero;
+        /// <summary>Combat spots (relative to room centre): hero + 3 foes. Props and bumpy floor tiles keep clear of them.</summary>
+        static readonly Dictionary<string, Vector3[]> Spots = new Dictionary<string, Vector3[]> {
+            { "crypt", new[] { new Vector3(0, 0, -3.5f), new Vector3(-4, 0, -2), new Vector3(4, 0, -1), new Vector3(0, 0, 5.5f) } },
+            { "cave",  new[] { new Vector3(-1, 0, -1.5f), new Vector3(-4, 0, 1), new Vector3(2, 0, 4), new Vector3(-6, 0, 4) } },
+            { "sewer", new[] { new Vector3(-6, 0, -2.5f), new Vector3(-3, 0, -0.5f), new Vector3(3, 0, -1.5f), new Vector3(8, 0, -2.5f) } },
+            { "mine",  new[] { new Vector3(0, 0, -1.0f), new Vector3(-6, 0, 3), new Vector3(6, 0, 3.5f), new Vector3(0, 0, 5) } },
+        };
+        static bool NearSpot(Vector3 p, float r) { foreach (var s in Spawns) if (Vector3.Distance(new Vector3(p.x, 0, p.z), s) < r) return true; return Vector3.Distance(new Vector3(p.x, 0, p.z), Hero) < r; }
         const float T = 4f;
         static System.Random rng;
         static string biome;
@@ -30,7 +38,7 @@ namespace Hollowmere.StyleTest
                     ambSky = new Color(0.16f, 0.18f, 0.32f), ambEq = new Color(0.10f, 0.10f, 0.17f), fog = new Color(0.06f, 0.06f, 0.12f), fogS = 24, fogE = 60,
                     key = new Color(0.62f, 0.70f, 1f), keyI = 0.45f };
                 case "cave": return new Def {
-                    mask = new[] { ".###....", "#####.##", "########", ".#######", "..#####.", "...###.." },
+                    mask = new[] { ".###....", "########", "########", ".#######", "..#####.", "...###.." },
                     floor = new Color(0.62f, 0.58f, 0.60f), wall = new Color(0.50f, 0.46f, 0.52f),
                     ambSky = new Color(0.17f, 0.27f, 0.33f), ambEq = new Color(0.11f, 0.15f, 0.18f), fog = new Color(0.03f, 0.07f, 0.09f), fogS = 20, fogE = 55,
                     key = new Color(0.55f, 0.85f, 1f), keyI = 0.25f };
@@ -40,7 +48,7 @@ namespace Hollowmere.StyleTest
                     ambSky = new Color(0.12f, 0.20f, 0.14f), ambEq = new Color(0.08f, 0.12f, 0.08f), fog = new Color(0.06f, 0.10f, 0.06f), fogS = 18, fogE = 50,
                     key = new Color(0.75f, 1f, 0.7f), keyI = 0.30f };
                 default: return new Def { // mine
-                    mask = new[] { "##......", "####.###", "########", ".#######", ".####.##", "..###..." },
+                    mask = new[] { "##......", "########", "########", ".#######", ".####.##", "..###..." },
                     floor = new Color(0.86f, 0.72f, 0.58f), wall = new Color(0.70f, 0.55f, 0.42f),
                     ambSky = new Color(0.30f, 0.24f, 0.19f), ambEq = new Color(0.18f, 0.14f, 0.11f), fog = new Color(0.10f, 0.07f, 0.05f), fogS = 22, fogE = 58,
                     key = new Color(1f, 0.82f, 0.6f), keyI = 0.35f };
@@ -189,6 +197,7 @@ namespace Hollowmere.StyleTest
                 : new[] { "floor_tile_large_rocks", "floor_tile_large" };
             var cells = new List<Vector3>();
             { Vector3 a = Vector3.one * 1e5f, bmax = -Vector3.one * 1e5f; for (int zz = 0; zz < m.Length; zz++) for (int xx = 0; xx < m[zz].Length; xx++) if (At(m, xx, zz)) { var cc = Cell(m, xx, zz); a = Vector3.Min(a, cc); bmax = Vector3.Max(bmax, cc); } Centre = (a + bmax) * 0.5f; }
+            var sp = Spots[id]; Hero = Centre + sp[0]; for (int i = 1; i < sp.Length; i++) Spawns.Add(Centre + sp[i]);
             // dark pit floor under the whole room so notches read as drops, not void
             Box(Centre + new Vector3(0, -1.6f, 0), new Vector3(m[0].Length * T + 12, 0.2f, m.Length * T + 12), d.wall * 0.25f);
             for (int z = 0; z < m.Length; z++)
@@ -200,6 +209,7 @@ namespace Hollowmere.StyleTest
                     if (channel) { WaterCell(c); continue; }
                     var f = floors[rng.Next(floors.Length)];
                     if (id == "sewer" && rng.Next(6) == 0) f = "floor_tile_big_grate";
+                    if (NearSpot(c, 3.2f)) f = "floor_tile_large"; // flat footing where actors stand
                     var g = StKit.Spawn("Dungeon/" + f, Vector3.zero, 90 * rng.Next(4)); Tint(g, d.floor);
                     g.transform.localScale = Vector3.Scale(g.transform.localScale, new Vector3(1.03f, 1f, 1.03f));
                     var b = StWorld.Bounds(g); g.transform.position += new Vector3(c.x - b.center.x, (f.Contains("grate") ? -b.max.y : -b.min.y - 0.15f), c.z - b.center.z); Built.Add(g.transform); // slab top at y=0; rocks/grate rims stand proud
@@ -268,7 +278,9 @@ namespace Hollowmere.StyleTest
                 int z = rng.Next(m.Length), x = rng.Next(m[0].Length);
                 if (!At(m, x, z)) continue;
                 if (biome == "sewer" && z == 1) continue;
-                return Cell(m, x, z) + new Vector3(((float)rng.NextDouble() - 0.5f) * (T - inset * 2), 0, ((float)rng.NextDouble() - 0.5f) * (T - inset * 2));
+                var p = Cell(m, x, z) + new Vector3(((float)rng.NextDouble() - 0.5f) * (T - inset * 2), 0, ((float)rng.NextDouble() - 0.5f) * (T - inset * 2));
+                if (NearSpot(p, 2.4f)) continue;
+                return p;
             }
             return Vector3.zero;
         }
@@ -308,7 +320,6 @@ namespace Hollowmere.StyleTest
             Prop("Coin_Pile", NorthWall(m, 5) + new Vector3(1.2f, 0, -0.5f), 0, 0.4f, new Color(0.95f, 0.75f, 0.25f), Color.white);
             Kit("banner_patternA_red", NorthWall(m, 3) + new Vector3(0, 2.4f, 0.35f), 0, Color.white, false);
             Kit("banner_shield_red", NorthWall(m, 4) + new Vector3(0, 2.4f, 0.35f), 0, Color.white, false);
-            Spawns.Add(Centre + new Vector3(-4, 0, -2)); Spawns.Add(Centre + new Vector3(4, 0, -1)); Spawns.Add(Centre + new Vector3(0, 0, 5));
         }
 
         static void Cave(string[] m)
@@ -334,7 +345,6 @@ namespace Hollowmere.StyleTest
             var pool = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Object.Destroy(pool.GetComponent<Collider>()); pool.name = "cave_pool";
             pool.transform.position = Centre + new Vector3(4.5f, 0.02f, -2.5f); pool.transform.localScale = new Vector3(4.6f, 0.02f, 3.0f);
             pool.GetComponent<MeshRenderer>().sharedMaterial = StMat.Make("cave_pool", null, new Color(0.12f, 0.36f, 0.45f), false, 0, new Color(0.04f, 0.18f, 0.24f)); Built.Add(pool.transform);
-            Spawns.Add(Centre + new Vector3(-3, 0, 0)); Spawns.Add(Centre + new Vector3(2, 0, 4)); Spawns.Add(Centre + new Vector3(-6, 0, 4));
         }
 
         static void Sewer(string[] m)
@@ -356,7 +366,6 @@ namespace Hollowmere.StyleTest
             Prop("Cage_Small", Rand(m), 20, 1.4f, new Color(0.45f, 0.47f, 0.5f), Color.white);
             Prop("Chain_Coil", Rand(m), 0, 0.2f, new Color(0.45f, 0.47f, 0.5f), Color.white);
             for (int i = 0; i < 6; i++) Box(Rand(m, 0.6f) + new Vector3(0, 0.01f, 0), new Vector3(0.8f + (float)rng.NextDouble() * 0.6f, 0.02f, 0.6f + (float)rng.NextDouble() * 0.5f), new Color(0.22f, 0.34f, 0.18f), new Color(0.01f, 0.03f, 0.01f)); // slime puddles
-            Spawns.Add(Centre + new Vector3(-4, 0, -3)); Spawns.Add(Centre + new Vector3(3, 0, -3.5f)); Spawns.Add(Centre + new Vector3(-9, 0, 5));
         }
 
         static void Mine(string[] m)
@@ -365,7 +374,7 @@ namespace Hollowmere.StyleTest
             // timber supports: two posts + lintel along the room, each with a hanging lantern
             for (int i = 0; i < 4; i++)
             {
-                var c = Centre + new Vector3(-9 + i * 6, 0, 1);
+                var c = Centre + new Vector3(-9 + i * 6, 0, 5.5f); // supports along the back so the game camera sees under them
                 Box(c + new Vector3(-2.6f, 2.0f, 0), new Vector3(0.45f, 4f, 0.45f), wood); Box(c + new Vector3(2.6f, 2.0f, 0), new Vector3(0.45f, 4f, 0.45f), wood);
                 Box(c + new Vector3(0, 4.1f, 0), new Vector3(6f, 0.5f, 0.55f), wood * 0.9f);
                 Box(c + new Vector3(0, 3.55f, 0), new Vector3(0.05f, 0.7f, 0.05f), new Color(0.3f, 0.3f, 0.3f));
@@ -383,14 +392,13 @@ namespace Hollowmere.StyleTest
             foreach (var wx in new[] { -0.7f, 0.7f }) foreach (var wz in new[] { -0.6f, 0.6f }) Box(cart + new Vector3(wx, 0.3f, wz), new Vector3(0.5f, 0.5f, 0.12f), new Color(0.15f, 0.15f, 0.16f));
             for (int i = 0; i < 4; i++) Gem(i % 2 == 0 ? "topaz" : "ruby", cart + new Vector3(-0.6f + i * 0.4f, 1.2f, 0), 0.45f, i % 2 == 0 ? new Color(1.5f, 1.0f, 0.2f) : new Color(1.5f, 0.3f, 0.25f), rng.Next(360));
             // ore veins in the walls
-            for (int x = 0; x < m[0].Length; x++) if (rng.Next(2) == 0) { var p = NorthWall(m, x); if (p != Vector3.zero) { Gem("topaz", p + new Vector3(0.4f, 0.6f, 0.1f), 0.9f, new Color(1.4f, 0.9f, 0.2f), 30); PointLight(p + new Vector3(0, 1.2f, -0.6f), new Color(1f, 0.75f, 0.3f), 2.5f, 5f, false); } }
+            for (int x = 0; x < m[0].Length; x++) if (rng.Next(2) == 0 && (At(m, x, 0) || At(m, x, 1))) { var p = NorthWall(m, x); if (p != Vector3.zero) { Gem("topaz", p + new Vector3(0.4f, 0f, 0.3f), 0.9f, new Color(1.4f, 0.9f, 0.2f), 30); PointLight(p + new Vector3(0, 1.2f, -0.6f), new Color(1f, 0.75f, 0.3f), 2.5f, 5f, false); } }
             Prop("Pickaxe_Bronze", Rand(m), 40, 1.4f, wood, Color.white);
             Prop("Anvil", Rand(m, 1.2f), 20, 0.9f, new Color(0.4f, 0.4f, 0.44f), Color.white);
             Prop("Workbench", NorthWall(m, 3) + new Vector3(0, 0, -0.4f), 180, 1.4f, wood, Color.white);
             for (int i = 0; i < 6; i++) Prop(i % 3 == 0 ? "Crate_Metal" : "Crate_Wooden", Rand(m, 1.0f), rng.Next(360), 1.0f, wood, Color.white);
             for (int i = 0; i < 3; i++) Prop(i == 0 ? "Rope_1" : "Bag", Rand(m), rng.Next(360), 0.6f, new Color(0.8f, 0.7f, 0.5f), Color.white);
             for (int i = 0; i < 6; i++) Prop("Nature/Pebble_Square_2", Rand(m, 0.4f), rng.Next(360), 0.45f, new Color(0.55f, 0.45f, 0.38f), Color.white);
-            Spawns.Add(Centre + new Vector3(-6, 0, 3)); Spawns.Add(Centre + new Vector3(6, 0, 3.5f)); Spawns.Add(Centre + new Vector3(0, 0, 5));
         }
 
         static void StGlowRing(Vector3 p, Color c, float d)

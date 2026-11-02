@@ -30,7 +30,7 @@ namespace Hollowmere.StyleTest
             Clear(); yield return null;
             StBiomes.Build(id); C.backgroundColor = RenderSettings.fogColor;
             var hi = System.Array.IndexOf(StBiomes.Ids, id) % 3;
-            var hero = StLook.Base[hi].Build(StBiomes.Centre + new Vector3(0, 0, -3.5f), 20); hero.Pose(hero.idle, 0.3f);
+            var hero = StLook.Base[hi].Build(StBiomes.Hero, 20); hero.Pose(hero.idle, 0.3f);
             var foes = new List<StActor>();
             foreach (var s in StBiomes.Spawns) { var sk = R.SkeletonPub(s); var d = hero.transform.position - s; d.y = 0; sk.transform.rotation = Quaternion.LookRotation(d); sk.Pose(sk.idle, 0.2f + foes.Count * 0.2f); foes.Add(sk); }
             yield return null; yield return null;

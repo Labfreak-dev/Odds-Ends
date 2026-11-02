@@ -2401,7 +2401,8 @@ namespace Hollowmere
                 {
                     var off = h.Equipped(EquipSlot.OffHand);
                     if (off != null && h.Unequip(EquipSlot.OffHand)) Town.ToStash(s, off);
-                    if (w.main != null) TsWear(gm, TsModel(s, w.main, ItemSlot.MainHand), "weapon " + w.tag + " main " + w.main, Fail);
+                    var curMain = h.Equipped(EquipSlot.MainHand);
+                    if (w.main != null && (curMain == null || GearTable.ModelFor(curMain.baseId) != w.main)) TsWear(gm, TsModel(s, w.main, ItemSlot.MainHand), "weapon " + w.tag + " main " + w.main, Fail);
                     var pick = TsModel(s, w.model, null);
                     TsWear(gm, pick, "weapon " + w.tag, Fail);
                     var fam = h.AttackFamily();

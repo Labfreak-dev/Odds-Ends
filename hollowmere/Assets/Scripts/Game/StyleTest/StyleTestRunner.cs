@@ -100,6 +100,8 @@ namespace Hollowmere.StyleTest
             cam.backgroundColor = new Color(0.03f, 0.03f, 0.05f); cam.fieldOfView = 35;
             SpawnHero(new Vector3(0, 0, -4));
             wave = 0; SpawnWave();
+            var t0 = hero.transform.position + new Vector3(0, 1.2f, 1.0f);
+            cam.transform.position = t0 + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f); cam.transform.rotation = Quaternion.Euler(52, 0, 0);
         }
 
         void ClearScene()
@@ -113,7 +115,7 @@ namespace Hollowmere.StyleTest
         {
             var l = look;
             if (skinIdx == 1) l = l.UpgradeSkin() ?? l;
-            if (weaponIdx == 1) l = l.WeaponSwap();
+            if (weaponIdx > 0) l = l.Loadout(weaponIdx);
             if (glowTier > 0) l = l.WithGlow(glowTier);
             return l;
         }
@@ -123,6 +125,15 @@ namespace Hollowmere.StyleTest
             float yaw = hero ? hero.transform.eulerAngles.y : 0;
             if (hero) Destroy(hero.gameObject);
             hero = CurrentLook().Build(at, yaw); hero.Loop(hero.idle);
+            HeroLight(hero);
+        }
+
+        /// <summary>ARPG-style player light: a soft warm pool that keeps the hero readable in the dark room.</summary>
+        static void HeroLight(StActor h)
+        {
+            var l = new GameObject("hero_light").AddComponent<Light>();
+            l.type = LightType.Point; l.color = new Color(1f, 0.9f, 0.75f); l.intensity = 3.5f; l.range = 9f; l.shadows = LightShadows.None;
+            l.transform.SetParent(h.transform, false); l.transform.localPosition = new Vector3(0, 4.5f / h.transform.localScale.y, -1.5f / h.transform.localScale.y);
         }
 
         void SpawnWave()
@@ -141,7 +152,7 @@ namespace Hollowmere.StyleTest
         {
             var s = StActor.Make(boss ? "Skel/Skeleton_Warrior" : kind, pos, 180);
             s.idle = "Skeletons_Idle"; s.run = "Skeletons_Walking"; s.death = "Skeletons_Death"; s.hit = "Hit_A";
-            s.attack = boss ? "Melee_2H_Attack_Chop" : "Melee_1H_Attack_Chop"; s.speed = boss ? 2.2f : 2.8f; s.hp = boss ? 12 : 3;
+            s.attack = "Melee_1H_Attack_Chop"; s.speed = boss ? 2.2f : 2.8f; s.hp = boss ? 12 : 3;
             if (boss)
             {
                 s.transform.localScale *= 1.7f; s.attackRange = 4.4f;
@@ -149,7 +160,7 @@ namespace Hollowmere.StyleTest
                 StGlow.Apply(s, 3);
                 foreach (var l in s.GetComponentsInChildren<Light>()) l.color = new Color(1f, 0.25f, 0.15f);
                 foreach (var r in s.GetComponentsInChildren<MeshRenderer>()) if (r.name == "glow_ring") r.sharedMaterial = StGlow.Mat(new Color(2.2f, 0.35f, 0.2f), 1);
-                foreach (var sk in s.GetComponentsInChildren<SkinnedMeshRenderer>()) { var m = sk.sharedMaterials; m[m.Length - 1] = StGlow.Mat(new Color(1.2f, 0.2f, 0.1f), 0, 3f); sk.sharedMaterials = m; }
+                foreach (var sk in s.GetComponentsInChildren<SkinnedMeshRenderer>()) { var m = new Material[sk.sharedMaterials.Length + 1]; sk.sharedMaterials.CopyTo(m, 0); m[m.Length - 1] = StGlow.Mat(new Color(0.9f, 0.15f, 0.08f), 0, 3f); sk.sharedMaterials = m; }
             }
             else if (kind.EndsWith("Mage")) s.SetWeapons("Skel/Skeleton_Staff", null);
             else if (kind.EndsWith("Minion")) s.SetWeapons("Skel/Skeleton_Axe", null);
@@ -215,6 +226,7 @@ namespace Hollowmere.StyleTest
                 }
             }
             foreach (var f in foes) EnemyTick(f);
+            Separate();
             if (foes.Count == 0 || foes.TrueForAll(f => f.dead)) { if (!waveQueued) StartCoroutine(NextWave()); }
             FollowCam();
         }
@@ -244,6 +256,26 @@ namespace Hollowmere.StyleTest
             {
                 f.transform.rotation = Quaternion.LookRotation(to);
                 if (UnityEngine.Random.value < Time.deltaTime * 0.6f) f.Once(f.attack); else f.Loop(f.idle);
+            }
+        }
+
+        /// <summary>Keeps bodies from interpenetrating (skeletons with each other and with the hero).</summary>
+        void Separate()
+        {
+            for (int i = 0; i < foes.Count; i++)
+            {
+                var a = foes[i]; if (a == null || a.dead) continue;
+                float ra = 0.9f * a.transform.localScale.x / hero.transform.localScale.x;
+                var dh = Flat(a.transform.position - hero.transform.position);
+                float minH = ra + 0.9f;
+                if (dh.magnitude < minH && dh.sqrMagnitude > 1e-4f) a.transform.position = hero.transform.position + dh.normalized * minH;
+                for (int j = i + 1; j < foes.Count; j++)
+                {
+                    var b = foes[j]; if (b == null || b.dead) continue;
+                    float rb = 0.9f * b.transform.localScale.x / hero.transform.localScale.x;
+                    var d = Flat(a.transform.position - b.transform.position); float min = ra + rb;
+                    if (d.magnitude < min && d.sqrMagnitude > 1e-4f) { var push = d.normalized * (min - d.magnitude) * 0.5f; a.transform.position += push; b.transform.position -= push; }
+                }
             }
         }
 
@@ -317,7 +349,7 @@ namespace Hollowmere.StyleTest
             float bw = 300 * s, bh = 90 * s, by = 20 * s; float bx = 20 * s;
             if (GUI.Button(new Rect(bx, by, bw, bh), "Class menu")) { ShowCreator(); return; }
             bx += bw + 12 * s;
-            if (GUI.Button(new Rect(bx, by, bw, bh), weaponIdx == 0 ? "Swap weapon" : "Base weapon")) { weaponIdx = 1 - weaponIdx; SpawnHero(hero.transform.position); }
+            if (GUI.Button(new Rect(bx, by, bw, bh), "Weapon " + (weaponIdx + 1) + "/3")) { weaponIdx = (weaponIdx + 1) % 3; SpawnHero(hero.transform.position); }
             bx += bw + 12 * s;
             if (look.UpgradeSkin() != null && GUI.Button(new Rect(bx, by, bw, bh), skinIdx == 0 ? "Upgrade skin" : "Base skin")) { skinIdx = 1 - skinIdx; SpawnHero(hero.transform.position); }
             bx += bw + 12 * s;
@@ -362,19 +394,17 @@ namespace Hollowmere.StyleTest
             var only = Arg("-stOnly", "");
             var variants = new List<StLook>();
             foreach (var b in StLook.Base)
-            {
-                variants.Add(b);
-                if (b.UpgradeSkin() != null) variants.Add(b.UpgradeSkin());
-                variants.Add(b.WeaponSwap());
-            }
+                foreach (var skin in new[] { b, b.UpgradeSkin() })
+                    if (skin != null) for (int k = 0; k < 3; k++) variants.Add(skin.Loadout(k));
             variants.Add(StLook.Mage().WithGlow(3)); variants.Add(StLook.Knight().WithGlow(2)); variants.Add(StLook.Ranger().WithGlow(3));
             if (only == "" || only == "turn")
             {
                 StWorld.NeutralLighting();
                 cam.backgroundColor = new Color(0.56f, 0.57f, 0.59f); cam.orthographic = true;
                 foreach (var v in variants) { var a = v.Build(Vector3.zero, 180); yield return Turnaround(a, "turn_" + v.id, a.idle, 0.3f); Destroy(a.gameObject); yield return null; }
-                foreach (var b in StLook.Base)
+                foreach (var b in variants)
                 {
+                    if (b.glow > 0) continue;
                     var a = b.Build(Vector3.zero, 180);
                     yield return Turnaround(a, "turn_" + b.id + "_run", a.run, 0.25f);
                     yield return Turnaround(a, "turn_" + b.id + "_attack", a.attack, b.hitAt);
@@ -408,7 +438,7 @@ namespace Hollowmere.StyleTest
                 foreach (var v in shotLooks)
                 {
                     var a = v.Build(new Vector3(-2.2f, 0, 0), 100);
-                    hero = a;
+                    hero = a; HeroLight(a);
                     foreach (var (clip, t, tag) in new[] { (a.idle, 0.3f, "idle"), (a.run, 0.25f, "run"), (a.attack, v.hitAt, "attack") })
                     {
                         if (tag != "idle" && v.id.Contains("_t") ) continue;

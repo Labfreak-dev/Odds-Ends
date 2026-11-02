@@ -104,7 +104,7 @@ namespace Hollowmere.StyleTest
         {
             var g = Put("torch_mounted", pos, yaw, false);
             var l = new GameObject("torch_light").AddComponent<Light>();
-            l.type = LightType.Point; l.color = new Color(1f, 0.58f, 0.26f); l.intensity = 7f; l.range = 11f;
+            l.type = LightType.Point; l.color = new Color(1f, 0.58f, 0.26f); l.intensity = 9f; l.range = 12f;
             l.shadows = LightShadows.None;
             l.transform.position = pos + Quaternion.Euler(0, yaw, 0) * new Vector3(0, 0.45f, 0.5f);
             l.gameObject.AddComponent<StFlicker>();
@@ -117,13 +117,13 @@ namespace Hollowmere.StyleTest
         public static void DungeonLighting()
         {
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.36f, 0.42f, 0.62f);
-            RenderSettings.ambientEquatorColor = new Color(0.26f, 0.24f, 0.30f);
+            RenderSettings.ambientSkyColor = new Color(0.17f, 0.20f, 0.32f);
+            RenderSettings.ambientEquatorColor = new Color(0.12f, 0.11f, 0.15f);
             RenderSettings.ambientGroundColor = new Color(0.13f, 0.11f, 0.11f);
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = new Color(0.07f, 0.07f, 0.11f); RenderSettings.fogStartDistance = 22; RenderSettings.fogEndDistance = 55;
             var sun = new GameObject("moon").AddComponent<Light>();
-            sun.type = LightType.Directional; sun.color = new Color(0.72f, 0.80f, 1f); sun.intensity = 0.85f;
+            sun.type = LightType.Directional; sun.color = new Color(0.72f, 0.80f, 1f); sun.intensity = 0.42f;
             sun.shadows = LightShadows.Soft; sun.shadowStrength = 0.75f;
             sun.transform.rotation = Quaternion.Euler(58, -28, 0);
         }

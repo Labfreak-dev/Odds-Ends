@@ -29,15 +29,31 @@ namespace Hollowmere.StyleTest
             return l;
         }
 
-        public StLook WeaponSwap()
+        /// <summary>Loadout k (0 = class default). Weapons/off-hands go on the shared sockets (hand_R/hand_L = KayKit handslot.r/.l),
+        /// so every whole-outfit skin of the class takes the same loadouts.</summary>
+        public StLook Loadout(int k)
         {
+            if (k == 0) return this;
             var l = (StLook)MemberwiseClone();
-            if (id.StartsWith("knight")) { l.wR = "Weapons/axe_1handed"; l.id = id + "_axe"; l.label = label + " (axe)"; return l; }
-            if (id.StartsWith("mage")) { l.wR = "Weapons/wand"; l.wL = "Weapons/spellbook_open"; l.id = id + "_wand"; l.label = label + " (wand+tome)"; return l; }
-            if (id.StartsWith("ranger")) { l.wL = "Weapons/crossbow_1handed"; l.wR = null; l.wL = null; l.wR = "Weapons/crossbow_1handed";
-                l.idle = "Ranged_1H_Aiming"; l.run = "Running_A"; l.attack = "Ranged_1H_Shoot"; l.id = id + "_xbow"; l.label = label + " (crossbow)"; return l; }
+            if (id.StartsWith("knight"))
+            {
+                if (k == 1) { l.wR = "Weapons/axe_1handed"; l.wL = "Weapons/shield_round_color"; l.id = id + "_axe"; l.label = label + " - axe + round shield"; }
+                else { l.wR = "Weapons/sword_2handed"; l.wL = null; l.idle = "Melee_2H_Idle"; l.attack = "Melee_2H_Attack_Chop"; l.id = id + "_2h"; l.label = label + " - greatsword"; }
+            }
+            else if (id.StartsWith("ranger"))
+            {
+                if (k == 1) { l.wR = "Weapons/crossbow_1handed"; l.wL = "Weapons/dagger"; l.idle = "Ranged_1H_Aiming"; l.run = "Running_A"; l.attack = "Ranged_1H_Shoot"; l.id = id + "_xbow"; l.label = label + " - crossbow + dagger"; }
+                else { l.wR = "Weapons/dagger"; l.wL = "Weapons/bow"; l.id = id + "_shortbow"; l.label = label + " - plain shortbow"; l.wR = null; }
+            }
+            else if (id.StartsWith("mage"))
+            {
+                if (k == 1) { l.wR = "Weapons/wand"; l.wL = "Weapons/spellbook_open"; l.idle = "Idle_B"; l.attack = "Ranged_Magic_Spellcasting"; l.id = id + "_wand"; l.label = label + " - wand + tome"; }
+                else { l.wR = "Weapons/wand"; l.wL = "Weapons/spellbook_closed"; l.idle = "Idle_B"; l.attack = "Ranged_Magic_Shoot"; l.id = id + "_wandbook"; l.label = label + " - wand + closed grimoire"; }
+            }
             return l;
         }
+
+        public StLook WeaponSwap() => Loadout(1);
 
         public StLook WithGlow(int tier)
         {
@@ -74,8 +90,7 @@ namespace Hollowmere.StyleTest
                 if (w == null) continue;
                 foreach (var r in w.GetComponentsInChildren<Renderer>()) AddPass(r, Mat(c * 1.4f, 0, 1.6f));
             }
-            if (tier >= 3)
-                foreach (var r in a.GetComponentsInChildren<SkinnedMeshRenderer>()) AddPass(r, Mat(c * 0.45f, 0, 3.5f));
+            // No body tint: the outfit keeps its own look; tier shows on weapons, the rune ring and a small light only.
             var ring = GameObject.CreatePrimitive(PrimitiveType.Quad);
             Object.Destroy(ring.GetComponent<Collider>());
             ring.name = "glow_ring"; ring.layer = 2;
@@ -84,8 +99,8 @@ namespace Hollowmere.StyleTest
             ring.transform.localScale = Vector3.one * 2.0f / Mathf.Max(0.01f, a.transform.localScale.x) * 1.4f;
             var rr = ring.GetComponent<MeshRenderer>(); rr.sharedMaterial = Mat(c, 1); rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var lg = new GameObject("glow_light").AddComponent<Light>();
-            lg.transform.SetParent(a.transform, false); lg.transform.localPosition = new Vector3(0, 1.0f, 0.6f);
-            lg.type = LightType.Point; lg.color = c.linear.maxColorComponent > 0 ? (Color)(c / c.maxColorComponent) : Color.white; lg.intensity = 1.2f; lg.range = 3.5f; lg.shadows = LightShadows.None;
+            lg.transform.SetParent(a.transform, false); lg.transform.localPosition = new Vector3(0, 0.15f, 0);
+            lg.type = LightType.Point; lg.color = c.linear.maxColorComponent > 0 ? (Color)(c / c.maxColorComponent) : Color.white; lg.intensity = tier >= 3 ? 0.9f : 0.6f; lg.range = 4f; lg.shadows = LightShadows.None;
         }
 
         static void AddPass(Renderer r, Material m)

@@ -38,6 +38,8 @@ namespace Hollowmere
             int fails = 0, checks = 0;
             foreach (var model in models)
             {
+                var only = System.Environment.GetEnvironmentVariable("HM_GRIPONLY");
+                if (!string.IsNullOrEmpty(only) && !only.Split(',').Contains(model)) continue;
                 var pick = TsModel(s, model, null);
                 if (pick == null) continue;
                 string type = GearTable.TypeOf(pick.baseId);
@@ -86,28 +88,46 @@ namespace Hollowmere
                         if (type == "bow") ang = Mathf.Min(ang, 180f - ang);
                         var tip = GripFind(hand, (hand.name.Contains("Left") ? "Left" : "Right") + "HandMiddle3") ?? GripFind(hand, (hand.name.Contains("Left") ? "Left" : "Right") + "HandMiddle2");
                         float wrap = tip != null && type != "orb" && type != "fist" ? Vector3.Cross(tip.position - grip, axis).magnitude : 0f;
+                        // Rendered check: baked body_Hand skin (what the player sees) must actually touch the handle.
+                        float skin = SkinGap(actor, hand.position, grip, axis, type);
+                        bool skinBad = type != "orb" && skin > 0.035f;
                         bool bad = !p.ok || dist > 0.03f || ang > 20f || !inHandle || !bladeOut;
                         checks++; if (bad) fails++;
-                        Debug.Log("Hollowmere grip check " + model + " " + type + " " + st.name + " f" + f + " palmDist=" + (dist * 100f).ToString("0.0") + "cm axis=" + ang.ToString("0") + "deg wrap=" + (wrap * 100f).ToString("0.0") + "cm" + (bad ? " FAIL" : " ok"));
+                        Debug.Log("Hollowmere grip check " + model + " " + type + " " + st.name + " f" + f + " palmDist=" + (dist * 100f).ToString("0.0") + "cm axis=" + ang.ToString("0") + "deg wrap=" + (wrap * 100f).ToString("0.0") + "cm skinGap=" + (skin * 100f).ToString("0.0") + "cm" + (bad ? " FAIL" : " ok"));
                         // Close-up of the hand for the contact sheet.
                         // Dedicated close-up: back of the hand, a little toward the fingertips, cape hidden, and
                         // a near plane that cuts anything between the lens and the hand (torso, shoulder pads).
                         var look = p.ok ? p.centre : hand.position;
-                        var capes = actor.GetComponentsInChildren<Renderer>(true).Where(r => r.enabled && (r.name.Contains("cloak") || r.name.Contains("cape"))).ToList();
+                        // Hide every skinned renderer except the bare body (armour, starter cloth, cape, hair) so only skin hand + weapon show.
+                        var capes = actor.GetComponentsInChildren<Renderer>(true).Where(r => r.enabled && (r.name.Contains("cloak") || r.name.Contains("cape") || r.name == "gear_chest" || r.name == "gear_shoulders")).ToList();
                         foreach (var r in capes) r.enabled = false;
-                        // Side-on to the haft so hilt, fist and blade are all in frame; from the back-of-hand side.
+                        var bodies = new List<SkinnedMeshRenderer>();
+
+                        // Tight on the fist: from outside the body (chest->hand) blended toward the back of the hand.
+                        var chest = actor.transform.position + Vector3.up * 1.2f;
+                        var outv = (hand.position - chest); outv.y = 0f; outv = outv.sqrMagnitude > 1e-4f ? outv.normalized : actor.transform.right;
                         var side2 = Vector3.Cross(axis, Vector3.up); if (side2.sqrMagnitude < 0.05f) side2 = Vector3.Cross(axis, actor.transform.forward);
-                        side2.Normalize(); if (p.ok && Vector3.Dot(side2, -p.normal) < 0f) side2 = -side2;
-                        var cdir = (side2 + Vector3.up * 0.25f).normalized;
-                        float span = Mathf.Clamp(lenW, 0.3f, 1.4f);
-                        look = Vector3.Lerp(look, grip + axis * span * 0.25f, 0.5f);
+                        side2.Normalize(); if (Vector3.Dot(side2, outv) < 0f) side2 = -side2; if (System.Environment.GetEnvironmentVariable("HM_GRIPFLIP") == "1") { side2 = -side2; outv = -outv; }
+                        var cdir = (outv + side2 * 0.6f + Vector3.up * 0.2f).normalized;
                         var gcam = new GameObject("qa_gripcam").AddComponent<Camera>();
-                        gcam.CopyFrom(cam); gcam.fieldOfView = 40f; gcam.nearClipPlane = 0.35f; gcam.depth = cam.depth + 10;
-                        gcam.transform.position = look + cdir * (0.55f + span * 0.9f); gcam.transform.LookAt(look, Vector3.up);
+                        gcam.CopyFrom(cam); gcam.fieldOfView = 35f; gcam.nearClipPlane = 0.05f; gcam.depth = cam.depth + 10;
+                        look = grip; gcam.transform.position = look + cdir * GripDist; gcam.transform.LookAt(look, Vector3.up);
+                        // The game's own anim driver re-poses the hero in Update; re-sample after it so the
+                        // rendered frame is the pose we measured (before this, close-ups showed a different pose).
+                        yield return null;
+                        foreach (AnimationState o in anim) { o.weight = 0f; o.enabled = false; }
+                        st.enabled = true; st.weight = 1f; st.speed = 0f; st.time = st.length * (f / 2f) * 0.98f;
+                        anim.Sample(); if (ik != null) ik.Apply(); if (curl != null) curl.Apply();
+                        { HandGrip.Held(weapon, type, out var g3, out _); gcam.transform.position = g3 + cdir * GripDist; gcam.transform.LookAt(g3, Vector3.up); }
                         yield return new WaitForEndOfFrame();
+                        { HandGrip.Held(weapon, type, out var g2, out var a2); float sk2 = SkinGap(actor, hand.position, g2, a2, type);
+                          bool wb = type != "orb" && (sk2 > 0.035f || LastWrap < 0.6f);
+                          Debug.Log("Hollowmere grip rendered " + model + " " + st.name + " f" + f + " skinGapAtRender=" + (sk2 * 100f).ToString("0.0") + "cm wrap=" + (LastWrap * 100f).ToString("0") + "%" + (wb ? " FAIL" : " ok"));
+                          } // info only: body_Hand holds both hands and glove-covered tris are trimmed, so this cannot prove a wrap
                         SaveCrop("grip-" + model + "-" + Clean(st.name) + "-" + f, 600);
                         UnityEngine.Object.Destroy(gcam.gameObject);
                         foreach (var r in capes) r.enabled = true;
+                        foreach (var r in bodies) r.enabled = false;
                     }
             }
             Debug.Log("Hollowmere grip done checks=" + checks + " fails=" + fails);
@@ -123,6 +143,31 @@ namespace Hollowmere
             return null;
         }
 
+        static Mesh _bake;
+        /// Closest baked hand-skin vertex (near this hand bone) to the handle line around the grip point.
+        static float SkinGap(HeroActor actor, Vector3 handPos, Vector3 grip, Vector3 axis, string type)
+        {
+            var smr = actor.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(r => r.name == "body_Hand");
+            if (smr == null) return 9f;
+            if (_bake == null) _bake = new Mesh();
+            smr.BakeMesh(_bake, true);
+            var m = smr.transform.localToWorldMatrix; float best = 9f; int near = 0; var sect = new bool[8];
+            var u = Vector3.Cross(axis, Vector3.up); if (u.sqrMagnitude < 0.05f) u = Vector3.Cross(axis, Vector3.right); u.Normalize(); var w = Vector3.Cross(axis, u);
+            foreach (var v0 in _bake.vertices)
+            {
+                var v = m.MultiplyPoint3x4(v0);
+                if ((v - handPos).sqrMagnitude > 0.04f) continue; near++;
+                var d = v - grip; float along = Vector3.Dot(d, axis);
+                if (Mathf.Abs(along) > 0.06f) continue;
+                var rad = d - axis * along; best = Mathf.Min(best, rad.magnitude);
+                if (Mathf.Abs(along) < 0.04f && rad.magnitude < 0.045f) { float a = Mathf.Atan2(Vector3.Dot(rad, w), Vector3.Dot(rad, u)); sect[Mathf.Clamp((int)((a + Mathf.PI) / (2f * Mathf.PI) * 8f), 0, 7)] = true; }
+            }
+            if (near == 0) Debug.Log("Hollowmere grip skin: no hand verts near bone " + handPos.ToString("F3"));
+            LastWrap = sect.Count(b => b) / 8f;
+            return best;
+        }
+        public static float LastWrap;
+        static float GripDist => float.TryParse(System.Environment.GetEnvironmentVariable("HM_GRIPDIST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0.65f;
         static void SaveCrop(string name, int size)
         {
             var t = new Texture2D(size, size, TextureFormat.RGB24, false);

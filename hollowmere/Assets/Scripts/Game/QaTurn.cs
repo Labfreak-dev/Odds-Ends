@@ -241,9 +241,9 @@ namespace Hollowmere
                 foreach (AnimationState o in anim) { o.weight = 0f; o.enabled = false; }
                 pick.enabled = true; pick.weight = 1f; pick.speed = 0f; pick.time = pick.length * frac;
                 anim.Sample();
-                foreach (var wr in actor.GetComponentsInChildren<WeaponRest>(true)) if (wr != null) wr.Apply();
                 foreach (var c in curls) if (c != null) c.Apply();
                 foreach (var ik in actor.GetComponentsInChildren<OffHandIk>(true)) if (ik != null) ik.Apply();
+                foreach (var wr in actor.GetComponentsInChildren<WeaponRest>(true)) if (wr != null) wr.Apply();
             };
         }
 
@@ -269,7 +269,8 @@ namespace Hollowmere
             var poses = new (string key, float frac)[] { ("idle", 0.3f), ("run", 0.25f), ("attack", 0.45f) };
             var parts = new (string name, string bone, float size)[] { ("shoulderR", "RightArm", 0.30f), ("shoulderL", "LeftArm", 0.30f), ("elbowR", "RightForeArm", 0.26f), ("elbowL", "LeftForeArm", 0.26f), ("hips", "Hips", 0.42f), ("kneeR", "RightLeg", 0.28f), ("kneeL", "LeftLeg", 0.28f), ("handR", "RightHand", 0.22f), ("handL", "LeftHand", 0.22f) };
             bool quick = Environment.GetEnvironmentVariable("HM_LQ") == "1";
-            for (int t = quick ? 2 : 1; t <= (quick ? 2 : GearTable.TierCount); t++)
+            int qt = int.TryParse(Environment.GetEnvironmentVariable("HM_LQT"), out var qv) ? qv : 2;
+            for (int t = quick ? qt : 1; t <= (quick ? qt : GearTable.TierCount); t++)
             {
                 WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
                 TurnWeapon(gm, weps[t - 1]);

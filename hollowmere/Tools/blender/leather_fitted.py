@@ -51,17 +51,17 @@ for i, p in enumerate(co0): KD.insert(p, i)
 KD.balance()
 sb.hide_set(True); sb.hide_render = True
 
-PAL = dict(brown=(0.16, 0.075, 0.035), dark=(0.055, 0.03, 0.017), tan=(0.42, 0.25, 0.12), oxblood=(0.20, 0.045, 0.028),
+PAL = dict(brown=(0.16, 0.075, 0.035), dark=(0.055, 0.03, 0.017), tan=(0.34, 0.21, 0.10), oxblood=(0.11, 0.032, 0.02),
            charcoal=(0.075, 0.068, 0.06), linen=(0.40, 0.33, 0.23), iron=(0.32, 0.32, 0.34), brass=(0.55, 0.38, 0.14))
 # per tier/slot: (main, trim, accent layer, strap, buckle metal)
 LOOK = {
  1: dict(chest=("brown", "dark", "brown", "dark", "iron"), legs=("charcoal", "dark", "dark", "dark", "iron"), feet=("dark", "brown", "brown", "brown", "iron"),
          hands=("tan", "brown", "tan", "brown", "iron"), wrists=("brown", "dark", "brown", "dark", "iron"), waist=("dark", "brown", "dark", "dark", "iron"),
-         shoulders=("brown", "dark", "dark", "dark", "iron"), head=("linen", "brown", "linen", "brown", "iron")),
+         shoulders=("brown", "dark", "dark", "dark", "iron"), head=("brown", "dark", "brown", "dark", "iron")),
  2: dict(chest=("dark", "tan", "brown", "brown", "iron"), legs=("charcoal", "dark", "brown", "dark", "iron"), feet=("dark", "tan", "dark", "tan", "iron"),
          hands=("dark", "tan", "dark", "tan", "iron"), wrists=("oxblood", "tan", "oxblood", "dark", "iron"), waist=("tan", "dark", "tan", "dark", "iron"),
          shoulders=("oxblood", "tan", "dark", "dark", "iron"), head=("brown", "tan", "brown", "dark", "iron")),
- 3: dict(chest=("oxblood", "tan", "dark", "dark", "brass"), legs=("dark", "tan", "oxblood", "brown", "brass"), feet=("oxblood", "tan", "dark", "dark", "brass"),
+ 3: dict(chest=("oxblood", "tan", "dark", "dark", "brass"), legs=("dark", "tan", "oxblood", "brown", "brass"), feet=("dark", "tan", "oxblood", "tan", "brass"),
          hands=("dark", "tan", "oxblood", "tan", "brass"), wrists=("dark", "tan", "oxblood", "tan", "brass"), waist=("dark", "tan", "dark", "tan", "brass"),
          shoulders=("dark", "tan", "oxblood", "tan", "brass"), head=("charcoal", "oxblood", "charcoal", "dark", "brass")),
 }
@@ -234,8 +234,8 @@ def head_hood(t):
     for _ in range(12):
         R = [0.5 * R[v.index] + 0.5 * sum(R[e.other_vert(v).index] for e in v.link_edges) / len(v.link_edges) for v in bm.verts]
     for v in bm.verts:
-        d = v.co.normalized(); r = R[v.index] + 0.010
-        cap = 1.0 / math.sqrt((d.x / 0.125) ** 2 + (d.y / 0.135) ** 2 + (d.z / 0.145) ** 2)   # size limit
+        d = v.co.normalized(); r = R[v.index] + 0.014
+        cap = 1.0 / math.sqrt((d.x / 0.135) ** 2 + (d.y / 0.145) ** 2 + (d.z / 0.16) ** 2)   # size limit
         v.co = c + d * min(r, cap)
     low = (c.z - 0.005, c.z - 0.085, neckz - 0.03)[t-1]
     bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=Vector((0, 0, low)), plane_no=-UP, clear_outer=True)

@@ -28,6 +28,10 @@ namespace Hollowmere
             s.stashCapacity = 2000;
             foreach (var it in h.inventory.Where(i => i.kind == ItemKind.Equipment).ToList()) Town.ToStash(s, it);
             var rig = cam.GetComponent<CameraRig>(); if (rig != null) rig.enabled = false;
+            // Bare-armed so the fist reads (starter gloves only): take off armour that hides the hand.
+            foreach (var es in new[] { EquipSlot.Hands, EquipSlot.Wrists, EquipSlot.Shoulders, EquipSlot.Chest })
+            { var e = h.Equipped(es); if (e != null) { h.equipment[(int)es] = null; Town.ToStash(s, e); } } // direct: bag is full with the TestStart kit, Unequip() refuses
+            gm.OnEquipmentChanged();
             var models = s.stash.Where(i => i.kind == ItemKind.Equipment && i.Base != null && (i.Base.slot == ItemSlot.MainHand || i.Base.slot == ItemSlot.OffHand))
                 .Select(i => GearTable.ModelFor(i.baseId)).Where(m => m != null).Distinct().OrderBy(m => m).ToList();
             var seenTypes = new HashSet<string>();
@@ -91,10 +95,15 @@ namespace Hollowmere
                         var look = p.ok ? p.centre : hand.position;
                         var capes = actor.GetComponentsInChildren<Renderer>(true).Where(r => r.enabled && (r.name.Contains("cloak") || r.name.Contains("cape"))).ToList();
                         foreach (var r in capes) r.enabled = false;
-                        var cdir = p.ok ? (-p.normal + p.finger * 0.35f + Vector3.up * 0.2f).normalized : actor.transform.forward;
+                        // Side-on to the haft so hilt, fist and blade are all in frame; from the back-of-hand side.
+                        var side2 = Vector3.Cross(axis, Vector3.up); if (side2.sqrMagnitude < 0.05f) side2 = Vector3.Cross(axis, actor.transform.forward);
+                        side2.Normalize(); if (p.ok && Vector3.Dot(side2, -p.normal) < 0f) side2 = -side2;
+                        var cdir = (side2 + Vector3.up * 0.25f).normalized;
+                        float span = Mathf.Clamp(lenW, 0.3f, 1.4f);
+                        look = Vector3.Lerp(look, grip + axis * span * 0.25f, 0.5f);
                         var gcam = new GameObject("qa_gripcam").AddComponent<Camera>();
-                        gcam.CopyFrom(cam); gcam.fieldOfView = 50f; gcam.nearClipPlane = 0.45f; gcam.depth = cam.depth + 10;
-                        gcam.transform.position = look + cdir * 0.75f; gcam.transform.LookAt(look, Vector3.up);
+                        gcam.CopyFrom(cam); gcam.fieldOfView = 40f; gcam.nearClipPlane = 0.35f; gcam.depth = cam.depth + 10;
+                        gcam.transform.position = look + cdir * (0.55f + span * 0.9f); gcam.transform.LookAt(look, Vector3.up);
                         yield return new WaitForEndOfFrame();
                         SaveCrop("grip-" + model + "-" + Clean(st.name) + "-" + f, 600);
                         UnityEngine.Object.Destroy(gcam.gameObject);

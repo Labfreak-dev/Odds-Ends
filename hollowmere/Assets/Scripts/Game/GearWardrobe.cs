@@ -444,6 +444,7 @@ namespace Hollowmere
                 return null;
             }
             FitPiece(mesh, slot, meshFamily, heroSkin.bones);
+            GearConform.Apply(mesh, slot, heroSkin.sharedMesh);
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;

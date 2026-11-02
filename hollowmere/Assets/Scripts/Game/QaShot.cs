@@ -57,6 +57,7 @@ namespace Hollowmere
             var scene = Requested;
             if (string.IsNullOrEmpty(scene)) return false;
             // HM_QUALITY=Medium (Android default) forces the phone quality level, so QA sees 2-bone skinning and the phone LOD bias.
+            if (Environment.GetEnvironmentVariable("HM_CONFORM") == "0") GearConform.Enabled = false;
             var q = Environment.GetEnvironmentVariable("HM_QUALITY");
             if (!string.IsNullOrEmpty(q))
             {

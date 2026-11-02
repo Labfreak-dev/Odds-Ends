@@ -47,6 +47,15 @@ namespace Hollowmere
             {
                 PhoneWear(gm, spec);
                 yield return PhoneShots(actor, "loadout");
+                // A/B: the same outfit with QA's frozen idle sample (what the old gear QA saw).
+                var anim = actor.GetComponentInChildren<Animation>();
+                foreach (AnimationState st in anim) if (st.enabled && st.weight > 0.01f) Debug.Log("Hollowmere phone live clip " + st.name + " w=" + st.weight.ToString("F2") + " t=" + st.time.ToString("F2"));
+                LogBones(actor, "live");
+                StandIdle(actor);
+                LogBones(actor, "standidle");
+                PhoneBulge(actor, "loadout-standidle");
+                yield return new WaitForEndOfFrame();
+                SaveNamed("phone-loadout-standidle");
             }
             else
             {
@@ -115,10 +124,25 @@ namespace Hollowmere
                 l.Add(p);
             }
             int fails = 0;
+            var bodyBones = new System.Collections.Generic.HashSet<string>();
+            { var bw = skin.sharedMesh.boneWeights; foreach (var w in bw) { if (w.weight0 > 0.05f) bodyBones.Add(skin.bones[w.boneIndex0].name); if (w.weight1 > 0.05f) bodyBones.Add(skin.bones[w.boneIndex1].name); } }
             foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
                 if (!smr.gameObject.name.StartsWith("gear_") || smr.name == "gear_weapon" || smr.name == "gear_offhand") continue;
                 if (!GearWardrobe.BakeWorld(smr, out var gp, out _)) continue;
+                {
+                    var use = new System.Collections.Generic.Dictionary<string, float>();
+                    var bw = smr.sharedMesh.boneWeights;
+                    foreach (var w in bw)
+                    {
+                        void Add(int bi, float wt) { if (wt <= 0f || bi >= smr.bones.Length || smr.bones[bi] == null) return; var n = smr.bones[bi].name; use[n] = (use.TryGetValue(n, out var o) ? o : 0f) + wt; }
+                        Add(w.boneIndex0, w.weight0); Add(w.boneIndex1, w.weight1); Add(w.boneIndex2, w.weight2); Add(w.boneIndex3, w.weight3);
+                    }
+                    var top = use.OrderByDescending(kv => kv.Value).Take(6).Select(kv => kv.Key + (bodyBones.Contains(kv.Key) ? "" : "!") + ":" + (kv.Value / Mathf.Max(1, bw.Length)).ToString("F2"));
+                    bool sameRoot = smr.rootBone == skin.rootBone;
+                    bool sameBones = smr.bones.Length > 0 && smr.bones.All(b => b == null || skin.bones.Contains(b));
+                    Debug.Log("Hollowmere phone bones " + tag + " " + smr.name + " sameRoot=" + sameRoot + " sameBones=" + sameBones + " n=" + smr.bones.Length + " " + string.Join(" ", top));
+                }
                 var d = new float[gp.Length];
                 for (int i = 0; i < gp.Length; i++)
                 {
@@ -141,6 +165,14 @@ namespace Hollowmere
                 Debug.Log("Hollowmere phone bulge " + tag + " " + smr.name + " p95=" + p95.ToString("F3") + " max=" + max.ToString("F3") + " limit=" + limit + (bad ? " FAIL" : " ok"));
             }
             return fails;
+        }
+
+        static void LogBones(HeroActor actor, string tag)
+        {
+            var skin = BodyRegions.Source(actor.transform);
+            foreach (var b in skin.bones)
+                if (b != null && (b.name.EndsWith("Foot") || b.name.EndsWith("Leg") || b.name.EndsWith("Shoulder") || b.name.EndsWith("Hips")))
+                    Debug.Log("Hollowmere phone bone " + tag + " " + b.name + " lpos=" + b.localPosition.ToString("F3") + " lscale=" + b.localScale.ToString("F3") + " lrot=" + b.localEulerAngles.ToString("F0"));
         }
 
         static IEnumerator PhoneShots(HeroActor actor, string tag)

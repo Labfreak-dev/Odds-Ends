@@ -438,7 +438,7 @@ namespace Hollowmere.StyleTest
                 foreach (var skin in new[] { b, b.UpgradeSkin() })
                     if (skin != null) for (int k = 0; k < 3; k++) variants.Add(skin.Loadout(k));
             variants.Add(StLook.Mage().WithGlow(3)); variants.Add(StLook.Knight().WithGlow(2)); variants.Add(StLook.Ranger().WithGlow(3));
-            if (only == "board" || only == "town" || only == "folk" || only == "ui" || only == "tome" || only == "phase1")
+            if (only == "board" || only == "town" || only == "folk" || only == "ui" || only == "tome" || only == "monsters" || only == "phase1")
             {
                 yield return StPhase1Shots.Run(this, cam, only);
                 Application.Quit(); yield break;

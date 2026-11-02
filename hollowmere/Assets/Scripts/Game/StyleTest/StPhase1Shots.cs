@@ -18,6 +18,7 @@ namespace Hollowmere.StyleTest
             if (all || only == "board") yield return Board();
             if (all || only == "folk") yield return Folk();
             if (all || only == "ui") yield return Ui();
+            if (all || only == "monsters") yield return Monsters();
             if (all || only == "town") yield return Town();
         }
 
@@ -176,6 +177,85 @@ namespace Hollowmere.StyleTest
                 }
                 Object.Destroy(a.gameObject); yield return null;
             }
+        }
+
+        // ---------- repo monster recolour test ----------
+        static readonly string[] MonIds = { "hm_warwolf", "hm_spider", "hm_lava_golem", "hm_giant_mutant", "hm_vampire_bat", "hm_rat" };
+        static readonly Color[] MonPal = { new Color(0.55f, 0.46f, 0.38f), new Color(0.36f, 0.30f, 0.44f), new Color(0.40f, 0.33f, 0.31f), new Color(0.52f, 0.60f, 0.42f), new Color(0.40f, 0.33f, 0.46f), new Color(0.58f, 0.52f, 0.48f) };
+        static readonly float[] MonH = { 3.6f, 2.2f, 5.0f, 5.5f, 2.4f, 1.3f };
+
+        /// <summary>0 = original repo PBR, 1 = same texture on StToon (hard ramp), 2 = flat palette toon + elite rim glow.</summary>
+        static StActor Monster(int i, int variant)
+        {
+            var p = Resources.Load<GameObject>("Models/" + MonIds[i]);
+            if (p == null) { Debug.LogWarning("[ST] monster missing " + MonIds[i]); return null; }
+            var g = Object.Instantiate(p); g.name = MonIds[i] + "_v" + variant;
+            var b = StWorld.Bounds(g); if (b.size.y > 0.01f) g.transform.localScale *= MonH[i] / b.size.y;
+            foreach (var sk in g.GetComponentsInChildren<SkinnedMeshRenderer>()) sk.updateWhenOffscreen = true;
+            if (variant > 0)
+            {
+                foreach (var r in g.GetComponentsInChildren<Renderer>())
+                {
+                    var ms = r.sharedMaterials;
+                    for (int k = 0; k < ms.Length; k++)
+                    {
+                        var o = ms[k]; Texture tex = o && o.HasProperty("_BaseMap") ? o.GetTexture("_BaseMap") : (o ? o.mainTexture : null);
+                        Material m;
+                        if (variant == 1) m = StMat.Make("mon1_" + MonIds[i] + k, tex, new Color(1.15f, 1.1f, 1.05f), false);
+                        else m = StMat.Make("mon2_" + MonIds[i] + k, null, MonPal[i], false, 0, MonIds[i].Contains("lava") ? new Color(0.35f, 0.08f, 0.0f) : default);
+                        m.SetFloat("_Ramp", 0.12f); m.SetFloat("_Shade", 0.5f);
+                        ms[k] = m;
+                    }
+                    r.sharedMaterials = ms;
+                }
+            }
+            var a = g.AddComponent<StActor>(); a.anim = g.GetComponentInChildren<Animation>();
+            if (a.anim) { foreach (AnimationState st in a.anim) { var n = st.name.ToLowerInvariant(); if (a.idle == "Idle_A" && n.Contains("idle")) a.idle = st.name; if (n.Contains("attack") && a.attack.StartsWith("Melee")) a.attack = st.name; if ((n.Contains("walk") || n.Contains("run")) && a.run == "Running_A") a.run = st.name; } }
+            if (variant == 2) StGlow.Apply(a, i % 2 == 0 ? 3 : 2);
+            return a;
+        }
+
+        static IEnumerator Monsters()
+        {
+            Clear(); yield return null; StWorld.DungeonLighting(); StWorld.BuildRoom(9, 6); C.backgroundColor = new Color(0.03f, 0.03f, 0.05f);
+            var made = new List<StActor>();
+            for (int v = 0; v < 3; v++)
+                for (int i = 0; i < MonIds.Length; i++)
+                {
+                    var a = Monster(i, v); if (!a) continue;
+                    a.transform.position = new Vector3(-14 + i * 5.6f, 0, 5 - v * 6.5f); a.transform.rotation = Quaternion.Euler(0, 200, 0);
+                    if (a.anim && a.anim.GetClip(a.idle) != null) a.Pose(a.idle, 0.3f);
+                    var bb = StWorld.Bounds(a.gameObject); a.transform.position += Vector3.up * -bb.min.y;
+                    made.Add(a);
+                }
+            var kn = StLook.Knight().Build(new Vector3(18, 0, -1.5f), 200); kn.Pose(kn.idle, 0.3f);
+            var sk = R.SkeletonPub(new Vector3(18, 0, 4.5f)); sk.transform.rotation = Quaternion.Euler(0, 200, 0); sk.Pose(sk.idle, 0.3f);
+            yield return null;
+            C.orthographic = false; C.fieldOfView = 40;
+            C.transform.position = new Vector3(2, 0, -1) + Quaternion.Euler(40, 0, 0) * new Vector3(0, 0, -36); C.transform.rotation = Quaternion.Euler(40, 0, 0);
+            R.SavePub(R.RenderPub(C, 2800, 1300), "monsters/recolour_board_rows_original_textoon_flatglow.png");
+            // game-camera look at each row
+            for (int v = 0; v < 3; v++)
+            {
+                var c = new Vector3(0, 0, 5 - v * 6.5f);
+                C.fieldOfView = 35; C.transform.position = c + new Vector3(0, 1.2f, 1) + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -22); C.transform.rotation = Quaternion.Euler(52, 0, 0);
+                R.SavePub(R.RenderPub(C, 2340, 1080), "monsters/gamecam_row" + v + (v == 0 ? "_original" : v == 1 ? "_texture_toon" : "_flat_toon_elite_glow") + ".png");
+            }
+            foreach (var a in made) if (a) Object.Destroy(a.gameObject);
+            Object.Destroy(kn.gameObject); Object.Destroy(sk.gameObject); yield return null;
+            // turnarounds of the stylized variants
+            StWorld.NeutralLighting(); C.backgroundColor = new Color(0.56f, 0.57f, 0.59f); C.orthographic = true;
+            foreach (var w in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) if (w.type != LightType.Directional || w.name == "moon") Object.Destroy(w.gameObject);
+            foreach (var t in StWorld.Built) if (t) Object.Destroy(t.gameObject);
+            yield return null;
+            for (int i = 0; i < MonIds.Length; i++)
+                foreach (var v in new[] { 1, 2 })
+                {
+                    var a = Monster(i, v); if (!a) continue;
+                    yield return R.TurnPub(a, "monsters/turn_" + MonIds[i] + (v == 1 ? "_texture_toon" : "_flat_toon"), a.idle, 0.3f);
+                    if (v == 2 && a.anim && a.anim.GetClip(a.attack) != null) yield return R.StripPub(a, "monsters/strip_" + MonIds[i] + "_attack", a.attack);
+                    Object.Destroy(a.gameObject); yield return null;
+                }
         }
 
         // ---------- owned itch 2D art ----------

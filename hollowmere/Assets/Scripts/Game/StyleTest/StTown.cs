@@ -206,11 +206,11 @@ namespace Hollowmere.StyleTest
                 if (Mathf.Abs(p.x) < 5 && p.z > 0) continue;
                 VK(trees[rng.Next(trees.Length)], p, rng.Next(360), 0.8f + (float)rng.NextDouble() * 0.4f);
             }
-            string[] hills = { "mountain_A_grass_trees", "hills_B_trees", "mountain_C_grass_trees", "hills_A_trees", "mountain_B_grass_trees", "hills_C_trees" };
-            for (int i = 0; i < 18; i++)
+            // outer ring of pines closes the horizon (KayKit hex mountains were tried and rejected: garish yellow/red tile tops at this scale)
+            for (int i = 0; i < 40; i++)
             {
-                float a = i / 18f * Mathf.PI * 2; var p = new Vector3(Mathf.Sin(a) * 78, 0, Mathf.Cos(a) * 70);
-                Hex(hills[i % hills.Length], p, i * 47, 2.0f + (i % 3) * 0.35f);
+                float a = i / 40f * Mathf.PI * 2; float rr = 60 + (i % 3) * 5;
+                VK(i % 4 == 0 ? "Tree_Oak_B" : "Tree_Pine_A", new Vector3(Mathf.Sin(a) * rr, 0, Mathf.Cos(a) * rr * 0.92f), i * 37, 1.0f + (i % 5) * 0.12f);
             }
             VK("Tree_Apple", new Vector3(-9, 0, -24), 30); VK("Tree_Blossom", new Vector3(10, 0, 28), 60); VK("Tree_Willow", new Vector3(-36, 0, 2), 0);
             VK("Tree_Oak_A", new Vector3(36, 0, 6), 50, 0.9f); VK("Tree_Birch", new Vector3(-33, 0, 26), 0, 0.9f);

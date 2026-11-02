@@ -47,32 +47,14 @@ namespace Hollowmere
             camGo.transform.LookAt(transform.TransformPoint(new Vector3(0.05f, 0.9f, 0.1f)));
             if (Camera.main != null) Camera.main.cullingMask &= ~(1 << StageLayer);
 
-            var sun = new GameObject("stageKey").AddComponent<Light>();
-            sun.transform.SetParent(transform, false);
-            sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(42f, -28f, 0f);
-            sun.intensity = 2.1f;
-            sun.color = new Color(1f, 0.93f, 0.8f);
-            sun.cullingMask = 1 << StageLayer;
-            var fill = new GameObject("stageFill").AddComponent<Light>();
-            fill.transform.SetParent(transform, false);
-            fill.type = LightType.Directional;
-            fill.transform.rotation = Quaternion.Euler(18f, 160f, 0f);
-            fill.intensity = 0.85f;
-            fill.color = new Color(0.62f, 0.58f, 0.78f);
-            fill.cullingMask = 1 << StageLayer;
-            var rim = new GameObject("stageRim").AddComponent<Light>();
-            rim.transform.SetParent(transform, false);
-            rim.type = LightType.Directional;
-            rim.transform.rotation = Quaternion.Euler(12f, 210f, 0f);
-            rim.intensity = 1.35f;
-            rim.color = new Color(1f, 0.72f, 0.48f);
-            rim.cullingMask = 1 << StageLayer;
-
-            var floorTint = new Color(0.32f, 0.28f, 0.24f);
-            var wallTint = new Color(0.16f, 0.14f, 0.13f);
+            StageLighting.Rig(transform, cam, StageLayer);
+            cam.backgroundColor = new Color(0.30f, 0.28f, 0.30f, 1f);
+            var floorTint = new Color(0.62f, 0.56f, 0.50f);
             Art.PlaceQuad(transform, "stageFloor", new Vector3(0.05f, 0f, 0.15f), Quaternion.identity, 5.2f, 4.2f, Art.GroundMat("cobble", floorTint), true);
-            Art.PlaceQuad(transform, "stageBackdrop", new Vector3(0.05f, 1.45f, 2.1f), Quaternion.identity, 6.4f, 3.6f, Art.GroundMat("crypt", wallTint), false);
+            var back = new Material(Art.Mat(Color.white));
+            back.mainTexture = StageLighting.Backdrop();
+            if (back.HasProperty("_BaseMap")) back.SetTexture("_BaseMap", back.mainTexture);
+            Art.PlaceQuad(transform, "stageBackdrop", new Vector3(0.05f, 1.45f, 2.1f), Quaternion.identity, 6.4f, 3.6f, back, false);
 
             heroPivot = new GameObject("heroPivot").transform;
             heroPivot.SetParent(transform, false);

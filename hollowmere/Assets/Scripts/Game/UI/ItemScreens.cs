@@ -666,36 +666,25 @@ namespace Hollowmere
             cam.depth = -10f;
             cam.cullingMask = 1 << 9;
             if (Camera.main != null) Camera.main.cullingMask &= ~(1 << 9);
-            var sun = new GameObject("invKey").AddComponent<Light>();
-            sun.transform.SetParent(root.transform, false);
-            sun.type = LightType.Directional;
-            sun.transform.rotation = Quaternion.Euler(40f, -24f, 0f);
-            sun.intensity = 2.2f;
-            sun.color = new Color(1f, 0.92f, 0.78f);
-            sun.cullingMask = 1 << 9;
-            var fill = new GameObject("invFill").AddComponent<Light>();
-            fill.transform.SetParent(root.transform, false);
-            fill.type = LightType.Directional;
-            fill.transform.rotation = Quaternion.Euler(16f, 150f, 0f);
-            fill.intensity = 0.9f;
-            fill.color = new Color(0.58f, 0.54f, 0.74f);
-            fill.cullingMask = 1 << 9;
-            var rim = new GameObject("invRim").AddComponent<Light>();
-            rim.transform.SetParent(root.transform, false);
-            rim.type = LightType.Directional;
-            rim.transform.rotation = Quaternion.Euler(8f, 200f, 0f);
-            rim.intensity = 1.45f;
-            rim.color = new Color(1f, 0.7f, 0.46f);
-            rim.cullingMask = 1 << 9;
-            var floorTint = new Color(0.2f, 0.17f, 0.15f);
-            var wallTint = new Color(0.1f, 0.09f, 0.1f);
+            StageLighting.Rig(root.transform, cam, 9);
+            cam.backgroundColor = new Color(0.30f, 0.28f, 0.30f, 1f);
+            var floorTint = new Color(0.62f, 0.56f, 0.50f);
             Art.PlaceQuad(root.transform, "stageFloor", new Vector3(0f, 0f, 0.2f), Quaternion.identity, 4.4f, 3.6f, Art.GroundMat("cobble", floorTint), true);
-            Art.PlaceQuad(root.transform, "stageBackdrop", new Vector3(0f, 1.4f, 1.8f), Quaternion.identity, 4.8f, 3.4f, Art.GroundMat("crypt", wallTint), false);
+            var back = new Material(Art.Mat(Color.white));
+            back.mainTexture = StageLighting.Backdrop();
+            if (back.HasProperty("_BaseMap")) back.SetTexture("_BaseMap", back.mainTexture);
+            Art.PlaceQuad(root.transform, "stageBackdrop", new Vector3(0f, 1.4f, 1.8f), Quaternion.identity, 4.8f, 3.4f, back, false);
             var pivot = new GameObject("pivot").transform;
             pivot.SetParent(root.transform, false);
             stage.pivot = pivot;
             var model = Art.Animated(Art.HeroMesh(hero), 1.8f, pivot);
             if (hero != null && hero.classless) Art.PaintHero(model, hero);
+            // The paper doll wears what the hero wears. It used to show the bare base model, so armour swaps never showed here.
+            if (model != null && hero != null)
+            {
+                try { GearAttach.Apply(model.transform, hero); }
+                catch (System.Exception e) { Debug.LogWarning("Hollowmere paper doll gear: " + e.Message); }
+            }
             foreach (var tr in root.GetComponentsInChildren<Transform>(true))
                 tr.gameObject.layer = 9;
             camGo.layer = 9;

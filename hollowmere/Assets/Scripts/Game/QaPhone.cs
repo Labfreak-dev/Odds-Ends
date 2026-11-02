@@ -75,12 +75,14 @@ namespace Hollowmere
             yield return new WaitForSecondsRealtime(0.8f);
             yield return new WaitForEndOfFrame();
             SaveNamed("phone-bag");
+            PreviewLuma("bag");
             UiRoot.I.CloseAll();
             UiRoot.I.ShowTitle();
             TitleScreen.ShowNewHero();
             yield return new WaitForSecondsRealtime(1.2f);
             yield return new WaitForEndOfFrame();
             SaveNamed("phone-creator");
+            PreviewLuma("creator");
             Debug.Log("Hollowmere QA phone done");
             Application.Quit();
         }
@@ -163,6 +165,50 @@ namespace Hollowmere
                 bool bad = p95 > limit;
                 if (bad) fails++;
                 Debug.Log("Hollowmere phone bulge " + tag + " " + smr.name + " p95=" + p95.ToString("F3") + " max=" + max.ToString("F3") + " limit=" + limit + (bad ? " FAIL" : " ok"));
+            }
+            return fails;
+        }
+
+        /// <summary>Preview brightness: mean luminance of the centre of every off-screen stage camera's texture. FAIL when the stage averages under 0.20 or the hero pixels under 0.18.</summary>
+        public static int PreviewLuma(string tag)
+        {
+            int fails = 0;
+            foreach (var c in Camera.allCameras)
+            {
+                var rt = c.targetTexture;
+                if (rt == null) continue;
+                var prev = RenderTexture.active;
+                // Hero mask: render once without the stage's animated models, once with; pixels that change are the hero.
+                var models = c.transform.root.GetComponentsInChildren<SkinnedMeshRenderer>();
+                foreach (var m in models) m.enabled = false;
+                c.Render();
+                RenderTexture.active = rt;
+                var bg = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+                bg.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                bg.Apply();
+                foreach (var m in models) m.enabled = true;
+                c.Render();
+                RenderTexture.active = rt;
+                var t = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+                t.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                t.Apply();
+                RenderTexture.active = prev;
+                double sum = 0, heroSum = 0; int n = 0, hn = 0;
+                for (int y = rt.height / 4; y < rt.height * 3 / 4; y += 2)
+                    for (int x = rt.width / 4; x < rt.width * 3 / 4; x += 2)
+                    {
+                        var p = t.GetPixel(x, y);
+                        float l = 0.2126f * p.r + 0.7152f * p.g + 0.0722f * p.b;
+                        sum += l; n++;
+                        var q = bg.GetPixel(x, y);
+                        if (Mathf.Abs(p.r - q.r) + Mathf.Abs(p.g - q.g) + Mathf.Abs(p.b - q.b) > 0.06f) { heroSum += l; hn++; }
+                    }
+                UnityEngine.Object.Destroy(t);
+                UnityEngine.Object.Destroy(bg);
+                float mean = (float)(sum / Mathf.Max(1, n)), hero = (float)(heroSum / Mathf.Max(1, hn));
+                bool bad = mean < 0.20f || hero < 0.18f || hn < 200;
+                if (bad) fails++;
+                Debug.Log("Hollowmere phone preview " + tag + " cam=" + c.name + " meanLuma=" + mean.ToString("F3") + " heroLuma=" + hero.ToString("F3") + " heroPx=" + hn + (bad ? " FAIL" : " ok"));
             }
             return fails;
         }

@@ -331,6 +331,8 @@ namespace Hollowmere
             {
                 int hr = (int)GearFit.BodyRegion.Head;
                 covers[hr].hideAll = false;
+                var hood = placed.Find(x => x != null && SlotOf(x.name) == EquipSlot.Head);
+                ScalpUnderHood(body, hood, ref covers[hr]);
             }
             BodyRegions.Show(body, covers);
             GearAudit.PoseSeal(body);
@@ -547,6 +549,8 @@ namespace Hollowmere
             }
             smr.materials = mats;
             Art.AdoptShaders(go);
+            // A fitted hood would shade the whole face from the key light; the cap reads fine without casting.
+            if (fitted && slot == EquipSlot.Head) smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             if (!fitted)
             {
                 Tint(go, glowFamily, it, slot);
@@ -632,6 +636,55 @@ namespace Hollowmere
                         + (covers[region].hideAll ? " hide" : " open"));
             }
             return covers;
+        }
+
+        /// <summary>
+        /// Hair and scalp above the hood's brow line go with a fitted hood (hair cards spiked through the cap).
+        /// The brow line is the lowest hood vertex in its front quarter, so the face below it always stays.
+        /// </summary>
+        static void ScalpUnderHood(Transform body, SkinnedMeshRenderer hood, ref BodyRegions.Cover cover)
+        {
+            if (hood == null || hood.sharedMesh == null || !hood.sharedMesh.isReadable) return;
+            var hv = hood.sharedMesh.vertices; var hb = hood.sharedMesh.bounds;
+            float front = hb.max.z - hb.size.z * 0.25f, brow = float.MaxValue;
+            foreach (var v in hv) if (v.z > front && v.y < brow) brow = v.y;
+            if (brow == float.MaxValue) return;
+            var mark = body != null ? body.GetComponentInChildren<BodySplit>(true) : null;
+            if (mark == null) return;
+            for (int c = 0; c < mark.transform.childCount; c++)
+            {
+                var child = mark.transform.GetChild(c);
+                if (child.name != "body_" + GearFit.RegionName((int)GearFit.BodyRegion.Head)) continue;
+                var kept = child.GetComponent<RegionMesh>(); var smr = child.GetComponent<SkinnedMeshRenderer>();
+                Mesh full = kept != null && kept.full != null ? kept.full : (smr != null ? smr.sharedMesh : null);
+                if (full == null || !full.isReadable) return;
+                var verts = full.vertices;
+                if (cover.under == null || cover.under.Length != verts.Length) cover.under = new bool[verts.Length];
+                int n = 0;
+                for (int i = 0; i < verts.Length; i++)
+                {
+                    var p = verts[i];
+                    if (p.y > brow + 0.006f && p.x > hb.min.x - 0.03f && p.x < hb.max.x + 0.03f && p.z > hb.min.z - 0.03f && p.z < hb.max.z + 0.03f)
+                    { cover.under[i] = true; n++; }
+                }
+                // The hero's metal-rough map reads the face islands as metal, so under a hood (no sky above) the
+                // face went near-black. Face skin is dielectric: drop the map on this region's own material copy.
+                if (smr != null)
+                {
+                    var mats = smr.materials;
+                    foreach (var m in mats)
+                    {
+                        if (m == null) continue;
+                        if (m.HasProperty("_MetallicGlossMap")) { m.SetTexture("_MetallicGlossMap", null); m.DisableKeyword("_METALLICSPECGLOSSMAP"); }
+                        if (m.HasProperty("_HasMetal")) m.SetFloat("_HasMetal", 0f);
+                        if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f);
+                        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.3f);
+                    }
+                    smr.materials = mats;
+                    Debug.Log("Hollowmere gear face dielectric " + (mats.Length > 0 && mats[0] != null ? mats[0].shader.name : "none"));
+                }
+                Debug.Log("Hollowmere gear scalp under hood brow=" + brow.ToString("0.000") + " hidden=" + n + "/" + verts.Length);
+            }
         }
 
         static EquipSlot? SlotOf(string name)

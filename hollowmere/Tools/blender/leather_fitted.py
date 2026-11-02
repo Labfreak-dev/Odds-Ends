@@ -116,6 +116,10 @@ def clean_islands(bm, minf=60):
 
 def shell(slot, t, cuts=None, sel=None):
     bm = bmesh.new(); bm.from_mesh(me); bm.normal_update()
+    # remember each vertex's smoothbody position: weights are looked up there, not after offset/smoothing moved it
+    ol = [bm.verts.layers.float.new(a) for a in ("ox", "oy", "oz")]
+    for v in bm.verts:
+        for k in range(3): v[ol[k]] = v.co[k]
     names = SETS[slot]
     for f in bm.faces:
         if sel is not None: f.tag = not sel(f)
@@ -130,6 +134,11 @@ def shell(slot, t, cuts=None, sel=None):
         bmesh.ops.bisect_plane(bm, geom=geom, plane_co=p, plane_no=n, clear_outer=True, dist=0.0005)
         bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
     clean_islands(bm)
+    # close small holes left by the body (pouch/strap cut-outs) so no black slot shows through a piece;
+    # the plane-cut hems are long loops and stay open
+    bound = [e for e in bm.edges if e.is_boundary]
+    if bound: bmesh.ops.holes_fill(bm, edges=bound, sides=int(os.environ.get("HM_HOLE", "40")))
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
     return bm
 
 def edge_dist(bm):
@@ -281,14 +290,18 @@ def leather_mat(name, look):
     noise = N.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value = 90; noise.inputs["Detail"].default_value = 6; L.new(pos, noise.inputs["Vector"])
     vor = N.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 420; L.new(pos, vor.inputs["Vector"])
     big = N.new("ShaderNodeTexNoise"); big.inputs["Scale"].default_value = 9; big.inputs["Detail"].default_value = 3; L.new(pos, big.inputs["Vector"])
-    wave = N.new("ShaderNodeTexWave"); wave.bands_direction = 'DIAGONAL'; wave.inputs["Scale"].default_value = 150; wave.inputs["Distortion"].default_value = 0; L.new(pos, wave.inputs["Vector"])
-    dash = M('GREATER_THAN', wave.outputs["Fac"], 0.55)
+    wave = N.new("ShaderNodeTexWave"); wave.bands_direction = 'DIAGONAL'; wave.inputs["Scale"].default_value = 85; wave.inputs["Distortion"].default_value = 0; L.new(pos, wave.inputs["Vector"])
+    dash = M('GREATER_THAN', wave.outputs["Fac"], 0.5)
+    seamv = N.new("ShaderNodeTexVoronoi"); seamv.feature = 'DISTANCE_TO_EDGE'; seamv.inputs["Scale"].default_value = 3.2; L.new(pos, seamv.inputs["Vector"])
+    seamD = seamv.outputs["Distance"]
+    seamM = band(seamD, -1.0, 0.010, 0.003)
+    seamSt = M('MULTIPLY', band(seamD, 0.022, 0.032, 0.002), dash)
     trimM = band(edge, -1.0, 0.011)
-    stitch = M('MAXIMUM', M('MULTIPLY', band(edge, 0.0142, 0.0158, 0.0004), dash), M('MULTIPLY', band(strapd, 0.0115, 0.0128, 0.0004), dash))
+    stitch = M('MAXIMUM', M('MAXIMUM', M('MULTIPLY', band(edge, 0.0125, 0.0165, 0.0005), dash), M('MULTIPLY', band(strapd, 0.0108, 0.0135, 0.0005), dash)), seamSt)
     strapM = band(strapd, -1.0, 0.016)
-    bucM = band(buck, -1.0, 0.020, 0.001); bucHole = band(buck, -1.0, 0.011, 0.001)
-    met = M('MULTIPLY', bucM, M('SUBTRACT', 1.0, bucHole))
-    wear = M('MULTIPLY', band(edge, -1.0, 0.003, 0.0015), 0.6)
+    bucM = band(buck, -1.0, 0.020, 0.001); bucHole = band(buck, -1.0, 0.0065, 0.001)
+    metM = M('MULTIPLY', bucM, M('SUBTRACT', 1.0, bucHole)); met = M('MULTIPLY', metM, 0.45)   # part-metal: full metal read black without sky
+    wear = M('MAXIMUM', M('MULTIPLY', band(edge, -1.0, 0.005, 0.002), 0.75), M('MULTIPLY', M('MULTIPLY', band(edge, -1.0, 0.03, 0.01), M('GREATER_THAN', noise.outputs["Fac"], 0.62)), 0.45))
     base = mix(layer, lin(PAL[main]), lin(PAL[acc]))
     base = mix(trimM, base, lin(PAL[trim]))
     base = mix(strapM, base, lin(PAL[strp]))
@@ -298,9 +311,10 @@ def leather_mat(name, look):
     shade = N.new("ShaderNodeMix"); shade.data_type = 'RGBA'; shade.blend_type = 'MULTIPLY'; shade.inputs[0].default_value = 1.0
     L.new(base, shade.inputs[6]); L.new(cm.outputs[0], shade.inputs[7])
     col = mix(wear, shade.outputs[2], lin(PAL["tan"]))
-    col = mix(stitch, col, (0.30, 0.22, 0.14, 1.0))
-    col = mix(met, col, lin(PAL[metal]))
-    col = mix(bucHole, col, lin(PAL["dark"]))
+    col = mix(M('MULTIPLY', seamM, 0.7), col, lin(PAL["dark"]))
+    col = mix(stitch, col, lin(PAL["linen"]))
+    col = mix(metM, col, lin(PAL[metal]))
+    col = mix(bucHole, col, tuple(0.6 * x for x in lin(PAL[strp])[:3]) + (1.0,))   # strap leather seen through the frame, not a black hole
     L.new(col, bsdf.inputs["Base Color"])
     rough = M('ADD', M('MULTIPLY', met, -0.4), MA(noise.outputs["Fac"], 0.15, 0.62))
     L.new(rough, bsdf.inputs["Roughness"]); L.new(met, bsdf.inputs["Metallic"])
@@ -308,8 +322,9 @@ def leather_mat(name, look):
     hgt = M('ADD', hgt, M('MULTIPLY', band(edge, 0.010, 0.0125, 0.0008), -0.6))
     hgt = M('ADD', hgt, M('MULTIPLY', strapM, 0.7))
     hgt = M('ADD', hgt, M('MULTIPLY', stitch, 0.5))
-    hgt = M('ADD', hgt, met)
-    bump = N.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.6; bump.inputs["Distance"].default_value = 0.002
+    hgt = M('ADD', hgt, M('MULTIPLY', seamM, -0.8))
+    hgt = M('ADD', hgt, metM)
+    bump = N.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 1.0; bump.inputs["Distance"].default_value = 0.004
     L.new(hgt, bump.inputs["Height"]); L.new(bump.outputs[0], bsdf.inputs["Normal"])
     return m
 
@@ -417,7 +432,7 @@ def finish(obj, slot, t, body_weights=True):
     obj.data.materials.clear(); obj.data.materials.append(leather_mat("proc_%s_t%d" % (slot, t), LOOK[t][slot]))
     size = TEX if slot in ("chest", "legs", "shoulders", "head") else TEX // 2
     bake(obj, "leather_t%d_%s" % (t, slot), size)
-    for a in ("edge", "strap", "buckle", "layer"):
+    for a in ("edge", "strap", "buckle", "layer", "ox", "oy", "oz"):
         if obj.data.attributes.get(a): obj.data.attributes.remove(obj.data.attributes[a])
     so = obj.modifiers.new("thick", 'SOLIDIFY'); so.thickness = TH[slot]; so.offset = 1.0; so.use_even_offset = False; so.use_quality_normals = True; so.use_rim = True
     bpy.ops.object.modifier_apply(modifier="thick")
@@ -429,6 +444,15 @@ def finish(obj, slot, t, body_weights=True):
                 bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
                 bpy.ops.object.vertex_group_smooth(group_select_mode='ACTIVE', factor=0.3, repeat=2)
                 bpy.ops.object.mode_set(mode='OBJECT')
+        if slot == "hands":
+            # mitten glove over fused fingers: hard per-finger weights folded the palm into shards in the fist, so
+            # blend hand/finger weights across neighbours for a soft bend
+            for g in obj.vertex_groups:
+                if "Hand" in g.name:
+                    obj.vertex_groups.active_index = g.index
+                    bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
+                    bpy.ops.object.vertex_group_smooth(group_select_mode='ACTIVE', factor=0.5, repeat=int(os.environ.get("HM_GLOVE_SMOOTH", "16")))
+                    bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
         bpy.ops.object.vertex_group_normalize_all(lock_active=False)
     bpy.ops.object.select_all(action='DESELECT'); obj.select_set(True); rig.select_set(True)
@@ -438,8 +462,11 @@ def finish(obj, slot, t, body_weights=True):
 def body_groups(obj):
     for gi in sorted(gname): obj.vertex_groups.new(name=P + gname[gi])
     vgs = list(obj.vertex_groups)
+    oa = [obj.data.attributes.get(a) for a in ("ox", "oy", "oz")]
     for v in obj.data.vertices:
-        _, idx, _ = KD.find(v.co)
+        q = Vector([oa[k].data[v.index].value for k in range(3)]) if all(oa) else v.co
+        if q.length < 1e-6: q = v.co   # appended authored parts (kneeguards) carry no smoothbody position
+        _, idx, _ = KD.find(q)
         for g in me.vertices[idx].groups:
             if g.weight > 0: vgs[g.group].add([v.index], g.weight, 'REPLACE')
 
@@ -453,7 +480,15 @@ def build(slot, t):
             w = max(0.0, min(1.0, (v.co.z - (neckz - 0.03)) / max(0.01, headz - (neckz - 0.03))))
             hg.add([v.index], w, 'REPLACE'); ng.add([v.index], 1 - w, 'REPLACE')
         finish(obj, slot, t, body_weights=False); return
-    bm = shell(slot, t) if slot != "shoulders" else bmesh.new()
+    if slot == "waist":
+        # belt: every torso face in the band (not dominant-bone faces, whose boundary zig-zagged under the hem), the two
+        # plane cuts then give clean top/bottom loops; arms hanging beside the hips are excluded by side distance
+        def wsel(f):
+            c = f.calc_center_median()
+            return abs(c.x) < 0.19 and hipz - 0.08 < c.z < hipz + 0.14 and not any(dom[v.index].startswith(("Hand", "ForeArm", "Arm")) for v in f.verts)
+        bm = shell(slot, t, sel=wsel)
+    else:
+        bm = shell(slot, t) if slot != "shoulders" else bmesh.new()
     if slot == "shoulders":
         bm.free(); bm = bmesh.new()
         for sd in ("Left", "Right"):
@@ -467,6 +502,8 @@ def build(slot, t):
     else:
         if slot in ("hands", "feet"):
             for _ in range(4): bmesh.ops.smooth_vert(bm, verts=[v for v in bm.verts if not v.is_boundary], factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+            if slot == "hands":   # glove: volume-kept relax so the knuckle/vein sculpt of the bare hand doesn't read as lumps
+                for _ in range(10): bmesh.ops.smooth_laplacian_vert(bm, verts=[v for v in bm.verts if not v.is_boundary], lambda_factor=0.4, lambda_border=0.0, use_x=True, use_y=True, use_z=True, preserve_volume=True)
         offset(bm, OFF[slot] + (0.002 * (t - 1) if slot == "chest" else 0))
         if slot == "chest" and t == 3:
             lay = bm.verts.layers.float.get("layer") or bm.verts.layers.float.new("layer")

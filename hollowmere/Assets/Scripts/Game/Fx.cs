@@ -22,8 +22,16 @@ namespace Hollowmere
 
         public static void Ring(Vector3 at, float radius, Color c, float seconds = 0.35f)
         {
-            // Additive ground ring (thin outline texture, dimmed tint). Was an opaque emissive cylinder that read as a
-            // big white disc over the swing on the phone.
+            var g = Art.Cylinder(null, at + Vector3.up * 0.05f, new Vector3(0.2f, 0.02f, 0.2f), Art.Mat(new Color(c.r, c.g, c.b, 1), 1.5f));
+            g.AddComponent<FxLife>().Init(seconds, Vector3.one * 0.2f, new Vector3(radius * 2, 0.02f, radius * 2));
+        }
+
+        /// <summary>
+        /// Additive ground ring (thin outline texture, dimmed tint) for melee swings only. The opaque emissive
+        /// cylinder of Ring read as a big white disc over the swing on the phone; every other Ring caller is unchanged.
+        /// </summary>
+        public static void SwingRing(Vector3 at, float radius, Color c, float seconds = 0.35f)
+        {
             var g = Art.VfxSprite(null, 1f, new Color(c.r * 0.45f, c.g * 0.45f, c.b * 0.45f, 0.5f), "circle_05");
             var fc = g.GetComponent<FaceCamera>(); if (fc != null) Object.Destroy(fc);
             g.transform.position = at + Vector3.up * 0.06f;

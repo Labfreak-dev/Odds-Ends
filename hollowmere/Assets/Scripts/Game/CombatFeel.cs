@@ -240,7 +240,8 @@ namespace Hollowmere
             else if (c.skill.family == WeaponFamily.Magic)
                 Fx.Flip(h.Pos + Vector3.up * 1.1f, col, "flash_flipbook_3x3", 3, 3, 9, 1.8f);
             else
-                Fx.Burst(h.Pos + Vector3.up * 1.1f, col, 1.4f, 0.35f, "slash_02");
+                // Melee swing placeholder: dimmed and smaller (the 1.4 m slash_02 sprite read as a white crescent over the hero).
+                Fx.Burst(h.Pos + Vector3.up * 1.1f, new Color(col.r * 0.5f, col.g * 0.5f, col.b * 0.5f, 0.45f), 0.9f, 0.22f, "slash_02");
         }
 
         static Mesh quad;
@@ -319,21 +320,21 @@ namespace Hollowmere
             var tr = go.AddComponent<TrailRenderer>();
             // A thin tinted slash that fades along its length (it used to be a 1.6 m, 90% white opaque ribbon plus a
             // 2.4 m white burst that hid the swing on the phone).
-            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.15f);
+            var col = Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex) * 0.7f;
             tr.time = Mathf.Min(0.28f, Mathf.Max(0.18f, DesignTable.TrailLife / 1000f));
-            tr.widthCurve = new AnimationCurve(new Keyframe(0f, 0.42f), new Keyframe(0.5f, 0.30f), new Keyframe(1f, 0.02f));
+            tr.widthCurve = new AnimationCurve(new Keyframe(0f, 0.20f), new Keyframe(0.5f, 0.12f), new Keyframe(1f, 0.0f));
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
             tr.numCapVertices = 0;
             var grad = new Gradient();
             grad.SetKeys(new[] { new GradientColorKey(col, 0f), new GradientColorKey(col, 1f) },
-                new[] { new GradientAlphaKey(0.55f, 0f), new GradientAlphaKey(0.25f, 0.5f), new GradientAlphaKey(0f, 1f) });
+                new[] { new GradientAlphaKey(0.32f, 0f), new GradientAlphaKey(0.12f, 0.5f), new GradientAlphaKey(0f, 1f) });
             tr.colorGradient = grad;
             var ribbon = Art.GlowMat(Color.white, true, null);
             tr.material = ribbon;
             tr.emitting = true;
-            var burst = Art.GlowSprite(null, 0.5f, new Color(col.r, col.g, col.b, 0.35f));
+            var burst = Art.GlowSprite(null, 0.3f, new Color(col.r, col.g, col.b, 0.2f));
             burst.transform.position = go.transform.position;
             burst.AddComponent<FxLife>().Init(0.14f, Vector3.one * 0.4f, Vector3.one * 0.7f);
             var hold = go.AddComponent<TrailStop>();

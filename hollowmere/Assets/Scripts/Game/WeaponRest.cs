@@ -64,6 +64,14 @@ namespace Hollowmere
                 hand.rotation = Quaternion.AngleAxis(ang, ax) * hand.rotation;
                 if (ik != null) ik.Apply();
             }
+            // Free hand wraps the handle next to the main fist: pommel side for blades, up the shaft for polearms.
+            if (ik != null && ik.upper != null)
+            {
+                var blade = transform.TransformDirection(localAxis).normalized;
+                var goal = hand.position + blade * (upright ? 0.30f : -0.095f);
+                OffHandIk.TwoBone(ik.upper, ik.lower, ik.hand, goal);
+                OffHandIk.TwoBone(ik.upper, ik.lower, ik.hand, goal);
+            }
         }
     }
 }

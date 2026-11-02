@@ -179,6 +179,32 @@ namespace Hollowmere
             foreach (var kv in saved) if (kv.Key != null) kv.Key.layer = kv.Value;
         }
 
+        /// <summary>The same game camera, same position and angle, zoomed onto the hero (FOV / 3.4) so leather texture,
+        /// seams and stitching can be judged at phone scale. Rendered off-screen in the same frame, no UI.</summary>
+        static void ZoomCam(HeroActor actor, string name)
+        {
+            var cam = Camera.main;
+            if (cam == null || actor == null) return;
+            var t = cam.transform; var p0 = t.position; var r0 = t.rotation; float f0 = cam.fieldOfView;
+            var rt = new RenderTexture(1200, 1200, 24); var prev = cam.targetTexture;
+            try
+            {
+                t.rotation = Quaternion.LookRotation(actor.transform.position + Vector3.up * 0.95f - p0, Vector3.up);
+                cam.fieldOfView = f0 / 3.4f; cam.targetTexture = rt; cam.Render();
+                var a = RenderTexture.active; RenderTexture.active = rt;
+                var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0); tex.Apply(); RenderTexture.active = a;
+                var path = Path.Combine(Directory.GetCurrentDirectory(), "qa-" + name + ".png");
+                File.WriteAllBytes(path, tex.EncodeToPNG()); UnityEngine.Object.Destroy(tex);
+                Debug.Log("Hollowmere QA frame saved: " + path);
+            }
+            finally
+            {
+                cam.targetTexture = prev; t.SetPositionAndRotation(p0, r0); cam.fieldOfView = f0;
+                rt.Release(); UnityEngine.Object.Destroy(rt);
+            }
+        }
+
         static IEnumerator TurnCam(HeroActor actor, string tag)
         {
             var joy = UnityEngine.Object.FindFirstObjectByType<Joystick>();
@@ -186,10 +212,12 @@ namespace Hollowmere
             yield return new WaitForSeconds(1.2f);
             yield return new WaitForEndOfFrame();
             SaveNamed("turncam-" + tag + "-idle");
+            ZoomCam(actor, "turncam-" + tag + "-idle-zoom");
             if (joy != null) joy.Value = new Vector2(0.3f, 0.95f);
             yield return new WaitForSeconds(0.9f);
             yield return new WaitForEndOfFrame();
             SaveNamed("turncam-" + tag + "-run");
+            ZoomCam(actor, "turncam-" + tag + "-run-zoom");
             if (joy != null) joy.Value = Vector2.zero;
             yield return new WaitForSeconds(0.8f);
             bool used = false;
@@ -207,9 +235,11 @@ namespace Hollowmere
             yield return new WaitForSeconds(0.22f);
             yield return new WaitForEndOfFrame();
             SaveNamed("turncam-" + tag + "-attack");
+            ZoomCam(actor, "turncam-" + tag + "-attack-zoom");
             yield return new WaitForSeconds(0.18f);
             yield return new WaitForEndOfFrame();
             SaveNamed("turncam-" + tag + "-attack-late");
+            ZoomCam(actor, "turncam-" + tag + "-attack-late-zoom");
             if (joy != null) joy.Value = new Vector2(-0.3f, -0.95f);
             yield return new WaitForSeconds(0.9f);
             if (joy != null) joy.Value = Vector2.zero;

@@ -79,6 +79,8 @@ namespace Hollowmere
             var hb = w.parent; while (hb != null && !hb.name.EndsWith("Hand")) hb = hb.parent;
             r.hand = hb; r.body = body; r.type = GearTable.TypeOf(weapon.baseId);
             r.anim = body.GetComponentInChildren<Animation>();
+            var ik = w.GetComponent<OffHandIk>();
+            if (ik != null && ik.hand != null) HandCurl.Ensure(ik.hand, false); // free hand closes on the haft too
         }
 
         static void DestroyNamed(Transform body, string name)

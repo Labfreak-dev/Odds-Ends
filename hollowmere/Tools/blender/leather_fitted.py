@@ -48,12 +48,12 @@ def R(tier):
         d = side(dom[i]); p = co[i]
         if d == "Hips": return p.z < hipz + 0.07
         if d == "UpLeg": return True
-        if d == "Leg": return along(p, dom[i]) < 0.92
+        if d == "Leg": return along(p, dom[i]) < 0.97
         return False
     def feet(i):
         d = side(dom[i])
         if d in ("Foot", "ToeBase"): return True
-        if d == "Leg": return along(co[i], dom[i]) > (0.70 if tier == 1 else 0.55 if tier == 2 else 0.42)
+        if d == "Leg": return along(co[i], dom[i]) > (0.60 if tier == 1 else 0.50 if tier == 2 else 0.42)
         return False
     def hands(i):
         d = side(dom[i])
@@ -84,7 +84,7 @@ OFF = dict(hands=0.004, legs=0.008, feet=0.014, chest=0.012, wrists=0.018, waist
 TH = dict(hands=0.003, legs=0.004, feet=0.006, chest=0.005, wrists=0.006, waist=0.008, shoulders=0.007, head=0.007)
 # Leather palette shared by the whole set (linear base colours)
 PAL = dict(dark=(0.055, 0.030, 0.018), mid=(0.13, 0.068, 0.035), tan=(0.30, 0.18, 0.09), cloth=(0.17, 0.12, 0.08), strap=(0.035, 0.022, 0.014))
-COL = {1: dict(chest="cloth", legs="cloth", feet="mid", hands="mid", wrists="mid", waist="mid", shoulders="mid", head="cloth"),
+COL = {1: dict(chest="cloth", legs="cloth", feet="mid", hands="mid", wrists="mid", waist="mid", shoulders="mid", head="mid"),
        2: dict(chest="mid", legs="dark", feet="dark", hands="dark", wrists="mid", waist="strap", shoulders="dark", head="mid"),
        3: dict(chest="dark", legs="dark", feet="strap", hands="strap", wrists="tan", waist="tan", shoulders="tan", head="dark")}
 JOINTS = ["Arm", "ForeArm", "UpLeg", "Leg", "Spine", "Spine1", "Spine2", "Hips", "Shoulder"]

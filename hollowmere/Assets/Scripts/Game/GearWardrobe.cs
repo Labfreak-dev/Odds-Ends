@@ -19,6 +19,7 @@ namespace Hollowmere
             if (body == null || body.GetComponentInChildren<BodySplit>(true) != null) return;
             var skin = Source(body);
             if (skin == null || skin.sharedMesh == null || !skin.sharedMesh.isReadable) return;
+            HandCurl.RigSkin(skin); // finger bones for the fist curl, before the region split
             var mesh = skin.sharedMesh;
             var weights = mesh.boneWeights;
             var tris = mesh.triangles;
@@ -275,11 +276,17 @@ namespace Hollowmere
             BodyRegions.Ensure(body);
             var skin = BodyRegions.Source(body);
             var placed = new List<SkinnedMeshRenderer>();
+            LightenHands(body);
             for (int i = 0; i < GearFit.Visible.Length; i++)
             {
                 var slot = GearFit.Visible[i];
                 var it = hero.Equipped(slot);
-                if (Item.IsNone(it)) continue;
+                if (Item.IsNone(it) || (it.name == "Worn Jerkin" && slot == EquipSlot.Chest))
+                {
+                    var sp = Starter(body, skin, slot);
+                    if (sp != null) placed.Add(sp);
+                    continue;
+                }
                 int tier = RarityBook.VisualTier(it.rarity, it.tier);
                 string family = FamilyOf(it);
                 string meshFamily = RarityBook.MeshFamily(family, it.rarity);
@@ -304,6 +311,52 @@ namespace Hollowmere
             }
             BodyRegions.Show(body, Coverage(body, placed));
             GearAudit.PoseSeal(body);
+        }
+
+        /// <summary>
+        /// Starter outfit for empty slots (the bare cloth body read as pyjamas on the phone): the authored
+        /// leather set's jerkin, belt, breeches, boots, gloves and bracers, dyed to worn undyed wool and old
+        /// leather. Layered cloth + belt + stitched leather straps come from the authored maps; the dye drops the
+        /// saturation and the shine so it reads as a starter rather than loot. No VFX, no rim.
+        /// </summary>
+        public static bool StarterOutfit = true;
+        public static float HandLighten = 1.75f;
+        /// The body texture paints the hands near-black leather; on the phone the fist vanished. Own material, lifted.
+        static void LightenHands(Transform body)
+        {
+            foreach (var smr in body.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.name != "body_Hand" || smr.GetComponent<HandLit>() != null) continue;
+                smr.gameObject.AddComponent<HandLit>();
+                var m = new Material(smr.sharedMaterial) { name = smr.sharedMaterial.name + "_hand" };
+                if (m.HasProperty("_SkinOnly")) m.SetFloat("_SkinOnly", 1f); // skin albedo x creator skin tint (shader)
+                else foreach (var prop in new[] { "_BaseColor", "_Color" })
+                    if (m.HasProperty(prop)) { var c = m.GetColor(prop); m.SetColor(prop, new Color(c.r * HandLighten, c.g * HandLighten * 0.95f, c.b * HandLighten * 0.9f, c.a)); }
+                smr.sharedMaterial = m;
+            }
+        }
+        static SkinnedMeshRenderer Starter(Transform body, SkinnedMeshRenderer skin, EquipSlot slot)
+        {
+            if (!StarterOutfit) return null;
+            // Hands: no starter gauntlet (the leather t3 glove is a boxy cuff that hid the fist); the body's own fitted
+            // hand shows instead, lightened in LightenHands.
+            if (slot != EquipSlot.Chest && slot != EquipSlot.Waist && slot != EquipSlot.Legs && slot != EquipSlot.Feet
+                && slot != EquipSlot.Wrists) return null;
+            var prefab = Load("leather", GearFit.SlotName(slot), GearTable.TierCount, out bool lower);
+            if (prefab == null) return null;
+            var piece = Spawn(body, skin, slot, prefab, "leather", "leather", null, lower);
+            if (piece == null) return null;
+            Color dye = slot == EquipSlot.Chest || slot == EquipSlot.Legs ? new Color(0.86f, 0.78f, 0.66f) : new Color(0.72f, 0.6f, 0.5f);
+            foreach (var r in piece.GetComponentsInChildren<Renderer>(true))
+                foreach (var m in r.materials)
+                {
+                    if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", m.GetColor("_BaseColor") * dye);
+                    if (m.HasProperty("_Color")) m.SetColor("_Color", m.GetColor("_Color") * dye);
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", Mathf.Min(m.GetFloat("_Smoothness"), 0.18f));
+                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
+                }
+            Debug.Log("Hollowmere gear " + GearFit.SlotName(slot) + " starter");
+            return piece;
         }
 
         static void Tint(GameObject go, string family, Item it, EquipSlot slot)
@@ -344,6 +397,8 @@ namespace Hollowmere
         static GameObject Load(string family, string slot, int tier, out bool lower)
         {
             lower = false;
+            // The bone t2 helm (Meshy) reads as a cream blob on the phone; use the authored bone helm instead.
+            if (family == "bone" && slot == GearFit.SlotName(EquipSlot.Head) && tier == 2) tier = GearTable.TierCount;
             if (tier < GearTable.TierCount)
             {
                 // v8: each lower tier is its own model (t1 Blender simplification, t2 Meshy).
@@ -444,6 +499,7 @@ namespace Hollowmere
                 return null;
             }
             FitPiece(mesh, slot, meshFamily, heroSkin.bones);
+            GearConform.Apply(mesh, slot, heroSkin.sharedMesh);
             var go = new GameObject(mesh.name);
             go.transform.SetParent(heroSkin.transform.parent, false);
             go.transform.localPosition = heroSkin.transform.localPosition;
@@ -840,6 +896,7 @@ namespace Hollowmere
     }
 
     /// <summary>The uncut region mesh. Equip swaps in an opened copy and restores this one.</summary>
+    public sealed class HandLit : MonoBehaviour { }
     public sealed class RegionMesh : MonoBehaviour
     {
         public Mesh full;

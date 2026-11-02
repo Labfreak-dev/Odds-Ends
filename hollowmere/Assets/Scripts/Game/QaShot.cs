@@ -56,6 +56,16 @@ namespace Hollowmere
         {
             var scene = Requested;
             if (string.IsNullOrEmpty(scene)) return false;
+            // HM_QUALITY=Medium (Android default) forces the phone quality level, so QA sees 2-bone skinning and the phone LOD bias.
+            if (Environment.GetEnvironmentVariable("HM_CONFORM") == "0") GearConform.Enabled = false;
+            var q = Environment.GetEnvironmentVariable("HM_QUALITY");
+            if (!string.IsNullOrEmpty(q))
+            {
+                int idx = Array.IndexOf(QualitySettings.names, q);
+                if (idx < 0) int.TryParse(q, out idx);
+                if (idx >= 0) QualitySettings.SetQualityLevel(idx, true);
+                Debug.Log("Hollowmere QA quality " + QualitySettings.names[QualitySettings.GetQualityLevel()] + " skinWeights=" + QualitySettings.skinWeights + " lodBias=" + QualitySettings.lodBias);
+            }
             gm.StartCoroutine(Run(gm, scene.Trim().ToLowerInvariant()));
             return true;
         }
@@ -126,6 +136,9 @@ namespace Hollowmere
                 case "tiers":
                 case "geartiers":
                 case "rarity":
+                case "phone":
+                case "grip":
+                case "freshbag":
                 case "teststart":
                 case "test-start":
                     return true;
@@ -176,6 +189,21 @@ namespace Hollowmere
             if (scene == "rarity")
             {
                 yield return QaFrames.RunRarity(gm);
+                yield break;
+            }
+            if (scene == "freshbag")
+            {
+                yield return QaFrames.RunFreshBag(gm);
+                yield break;
+            }
+            if (scene == "grip")
+            {
+                yield return QaFrames.RunGrip(gm);
+                yield break;
+            }
+            if (scene == "phone")
+            {
+                yield return QaFrames.RunPhone(gm);
                 yield break;
             }
             if (scene == "teststart" || scene == "test-start")

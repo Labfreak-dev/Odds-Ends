@@ -31,7 +31,10 @@ namespace Hollowmere.Core
             var w = Loot.Generate(rng, 1, Rarity.Common, cls, forceBase: weapon);
             w.name = "Worn " + w.Base.name;
             h.equipment[(int)EquipSlot.MainHand] = w;
-            h.equipment[(int)EquipSlot.Chest] = Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Chest);
+            var jerkin = Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Chest);
+            // Starter look: worn leather jerkin over wool (GearWardrobe.Starter), not a common plate box.
+            jerkin.family = "leather"; jerkin.name = "Worn Jerkin";
+            h.equipment[(int)EquipSlot.Chest] = jerkin;
             h.inventory.Add(Loot.Potion(3));
             h.inventory.Add(Loot.TownPortal(2));
             // A few pieces so a new bag is not an empty grid on the inventory screen.
@@ -211,7 +214,10 @@ namespace Hollowmere.Core
 
         // ---------------- inventory ----------------
 
-        public int FreeSlots => Balance.InventorySize - inventory.Count;
+        /// <summary>Bag size. 0 = the normal 30; the test build grows it so the whole test kit sits in the bag.</summary>
+        public int bagCapacity;
+        public int Capacity => Math.Max(Balance.InventorySize, bagCapacity);
+        public int FreeSlots => Capacity - inventory.Count;
 
         public bool AddItem(Item it)
         {
@@ -222,7 +228,7 @@ namespace Hollowmere.Core
                     && (it.kind != ItemKind.Gem || x.baseId == it.baseId));
                 if (same != null) { same.stack += it.stack; return true; }
             }
-            if (inventory.Count >= Balance.InventorySize) return false;
+            if (inventory.Count >= Capacity) return false;
             inventory.Add(it);
             return true;
         }
@@ -271,7 +277,7 @@ namespace Hollowmere.Core
             if (b.slot == ItemSlot.MainHand && b.twoHanded && (b.id == "bow" || b.id == "crossbow") && Equipped(EquipSlot.OffHand)?.baseId == "quiver")
                 removed.RemoveAll(r => r.baseId == "quiver");
 
-            int room = Balance.InventorySize - (inventory.Count - (inventory.Contains(it) ? 1 : 0));
+            int room = Capacity - (inventory.Count - (inventory.Contains(it) ? 1 : 0));
             if (removed.Count > room) return false;
 
             inventory.Remove(it);
@@ -287,7 +293,7 @@ namespace Hollowmere.Core
         public bool Unequip(EquipSlot s)
         {
             var it = Equipped(s);
-            if (it == null || inventory.Count >= Balance.InventorySize) return false;
+            if (it == null || inventory.Count >= Capacity) return false;
             equipment[(int)s] = null;
             inventory.Add(it);
             return true;

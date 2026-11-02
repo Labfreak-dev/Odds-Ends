@@ -24,7 +24,7 @@ namespace Hollowmere
     /// Writes qa-move-00.png … and qa-pet-00.png … then quits.
     /// Count, rate, and size come from FeelProfile (30 frames at 10 fps, 2340×1080).
     /// </summary>
-    public static class QaFrames
+    public static partial class QaFrames
     {
         public static string Requested
         {

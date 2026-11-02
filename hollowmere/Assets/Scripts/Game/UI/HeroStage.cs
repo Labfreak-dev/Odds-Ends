@@ -38,13 +38,13 @@ namespace Hollowmere
             cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.07f, 0.06f, 0.08f, 1f);
-            cam.fieldOfView = 28f;
+            cam.fieldOfView = 20f; // was 28: the hero filled a third of the preview on the phone
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 24f;
             cam.cullingMask = 1 << StageLayer;
             cam.targetTexture = rt;
             camGo.transform.localPosition = new Vector3(0.1f, 1.2f, 6.2f);
-            camGo.transform.LookAt(transform.TransformPoint(new Vector3(0.05f, 0.9f, 0.1f)));
+            camGo.transform.LookAt(transform.TransformPoint(new Vector3(-0.05f, 0.88f, 0.1f)));
             if (Camera.main != null) Camera.main.cullingMask &= ~(1 << StageLayer);
 
             StageLighting.Rig(transform, cam, StageLayer);
@@ -58,10 +58,10 @@ namespace Hollowmere
 
             heroPivot = new GameObject("heroPivot").transform;
             heroPivot.SetParent(transform, false);
-            heroPivot.localPosition = new Vector3(-0.38f, 0f, 0.1f);
+            heroPivot.localPosition = new Vector3(-0.2f, 0f, 0.1f);
             petPivot = new GameObject("petPivot").transform;
             petPivot.SetParent(transform, false);
-            petPivot.localPosition = new Vector3(0.58f, 0f, 0.15f);
+            petPivot.localPosition = new Vector3(0.45f, 0f, 0.55f);
             AssignLayer(gameObject);
             if (target != null) target.texture = rt;
         }
@@ -74,6 +74,11 @@ namespace Hollowmere
                 Clear(heroPivot);
                 var model = Art.Animated(plate ? "hero_plate" : "hero", 1.7f, heroPivot);
                 if (model != null) Art.PaintHero(model, skin, cloth, hair, armour);
+                if (model != null && !plate)
+                {
+                    try { GearWardrobe.Apply(model.transform, new Hero()); } catch (System.Exception e) { Debug.LogWarning("Hollowmere creator starter: " + e.Message); }
+                }
+                StageIdle.Attach(model);
                 else Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(armour));
                 shownPlate = plate;
                 shownSkin = skin;
@@ -94,6 +99,7 @@ namespace Hollowmere
             {
                 Clear(heroPivot);
                 var model = Art.Animated(Art.HeroModelKey(cls), 1.7f, heroPivot);
+                StageIdle.Attach(model);
                 if (model == null)
                     Art.Capsule(heroPivot, Vector3.up * 0.9f, new Vector3(0.45f, 0.9f, 0.45f), Art.Mat(Art.ClassColor(cls)));
                 shownClass = cls;
@@ -144,12 +150,12 @@ namespace Hollowmere
                 bool sane = Art.MeshWorldBounds(pivot, out piece) && piece.size.y > 0.3f && piece.size.y < 3f;
                 if (!sane)
                     piece = new Bounds(pivot.position + Vector3.up * 0.9f, new Vector3(0.9f, 1.8f, 0.8f));
-                piece.Expand(new Vector3(0.55f, 0.2f, 0.3f));
+                piece.Expand(new Vector3(0.12f, 0.08f, 0.1f)); // was 0.55: the hero ended up a third of the frame
                 if (!any) { b = piece; any = true; }
                 else b.Encapsulate(piece);
             }
             if (!any) return;
-            float dist = PortraitCam.FrameFront(cam, b, 0.72f);
+            float dist = PortraitCam.FrameFront(cam, b, 0.9f);
             Debug.Log("Hollowmere QA portrait creator front dist=" + dist.ToString("0.00")
                 + " size=" + b.size.ToString("0.00") + " center=" + b.center.ToString("0.00"));
         }

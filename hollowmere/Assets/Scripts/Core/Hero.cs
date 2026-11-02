@@ -31,7 +31,10 @@ namespace Hollowmere.Core
             var w = Loot.Generate(rng, 1, Rarity.Common, cls, forceBase: weapon);
             w.name = "Worn " + w.Base.name;
             h.equipment[(int)EquipSlot.MainHand] = w;
-            h.equipment[(int)EquipSlot.Chest] = Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Chest);
+            var jerkin = Loot.Generate(rng, 1, Rarity.Common, cls, ItemSlot.Chest);
+            // Starter look: worn leather jerkin over wool (GearWardrobe.Starter), not a common plate box.
+            jerkin.family = "leather"; jerkin.name = "Worn Jerkin";
+            h.equipment[(int)EquipSlot.Chest] = jerkin;
             h.inventory.Add(Loot.Potion(3));
             h.inventory.Add(Loot.TownPortal(2));
             // A few pieces so a new bag is not an empty grid on the inventory screen.

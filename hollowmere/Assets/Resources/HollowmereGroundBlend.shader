@@ -70,7 +70,18 @@ Shader "Hollowmere/GroundBlend"
                 float macro = fbm(xz * 0.11);
                 float m2 = smoothstep(0.3, 0.7, fbm(xz * 0.07 + 5.0));
                 float2 uvC = xz / _CobbleTile, uvD = xz / _DirtTile, uvG = xz / _GrassTile;
-                half3 cob = two(TEXTURE2D_ARGS(_CobbleMap, sampler_CobbleMap), uvC, m2 * 0.5);
+                // Cobble without a visible repeat: three differently rotated/offset samples weighted by two
+                // independent noise fields (texture bombing), then darkened toward wet grey stone with large-area
+                // tone and warmth variation. The plain map read pale and its 4 m repeat showed on the phone.
+                half3 c0 = SAMPLE_TEXTURE2D(_CobbleMap, sampler_CobbleMap, uvC).rgb;
+                half3 c1 = SAMPLE_TEXTURE2D(_CobbleMap, sampler_CobbleMap, rot(uvC, 1.7) * 0.91 + 0.31).rgb;
+                half3 c2 = SAMPLE_TEXTURE2D(_CobbleMap, sampler_CobbleMap, rot(uvC, -2.4) * 1.07 + 0.63).rgb;
+                float wa = smoothstep(0.35, 0.65, vnoise(xz * 0.23 + 2.0)), wb = smoothstep(0.35, 0.65, vnoise(xz * 0.17 + 11.0));
+                half3 cob = lerp(lerp(c0, c1, wa), c2, wb * 0.7);
+                half cl = dot(cob, half3(0.3, 0.59, 0.11));
+                cob = lerp(half3(cl, cl, cl), cob, 0.7) * 0.6;
+                cob *= lerp(half3(0.82, 0.84, 0.9), half3(1.08, 1.0, 0.9), fbm(xz * 0.05 + 7.0));
+                cob *= lerp(0.8, 1.12, vnoise(xz * 0.9 + 4.0));
                 half cobH = SAMPLE_TEXTURE2D(_CobbleAo, sampler_CobbleMap, uvC).r;
                 half3 dirt = two(TEXTURE2D_ARGS(_DirtMap, sampler_CobbleMap), uvD, m2);
                 half3 grass = two(TEXTURE2D_ARGS(_GrassMap, sampler_CobbleMap), uvG, m2);

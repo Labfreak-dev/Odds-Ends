@@ -697,6 +697,7 @@ namespace Hollowmere
                 try { GearAttach.Apply(model.transform, hero); }
                 catch (System.Exception e) { Debug.LogWarning("Hollowmere paper doll gear: " + e.Message); }
             }
+            StageIdle.Attach(model);
             foreach (var tr in root.GetComponentsInChildren<Transform>(true))
                 tr.gameObject.layer = 9;
             camGo.layer = 9;

@@ -280,7 +280,12 @@ namespace Hollowmere
             {
                 var slot = GearFit.Visible[i];
                 var it = hero.Equipped(slot);
-                if (Item.IsNone(it)) continue;
+                if (Item.IsNone(it) || (it.name == "Worn Jerkin" && slot == EquipSlot.Chest))
+                {
+                    var sp = Starter(body, skin, slot);
+                    if (sp != null) placed.Add(sp);
+                    continue;
+                }
                 int tier = RarityBook.VisualTier(it.rarity, it.tier);
                 string family = FamilyOf(it);
                 string meshFamily = RarityBook.MeshFamily(family, it.rarity);
@@ -305,6 +310,35 @@ namespace Hollowmere
             }
             BodyRegions.Show(body, Coverage(body, placed));
             GearAudit.PoseSeal(body);
+        }
+
+        /// <summary>
+        /// Starter outfit for empty slots (the bare cloth body read as pyjamas on the phone): the authored
+        /// leather set's jerkin, belt, breeches, boots, gloves and bracers, dyed to worn undyed wool and old
+        /// leather. Layered cloth + belt + stitched leather straps come from the authored maps; the dye drops the
+        /// saturation and the shine so it reads as a starter rather than loot. No VFX, no rim.
+        /// </summary>
+        public static bool StarterOutfit = true;
+        static SkinnedMeshRenderer Starter(Transform body, SkinnedMeshRenderer skin, EquipSlot slot)
+        {
+            if (!StarterOutfit) return null;
+            if (slot != EquipSlot.Chest && slot != EquipSlot.Waist && slot != EquipSlot.Legs && slot != EquipSlot.Feet
+                && slot != EquipSlot.Hands && slot != EquipSlot.Wrists) return null;
+            var prefab = Load("leather", GearFit.SlotName(slot), GearTable.TierCount, out bool lower);
+            if (prefab == null) return null;
+            var piece = Spawn(body, skin, slot, prefab, "leather", "leather", null, lower);
+            if (piece == null) return null;
+            Color dye = slot == EquipSlot.Chest || slot == EquipSlot.Legs ? new Color(0.86f, 0.78f, 0.66f) : new Color(0.72f, 0.6f, 0.5f);
+            foreach (var r in piece.GetComponentsInChildren<Renderer>(true))
+                foreach (var m in r.materials)
+                {
+                    if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", m.GetColor("_BaseColor") * dye);
+                    if (m.HasProperty("_Color")) m.SetColor("_Color", m.GetColor("_Color") * dye);
+                    if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", Mathf.Min(m.GetFloat("_Smoothness"), 0.18f));
+                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
+                }
+            Debug.Log("Hollowmere gear " + GearFit.SlotName(slot) + " starter");
+            return piece;
         }
 
         static void Tint(GameObject go, string family, Item it, EquipSlot slot)

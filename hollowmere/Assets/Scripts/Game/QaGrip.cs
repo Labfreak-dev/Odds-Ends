@@ -66,12 +66,19 @@ namespace Hollowmere
                         if (curl != null) curl.Apply();
                         var p = HandGrip.Measure(hand);
                         HandGrip.Held(weapon, type, out var grip, out var axis);
+                        float h0 = HandGrip.HandleFrom, h1 = HandGrip.HandleTo;
+                        // Where along the haft the palm sits, as a fraction from the pommel.
+                        HandGrip.MeshAxes(weapon, type, out var axL, out _, out var gL);
+                        float lenW = 0f; { var b = weapon.GetComponentInChildren<Renderer>(); if (b != null) lenW = Vector3.Dot(b.bounds.size, new Vector3(Mathf.Abs(axis.x), Mathf.Abs(axis.y), Mathf.Abs(axis.z))); }
+                        float palmFrac = lenW > 1e-3f ? ((h0 + h1) * 0.5f) + Vector3.Dot(p.centre - grip, axis) / lenW : -1f;
+                        bool inHandle = type == "orb" || type == "fist" || (palmFrac >= h0 - 0.04f && palmFrac <= h1 + 0.04f);
+                        bool bladeOut = type == "orb" || Vector3.Dot(axis, type == "fist" ? p.finger : p.knuckle) > 0.6f;
                         float dist = p.ok ? Vector3.Distance(grip, HandGrip.FistPoint(p, type)) : 1f;
                         Vector3 want = type == "fist" ? p.finger : p.knuckle;
                         float ang = type == "orb" ? 0f : Vector3.Angle(axis, want);
                         var tip = GripFind(hand, (hand.name.Contains("Left") ? "Left" : "Right") + "HandMiddle3") ?? GripFind(hand, (hand.name.Contains("Left") ? "Left" : "Right") + "HandMiddle2");
                         float wrap = tip != null && type != "orb" && type != "fist" ? Vector3.Cross(tip.position - grip, axis).magnitude : 0f;
-                        bool bad = !p.ok || dist > 0.03f || ang > 20f || wrap > 0.05f;
+                        bool bad = !p.ok || dist > 0.03f || ang > 20f || !inHandle || !bladeOut;
                         checks++; if (bad) fails++;
                         Debug.Log("Hollowmere grip check " + model + " " + type + " " + st.name + " f" + f + " palmDist=" + (dist * 100f).ToString("0.0") + "cm axis=" + ang.ToString("0") + "deg wrap=" + (wrap * 100f).ToString("0.0") + "cm" + (bad ? " FAIL" : " ok"));
                         // Close-up of the hand for the contact sheet.

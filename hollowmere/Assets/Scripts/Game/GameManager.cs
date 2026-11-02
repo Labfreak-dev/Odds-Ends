@@ -71,6 +71,8 @@ namespace Hollowmere
                 var json = File.ReadAllText(SavePath);
                 State = JsonUtility.FromJson<GameState>(json);
                 State.Normalize();
+                if (BuildConfig.TestStart && TestStart.GrantIfMissing(State, new Rng((ulong)DateTime.UtcNow.Ticks)))
+                    Debug.Log("Hollowmere teststart granted kit to existing save bag=" + State.hero.inventory.Count + "/" + State.hero.Capacity);
             }
             catch (Exception e)
             {

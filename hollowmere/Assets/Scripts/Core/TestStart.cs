@@ -29,13 +29,59 @@ namespace Hollowmere.Core
         /// <summary>The CC0 weapon meshes the test start has to carry, by model id.</summary>
         public static readonly string[] MeshyModels = { "fist_1", "fist_2", "fist_3", "orb_2", "orb_3", "flail_2", "flail_3" };
 
+        /// <summary>
+        /// Root cause of "the bag shows only 2 gems": the kit went to the town STASH (Town.AddToStash), which the Bag
+        /// screen never shows and which is only reachable at the stash chest. Only the gems stacked into the bag.
+        /// The kit now goes straight into an enlarged, paged bag, and a save that predates the grant gets it on load.
+        /// </summary>
         public static void Apply(GameState s, Rng rng)
         {
             if (s == null || rng == null) return;
             LevelUp(s.hero);
+            Grant(s, rng);
+        }
+
+        /// <summary>Puts the kit in the bag once per save while the test flag is on. Safe to call on every load.</summary>
+        public static bool GrantIfMissing(GameState s, Rng rng)
+        {
+            if (s == null || s.hero == null || s.testStartGranted) return false;
+            if (s.hero.level < Level) LevelUp(s.hero);
+            Grant(s, rng);
+            return true;
+        }
+
+        static void Grant(GameState s, Rng rng)
+        {
             var items = Stock(rng);
-            s.stashCapacity = Math.Max(s.stashCapacity, PageRound(s.stash.Count + items.Count));
-            foreach (var it in items) Town.AddToStash(s, it);
+            items.AddRange(EndGame(rng));
+            var h = s.hero;
+            int slots = items.Count(i => !i.Stackable) + Gems.Names.Length * 5 + h.inventory.Count + 30;
+            h.bagCapacity = Math.Max(h.bagCapacity, (slots + 29) / 30 * 30);
+            foreach (var it in items)
+                if (!h.AddItem(it)) Town.AddToStash(s, it);
+            s.testStartGranted = true;
+        }
+
+        /// <summary>End-game kit: max item level legendary and set for every armour slot and every weapon/off-hand base, rank-5 gems.</summary>
+        public static List<Item> EndGame(Rng rng)
+        {
+            var list = new List<Item>();
+            int il = Balance.MaxLevel;
+            foreach (var slot in ArmourSlots)
+                for (int k = 0; k < 2; k++)
+                    foreach (var r in new[] { Rarity.Legendary, Rarity.Set })
+                    {
+                        var it = Loot.Generate(rng, il, r, null, slot, tier: GearTable.TierCount);
+                        if (it.rarity != r) it.rarity = r;
+                        list.Add(it);
+                    }
+            foreach (var slot in JewellerySlots)
+                list.Add(Loot.Generate(rng, il, Rarity.Legendary, null, slot));
+            foreach (var b in ItemDb.Bases.Where(x => x.slot == ItemSlot.MainHand || x.slot == ItemSlot.OffHand))
+                list.Add(Loot.Generate(rng, il, Rarity.Legendary, null, b.slot, b.id));
+            foreach (var name in Gems.Names)
+                list.Add(Gems.Make(name, 5, 10));
+            return list;
         }
 
         /// <summary>Level 20 through Hero.GainXp so points accrue the normal way, xp 0 into the level.

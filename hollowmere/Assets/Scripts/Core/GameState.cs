@@ -49,6 +49,8 @@ namespace Hollowmere.Core
         public Hero hero = new Hero();
         public PetState pet = new PetState();
         public List<Item> stash = new List<Item>();
+        /// <summary>The test-build kit was put in this save's bag (TestStart.GrantIfMissing).</summary>
+        public bool testStartGranted;
         /// <summary>Stash slots on this save, in pages of Balance.StashSize. A test start raises it.</summary>
         public int stashCapacity = Balance.StashSize;
         public Materials materials = new Materials();

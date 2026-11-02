@@ -107,6 +107,7 @@ namespace Hollowmere
 
     public static class InventoryScreen
     {
+        public static int BagPage;
         static Item selected;
         static EquipSlot? selectedSlot;
 
@@ -193,15 +194,18 @@ namespace Hollowmere
             var grid = DesignTable.UiRect("inventory", "grid");
             var cellSize = DesignTable.UiRect("inventory", "gridCell");
             int pitch = cellSize.W + DesignTable.BagGap;
-            int capacity = DesignTable.BagCapacity;
+            int capacity = h.Capacity;
             int n = DesignTable.BagColumns * DesignTable.BagRows;
-            for (int i = 0; i < n; i++)
+            int bagPages = Mathf.Max(1, (capacity + n - 1) / n);
+            BagPage = Mathf.Clamp(BagPage, 0, bagPages - 1);
+            for (int c = 0; c < n; c++)
             {
-                int col = i % DesignTable.BagColumns;
-                int row = i / DesignTable.BagColumns;
+                int i = BagPage * n + c;
+                int col = c % DesignTable.BagColumns;
+                int row = c / DesignTable.BagColumns;
                 int x = grid.X + col * pitch;
                 int y = grid.Y + row * pitch;
-                var cell = Ui.Dp(root, "cell" + i, x, y, cellSize.W, cellSize.H);
+                var cell = Ui.Dp(root, "cell" + c, x, y, cellSize.W, cellSize.H);
                 if (i >= capacity)
                 {
                     Ui.Box(cell, new Color(0.05f, 0.05f, 0.05f, 0.85f), true);
@@ -223,6 +227,14 @@ namespace Hollowmere
                 }));
             }
 
+            if (bagPages > 1)
+            {
+                // Test build: the bag holds the whole kit, 30 per page.
+                int top = grid.Y - 44;
+                Ui.Label(Ui.Dp(root, "bagPageLab", grid.X, top, 260, 40), $"Bag {h.inventory.Count}/{capacity} · page {BagPage + 1}/{bagPages}", 22, TextAnchor.MiddleLeft, Ui.Gold).verticalOverflow = VerticalWrapMode.Overflow;
+                Ui.Button(Ui.Dp(root, "bagPrev", grid.X + 270, top, 110, 40), "Prev", () => { if (BagPage > 0) { BagPage--; Show(ui); } }, Ui.ButtonC, 20);
+                Ui.Button(Ui.Dp(root, "bagNext", grid.X + 390, top, 110, 40), "Next", () => { if (BagPage < bagPages - 1) { BagPage++; Show(ui); } }, Ui.ButtonC, 20);
+            }
             var bottom = At("bottom");
             var sortBtn = Ui.Button(bottom, "Sort", () =>
             {

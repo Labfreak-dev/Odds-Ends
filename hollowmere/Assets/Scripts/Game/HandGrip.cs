@@ -42,14 +42,16 @@ namespace Hollowmere
             var pinky = Child(hand, side + "HandPinky1") ?? Child(hand, side + "HandRing1");
             var middle = Child(hand, side + "HandMiddle1");
             var mid3 = Child(hand, side + "HandMiddle3") ?? Child(hand, side + "HandMiddle2");
-            var thumb = Child(hand, side + "HandThumb2") ?? Child(hand, side + "HandThumb1");
+            var thumb = Child(hand, side + "HandThumb1") ?? Child(hand, side + "HandThumb2"); // Thumb1 head does not move with the curl
             if (index == null || pinky == null || middle == null || index.name.StartsWith("hm_")) return MeasureFromSkin(hand);
             var knuckles = (index.position + pinky.position) * 0.5f;
             p.finger = (knuckles - hand.position).normalized;
             p.knuckle = (index.position - pinky.position).normalized;
             // Palm side: the thumb sits on it; fall back to the rest curl of the middle finger.
             Vector3 n = Vector3.Cross(p.finger, p.knuckle).normalized;
-            Vector3 hint = thumb != null ? thumb.position - knuckles : (mid3 != null ? mid3.position - middle.position : n);
+            // Authored Thumb1 head sits on the back-of-palm side of the knuckle line (verified by eye in close-ups), so flip it.
+            Vector3 hint = thumb != null ? knuckles - thumb.position : n;
+            if (thumb == null && LocalFrame(hand, out _, out _, out _, out var nl)) hint = hand.TransformDirection(nl); // skin-measured palm side, curl-independent
             hint -= Vector3.Project(hint, p.finger) + Vector3.Project(hint, p.knuckle);
             if (hint.sqrMagnitude > 1e-8f && Vector3.Dot(n, hint) < 0f) n = -n;
             p.normal = n;

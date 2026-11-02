@@ -8,6 +8,7 @@ namespace Hollowmere.StyleTestEditor
     /// component plays the shared Rig_Medium clips; props import without animation.</summary>
     public class StyleTestImport : AssetPostprocessor
     {
+        public override uint GetVersion() => 3;
         void OnPreprocessModel()
         {
             if (!assetPath.Contains("/StyleTest/")) return;
@@ -15,11 +16,33 @@ namespace Hollowmere.StyleTestEditor
             bool rigged = assetPath.Contains("/Anim/") || assetPath.Contains("/Chars/")
                 || (assetPath.Contains("/Skel/Skeleton_") && !assetPath.Contains("Skeleton_Axe") && !assetPath.Contains("Skeleton_Blade")
                     && !assetPath.Contains("Skeleton_Staff") && !assetPath.Contains("Skeleton_Shield") && !assetPath.Contains("Skeleton_Crossbow"));
+            bool folk = assetPath.Contains("/Folk/"), animals = assetPath.Contains("/Town/Animals/");
+            rigged |= folk || animals;
             mi.animationType = rigged ? ModelImporterAnimationType.Legacy : ModelImporterAnimationType.None;
-            mi.importAnimation = assetPath.Contains("/Anim/");
+            mi.importAnimation = assetPath.Contains("/Anim/") || assetPath.Contains("/Folk/UAL") || animals;
+            if (folk) mi.isReadable = true;
+            if (assetPath.Contains("/Town/")) { mi.isReadable = assetPath.Contains("/Town/Hex/"); mi.meshCompression = ModelImporterMeshCompression.Medium; }
             mi.importBlendShapes = false;
             mi.importCameras = false; mi.importLights = false;
             mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+        }
+    }
+
+    /// <summary>Town/Folk textures: VK (algumacoisaqq) base maps are sRGB colour; owned 2D packs keep alpha; pixel art stays crisp.</summary>
+    public class StyleTestTexImport : AssetPostprocessor
+    {
+        void OnPreprocessTexture()
+        {
+            if (!assetPath.Contains("/StyleTest/")) return;
+            var ti = (TextureImporter)assetImporter;
+            if (assetPath.Contains("/Folk/") || assetPath.Contains("/Town/")) ti.maxTextureSize = 1024;
+            if (assetPath.Contains("/Owned/"))
+            {
+                ti.alphaIsTransparency = true; ti.mipmapEnabled = false; ti.maxTextureSize = 1024;
+                ti.wrapMode = TextureWrapMode.Clamp;
+                if (assetPath.Contains("/Pixel/") || assetPath.Contains("/BG/")) ti.filterMode = FilterMode.Point;
+                ti.textureCompression = TextureImporterCompression.Uncompressed;
+            }
         }
     }
 

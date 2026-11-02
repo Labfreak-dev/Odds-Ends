@@ -3,3 +3,7 @@ __pycache__/
 iron-league/tools/out/
 glimmerdeep/art-src/_cand/
 hollowmere/Assets/Art/Gear/Restricted/
+
+# Paid/owned itch.io packs: local only, never committed (licences forbid redistribution)
+hollowmere/Assets/StyleTest/Owned/
+hollowmere/Assets/StyleTest/Owned.meta

@@ -47,7 +47,7 @@ namespace Hollowmere.StyleTest
             }
             else if (id.StartsWith("mage"))
             {
-                if (k == 1) { l.wR = "Weapons/wand"; l.wL = "Weapons/spellbook_open"; l.idle = "Idle_B"; l.attack = "Ranged_Magic_Spellcasting"; l.id = id + "_wand"; l.label = label + " - wand + tome"; }
+                if (k == 1) { l.wR = "Weapons/wand"; l.wL = "Weapons/spellbook_open"; l.idle = "Idle_B"; l.attack = "Ranged_Magic_Shoot"; l.id = id + "_wand"; l.label = label + " - wand + tome"; }
                 else { l.wR = "Weapons/wand"; l.wL = "Weapons/spellbook_closed"; l.idle = "Idle_B"; l.attack = "Ranged_Magic_Shoot"; l.id = id + "_wandbook"; l.label = label + " - wand + closed grimoire"; }
             }
             return l;

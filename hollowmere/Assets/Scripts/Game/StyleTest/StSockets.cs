@@ -17,6 +17,7 @@ namespace Hollowmere.StyleTest
         public string name;
         public string[] handR, handL, chest, hips;
         public string socketHandR, socketHandL; // pre-authored socket bones, if the rig has them
+        public float itemScale = 1f; // weapons are authored for KayKit hands; other rig families can rescale held items
         // socket offsets in units of body height (so any model size works), rotation in degrees
         public Vector3 handPos = Vector3.zero, handRot = Vector3.zero;
         public Vector3 backPos = new Vector3(0, 0.02f, -0.06f), backRot = new Vector3(0, 0, 0);
@@ -40,6 +41,7 @@ namespace Hollowmere.StyleTest
             hips = new[] { "mixamorig:Hips", "Hips", "hips", "pelvis", "Pelvis", "Root_Hips" },
             // a palm-centred grip: move from the wrist pivot into the fist (fraction of body height)
             handPos = new Vector3(0, -0.045f, 0.012f),
+            itemScale = 0.7f,
         };
 
         public static RigProfile Detect(Transform root)
@@ -127,8 +129,8 @@ namespace Hollowmere.StyleTest
             D("Weapons/bow", Socket.HandL, "bow", Env("HM_BOWROT", new Vector3(-45, 0, 0)), default, EnvF("HM_BOWSCALE", 0.75f));
             D("Weapons/shield_badge_color", Socket.HandL, "shield");
             D("Weapons/shield_round_color", Socket.HandL, "shield");
-            // Open tome: was held edge-on like a shield; turn it so the pages face up/inward (reading pose).
-            D("Weapons/spellbook_open", Socket.HandL, "tome", Env("HM_TOMEROT", new Vector3(-60, 0, 0)));
+            // Open tome: was held upright like a shield; now open and near-horizontal, pages up toward the camera (reading pose). Picked by eye from 12 candidates (phase1/fix).
+            D("Weapons/spellbook_open", Socket.HandL, "tome", Env("HM_TOMEROT", new Vector3(0, -90, 35)));
             D("Weapons/spellbook_closed", Socket.HandL, "tome");
             D("Weapons/quiver", Socket.Quiver, "quiver");
             D("Skel/Skeleton_Axe", Socket.HandR, "1h"); D("Skel/Skeleton_Blade", Socket.HandR, "1h");
@@ -159,7 +161,7 @@ namespace Hollowmere.StyleTest
             if (p == null) { Debug.LogError("[ST] missing " + res); return null; }
             var g = UnityEngine.Object.Instantiate(p, s);
             g.name = res;
-            g.transform.localPosition = holdPos; g.transform.localRotation = Quaternion.Euler(holdRot); g.transform.localScale = Vector3.one * scale;
+            g.transform.localPosition = holdPos; g.transform.localRotation = Quaternion.Euler(holdRot); g.transform.localScale = Vector3.one * scale * (hs.profile != null ? hs.profile.itemScale : 1f);
             return g;
         }
     }

@@ -29,7 +29,7 @@ namespace Hollowmere.StyleTest
         // slice state
         StLook look; int skinIdx, weaponIdx, glowTier;
         StActor hero; readonly List<StActor> foes = new List<StActor>();
-        Vector3 moveTarget; bool hasTarget; int wave; bool inCreator = true; int creatorPick;
+        Vector3 moveTarget; bool hasTarget; int wave; bool inCreator = true; int creatorPick; bool inTown;
         readonly List<StActor> creatorActors = new List<StActor>();
         readonly List<GameObject> creatorStuff = new List<GameObject>();
         bool autopilot;
@@ -91,9 +91,44 @@ namespace Hollowmere.StyleTest
             if (Application.isPlaying && creatorActors[i].anim != null) { creatorActors[i].Once(creatorActors[i].attack); creatorActors[i].current = null; }
         }
 
+        /// <summary>Town hub: walk around; the rune gate at the north end of the road leads to the dungeon.</summary>
+        void StartTown(int pick)
+        {
+            ClearScene(); inCreator = false; inTown = true;
+            look = StLook.Base[pick]; skinIdx = 0; weaponIdx = 0; glowTier = 0;
+            StTown.Lighting(); StTown.Build();
+            cam.backgroundColor = new Color(0.62f, 0.66f, 0.74f); cam.fieldOfView = 35; cam.farClipPlane = 160;
+            SpawnHero(StTown.HeroSpawn);
+            cam.transform.position = hero.transform.position + new Vector3(0, 1.2f, 1.0f) + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f); cam.transform.rotation = Quaternion.Euler(52, 0, 0);
+        }
+
+        void TownTick()
+        {
+            if (!autopilot && Input.GetMouseButton(0) && Input.mousePosition.y < Screen.height * 0.82f)
+            {
+                var ray = cam.ScreenPointToRay(Input.mousePosition);
+                if (new Plane(Vector3.up, 0).Raycast(ray, out var d)) { moveTarget = ray.GetPoint(d); hasTarget = true; }
+            }
+            if (hasTarget)
+            {
+                var to = Flat(moveTarget - hero.transform.position);
+                if (to.magnitude > 0.2f)
+                {
+                    hero.transform.rotation = Quaternion.Slerp(hero.transform.rotation, Quaternion.LookRotation(to), Time.deltaTime * 12);
+                    var p = hero.transform.position + to.normalized * hero.speed * Time.deltaTime;
+                    p.x = Mathf.Clamp(p.x, -40, 40); p.z = Mathf.Clamp(p.z, -36, 37);
+                    hero.transform.position = p; hero.Loop(hero.run);
+                }
+                else { hasTarget = false; hero.Loop(hero.idle); }
+            }
+            else hero.Loop(hero.idle);
+            if (hero.transform.position.z > 34.5f && Mathf.Abs(hero.transform.position.x) < 2.5f) { inTown = false; StartSlice(creatorPick); return; }
+            FollowCam();
+        }
+
         void StartSlice(int pick)
         {
-            ClearScene(); inCreator = false;
+            ClearScene(); inCreator = false; inTown = false;
             look = StLook.Base[pick]; skinIdx = 0; weaponIdx = 0; glowTier = 0;
             StWorld.DungeonLighting();
             StWorld.BuildRoom();
@@ -176,6 +211,7 @@ namespace Hollowmere.StyleTest
         void Update()
         {
             if (inCreator || hero == null || mode == "shots") return;
+            if (inTown) { TownTick(); return; }
             if (!autopilot && Input.GetMouseButton(0) && Input.mousePosition.y < Screen.height * 0.82f)
             {
                 var ray = cam.ScreenPointToRay(Input.mousePosition);
@@ -343,7 +379,7 @@ namespace Hollowmere.StyleTest
                     if (GUI.Button(new Rect(x, y, w, h), (creatorPick == i ? "> " : "") + StLook.Base[i].label)) SelectCreator(i);
                 }
                 GUI.Label(new Rect(40 * s, 40 * s, 900 * s, 60 * s), StLook.Base[creatorPick].blurb);
-                if (GUI.Button(new Rect(Screen.width - 380 * s, 40 * s, 340 * s, 110 * s), "Enter dungeon")) StartSlice(creatorPick);
+                if (GUI.Button(new Rect(Screen.width - 380 * s, 40 * s, 340 * s, 110 * s), "Enter town")) StartTown(creatorPick);
                 return;
             }
             float bw = 300 * s, bh = 90 * s, by = 20 * s; float bx = 20 * s;
@@ -360,6 +396,11 @@ namespace Hollowmere.StyleTest
         }
 
         // ---------------- capture helpers ----------------
+        public Texture2D RenderPub(Camera c, int w, int h) => Render(c, w, h);
+        public void SavePub(Texture2D t, string name, bool jpg = false) => Save(t, name, jpg);
+        public IEnumerator TurnPub(StActor a, string name, string clip, float t) => Turnaround(a, name, clip, t);
+        public IEnumerator StripPub(StActor a, string name, string clip) => Strip(a, name, clip);
+        public StActor SkeletonPub(Vector3 p) => Skeleton(false, p);
         Texture2D Render(Camera c, int w, int h)
         {
             var rt = RenderTexture.GetTemporary(w, h, 24, RenderTextureFormat.ARGB32); rt.antiAliasing = 4;
@@ -397,6 +438,11 @@ namespace Hollowmere.StyleTest
                 foreach (var skin in new[] { b, b.UpgradeSkin() })
                     if (skin != null) for (int k = 0; k < 3; k++) variants.Add(skin.Loadout(k));
             variants.Add(StLook.Mage().WithGlow(3)); variants.Add(StLook.Knight().WithGlow(2)); variants.Add(StLook.Ranger().WithGlow(3));
+            if (only == "board" || only == "town" || only == "folk" || only == "ui" || only == "tome" || only == "phase1")
+            {
+                yield return StPhase1Shots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
             if (only == "fix")
             {
                 // bow-in-floor / flat-tome check: weapon lowest point over 16 frames of idle/run/attack (+ turnarounds)

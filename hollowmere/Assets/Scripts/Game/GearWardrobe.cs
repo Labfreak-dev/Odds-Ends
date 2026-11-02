@@ -264,6 +264,9 @@ namespace Hollowmere
         public const string PackUrl = "https://github.com/Labfreak-dev/Odds-Ends/releases/download/hollowmere-assets-v5/hollowmere_gear_v7b.tar.gz";
         public const string PackRoot = "Gear/Sets";
 
+        /// <summary>Source mesh name per slot from the last Apply. QA compares these across tiers.</summary>
+        public static readonly Dictionary<EquipSlot, string> LastSource = new Dictionary<EquipSlot, string>();
+
         static readonly string[] Sets = { "plate", "leather", "arcane", "bone", "infernal" };
 
         public static void Apply(Transform body, Hero hero)
@@ -290,7 +293,7 @@ namespace Hollowmere
                     Debug.Log("Hollowmere gear " + slotName + " no mesh");
                     continue;
                 }
-                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it);
+                var piece = Spawn(body, skin, slot, prefab, meshFamily, family, it, lower);
                 if (piece == null)
                 {
                     Debug.Log("Hollowmere gear " + slotName + " did not bind");
@@ -300,6 +303,7 @@ namespace Hollowmere
                 Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + (lower ? " cc0" : tier < GearTable.TierCount ? " finish" : " authored"));
             }
             BodyRegions.Show(body, Coverage(body, placed));
+            GearAudit.PoseSeal(body);
         }
 
         static void Tint(GameObject go, string family, Item it, EquipSlot slot)
@@ -342,14 +346,85 @@ namespace Hollowmere
             lower = false;
             if (tier < GearTable.TierCount)
             {
-                var low = Resources.Load<GameObject>("Gear/Lower/" + family + "/" + slot);
+                // v8: each lower tier is its own model (t1 Blender simplification, t2 Meshy).
+                var low = Resources.Load<GameObject>(LowerPath(family, slot, tier))
+                    ?? Resources.Load<GameObject>("Gear/Lower/" + family + "/" + slot);
                 if (low != null) { lower = true; return low; }
             }
             if (string.IsNullOrEmpty(family)) return null;
             return Resources.Load<GameObject>(PackRoot + "/" + family + "/" + slot);
         }
 
-        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it)
+        /// <summary>
+        /// Skin sealed under a piece: the outward normal and four tilted rays all meet the piece within 9 cm.
+        /// Conservative: the normal ray and three of four tilted rays must hit, so a vert at an open edge keeps its skin and no gap opens.
+        /// </summary>
+        static bool Shadowed(TriGrid grid, Vector3 p, Vector3[] normals, int v, int region, bool pauldron = false)
+        {
+            if (normals == null || v >= normals.Length || !GearFit.Bends(region)) return false;
+            var n = normals[v];
+            if (n.sqrMagnitude < 1e-6f) return false;
+            n.Normalize();
+            var t1 = Vector3.Cross(n, Mathf.Abs(n.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+            var t2 = Vector3.Cross(n, t1);
+            const float reach = 0.12f, tilt = 0.45f;
+            var start = p + n * 0.001f;
+            if (!grid.Hit(start, n, reach)) return false;
+            int tilts = 0;
+            if (grid.Hit(start, (n + t1 * tilt).normalized, reach)) tilts++;
+            if (grid.Hit(start, (n - t1 * tilt).normalized, reach)) tilts++;
+            if (grid.Hit(start, (n + t2 * tilt).normalized, reach)) tilts++;
+            if (grid.Hit(start, (n - t2 * tilt).normalized, reach)) tilts++;
+            // Torso skin under pauldrons and a cuirass rides into the piece when the arms come up. Two tilts are enough there.
+            // Thigh skin shows through the gap at a leg plate's edge in deep crouches, so it needs every tilt.
+            if (region == (int)GearFit.BodyRegion.Thigh) return tilts >= 4;
+            // Upper-arm skin under a pauldron meets it when the arm lifts (volley, cast, reel), so two tilts are enough there too.
+            if (pauldron && region == (int)GearFit.BodyRegion.UpperArm) return tilts >= 2;
+            return tilts >= (region == (int)GearFit.BodyRegion.UpperTorso ? 2 : 3);
+        }
+
+        /// <summary>Skinned vertices and normals in world space for the current pose.</summary>
+        public static bool BakeWorld(SkinnedMeshRenderer smr, out Vector3[] pts, out Vector3[] nrm)
+        {
+            pts = null; nrm = null;
+            if (smr == null || smr.sharedMesh == null) return false;
+            var baked = new Mesh();
+            smr.BakeMesh(baked, true);
+            var v = baked.vertices; var n = baked.normals;
+            Object.DestroyImmediate(baked);
+            if (v == null || v.Length == 0) return false;
+            var m = smr.transform.localToWorldMatrix;
+            var rot = smr.transform.rotation;
+            pts = new Vector3[v.Length];
+            nrm = new Vector3[v.Length];
+            for (int i = 0; i < v.Length; i++)
+            {
+                pts[i] = smr.transform.position + rot * v[i];
+                nrm[i] = n != null && i < n.Length ? rot * n[i] : Vector3.zero;
+            }
+            return true;
+        }
+
+        static bool LowerChest(List<SkinnedMeshRenderer> pieces)
+        {
+            for (int i = 0; i < pieces.Count; i++)
+                if (pieces[i] != null && pieces[i].name == "gear_chest" && pieces[i].GetComponent<LowerTierMark>() != null) return true;
+            return false;
+        }
+
+        static void Inflate(Mesh mesh, float metres)
+        {
+            var v = mesh.vertices;
+            var n = mesh.normals;
+            if (n == null || n.Length != v.Length) { mesh.RecalculateNormals(); n = mesh.normals; }
+            for (int i = 0; i < v.Length; i++) v[i] += n[i] * metres;
+            mesh.vertices = v;
+            mesh.RecalculateBounds();
+        }
+
+        public static string LowerPath(string family, string slot, int tier) => "Gear/Lower/" + family + "/t" + tier + "_" + slot;
+
+        static SkinnedMeshRenderer Spawn(Transform body, SkinnedMeshRenderer heroSkin, EquipSlot slot, GameObject prefab, string meshFamily, string glowFamily, Item it, bool lower = false)
         {
             if (heroSkin == null || prefab == null || heroSkin.sharedMesh == null) return null;
             var inst = Object.Instantiate(prefab);
@@ -359,6 +434,7 @@ namespace Hollowmere
                 Object.DestroyImmediate(inst);
                 return null;
             }
+            LastSource[slot] = src.sharedMesh.name;
             var mesh = Object.Instantiate(src.sharedMesh);
             mesh.name = "gear_" + GearFit.SlotName(slot);
             if (!Remap(mesh, src.bones, heroSkin.bones, src.sharedMesh.bindposes, heroSkin.sharedMesh.bindposes))
@@ -374,6 +450,7 @@ namespace Hollowmere
             go.transform.localRotation = heroSkin.transform.localRotation;
             go.transform.localScale = heroSkin.transform.localScale;
             var smr = go.AddComponent<SkinnedMeshRenderer>();
+            if (lower) go.AddComponent<LowerTierMark>();
             smr.sharedMesh = mesh;
             smr.bones = heroSkin.bones;
             smr.rootBone = heroSkin.rootBone;
@@ -427,22 +504,32 @@ namespace Hollowmere
                 if (full == null || !full.isReadable) continue;
                 var verts = full.vertices;
                 if (verts == null || verts.Length == 0) continue;
+                Vector3[] bakedNormals = null;
                 var inside = new bool[verts.Length];
                 float best = 0f;
                 string who = "";
                 bool anyInside = false;
+                var normals = bakedNormals ?? full.normals;
                 for (int p = 0; p < pieces.Count; p++)
                 {
-                    if (grids[p] == null || slots[p] == null || !GearFit.Hides(slots[p].Value, region)) continue;
-                    int hit = 0;
+                    if (grids[p] == null || slots[p] == null) continue;
+                    bool hides = GearFit.Hides(slots[p].Value, region);
+                    // Pauldrons sit over the top of the torso too. They may drop sealed torso skin, never the whole region.
+                    bool seals = hides || (slots[p].Value == EquipSlot.Shoulders && region == (int)GearFit.BodyRegion.UpperTorso);
+                    if (!seals) continue;
+                    int hit = 0, sealedN = 0;
                     for (int v = 0; v < verts.Length; v++)
                     {
-                        if (!grids[p].Near(verts[v], GearFit.CoverDistance)) continue;
-                        hit++;
-                        if (!grids[p].Near(verts[v], GearFit.InsideDistance)) continue;
+                        bool near = grids[p].Near(verts[v], GearFit.CoverFor(region));
+                        if (near && hides) hit++;
+                        bool under = (near && hides && grids[p].Near(verts[v], GearFit.InsideFor(region)))
+                            || Shadowed(grids[p], verts[v], normals, v, region, slots[p].Value == EquipSlot.Shoulders);
+                        if (!under) continue;
+                        if (!inside[v]) sealedN++;
                         inside[v] = true;
                         anyInside = true;
                     }
+                    if (sealedN > 0) Debug.Log("Hollowmere gear sealed " + pieces[p].name + " " + tail + " " + sealedN);
                     float fraction = hit / (float)verts.Length;
                     if (fraction > best)
                     {
@@ -759,7 +846,7 @@ namespace Hollowmere
     }
 
     /// <summary>Piece triangles bucketed so a body vertex only tests the cell it sits in.</summary>
-    sealed class TriGrid
+    internal sealed class TriGrid
     {
         const float Cell = 0.08f;
         const int Buckets = 4096;
@@ -797,6 +884,44 @@ namespace Hollowmere
                             cells[k].Add(t);
                         }
             }
+        }
+
+        /// <summary>True when a ray from p along dir meets a piece triangle within maxDist. Walks the grid cells on the way.</summary>
+        public bool Hit(Vector3 p, Vector3 dir, float maxDist)
+        {
+            if (tris == null) return false;
+            var seen = new HashSet<int>();
+            int steps = Mathf.CeilToInt(maxDist / (Cell * 0.5f)) + 1;
+            for (int sIdx = 0; sIdx <= steps; sIdx++)
+            {
+                var q = p + dir * Mathf.Min(maxDist, sIdx * Cell * 0.5f);
+                var list = cells[Key(Mathf.FloorToInt(q.x / Cell), Mathf.FloorToInt(q.y / Cell), Mathf.FloorToInt(q.z / Cell))];
+                if (list == null) continue;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    int t = list[i];
+                    if (!seen.Add(t)) continue;
+                    if (Ray(p, dir, verts[tris[t * 3]], verts[tris[t * 3 + 1]], verts[tris[t * 3 + 2]], out float d) && d <= maxDist) return true;
+                }
+            }
+            return false;
+        }
+
+        static bool Ray(Vector3 o, Vector3 d, Vector3 a, Vector3 b, Vector3 c, out float t)
+        {
+            t = 0f;
+            Vector3 e1 = b - a, e2 = c - a, pv = Vector3.Cross(d, e2);
+            float det = Vector3.Dot(e1, pv);
+            if (Mathf.Abs(det) < 1e-9f) return false;
+            float inv = 1f / det;
+            Vector3 tv = o - a;
+            float u = Vector3.Dot(tv, pv) * inv;
+            if (u < 0f || u > 1f) return false;
+            Vector3 qv = Vector3.Cross(tv, e1);
+            float v = Vector3.Dot(d, qv) * inv;
+            if (v < 0f || u + v > 1f) return false;
+            t = Vector3.Dot(e2, qv) * inv;
+            return t > 0f;
         }
 
         public bool Near(Vector3 p, float dist)
@@ -873,3 +998,4 @@ namespace Hollowmere
         }
     }
 }
+

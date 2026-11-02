@@ -1,0 +1,144 @@
+{
+ "fist_1": {
+  "file": "fist_1.glb",
+  "type": "fist",
+  "length_m": 0.4,
+  "grip_frac_from_bottom": 0.45,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "R",
+  "tris": 8999,
+  "size_m": [
+   0.258,
+   0.102,
+   0.4
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196e8-eb3d-724f-8de5-05844e5fc6a1",
+  "candidate": "b",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/fist_1.glb",
+  "note": "grip moved to the actual handle of the new model (origin still at grip)"
+ },
+ "fist_2": {
+  "file": "fist_2.glb",
+  "type": "fist",
+  "length_m": 0.35,
+  "grip_frac_from_bottom": 0.15,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "R",
+  "tris": 8999,
+  "size_m": [
+   0.096,
+   0.045,
+   0.351
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196e8-f46b-73b6-94d2-a4d11de25eab",
+  "candidate": "a",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/fist_2.glb",
+  "note": "grip moved to the actual handle of the new model (origin still at grip)"
+ },
+ "fist_3": {
+  "file": "fist_3.glb",
+  "type": "fist",
+  "length_m": 0.22,
+  "grip_frac_from_bottom": 0.5,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "R",
+  "tris": 8999,
+  "size_m": [
+   0.182,
+   0.06,
+   0.22
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196e9-53a7-70a5-ba7d-f606db1eda90",
+  "candidate": "a",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/fist_3.glb"
+ },
+ "orb_2": {
+  "file": "orb_2.glb",
+  "type": "orb",
+  "length_m": 0.26,
+  "grip_frac_from_bottom": 0.3,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "L",
+  "tris": 9000,
+  "size_m": [
+   0.106,
+   0.091,
+   0.26
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196eb-079b-74b5-9ed6-79069eaadbd6",
+  "candidate": "b",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/orb_2.glb"
+ },
+ "orb_3": {
+  "file": "orb_3.glb",
+  "type": "orb",
+  "length_m": 0.28,
+  "grip_frac_from_bottom": 0.3,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "L",
+  "tris": 9000,
+  "size_m": [
+   0.137,
+   0.107,
+   0.28
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196eb-a7a2-73b6-9519-8b417c823b3a",
+  "candidate": "a",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/orb_3.glb"
+ },
+ "flail_2": {
+  "file": "flail_2.glb",
+  "type": "flail",
+  "length_m": 0.95,
+  "grip_frac_from_bottom": 0.12,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "R",
+  "tris": 8999,
+  "size_m": [
+   0.35,
+   0.326,
+   0.95
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196ec-94bf-77cb-bbfb-931707ceaf64",
+  "candidate": "b",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/flail_2.glb"
+ },
+ "flail_3": {
+  "file": "flail_3.glb",
+  "type": "flail",
+  "length_m": 1.0,
+  "grip_frac_from_bottom": 0.12,
+  "origin": "grip",
+  "up": "+Y (glTF)",
+  "hand": "R",
+  "tris": 8999,
+  "size_m": [
+   0.551,
+   0.189,
+   1.0
+  ],
+  "source": "Meshy meshy-7.1 image-to-3D, 4K PBR; cleaned on box (floaters, merge, normals, decimate 9k, 1K textures)",
+  "meshy_task": "01a196ee-3431-724c-a1d0-8eb116cfa25d",
+  "candidate": "a",
+  "licence": "Meshy-generated (studio-owned)",
+  "replaces": "weapons_cc0_v1/flail_3.glb"
+ }
+}

@@ -70,6 +70,121 @@ namespace Hollowmere
             return fails;
         }
 
+        /// <summary>
+        /// Pose-aware skin cull for v8 lower-tier chest and pauldrons. Samples every hero clip at six times,
+        /// finds body skin that meets the piece, and drops it only when it is sealed under that piece at rest
+        /// (the outward normal ray meets the piece within 12 cm). Open edges keep their skin, so no gap opens.
+        /// </summary>
+        public static void PoseSeal(Transform body)
+        {
+            if (body == null) return;
+            var pieces = new List<SkinnedMeshRenderer>();
+            foreach (var smr in Pieces(body))
+                if ((smr.name == "gear_chest" || smr.name == "gear_shoulders") && smr.GetComponent<LowerTierMark>() != null) pieces.Add(smr);
+            if (pieces.Count == 0) return;
+            var ma = body.GetComponentInChildren<ModelAnim>();
+            if (ma != null) EnsurePacks(ma);
+            var anim = ma != null && ma.anim != null ? ma.anim : body.GetComponentInChildren<Animation>();
+            if (anim == null) return;
+            var regions = BodyRegions.Visible(body);
+            if (regions.Count == 0) return;
+            // Rest: which region verts sit under a piece along their normal.
+            var restGrids = new List<TriGrid>();
+            for (int p = 0; p < pieces.Count; p++)
+                restGrids.Add(new TriGrid(pieces[p].sharedMesh.vertices, pieces[p].sharedMesh.triangles, 0.03f));
+            var under = new List<bool[]>();
+            for (int r = 0; r < regions.Count; r++)
+            {
+                var mesh = regions[r].sharedMesh;
+                var v = mesh.vertices; var n = mesh.normals;
+                var u = new bool[v.Length];
+                                var bw = mesh.boneWeights; var rb = regions[r].bones;
+                if (n != null && n.Length == v.Length)
+                    for (int i = 0; i < v.Length; i++)
+                    {
+                        // Torso skin only (Spine dominant), whatever region it was cut into.
+                        if (bw == null || i >= bw.Length || rb == null) continue;
+                        int dom = GearShell.Dominant(bw[i]);
+                        if (dom < 0 || dom >= rb.Length || rb[dom] == null || !rb[dom].name.Contains("Spine")) continue;
+                        var dir = n[i].sqrMagnitude > 1e-6f ? n[i].normalized : Vector3.zero;
+                        if (dir == Vector3.zero) continue;
+                        var t1 = Vector3.Cross(dir, Mathf.Abs(dir.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+                        var t2 = Vector3.Cross(dir, t1);
+                        var o = v[i] + dir * 0.001f;
+                        for (int p = 0; p < restGrids.Count && !u[i]; p++)
+                        {
+                            var g = restGrids[p];
+                            if (!g.Hit(o, dir, 0.12f)) continue;
+                            int k = 0;
+                            if (g.Hit(o, (dir + t1 * 0.45f).normalized, 0.12f)) k++;
+                            if (g.Hit(o, (dir - t1 * 0.45f).normalized, 0.12f)) k++;
+                            if (g.Hit(o, (dir + t2 * 0.45f).normalized, 0.12f)) k++;
+                            if (g.Hit(o, (dir - t2 * 0.45f).normalized, 0.12f)) k++;
+                            if (k >= 1) u[i] = true;
+                        }
+                    }
+                under.Add(u);
+            }
+            // Save and restore the animation state around the sweep.
+            var saved = new List<(AnimationState st, bool en, float w, float t)>();
+            foreach (AnimationState st in anim) saved.Add((st, st.enabled, st.weight, st.time));
+            var drop = new List<bool[]>();
+            for (int r = 0; r < regions.Count; r++) drop.Add(new bool[regions[r].sharedMesh.vertexCount]);
+            float[] times = { 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 0.99f };
+            foreach (var sv in saved)
+            {
+                var st = sv.st;
+                if (st == null || st.clip == null) continue;
+                for (int k = 0; k < times.Length; k++)
+                {
+                    Pose(anim, st, Mathf.Max(0.05f, st.length) * times[k]);
+                    var grids = new List<TriGrid>();
+                    for (int p = 0; p < pieces.Count; p++)
+                    {
+                        var pts = WorldPoints(pieces[p]);
+                        if (pts != null) grids.Add(new TriGrid(pts, pieces[p].sharedMesh.triangles, 0.01f));
+                    }
+                    for (int r = 0; r < regions.Count; r++)
+                    {
+                        var pts = WorldPoints(regions[r]);
+                        if (pts == null) continue;
+                        var u = under[r]; var d = drop[r];
+                        for (int i = 0; i < pts.Length && i < u.Length; i++)
+                        {
+                            if (!u[i] || d[i]) continue;
+                            for (int g = 0; g < grids.Count; g++)
+                                if (grids[g].Near(pts[i], 0.006f)) { d[i] = true; break; }
+                        }
+                    }
+                }
+            }
+            foreach (var sv in saved)
+            {
+                if (sv.st == null) continue;
+                sv.st.enabled = sv.en; sv.st.weight = sv.w; sv.st.time = sv.t;
+            }
+            anim.Sample();
+            for (int r = 0; r < regions.Count; r++)
+            {
+                var d = drop[r];
+                int n = 0;
+                for (int i = 0; i < d.Length; i++) if (d[i]) n++;
+                if (n == 0) continue;
+                var mesh = Object.Instantiate(regions[r].sharedMesh);
+                mesh.name = regions[r].sharedMesh.name;
+                for (int sm = 0; sm < mesh.subMeshCount; sm++)
+                {
+                    var tris = mesh.GetTriangles(sm);
+                    var keep = new List<int>(tris.Length);
+                    for (int t = 0; t + 2 < tris.Length; t += 3)
+                        if (!d[tris[t]] && !d[tris[t + 1]] && !d[tris[t + 2]]) { keep.Add(tris[t]); keep.Add(tris[t + 1]); keep.Add(tris[t + 2]); }
+                    mesh.SetTriangles(keep, sm);
+                }
+                regions[r].sharedMesh = mesh;
+                Debug.Log("Hollowmere gear poseseal " + regions[r].name + " " + n);
+            }
+        }
+
         static void EnsurePacks(ModelAnim ma)
         {
             if (ma.anim == null) return;
@@ -399,6 +514,15 @@ namespace Hollowmere
                         float dist = DistToTris(pts[i], tris);
                         if (dist >= GearFit.MinGap) continue;
                         bad++;
+                        if (bad <= 3)
+                        {
+                            int bt = -1; float bd = 1f;
+                            for (int q = 0; q + 2 < tris.Length; q += 3) { float dd = DistPointTri(pts[i], tris[q], tris[q + 1], tris[q + 2]); if (dd < bd) { bd = dd; bt = q; } }
+                            string winfo = "";
+                            var pm = piece.sharedMesh; var pw = pm.boneWeights; var pti = pm.triangles;
+                            if (bt >= 0 && pw != null && pw.Length > 0) { var k = pw[pti[bt]]; winfo = piece.bones[k.boneIndex0].name + ":" + k.weight0.ToString("0.00") + "," + piece.bones[k.boneIndex1].name + ":" + k.weight1.ToString("0.00") + " pv" + pti[bt] + " rest " + pm.vertices[pti[bt]].ToString("0.000"); }
+                            Debug.Log("Hollowmere gear clipvert " + pose + " " + piece.name + " " + skin.name + " v" + i + " at " + pts[i].ToString("0.000") + " tri " + winfo);
+                        }
                         string name = "none";
                         if (weights != null && i < weights.Length && bones != null)
                         {
@@ -476,7 +600,11 @@ namespace Hollowmere
                         + " bone=" + bone
                         + " pos=(" + p.x.ToString("0.000") + "," + p.y.ToString("0.000") + "," + p.z.ToString("0.000") + ")"
                         + " nearest=" + nearest
-                        + " dist=" + dist.ToString("0.000"));
+                        + " dist=" + dist.ToString("0.000") + " hidden=" + hidden);
+                    if (pieces != null)
+                        for (int q = 0; q < pieces.Count; q++)
+                            if (pieces[q] != null && pieces[q].sharedMesh != null)
+                                Debug.Log("Hollowmere gear chain near " + pieces[q].name + " " + DistToTris(p, WorldTris(pieces[q])).ToString("0.000"));
                 }
                 Debug.Log("Hollowmere gear chain " + pose + " " + tail + " undrawn=" + undrawn + " far=" + far);
                 if (far > 0) fails += Fail(pose + " " + tail + " chain gap " + far);

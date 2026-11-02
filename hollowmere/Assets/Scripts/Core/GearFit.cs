@@ -199,6 +199,52 @@ namespace Hollowmere.Core
         /// <summary>A triangle is dropped only when every corner is at least this far inside the piece.</summary>
         public const float InsideDistance = 0.01f;
 
+        /// <summary>
+        /// Torso, upper arm, waist, and thigh skin bends hardest under chest, pauldrons, belt, and legs
+        /// (volley, cast, roll, reel, crouch). Skin this close under the piece at rest is dropped, so it cannot poke out in a pose.
+        /// </summary>
+        public const float BendInsideDistance = 0.028f;
+
+        /// <summary>Waist skin closer than this under a belt or chest hem is dropped.</summary>
+        public const float WaistInsideDistance = 0.02f;
+
+        /// <summary>Foot skin closer than this under a boot is dropped.</summary>
+        public const float FootInsideDistance = 0.006f;
+
+        /// <summary>Thigh skin closer than this under leg plates is dropped.</summary>
+        public const float ThighInsideDistance = 0.018f;
+
+        /// <summary>Bulky Meshy chest and pauldrons stand off the torso. Skin this close still counts as covered.</summary>
+        public const float BendCoverDistance = 0.07f;
+
+        public static float CoverFor(int region)
+            => CoverDistance;
+
+        public static bool Bends(int region)
+            => region == (int)BodyRegion.UpperTorso || region == (int)BodyRegion.UpperArm
+            || region == (int)BodyRegion.Foot;
+
+        public static float InsideFor(int region)
+        {
+            switch ((BodyRegion)region)
+            {
+                case BodyRegion.UpperTorso:
+                case BodyRegion.UpperArm:
+                    return BendInsideDistance;
+                case BodyRegion.Waist:
+                    // A chest hem lifts off the waist in volley; skin just under it stays so no hole opens.
+                    return WaistInsideDistance;
+                case BodyRegion.Foot:
+                    // Boot toes flex off the foot in the reel crouch; only skin deep inside the boot is dropped.
+                    return FootInsideDistance;
+                case BodyRegion.Thigh:
+                    // Thigh skin shows at a leg plate's edge in a deep crouch, so less of it is dropped.
+                    return ThighInsideDistance;
+                default:
+                    return InsideDistance;
+            }
+        }
+
         /// <summary>Hide a whole region only when one piece covers at least this share of its vertices.</summary>
         public const float CoverFraction = 0.85f;
 

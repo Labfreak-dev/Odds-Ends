@@ -232,11 +232,16 @@ namespace Hollowmere
             if (pick == null) { Debug.Log("Hollowmere leather no clip " + key); return null; }
             Debug.Log("Hollowmere leather clip " + key + " = " + pick.name);
             var curls = actor.GetComponentsInChildren<HandCurl>(true);
+            // Skinning runs once per frame before rendering, so a pose sampled right before a manual Render shows the
+            // previous frame's skin (the weapon followed the bone, the body did not). Stop the game's anim driver and
+            // leave the frozen state playing so the engine skins it; callers wait a frame before rendering.
+            foreach (var ma in actor.GetComponentsInChildren<ModelAnim>(true)) ma.enabled = false;
             return () =>
             {
                 foreach (AnimationState o in anim) { o.weight = 0f; o.enabled = false; }
                 pick.enabled = true; pick.weight = 1f; pick.speed = 0f; pick.time = pick.length * frac;
                 anim.Sample();
+                foreach (var wr in actor.GetComponentsInChildren<WeaponRest>(true)) if (wr != null) wr.Apply();
                 foreach (var c in curls) if (c != null) c.Apply();
                 foreach (var ik in actor.GetComponentsInChildren<OffHandIk>(true)) if (ik != null) ik.Apply();
             };
@@ -262,8 +267,9 @@ namespace Hollowmere
             var actor = HeroActor.I;
             string[] weps = { "sword", "axe", "spear" };
             var poses = new (string key, float frac)[] { ("idle", 0.3f), ("run", 0.25f), ("attack", 0.45f) };
-            var parts = new (string name, string bone, float size)[] { ("shoulders", "Spine2", 0.62f), ("elbowR", "RightForeArm", 0.42f), ("elbowL", "LeftForeArm", 0.42f), ("hips", "Hips", 0.62f), ("knees", "RightLeg", 0.62f), ("handR", "RightHand", 0.36f), ("handL", "LeftHand", 0.36f) };
-            for (int t = 1; t <= GearTable.TierCount; t++)
+            var parts = new (string name, string bone, float size)[] { ("shoulderR", "RightArm", 0.30f), ("shoulderL", "LeftArm", 0.30f), ("elbowR", "RightForeArm", 0.26f), ("elbowL", "LeftForeArm", 0.26f), ("hips", "Hips", 0.42f), ("kneeR", "RightLeg", 0.28f), ("kneeL", "LeftLeg", 0.28f), ("handR", "RightHand", 0.22f), ("handL", "LeftHand", 0.22f) };
+            bool quick = Environment.GetEnvironmentVariable("HM_LQ") == "1";
+            for (int t = quick ? 2 : 1; t <= (quick ? 2 : GearTable.TierCount); t++)
             {
                 WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
                 TurnWeapon(gm, weps[t - 1]);
@@ -271,9 +277,15 @@ namespace Hollowmere
                 foreach (var ps in poses)
                 {
                     var fr = Freeze(actor, ps.key, ps.frac);
+                    fr?.Invoke();
+                    yield return null; yield return null;
                     yield return new WaitForEndOfFrame();
+                    fr?.Invoke();
+                    foreach (var tt in actor.GetComponentsInChildren<Transform>(true)) if (tt.name.EndsWith("RightHand") || tt.name.EndsWith("RightForeArm")) Debug.Log("Hollowmere leather bone " + ps.key + " " + tt.name + " root=" + tt.root.name + " up=" + (tt.parent ? tt.parent.name : "-") + " d=" + (tt.position - actor.transform.position).ToString("F2"));
+                    foreach (var sm in actor.GetComponentsInChildren<SkinnedMeshRenderer>()) if (sm.name == "body_Hand" || sm.name == "gear_hands") Debug.Log("Hollowmere leather smr " + sm.name + " bone0=" + (sm.bones.Length > 0 && sm.bones[0] ? sm.bones[0].name : "-") + " rightHand=" + System.Array.Find(sm.bones, b => b != null && b.name.EndsWith("RightHand"))?.position.ToString("F2") + " bounds=" + sm.bounds.center.ToString("F2"));
+                    foreach (var rr in actor.GetComponentsInChildren<Renderer>()) if (rr.enabled && !(rr is SkinnedMeshRenderer)) Debug.Log("Hollowmere leather rend " + ps.key + " " + rr.name + " parent=" + (rr.transform.parent ? rr.transform.parent.name : "-") + " d=" + (rr.bounds.center - actor.transform.position).ToString("F2"));
                     TurnRender(actor.transform, "leather-t" + t + "-" + weps[t - 1] + "-" + ps.key, true, fr);
-                    if (ps.key == "idle") continue;
+                    if (quick) continue;
                     foreach (var pt in parts)
                     {
                         var bn = Bone(actor.transform, pt.bone);
@@ -283,7 +295,8 @@ namespace Hollowmere
                     }
                 }
             }
-            for (int t = 1; t <= GearTable.TierCount; t++)
+            foreach (var ma in actor.GetComponentsInChildren<ModelAnim>(true)) ma.enabled = true;
+            for (int t = 1; t <= (quick ? 0 : GearTable.TierCount); t++)
             {
                 WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
                 TurnWeapon(gm, weps[t - 1]);

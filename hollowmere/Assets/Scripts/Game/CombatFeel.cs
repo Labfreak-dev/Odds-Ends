@@ -317,26 +317,25 @@ namespace Hollowmere
             follow.right = right;
             follow.life = 0.45f;
             var tr = go.AddComponent<TrailRenderer>();
-            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.45f);
-            col.a = 0.9f;
-            tr.time = Mathf.Max(0.45f, DesignTable.TrailLife / 1000f);
-            float width = 1.6f;
-            tr.startWidth = width;
-            tr.endWidth = width * 0.85f;
+            // A thin tinted slash that fades along its length (it used to be a 1.6 m, 90% white opaque ribbon plus a
+            // 2.4 m white burst that hid the swing on the phone).
+            var col = Color.Lerp(Art.Hex("#" + DesignTable.Vfx(c.skill.id).Hex), Color.white, 0.15f);
+            tr.time = Mathf.Min(0.28f, Mathf.Max(0.18f, DesignTable.TrailLife / 1000f));
+            tr.widthCurve = new AnimationCurve(new Keyframe(0f, 0.42f), new Keyframe(0.5f, 0.30f), new Keyframe(1f, 0.02f));
             tr.minVertexDistance = 0.02f;
             tr.textureMode = LineTextureMode.Stretch;
             tr.numCornerVertices = 2;
-            tr.numCapVertices = 2;
-            tr.startColor = col;
-            tr.endColor = new Color(col.r, col.g, col.b, 0.85f);
-            // No trail texture: a dark cell multiplied the ribbon down to nothing.
-            // Vertex colour is the emissive tint, alpha kept at 0.85 or above.
+            tr.numCapVertices = 0;
+            var grad = new Gradient();
+            grad.SetKeys(new[] { new GradientColorKey(col, 0f), new GradientColorKey(col, 1f) },
+                new[] { new GradientAlphaKey(0.55f, 0f), new GradientAlphaKey(0.25f, 0.5f), new GradientAlphaKey(0f, 1f) });
+            tr.colorGradient = grad;
             var ribbon = Art.GlowMat(Color.white, true, null);
             tr.material = ribbon;
             tr.emitting = true;
-            var burst = Art.GlowSprite(null, 1.6f, new Color(1f, 0.95f, 0.75f, 1f));
+            var burst = Art.GlowSprite(null, 0.5f, new Color(col.r, col.g, col.b, 0.35f));
             burst.transform.position = go.transform.position;
-            burst.AddComponent<FxLife>().Init(0.22f, Vector3.one * 1.2f, Vector3.one * 2.4f);
+            burst.AddComponent<FxLife>().Init(0.14f, Vector3.one * 0.4f, Vector3.one * 0.7f);
             var hold = go.AddComponent<TrailStop>();
             hold.trail = tr;
             hold.until = Time.time + Mathf.Max(0.45f, DesignTable.TrailHold / 1000f);
@@ -404,9 +403,10 @@ namespace Hollowmere
             float life = s.Life / 1000f;
             float speed = s.Speed / 1000f;
             float size = Mathf.Max(0.9f, s.Size / 1000f * 8f);
-            var flash = Art.GlowSprite(null, size * 4.5f, Color.Lerp(col, Color.white, 0.35f));
+            // Hit flash: small and tinted (was up to 4 m and near-white, hiding the swing).
+            var flash = Art.GlowSprite(null, size * 0.9f, new Color(col.r * 0.6f, col.g * 0.6f, col.b * 0.6f, 0.6f));
             flash.transform.position = at;
-            flash.AddComponent<FxLife>().Init(Mathf.Max(0.18f, life), Vector3.one * size * 2.2f, Vector3.one * size * 4.5f);
+            flash.AddComponent<FxLife>().Init(Mathf.Max(0.12f, life * 0.6f), Vector3.one * size * 0.5f, Vector3.one * size * 1.0f);
             for (int i = 0; i < s.Count; i++)
             {
                 var dir = Random.onUnitSphere;

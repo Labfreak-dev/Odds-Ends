@@ -12,7 +12,7 @@ cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); sc.collection.ob
 cam.data.lens = 85
 import os; NOBODY = os.environ.get("NOBODY") == "1"
 pose = sys.argv[sys.argv.index("--")+1] if "--" in sys.argv else ""
-for t in (1, 2, 3):
+for t in [int(x) for x in os.environ.get("HM_TIERS","1,2,3").split(",")]:
     for o in bpy.data.objects:
         if o.type == 'MESH': o.hide_render = not ((o.name == "hero" and not NOBODY) or o.name.endswith("_t%d" % t)); o.hide_set(False)
     for i, ang in enumerate((0, 90, 180)):

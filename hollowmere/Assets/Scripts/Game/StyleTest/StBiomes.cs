@@ -39,14 +39,14 @@ namespace Hollowmere.StyleTest
                     key = new Color(0.62f, 0.70f, 1f), keyI = 0.45f };
                 case "cave": return new Def {
                     mask = new[] { ".###....", "########", "########", ".#######", "..#####.", "...###.." },
-                    floor = new Color(0.62f, 0.58f, 0.60f), wall = new Color(0.50f, 0.46f, 0.52f),
+                    floor = new Color(0.95f, 0.92f, 1.0f), wall = new Color(0.62f, 0.58f, 0.66f),
                     ambSky = new Color(0.17f, 0.27f, 0.33f), ambEq = new Color(0.11f, 0.15f, 0.18f), fog = new Color(0.03f, 0.07f, 0.09f), fogS = 20, fogE = 55,
                     key = new Color(0.55f, 0.85f, 1f), keyI = 0.25f };
                 case "sewer": return new Def {
-                    mask = new[] { "########", "########", "########", "###.####", "##...###" },
-                    floor = new Color(0.66f, 0.74f, 0.58f), wall = new Color(0.60f, 0.68f, 0.52f),
-                    ambSky = new Color(0.12f, 0.20f, 0.14f), ambEq = new Color(0.08f, 0.12f, 0.08f), fog = new Color(0.06f, 0.10f, 0.06f), fogS = 18, fogE = 50,
-                    key = new Color(0.75f, 1f, 0.7f), keyI = 0.30f };
+                    mask = new[] { "########", "########", "########", "########", ".######." },
+                    floor = new Color(0.86f, 0.84f, 0.78f), wall = new Color(0.92f, 0.80f, 0.68f),
+                    ambSky = new Color(0.16f, 0.21f, 0.20f), ambEq = new Color(0.12f, 0.12f, 0.10f), fog = new Color(0.05f, 0.09f, 0.08f), fogS = 18, fogE = 50,
+                    key = new Color(0.95f, 0.95f, 0.85f), keyI = 0.30f };
                 default: return new Def { // mine
                     mask = new[] { "##......", "########", "########", ".#######", ".####.##", "..###..." },
                     floor = new Color(0.86f, 0.72f, 0.58f), wall = new Color(0.70f, 0.55f, 0.42f),
@@ -191,7 +191,7 @@ namespace Hollowmere.StyleTest
             Built.Clear(); Spawns.Clear();
             var d = Get(id); var m = d.mask;
             bool rocky = id == "cave" || id == "mine";
-            string[] floors = id == "cave" ? new[] { "floor_tile_large_rocks", "floor_tile_large_rocks", "floor_tile_large" }
+            string[] floors = id == "cave" ? new[] { "floor_tile_large" }
                 : id == "sewer" ? new[] { "floor_tile_large", "floor_tile_large", "floor_tile_large_rocks" }
                 : id == "crypt" ? new[] { "floor_tile_large", "floor_tile_large", "floor_tile_large_rocks" }
                 : new[] { "floor_tile_large_rocks", "floor_tile_large" };
@@ -230,7 +230,41 @@ namespace Hollowmere.StyleTest
                 case "sewer": Sewer(m); break;
                 default: Mine(m); break;
             }
+            Atmos(id, cells);
             Debug.Log("[ST] biome " + id + " pieces " + Built.Count);
+        }
+
+        /// <summary>Kenney Graveyard piece (shared colormap texture) on StToon. h = height (0 = native size x scale), len = longest side.</summary>
+        static GameObject Grave(string name, Vector3 pos, float yaw, float h, float len, bool snap = true)
+        {
+            var g = StKit.Spawn("Grave/" + name, Vector3.zero, yaw);
+            var pf = Resources.Load<GameObject>("ST/Grave/" + name); if (pf) g.transform.rotation = Quaternion.Euler(0, yaw, 0) * pf.transform.rotation;
+            var b = StWorld.Bounds(g);
+            if (len > 0) g.transform.localScale *= len / Mathf.Max(b.size.x, b.size.z); else if (h > 0) g.transform.localScale *= h / Mathf.Max(0.01f, b.size.y);
+            Tint(g, Color.white); return Ground(g, pos, snap);
+        }
+
+        /// <summary>Floating dust motes + low drifting fog sheets (StDrift, unscaled time so they move in shot clips too).</summary>
+        static void Atmos(string id, List<Vector3> cells)
+        {
+            Color dust = id == "cave" ? new Color(0.5f, 1.1f, 1.3f) : id == "mine" ? new Color(1.3f, 0.95f, 0.55f) : id == "sewer" ? new Color(0.8f, 1.2f, 0.6f) : new Color(0.8f, 0.9f, 1.4f);
+            Color fog = (RenderSettings.fogColor * 2.2f + new Color(0.06f, 0.06f, 0.06f)); fog.a = 1;
+            for (int i = 0; i < 40; i++)
+            {
+                var c = cells[rng.Next(cells.Count)] + new Vector3(((float)rng.NextDouble() - 0.5f) * T, 0.6f + (float)rng.NextDouble() * 3.2f, ((float)rng.NextDouble() - 0.5f) * T);
+                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(q.GetComponent<Collider>()); q.name = "dust";
+                q.transform.position = c; q.transform.localScale = Vector3.one * (0.08f + (float)rng.NextDouble() * 0.08f);
+                q.GetComponent<MeshRenderer>().sharedMaterial = StGlow.Mat(dust * 0.6f, 2); q.AddComponent<StBillboard>();
+                var d = q.AddComponent<StDrift>(); d.amp = new Vector3(0.5f, 0.35f, 0.5f); d.speed = 0.15f + (float)rng.NextDouble() * 0.2f; d.seed = i * 1.7f; Built.Add(q.transform);
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                var c = cells[rng.Next(cells.Count)] + new Vector3(0, 0.25f + (float)rng.NextDouble() * 0.3f, 0);
+                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(q.GetComponent<Collider>()); q.name = "fog_sheet";
+                q.transform.position = c; q.transform.rotation = Quaternion.Euler(90, rng.Next(360), 0); q.transform.localScale = Vector3.one * (5f + (float)rng.NextDouble() * 4f);
+                q.GetComponent<MeshRenderer>().sharedMaterial = StGlow.Mat(fog * (id == "sewer" ? 0.22f : 0.14f), 1.5f);
+                var d = q.AddComponent<StDrift>(); d.amp = new Vector3(1.6f, 0f, 1.0f); d.speed = 0.05f + (float)rng.NextDouble() * 0.05f; d.seed = i * 3.1f; d.spin = 4f; Built.Add(q.transform);
+            }
         }
 
         static void Edge(Vector3 e, bool alongX, Color tint, bool rocky, int north)
@@ -266,7 +300,7 @@ namespace Hollowmere.StyleTest
             // sunken channel: dark bed + translucent green emissive water + side kerbs
             Box(c + new Vector3(0, -0.9f, 0), new Vector3(T, 0.2f, T), new Color(0.12f, 0.16f, 0.10f));
             var w = Box(c + new Vector3(0, -0.35f, 0), new Vector3(T, 0.05f, T * 0.92f), new Color(0.20f, 0.40f, 0.30f), new Color(0.03f, 0.09f, 0.05f));
-            w.name = "sewer_water";
+            w.name = "sewer_water"; StFlow.Water(w.GetComponent<MeshRenderer>(), new Color(0.24f, 0.46f, 0.36f), new Vector2(0.35f, 0f));
             Box(c + new Vector3(0, -0.2f, T * 0.5f - 0.15f), new Vector3(T, 0.5f, 0.3f), new Color(0.48f, 0.52f, 0.44f));
             Box(c + new Vector3(0, -0.2f, -T * 0.5f + 0.15f), new Vector3(T, 0.5f, 0.3f), new Color(0.48f, 0.52f, 0.44f));
         }
@@ -303,8 +337,11 @@ namespace Hollowmere.StyleTest
             var col = Get("crypt").wall;
             for (int x = 1; x < m[0].Length - 1; x += 2) WallTorch(NorthWall(m, x) + new Vector3(0, 0, 0.5f), new Color(1f, 0.62f, 0.32f));
             // central sarcophagus (kitbash: KayKit chest scaled + stone slab) with a cold rune glow
-            Box(Centre + new Vector3(0, 0.45f, 1.5f), new Vector3(3.2f, 0.9f, 1.6f), new Color(0.62f, 0.64f, 0.74f));
-            Box(Centre + new Vector3(0, 1.0f, 1.5f), new Vector3(3.5f, 0.22f, 1.85f), new Color(0.70f, 0.72f, 0.82f));
+            var altar = Grave("altar-stone", Centre + new Vector3(0, 0, 1.5f), 0, 0f, 3.6f);
+            Grave("coffin", Centre + new Vector3(0, StWorld.Bounds(altar).max.y, 1.5f), 90, 0.0f, 2.8f);
+            Grave("coffin-old", Centre + new Vector3(-6.5f, 0, -3.5f), 70, 0.0f, 3.0f);
+            Grave("urn-round", Centre + new Vector3(-1.9f, 0, 3.2f), 0, 0.9f, 0); Grave("urn-square", Centre + new Vector3(1.9f, 0, 3.2f), 0, 0.9f, 0);
+            Grave("candle-multiple", Centre + new Vector3(5.8f, 0, -3.2f), 0, 0.6f, 0); Grave("gravestone-broken", Centre + new Vector3(6.2f, 0, 4.0f), 200, 1.4f, 0);
             PointLight(Centre + new Vector3(0, 2.2f, 1.5f), new Color(0.5f, 0.6f, 1f), 6f, 9f, false);
             StGlowRing(Centre + new Vector3(0, 0.05f, 1.5f), new Color(0.4f, 0.55f, 1.6f), 5f);
             for (int i = 0; i < 4; i++) Kit(i % 2 == 0 ? "pillar_decorated" : "pillar", Centre + new Vector3(i < 2 ? -5.5f : 5.5f, 0, i % 2 == 0 ? 4.5f : -2f), 0, col);
@@ -315,7 +352,7 @@ namespace Hollowmere.StyleTest
             Prop("CandleStick_Stand", Centre + new Vector3(-2.6f, 0, 1.5f), 0, 2.0f, new Color(0.5f, 0.5f, 0.55f), Color.white);
             Prop("CandleStick_Stand", Centre + new Vector3(2.6f, 0, 1.5f), 0, 2.0f, new Color(0.5f, 0.5f, 0.55f), Color.white);
             Flame(Centre + new Vector3(-2.6f, 2.1f, 1.5f), new Color(2.2f, 1.2f, 0.4f), 0.35f); Flame(Centre + new Vector3(2.6f, 2.1f, 1.5f), new Color(2.2f, 1.2f, 0.4f), 0.35f);
-            Prop("Bookcase_2", NorthWall(m, 2) + new Vector3(1.0f, 0, 0), 180, 3.2f, new Color(0.5f, 0.35f, 0.24f), Color.white);
+            Prop("Bookcase_2", NorthWall(m, 2) + new Vector3(1.0f, 0, -0.1f), 0, 3.2f, new Color(0.5f, 0.35f, 0.24f), Color.white);
             Prop("Chest_Wood", NorthWall(m, 5) + new Vector3(0, 0, -0.4f), 180, 1.0f, new Color(0.5f, 0.35f, 0.24f), Color.white);
             Prop("Coin_Pile", NorthWall(m, 5) + new Vector3(1.2f, 0, -0.5f), 0, 0.4f, new Color(0.95f, 0.75f, 0.25f), Color.white);
             Kit("banner_patternA_red", NorthWall(m, 3) + new Vector3(0, 2.4f, 0.35f), 0, Color.white, false);
@@ -406,6 +443,43 @@ namespace Hollowmere.StyleTest
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(q.GetComponent<Collider>());
             q.transform.position = p; q.transform.rotation = Quaternion.Euler(90, 0, 0); q.transform.localScale = Vector3.one * d;
             q.GetComponent<MeshRenderer>().sharedMaterial = StGlow.Mat(c, 1); Built.Add(q.transform);
+        }
+    }
+
+    /// <summary>Procedural ripple texture scrolled on unscaled time (works with Time.timeScale = 0 in proof runs).</summary>
+    public class StFlow : MonoBehaviour
+    {
+        static Texture2D ripple;
+        Material m; public Vector2 vel;
+        public static void Water(MeshRenderer r, Color col, Vector2 vel)
+        {
+            if (!ripple)
+            {
+                ripple = new Texture2D(128, 128, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat, name = "st_ripple" };
+                for (int y = 0; y < 128; y++) for (int x = 0; x < 128; x++)
+                {
+                    float u = x / 128f * Mathf.PI * 2, v = y / 128f * Mathf.PI * 2;
+                    float n = 0.5f + 0.25f * Mathf.Sin(u * 3 + Mathf.Sin(v * 2) * 1.5f) + 0.25f * Mathf.Sin(v * 5 + Mathf.Sin(u * 2));
+                    float b = n > 0.86f ? 1.35f : n < 0.2f ? 0.82f : 1f; ripple.SetPixel(x, y, new Color(b, b, b, 1));
+                }
+                ripple.Apply();
+            }
+            var m = StMat.Make("water_" + ColorUtility.ToHtmlStringRGB(col), ripple, col, false, 0, col * 0.25f);
+            m = new Material(m); m.SetTextureScale("_BaseMap", new Vector2(2, 2)); m.SetFloat("_Outline", 0);
+            r.sharedMaterial = m; var f = r.gameObject.AddComponent<StFlow>(); f.m = m; f.vel = vel;
+        }
+        void Update() { if (m) m.SetTextureOffset("_BaseMap", vel * Time.unscaledTime); }
+    }
+
+    public class StDrift : MonoBehaviour
+    {
+        public Vector3 amp; public float speed = 0.2f, seed, spin; Vector3 home; Quaternion rot;
+        void Start() { home = transform.position; rot = transform.rotation; }
+        void Update()
+        {
+            float t = Time.unscaledTime * speed + seed;
+            transform.position = home + new Vector3(Mathf.Sin(t) * amp.x, Mathf.Sin(t * 1.3f + 1) * amp.y, Mathf.Cos(t * 0.8f) * amp.z);
+            if (spin != 0) transform.rotation = Quaternion.Euler(0, Time.unscaledTime * spin + seed * 10, 0) * rot;
         }
     }
 }

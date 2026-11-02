@@ -14,6 +14,9 @@ Shader "Hollowmere/StToon"
         [HDR] _Emission ("Emission", Color) = (0,0,0,0)
         _Cull ("Cull", Float) = 2
         _SelfLit ("Self-lit (albedo)", Range(0,1)) = 0
+        _Outline ("Outline width (screen, 0=off)", Range(0,4)) = 0
+        _OutlineDark ("Outline = albedo x", Range(0,1)) = 0.25
+        _Rim ("Edge darkening", Range(0,1)) = 0.35
     }
     SubShader
     {
@@ -34,7 +37,7 @@ Shader "Hollowmere/StToon"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
             CBUFFER_START(UnityPerMaterial)
-            float4 _BaseMap_ST; half4 _BaseColor; half _UseVC; half _Ramp; half _Shade; half _Cutoff; half4 _Emission; half _Cull; half _SelfLit;
+            float4 _BaseMap_ST; half4 _BaseColor; half _UseVC; half _Ramp; half _Shade; half _Cutoff; half4 _Emission; half _Cull; half _SelfLit; half _Outline; half _OutlineDark; half _Rim;
             CBUFFER_END
             struct A { float4 pos:POSITION; float3 n:NORMAL; float2 uv:TEXCOORD0; half4 col:COLOR; };
             struct V { float4 pos:SV_POSITION; float2 uv:TEXCOORD0; float3 wp:TEXCOORD1; float3 n:TEXCOORD2; half4 col:COLOR; half3 add:TEXCOORD3; half fog:TEXCOORD4; };
@@ -61,10 +64,45 @@ Shader "Hollowmere/StToon"
                 uint cnt = min(GetAdditionalLightsCount(), 8u);
                 for (uint k = 0u; k < cnt; k++) { Light l = GetAdditionalLight(k, i.wp); i.add += l.color * l.distanceAttenuation * saturate(dot(n, l.direction) * 0.6 + 0.4); }
                 #endif
-                half3 c = t.rgb * (lit * 0.85 + amb + i.add) + _Emission.rgb;
+                half3 vd = normalize(GetWorldSpaceViewDir(i.wp));
+                half edge = pow(1 - saturate(dot(n, vd)), 3) * _Rim;
+                half3 c = t.rgb * (lit * 0.85 + amb + i.add) * (1 - edge) + _Emission.rgb;
                 c = lerp(c, t.rgb, _SelfLit);
                 c = MixFog(c, i.fog);
                 return half4(c, 1);
+            }
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "Outline"
+            Tags { "LightMode"="SRPDefaultUnlit" }
+            Cull Front ZWrite On
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_fog
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
+            CBUFFER_START(UnityPerMaterial)
+            float4 _BaseMap_ST; half4 _BaseColor; half _UseVC; half _Ramp; half _Shade; half _Cutoff; half4 _Emission; half _Cull; half _SelfLit; half _Outline; half _OutlineDark; half _Rim;
+            CBUFFER_END
+            struct A { float4 pos:POSITION; float3 n:NORMAL; float2 uv:TEXCOORD0; half4 col:COLOR; };
+            struct V { float4 pos:SV_POSITION; float2 uv:TEXCOORD0; half4 col:COLOR; half fog:TEXCOORD1; };
+            V vert(A i)
+            {
+                V o; float4 c = TransformObjectToHClip(i.pos.xyz);
+                float3 nv = mul((float3x3)UNITY_MATRIX_VP, TransformObjectToWorldNormal(i.n));
+                float2 d = normalize(nv.xy + 1e-5);
+                c.xy += d * _Outline * 0.0016 * c.w * float2(_ScreenParams.y / _ScreenParams.x, 1);
+                if (_Outline <= 0) c = float4(0, 0, -10, 1);
+                o.pos = c; o.uv = TRANSFORM_TEX(i.uv, _BaseMap); o.col = i.col; o.fog = ComputeFogFactor(c.z); return o;
+            }
+            half4 frag(V i) : SV_Target
+            {
+                half4 t = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv) * _BaseColor;
+                if (_UseVC > 0.5) t.rgb *= i.col.rgb;
+                return half4(MixFog(t.rgb * _OutlineDark, i.fog), 1);
             }
             ENDHLSL
         }

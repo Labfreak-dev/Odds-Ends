@@ -8,7 +8,7 @@ namespace Hollowmere.StyleTestEditor
     /// component plays the shared Rig_Medium clips; props import without animation.</summary>
     public class StyleTestImport : AssetPostprocessor
     {
-        public override uint GetVersion() => 3;
+        public override uint GetVersion() => 4;
         void OnPreprocessModel()
         {
             if (!assetPath.Contains("/StyleTest/")) return;
@@ -16,7 +16,7 @@ namespace Hollowmere.StyleTestEditor
             bool rigged = assetPath.Contains("/Anim/") || assetPath.Contains("/Chars/")
                 || (assetPath.Contains("/Skel/Skeleton_") && !assetPath.Contains("Skeleton_Axe") && !assetPath.Contains("Skeleton_Blade")
                     && !assetPath.Contains("Skeleton_Staff") && !assetPath.Contains("Skeleton_Shield") && !assetPath.Contains("Skeleton_Crossbow"));
-            bool folk = assetPath.Contains("/Folk/"), animals = assetPath.Contains("/Town/Animals/");
+            bool folk = assetPath.Contains("/Folk/"), animals = assetPath.Contains("/Town/Animals/") || assetPath.Contains("/ST/Mon/") || assetPath.Contains("/STO/Mon/");
             rigged |= folk || animals;
             mi.animationType = rigged ? ModelImporterAnimationType.Legacy : ModelImporterAnimationType.None;
             mi.importAnimation = assetPath.Contains("/Anim/") || assetPath.Contains("/Folk/UAL") || animals;

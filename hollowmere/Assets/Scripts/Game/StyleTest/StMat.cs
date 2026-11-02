@@ -8,6 +8,8 @@ namespace Hollowmere.StyleTest
     /// materials.json (base map x base colour x vertex colour); other packs keep their albedo texture/colour.</summary>
     public static class StMat
     {
+        /// <summary>Screen-space ink outline on every StToon surface (HM_OUTLINE overrides; 0 = off).</summary>
+        public static float Outline = float.TryParse(System.Environment.GetEnvironmentVariable("HM_OUTLINE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var o) ? o : 1.8f;
         public const float MetreScale = 1.6f; // real-metre kits -> KayKit world units (door ~2.1 m -> ~3.4 u, hero 3.0 u)
         static Shader toon;
         static Dictionary<string, string[]> vk;
@@ -43,6 +45,7 @@ namespace Hollowmere.StyleTest
             m.SetFloat("_Cutoff", cutoff);
             m.SetColor("_Emission", emis);
             m.SetFloat("_Cull", twoSided ? 0 : 2);
+            m.SetFloat("_Outline", Outline);
             cache[key] = m; return m;
         }
 

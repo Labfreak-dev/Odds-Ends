@@ -43,3 +43,13 @@ unless the licence row says redistribution inside a game is fine.
 | CaptainSkolot lumberjack house, fiery dungeon, pastel landscapes backgrounds | captainskolot.itch.io | CC BY 4.0 tag; same text | Used: loading screen, notice-board poster |
 
 KayKit by Kay Lousberg (www.kaylousberg.com). Quaternius models by @Quaternius (quaternius.com).
+
+## Phase 3 – monsters
+| Asset | Path | Source | Licence |
+|---|---|---|---|
+| Kenney Graveyard Kit 5.0 (21 FBX incl. ghost/skeleton/vampire/zombie/keeper characters + colormap) | Resources/ST/Grave, Resources/ST/Mon/Kenney_* | https://kenney.nl/assets/graveyard-kit (OpenGameArt mirror) | CC0 1.0 |
+| Quaternius Easy Animated Enemies (Frog, Rat, Snake, Snake_angry, Spider, Wasp) | Resources/ST/Mon/Easy_* | https://quaternius.com (Animated Easy Enemies) | CC0 1.0 |
+| Quaternius LowPoly Animated Monsters (Bat, Dragon, Skeleton, Slime) | Resources/ST/Mon/LP_* | https://quaternius.com (LowPoly Animated Monsters) | CC0 1.0 |
+| Quaternius Bestiary – Dungeon Monsters (Imp, Puglin + textures) | Owned/Resources/STO/Mon (gitignored, NOT in repo) | Quaternius Bestiary pack | QAL – use in product allowed, asset redistribution forbidden; kept out of git |
+| Death boss (st_death.glb; meshopt/webp decoded + textures resized to 1024 with gltf-transform) | Resources/Models/st_death.glb | Project-owned model from lootdaggers/death3d | Project-owned |
+| UAL animation clips reused on Bestiary rigs | Resources/ST/Folk | Quaternius Universal Animation Library (already logged) | CC0 1.0 |

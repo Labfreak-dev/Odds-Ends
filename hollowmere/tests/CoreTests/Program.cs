@@ -40,6 +40,7 @@ static class Program
         ModularKitFiles();
         SpecTables();
         P2P5();
+        TestStartBuild();
         Console.WriteLine($"{passed} passed, {failed} failed");
         if (failed == 0) Console.WriteLine("ALL CORE CHECKS PASSED");
         return failed == 0 ? 0 : 1;
@@ -399,6 +400,84 @@ static class Program
         s.OnFish(FishDb.Get("minnow")); s.OnFish(FishDb.Get("minnow"));
         Check(fishQ.complete, "fish quest completes");
         Check(s.version == 3, "new games are save version 3");
+    }
+
+    /// <summary>The test-build start: level 20, every point unspent, a stash covering every
+    /// armour slot x tier x rarity, every set, every weapon base and every gem rank.</summary>
+    static void TestStartBuild()
+    {
+        var plain = GameState.NewCustom("T", 1, 2, 1, 0, 1f, 1f, 1f, PetSpecies.Hound, "Rex", 91);
+        Check(plain.hero.level == 1 && plain.stash.Count == 0 && plain.stashCapacity == Balance.StashSize, "test start off leaves a fresh hero");
+
+        var s = GameState.NewCustom("T", 1, 2, 1, 0, 1f, 1f, 1f, PetSpecies.Hound, "Rex", 91, 0, true);
+        var h = s.hero;
+        Check(h.level == TestStart.Level, "test start: hero is level 20");
+        Check(h.xp >= 0 && h.xp < Balance.XpToNext(h.level), "test start: xp sits inside level 20");
+        Check(h.skills.unspent == SkillDb.PointsAtLevel(20), $"test start: unspent {h.skills.unspent} == PointsAtLevel(20) {SkillDb.PointsAtLevel(20)}");
+        Check(h.skills.unspent == TestStart.ExpectedUnspent(h), "test start: unspent matches the expected points");
+        Check(h.skills.ranks.All(r => r.rank <= 1), "test start: no point spent past rank 1");
+        Check(SkillDb.All.Where(k => k.reqLevel <= 20).All(k => h.Knows(k)), "test start: every skill up to level 20 is unlocked");
+        Check(!SkillDb.All.Where(k => k.reqLevel > 20).Any(k => h.skills.Rank(k.id) > 0), "test start: nothing above level 20 is unlocked");
+        Check(h.skills.bar[0] == "ic_cleave", "test start: primary attack stays on slot 0");
+
+        Check(s.stash.Count > Balance.StashSize, $"test start: stash holds more than one page ({s.stash.Count})");
+        Check(s.stash.Count <= s.stashCapacity, $"test start: stash {s.stash.Count} fits capacity {s.stashCapacity}");
+        Check(s.stashCapacity % Balance.StashSize == 0, "test start: capacity is whole pages");
+        Check(Town.StashPages(s) == s.stashCapacity / Balance.StashSize, "test start: page count matches capacity");
+        Check(s.stash.Where(i => i.kind == ItemKind.Equipment).All(i => i.itemLevel == TestStart.ItemLevel), "test start: every piece is item level 20");
+        Check(s.stash.All(i => !Item.IsNone(i)), "test start: no empty stash entries");
+
+        bool grid = true;
+        foreach (var slot in TestStart.ArmourSlots)
+            for (int tier = 1; tier <= GearTable.TierCount; tier++)
+                foreach (var r in TestStart.Rarities)
+                {
+                    bool have = s.stash.Any(i => i.kind == ItemKind.Equipment && i.Base.slot == slot && i.tier == tier && i.rarity == r && !string.IsNullOrEmpty(i.family));
+                    if (!have) Console.WriteLine($"  missing {slot} tier {tier} {r}");
+                    grid &= have;
+                }
+        Check(grid, "test start: every armour slot x tier x rarity is in the stash");
+        foreach (var slot in TestStart.JewellerySlots)
+            Check(new[] { Rarity.Common, Rarity.Magic, Rarity.Rare, Rarity.Legendary }.All(r => s.stash.Any(i => i.kind == ItemKind.Equipment && i.Base.slot == slot && i.rarity == r)), $"test start: {slot} at every rarity");
+
+        foreach (var set in ItemDb.Sets)
+            Check(set.pieces.All(p => s.stash.Any(i => i.setId == set.id && i.baseId == p && i.rarity == Rarity.Set)), $"test start: full set {set.id}");
+        foreach (var leg in ItemDb.Legendaries)
+            Check(s.stash.Any(i => i.legendaryId == leg.id && i.baseId == leg.baseId), $"test start: legendary {leg.id}");
+        foreach (var b in ItemDb.Bases.Where(x => x.slot == ItemSlot.MainHand || x.slot == ItemSlot.OffHand))
+            Check(s.stash.Any(i => i.baseId == b.id), $"test start: weapon base {b.id}");
+        foreach (var model in TestStart.MeshyModels)
+            Check(s.stash.Any(i => i.kind == ItemKind.Equipment && GearTable.ModelFor(i.baseId) == model), $"test start: weapon model {model}");
+        Check(s.stash.Any(i => i.IsWeapon && Hero.FamilyOf(i.baseId) == WeaponFamily.Melee)
+            && s.stash.Any(i => i.IsWeapon && Hero.FamilyOf(i.baseId) == WeaponFamily.Ranged)
+            && s.stash.Any(i => i.IsWeapon && Hero.FamilyOf(i.baseId) == WeaponFamily.Magic), "test start: melee, ranged and magic weapons");
+
+        foreach (var name in Gems.Names)
+            for (int rank = 1; rank <= 5; rank++)
+                Check(s.stash.Any(i => i.kind == ItemKind.Gem && i.baseId == name + "_" + rank && i.stack > 0), $"test start: gem {name}_{rank}");
+        Check(s.stash.Any(i => i.kind == ItemKind.Equipment && i.sockets > 0), "test start: a socketed piece to set a gem in");
+
+        // Socket through the normal API: bring a gem and a socketed piece to the bag.
+        var gear = s.stash.First(i => i.kind == ItemKind.Equipment && i.sockets > 0);
+        var gem = s.stash.First(i => i.kind == ItemKind.Gem && i.baseId == "thorn_2");
+        Check(Town.FromStash(s, gear) && Town.FromStash(s, gem), "test start: gear and gem come out of the stash");
+        Check(Gems.Socket(h, gear, "thorn_2") && gear.gemId == "thorn_2", "test start: gem sockets into stash gear");
+        Check(Town.ToStash(s, gear), "test start: gear goes back into the stash");
+
+        // Capacity is per save and round-trips; old saves read as one page.
+        var json = JsonSerializer.Serialize(s, new JsonSerializerOptions { IncludeFields = true });
+        var back = JsonSerializer.Deserialize<GameState>(json, new JsonSerializerOptions { IncludeFields = true });
+        back.Normalize();
+        Check(back.stashCapacity == s.stashCapacity && back.stash.Count == s.stash.Count, "test start: capacity and stash survive a save");
+        var old = new GameState { stashCapacity = 0 };
+        old.Normalize();
+        Check(old.stashCapacity == Balance.StashSize, "old saves get the default stash size");
+
+        var cls = GameState.NewGame(HeroClass.Stalker, "T", PetSpecies.Hound, "Rex", 92, true);
+        Check(cls.hero.level == 20 && cls.hero.xp == 0, "test start: class hero is level 20");
+        Check(cls.hero.skills.unspent == TestStart.ExpectedUnspent(cls.hero)
+            && cls.hero.skills.unspent + cls.hero.skills.ranks.Sum(r => r.rank) == SkillDb.PointsAtLevel(20), "test start: class hero holds every point but its primary");
+        Check(cls.stash.Count <= cls.stashCapacity, "test start: class hero stash fits");
     }
 
     /// <summary>A bot clears floors 1..40: kills everything, keeps any item that raises sheet DPS

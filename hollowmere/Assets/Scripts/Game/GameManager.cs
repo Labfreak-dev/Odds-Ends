@@ -48,17 +48,21 @@ namespace Hollowmere
 
         public void NewGame(HeroClass cls, string heroName, PetSpecies pet, string petName)
         {
-            State = GameState.NewGame(cls, heroName, pet, petName, (ulong)DateTime.UtcNow.Ticks);
+            State = GameState.NewGame(cls, heroName, pet, petName, (ulong)DateTime.UtcNow.Ticks, BuildConfig.TestStart);
             Save();
             EnterTown(false);
         }
 
         public void NewGameCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, int plate = 0)
         {
-            State = GameState.NewCustom(heroName, body, skin, hair, face, r, g, b, pet, petName, (ulong)DateTime.UtcNow.Ticks, plate);
+            State = MakeCustom(heroName, body, skin, hair, face, r, g, b, pet, petName, (ulong)DateTime.UtcNow.Ticks, plate, BuildConfig.TestStart);
             Save();
             EnterTown(false);
         }
+
+        /// <summary>The creator's new hero. testStart is BuildConfig's switch in play; the QA harness forces it on.</summary>
+        public static GameState MakeCustom(string heroName, int body, int skin, int hair, int face, float r, float g, float b, PetSpecies pet, string petName, ulong seed, int plate, bool testStart)
+            => GameState.NewCustom(heroName, body, skin, hair, face, r, g, b, pet, petName, seed, plate, testStart);
 
         public bool Continue()
         {

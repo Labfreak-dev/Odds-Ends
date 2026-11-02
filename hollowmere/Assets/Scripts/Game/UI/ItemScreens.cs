@@ -455,6 +455,18 @@ namespace Hollowmere
     {
         static Item selected;
         static TownTab tab;
+        /// <summary>Stash page on screen, 0-based. Clamped to the save's pages when drawn.</summary>
+        public static int StashPage;
+
+        static void PageButton(RectTransform at, string text, bool on, Action click)
+        {
+            var b = Ui.Button(at, text, click, Ui.ButtonC, 20);
+            var rt = (RectTransform)b.transform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            b.interactable = on;
+            foreach (var t in b.GetComponentsInChildren<Text>()) { t.verticalOverflow = VerticalWrapMode.Overflow; t.horizontalOverflow = HorizontalWrapMode.Overflow; }
+        }
 
         public static void Show(UiRoot ui, TownTab t)
         {
@@ -479,9 +491,19 @@ namespace Hollowmere
             if (t == TownTab.Stash)
             {
                 var top = Ui.Rect(left, "stash", new Vector2(0, 0.5f), Vector2.one, new Vector2(0, 4), Vector2.zero);
-                Ui.Label(Ui.At(top, "lab", new Vector2(0, 1), Vector2.zero, new Vector2(600, 36)), $"Stash {s.stash.Count}/{Balance.StashSize} — tap to take", 24, TextAnchor.MiddleLeft, Ui.Gold);
+                // One page is Balance.StashSize slots; a test start's larger stash pages through the rest.
+                int pages = Town.StashPages(s);
+                StashPage = Mathf.Clamp(StashPage, 0, pages - 1);
+                string paging = pages > 1 ? $" · page {StashPage + 1}/{pages}" : "";
+                Ui.Label(Ui.At(top, "lab", new Vector2(0, 1), Vector2.zero, new Vector2(600, 36)), $"Stash {s.stash.Count}/{s.stashCapacity}{paging} — tap to take", 24, TextAnchor.MiddleLeft, Ui.Gold);
+                if (pages > 1)
+                {
+                    Ui.Label(Ui.At(top, "pageLab", new Vector2(1, 1), new Vector2(-260, 0), new Vector2(420, 34)), $"{s.stash.Count}/{s.stashCapacity} · page {StashPage + 1}/{pages}", 22, TextAnchor.MiddleRight, Ui.Gold).verticalOverflow = VerticalWrapMode.Overflow;
+                    PageButton(Ui.At(top, "prev", new Vector2(1, 1), new Vector2(-128, 0), new Vector2(120, 34)), "Prev", StashPage > 0, () => { StashPage--; Show(ui, tab); });
+                    PageButton(Ui.At(top, "next", new Vector2(1, 1), Vector2.zero, new Vector2(120, 34)), "Next", StashPage < pages - 1, () => { StashPage++; Show(ui, tab); });
+                }
                 var sg = Ui.Grid(Ui.Rect(top, "g", Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0, -38)), new Vector2(120, 96), 6);
-                foreach (var it in s.stash) { var itx = it; ItemUi.Cell(sg, it, it == selected, () => { if (!Town.FromStash(s, itx)) ui.Toast("Bag is full."); Show(ui, tab); }); }
+                foreach (var it in s.stash.Skip(StashPage * Balance.StashSize).Take(Balance.StashSize)) { var itx = it; ItemUi.Cell(sg, it, it == selected, () => { if (!Town.FromStash(s, itx)) ui.Toast("Bag is full."); Show(ui, tab); }); }
                 left = Ui.Rect(left, "bagHalf", Vector2.zero, new Vector2(1, 0.5f), Vector2.zero, new Vector2(0, -4));
             }
             Ui.Label(Ui.At(left, "lab", new Vector2(0, 1), Vector2.zero, new Vector2(600, 36)), t == TownTab.Stash ? "Bag — tap to store" : "Bag — tap to select", 24, TextAnchor.MiddleLeft, Ui.Gold);

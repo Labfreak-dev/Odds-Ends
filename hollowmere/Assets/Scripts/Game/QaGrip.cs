@@ -93,8 +93,8 @@ namespace Hollowmere
                         foreach (var r in capes) r.enabled = false;
                         var cdir = p.ok ? (-p.normal + p.finger * 0.35f + Vector3.up * 0.2f).normalized : actor.transform.forward;
                         var gcam = new GameObject("qa_gripcam").AddComponent<Camera>();
-                        gcam.CopyFrom(cam); gcam.fieldOfView = 45f; gcam.nearClipPlane = 0.18f; gcam.depth = cam.depth + 10;
-                        gcam.transform.position = look + cdir * 0.42f; gcam.transform.LookAt(look, Vector3.up);
+                        gcam.CopyFrom(cam); gcam.fieldOfView = 50f; gcam.nearClipPlane = 0.45f; gcam.depth = cam.depth + 10;
+                        gcam.transform.position = look + cdir * 0.75f; gcam.transform.LookAt(look, Vector3.up);
                         yield return new WaitForEndOfFrame();
                         SaveCrop("grip-" + model + "-" + Clean(st.name) + "-" + f, 600);
                         UnityEngine.Object.Destroy(gcam.gameObject);

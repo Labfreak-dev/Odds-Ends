@@ -149,9 +149,9 @@ namespace Hollowmere
         public static string MeshFamily(string family, Rarity rarity)
         {
             if (string.IsNullOrEmpty(family)) family = "plate";
-            var row = Row(rarity);
-            if (row == null || string.IsNullOrEmpty(row.meshFamily) || row.meshFamily == family) return family;
-            return row.meshFamily;
+            // Rarity no longer swaps the mesh family (a legendary plate chest stayed plate-shaped next to
+            // infernal boots, so stash outfits were random mixes). Rarity changes tier, material and VFX only.
+            return family;
         }
 
         /// <summary>Visual tier from the asset, so a later row edit picks up Gear/Lower without a code change.</summary>

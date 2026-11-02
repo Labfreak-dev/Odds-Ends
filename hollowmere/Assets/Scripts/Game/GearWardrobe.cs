@@ -19,6 +19,7 @@ namespace Hollowmere
             if (body == null || body.GetComponentInChildren<BodySplit>(true) != null) return;
             var skin = Source(body);
             if (skin == null || skin.sharedMesh == null || !skin.sharedMesh.isReadable) return;
+            HandCurl.RigSkin(skin); // finger bones for the fist curl, before the region split
             var mesh = skin.sharedMesh;
             var weights = mesh.boneWeights;
             var tris = mesh.triangles;
@@ -344,6 +345,8 @@ namespace Hollowmere
         static GameObject Load(string family, string slot, int tier, out bool lower)
         {
             lower = false;
+            // The bone t2 helm (Meshy) reads as a cream blob on the phone; use the authored bone helm instead.
+            if (family == "bone" && slot == GearFit.SlotName(EquipSlot.Head) && tier == 2) tier = GearTable.TierCount;
             if (tier < GearTable.TierCount)
             {
                 // v8: each lower tier is its own model (t1 Blender simplification, t2 Meshy).

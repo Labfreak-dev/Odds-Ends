@@ -68,6 +68,8 @@ namespace Hollowmere
             return best;
         }
 
+        static bool Follow(EquipSlot s) => s == EquipSlot.Legs || s == EquipSlot.Feet || s == EquipSlot.Waist || s == EquipSlot.Chest || s == EquipSlot.Hands || s == EquipSlot.Wrists;
+
         public static void Apply(Mesh mesh, EquipSlot slot, Mesh body)
         {
             if (!Enabled || mesh == null || body == null || !body.isReadable) return;
@@ -81,10 +83,14 @@ namespace Hollowmere
             for (int i = 0; i < v.Length; i++)
             {
                 int n = Nearest(v[i], out float d);
+                // Cloth-like slots follow the skin exactly: legs/feet/waist/chest/hands/wrists take the nearest body
+                // vertex's weights everywhere (the lower-tier meshes had thigh verts weighted to the hips, which
+                // ballooned in the run pose). Rigid slots (head, shoulders) keep their own weights.
+                if (n >= 0 && hasW && Follow(slot)) { w[i] = bodyW[n]; moved++; }
                 if (n < 0 || d <= allow) continue;
                 float keep = allow + (d - allow) * 0.15f;
                 v[i] = bodyV[n] + (v[i] - bodyV[n]) * (keep / d);
-                if (hasW && d > allow * 2f) w[i] = bodyW[n];
+                if (hasW && d > allow * ((slot == EquipSlot.Legs || slot == EquipSlot.Feet) ? 1f : 2f)) w[i] = bodyW[n];
                 moved++;
             }
             if (moved == 0) return;

@@ -25,6 +25,13 @@ namespace Hollowmere
         }
 
         /// <summary>Palm frame in world space for the current pose.</summary>
+        public static bool LocalFrame(Transform hand, out Vector3 c, out Vector3 f, out Vector3 k, out Vector3 n)
+        {
+            c = f = k = n = Vector3.zero;
+            if (!cache.TryGetValue(hand, out var lp)) { MeasureFromSkin(hand); if (!cache.TryGetValue(hand, out lp)) return false; }
+            c = lp.c; f = lp.f; k = lp.k; n = lp.n; return true;
+        }
+
         public static Palm Measure(Transform hand)
         {
             var p = new Palm();
@@ -35,7 +42,7 @@ namespace Hollowmere
             var middle = Child(hand, side + "HandMiddle1");
             var mid3 = Child(hand, side + "HandMiddle3") ?? Child(hand, side + "HandMiddle2");
             var thumb = Child(hand, side + "HandThumb2") ?? Child(hand, side + "HandThumb1");
-            if (index == null || pinky == null || middle == null) return MeasureFromSkin(hand);
+            if (index == null || pinky == null || middle == null || index.name.StartsWith("hm_")) return MeasureFromSkin(hand);
             var knuckles = (index.position + pinky.position) * 0.5f;
             p.finger = (knuckles - hand.position).normalized;
             p.knuckle = (index.position - pinky.position).normalized;
@@ -275,13 +282,14 @@ namespace Hollowmere
                 for (int j = 1; j <= 3; j++)
                 {
                     var t = Find(side + "Hand" + f + j);
-                    if (t != null) joints.Add((t, t.localRotation, (j == 1 ? 72f : j == 2 ? 88f : 58f) * k));
+                    if (t != null && !t.name.StartsWith("hm_")) joints.Add((t, t.localRotation, (j == 1 ? 72f : j == 2 ? 88f : 58f) * k));
                 }
             for (int j = 1; j <= 3; j++)
             {
                 var t = Find(side + "HandThumb" + j);
                 if (t != null) joints.Add((t, t.localRotation, (j == 1 ? 18f : 32f) * k));
             }
+            if (joints.Count == 0) BuildSynthetic();
         }
 
         Transform Find(string tail)
@@ -291,7 +299,90 @@ namespace Hollowmere
             return null;
         }
 
-        void LateUpdate() => Apply();
+        // ---- Synthetic finger rig: the shipped hero has no finger bones, so add two (proximal, distal) under the
+        // hand at runtime, re-weight the finger skin of every mesh bound to the hand, and curl them into a fist.
+        Transform prox, dist; float curlP, curlD; Vector3 curlAxis;
+        readonly HashSet<SkinnedMeshRenderer> rigged = new HashSet<SkinnedMeshRenderer>();
+        int recheck;
+
+        void BuildSynthetic()
+        {
+            if (!HandGrip.LocalFrame(hand, out var c, out var f, out var k, out var n)) return;
+            // Extent of the hand skin along the finger axis, from the body mesh.
+            float fMax = 0.09f;
+            prox = hand.Find("hm_fingers1");
+            if (prox == null)
+            {
+                prox = new GameObject("hm_fingers1").transform; prox.SetParent(hand, false);
+                dist = new GameObject("hm_fingers2").transform; dist.SetParent(prox, false);
+            }
+            else dist = prox.Find("hm_fingers2");
+            // Knuckle line ~1 cm past the measured centre; mid joint 3.5 cm further.
+            float t0 = 0.010f, t1 = 0.045f;
+            prox.localPosition = c + f * t0; prox.localRotation = Quaternion.identity; prox.localScale = Vector3.one;
+            dist.localPosition = f * (t1 - t0); dist.localRotation = Quaternion.identity; dist.localScale = Vector3.one;
+            synth = (c, f, k, n, t0, t1, fMax);
+            curlAxis = Vector3.Cross(f, n).normalized;
+            curlP = open ? 35f : 80f; curlD = open ? 30f : 85f;
+            RigAll();
+        }
+        (Vector3 c, Vector3 f, Vector3 k, Vector3 n, float t0, float t1, float fMax) synth;
+
+        void RigAll()
+        {
+            foreach (var smr in hand.root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (rigged.Contains(smr) || smr.sharedMesh == null || !smr.sharedMesh.isReadable) continue;
+                var bones = smr.bones; int hi = System.Array.IndexOf(bones, hand);
+                if (hi < 0) continue;
+                rigged.Add(smr);
+                if (smr.sharedMesh.name.EndsWith("_fing")) continue;
+                var mesh = Instantiate(smr.sharedMesh); mesh.name = smr.sharedMesh.name + "_fing";
+                var bp = mesh.bindposes; var bh = bp[hi];
+                var v = mesh.vertices; var w = mesh.boneWeights;
+                var (c, f, k, n, t0, t1, _) = synth;
+                float kMax = 0f;
+                for (int i = 0; i < v.Length && i < w.Length; i++)
+                    if (w[i].boneIndex0 == hi && w[i].weight0 > 0.5f) kMax = Mathf.Max(kMax, Vector3.Dot(bh.MultiplyPoint3x4(v[i]) - c, k));
+                int pi = bones.Length, di = bones.Length + 1, moved = 0;
+                for (int i = 0; i < v.Length && i < w.Length; i++)
+                {
+                    var bw = w[i];
+                    if (bw.boneIndex0 != hi || bw.weight0 < 0.5f) continue;
+                    var q = bh.MultiplyPoint3x4(v[i]) - c;
+                    float along = Vector3.Dot(q, f), side = Vector3.Dot(q, k);
+                    if (along < t0) continue;
+                    if (side > 0.55f * kMax && along < t1 + 0.01f) continue; // thumb
+                    bw.boneIndex0 = along > t1 ? di : pi; w[i] = bw; moved++;
+                }
+                var nb = new Transform[bones.Length + 2]; bones.CopyTo(nb, 0); nb[pi] = prox; nb[di] = dist;
+                var nbp = new Matrix4x4[bp.Length + 2]; bp.CopyTo(nbp, 0);
+                var mp = Matrix4x4.TRS(prox.localPosition, Quaternion.identity, Vector3.one);
+                var md = mp * Matrix4x4.TRS(dist.localPosition, Quaternion.identity, Vector3.one);
+                nbp[pi] = mp.inverse * bh; nbp[di] = md.inverse * bh;
+                mesh.boneWeights = w; mesh.bindposes = nbp;
+                smr.bones = nb; smr.sharedMesh = mesh;
+                Debug.Log("Hollowmere fist rig " + smr.name + " moved=" + moved);
+            }
+        }
+
+        void LateUpdate()
+        {
+            if (joints.Count == 0 && prox != null)
+            {
+                if (++recheck % 30 == 0) RigAll();
+                prox.localRotation = Quaternion.AngleAxis(curlP, curlAxis);
+                dist.localRotation = Quaternion.AngleAxis(curlD, curlAxis);
+                return;
+            }
+            Apply();
+        }
+
+        void OnDestroy()
+        {
+            if (prox != null) prox.localRotation = Quaternion.identity;
+            if (dist != null) dist.localRotation = Quaternion.identity;
+        }
 
         public void Apply()
         {

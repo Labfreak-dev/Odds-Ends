@@ -61,7 +61,7 @@ namespace Hollowmere
                     for (int f = 0; f < 3; f++)
                     {
                         foreach (AnimationState o in anim) { o.weight = 0f; o.enabled = false; }
-                        st.enabled = true; st.weight = 1f; st.time = st.length * (f / 2f) * 0.98f;
+                        st.enabled = true; st.weight = 1f; st.speed = 0f; st.time = st.length * (f / 2f) * 0.98f;
                         anim.Sample();
                         var ik = weapon.GetComponent<OffHandIk>() ?? actor.GetComponentInChildren<OffHandIk>(); if (ik != null) ik.Apply();
                         if (curl != null) curl.Apply();
@@ -73,24 +73,32 @@ namespace Hollowmere
                         float lenW = 0f; { var b = weapon.GetComponentInChildren<Renderer>(); if (b != null) lenW = Vector3.Dot(b.bounds.size, new Vector3(Mathf.Abs(axis.x), Mathf.Abs(axis.y), Mathf.Abs(axis.z))); }
                         float palmFrac = lenW > 1e-3f ? ((h0 + h1) * 0.5f) + Vector3.Dot(p.centre - grip, axis) / lenW : -1f;
                         bool inHandle = type == "orb" || type == "fist" || (palmFrac >= h0 - 0.04f && palmFrac <= h1 + 0.04f);
-                        bool bladeOut = type == "orb" || Vector3.Dot(axis, type == "fist" ? p.finger : p.knuckle) > 0.6f;
+                        // Bows are symmetric about the grip: direction-agnostic.
+                        float bdot = Vector3.Dot(axis, type == "fist" ? p.finger : p.knuckle);
+                        bool bladeOut = type == "orb" || (type == "bow" ? Mathf.Abs(bdot) : bdot) > 0.6f;
                         float dist = p.ok ? Vector3.Distance(grip, HandGrip.FistPoint(p, type)) : 1f;
                         Vector3 want = type == "fist" ? p.finger : p.knuckle;
                         float ang = type == "orb" ? 0f : Vector3.Angle(axis, want);
+                        if (type == "bow") ang = Mathf.Min(ang, 180f - ang);
                         var tip = GripFind(hand, (hand.name.Contains("Left") ? "Left" : "Right") + "HandMiddle3") ?? GripFind(hand, (hand.name.Contains("Left") ? "Left" : "Right") + "HandMiddle2");
                         float wrap = tip != null && type != "orb" && type != "fist" ? Vector3.Cross(tip.position - grip, axis).magnitude : 0f;
                         bool bad = !p.ok || dist > 0.03f || ang > 20f || !inHandle || !bladeOut;
                         checks++; if (bad) fails++;
                         Debug.Log("Hollowmere grip check " + model + " " + type + " " + st.name + " f" + f + " palmDist=" + (dist * 100f).ToString("0.0") + "cm axis=" + ang.ToString("0") + "deg wrap=" + (wrap * 100f).ToString("0.0") + "cm" + (bad ? " FAIL" : " ok"));
                         // Close-up of the hand for the contact sheet.
+                        // Dedicated close-up: back of the hand, a little toward the fingertips, cape hidden, and
+                        // a near plane that cuts anything between the lens and the hand (torso, shoulder pads).
                         var look = p.ok ? p.centre : hand.position;
-                        var side = actor.transform.right * (hand.name.Contains("Left") ? -1f : 1f);
-                        cam.transform.position = look + (actor.transform.forward * 0.55f + side * 0.35f + Vector3.up * 0.15f);
-                        cam.transform.LookAt(look);
-                        float fov = cam.fieldOfView; cam.fieldOfView = 40f;
+                        var capes = actor.GetComponentsInChildren<Renderer>(true).Where(r => r.enabled && (r.name.Contains("cloak") || r.name.Contains("cape"))).ToList();
+                        foreach (var r in capes) r.enabled = false;
+                        var cdir = p.ok ? (-p.normal + p.finger * 0.35f + Vector3.up * 0.2f).normalized : actor.transform.forward;
+                        var gcam = new GameObject("qa_gripcam").AddComponent<Camera>();
+                        gcam.CopyFrom(cam); gcam.fieldOfView = 45f; gcam.nearClipPlane = 0.18f; gcam.depth = cam.depth + 10;
+                        gcam.transform.position = look + cdir * 0.42f; gcam.transform.LookAt(look, Vector3.up);
                         yield return new WaitForEndOfFrame();
                         SaveCrop("grip-" + model + "-" + Clean(st.name) + "-" + f, 600);
-                        cam.fieldOfView = fov;
+                        UnityEngine.Object.Destroy(gcam.gameObject);
+                        foreach (var r in capes) r.enabled = true;
                     }
             }
             Debug.Log("Hollowmere grip done checks=" + checks + " fails=" + fails);

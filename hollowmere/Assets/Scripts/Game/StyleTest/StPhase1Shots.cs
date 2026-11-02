@@ -367,7 +367,8 @@ namespace Hollowmere.StyleTest
         }
 
         /// <summary>HUD mock parented to the camera: skill bar (Wenrexa skill icons), potions, gem currency. Owned art only; null if absent.</summary>
-        static GameObject Hud()
+        internal static void Bind(StyleTestRunner r, Camera c) { R = r; C = c; }
+        internal static GameObject Hud()
         {
             var skills = Resources.LoadAll<Texture2D>("STO/Skills"); var pots = Resources.LoadAll<Texture2D>("STO/Potions");
             if (skills.Length == 0) return null;

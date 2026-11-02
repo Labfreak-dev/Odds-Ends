@@ -443,6 +443,11 @@ namespace Hollowmere.StyleTest
                 yield return StPhase1Shots.Run(this, cam, only);
                 Application.Quit(); yield break;
             }
+            if (only == "phase2" || only.StartsWith("p2_"))
+            {
+                yield return StPhase2Shots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
             if (only == "fix")
             {
                 // bow-in-floor / flat-tome check: weapon lowest point over 16 frames of idle/run/attack (+ turnarounds)

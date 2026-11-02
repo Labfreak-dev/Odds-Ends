@@ -397,6 +397,32 @@ namespace Hollowmere.StyleTest
                 foreach (var skin in new[] { b, b.UpgradeSkin() })
                     if (skin != null) for (int k = 0; k < 3; k++) variants.Add(skin.Loadout(k));
             variants.Add(StLook.Mage().WithGlow(3)); variants.Add(StLook.Knight().WithGlow(2)); variants.Add(StLook.Ranger().WithGlow(3));
+            if (only == "fix")
+            {
+                // bow-in-floor / flat-tome check: weapon lowest point over 16 frames of idle/run/attack (+ turnarounds)
+                StWorld.NeutralLighting(); cam.backgroundColor = new Color(0.56f, 0.57f, 0.59f); cam.orthographic = true;
+                var fx = new List<StLook>();
+                foreach (var v in variants) if (v.id.StartsWith("ranger") || v.id.StartsWith("mage")) fx.Add(v);
+                foreach (var v in fx)
+                {
+                    var a = v.Build(Vector3.zero, 180);
+                    foreach (var clip in new[] { a.idle, a.run, a.attack })
+                    {
+                        float lo = 99f;
+                        for (int f = 0; f < 16; f++)
+                        {
+                            a.Pose(clip, f / 16f);
+                            foreach (var w in new[] { a.weaponR, a.weaponL }) if (w) foreach (var r in w.GetComponentsInChildren<Renderer>()) lo = Mathf.Min(lo, r.bounds.min.y);
+                        }
+                        Debug.Log("[ST] FLOORCHECK " + v.id + " " + clip + " weaponMinY=" + lo.ToString("F3") + (lo < 0.0f ? " FAIL" : " ok"));
+                    }
+                    yield return Turnaround(a, "fix/turn_" + v.id, a.idle, 0.3f);
+                    yield return Turnaround(a, "fix/turn_" + v.id + "_run", a.run, 0.25f);
+                    yield return Turnaround(a, "fix/turn_" + v.id + "_attack", a.attack, v.hitAt);
+                    Destroy(a.gameObject); yield return null;
+                }
+                Application.Quit(); yield break;
+            }
             if (only == "" || only == "turn")
             {
                 StWorld.NeutralLighting();

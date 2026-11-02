@@ -79,6 +79,7 @@ namespace Hollowmere.StyleTest
         public Animation anim;
         public string idle = "Idle_A", run = "Running_A", attack = "Melee_1H_Attack_Chop", hit = "Hit_A", death = "Death_A";
         public Transform handR, handL;
+        public HeroSockets sockets;
         public GameObject weaponR, weaponL;
         public const float BindHeight = 3.0f;
         public float hp = 3, speed = 6.5f, attackRange = 2.8f;
@@ -103,8 +104,8 @@ namespace Hollowmere.StyleTest
                 a.anim.AddClip(kv.Value, kv.Key);
             }
             foreach (AnimationState st in a.anim) st.wrapMode = WrapMode.Loop;
-            a.handR = StKit.Find(g.transform, "handslot.r");
-            a.handL = StKit.Find(g.transform, "handslot.l");
+            a.sockets = HeroSockets.Resolve(g, BindHeight);
+            a.handR = a.sockets[Socket.HandR]; a.handL = a.sockets[Socket.HandL];
             if (a.handR == null) Debug.Log("[ST] hierarchy " + charRes + "\n" + StKit.Hierarchy(g.transform));
             return a;
         }
@@ -112,8 +113,8 @@ namespace Hollowmere.StyleTest
         public void SetWeapons(string r, string l)
         {
             if (weaponR) Destroy(weaponR); if (weaponL) Destroy(weaponL);
-            weaponR = string.IsNullOrEmpty(r) ? null : StKit.Attach(handR, r);
-            weaponL = string.IsNullOrEmpty(l) ? null : StKit.Attach(handL, l);
+            weaponR = string.IsNullOrEmpty(r) ? null : WeaponDef.Get(r, Socket.HandR).Equip(sockets, Socket.HandR);
+            weaponL = string.IsNullOrEmpty(l) ? null : WeaponDef.Get(l, Socket.HandL).Equip(sockets, Socket.HandL);
         }
 
         public void Loop(string clip, float fade = 0.15f)

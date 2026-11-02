@@ -1,18 +1,18 @@
 from PIL import Image,ImageDraw
 import sys
-U='user/';A='fix/phone11/qa-phone-'
+U='user/';A='fix/phone12/qa-phone-'
 def crop(f,box=None):
     x=Image.open(f).convert('RGB')
     if f.endswith('K2FRDQFN2TXE71DVRNV7.jpg'): x=x.rotate(90,expand=True) if x.size[1]>x.size[0] else x
     return x.crop(box) if box else x
 H=(820,240,1520,840)
 issues=[
- ('1 gear deformation / stretching (mixed-set outfit, mantle 1.5m wide)',crop(U+'crop_hero1.jpg'),crop(A+'mix-run.png',H),'Fix: GearConform standoff + rarity keeps mesh family + cloth follows body weights. phone11 bulge p95<=0.083 (limit 0.12)'),
+ ('1 gear deformation / stretching (mixed-set outfit, mantle 1.5m wide)',crop(U+'crop_hero1.jpg'),crop(A+'mix-run.png',H),'Fix: GearConform standoff + rarity keeps mesh family + cloth follows body weights. phone12 bulge p95<=0.083 (limit 0.12)'),
  ('2 tiled checkerboard floor',crop(U+'01M6D6FNMASKFTSZGC8F7NPGV7.jpg'),crop(A+'plain-idle.png'),'Fix: GroundBlend cobble/dirt/grass. floorgrid: user FAIL score 0.53 -> after seams=0 ok'),
  ('3 dark previews (bag paper doll)',crop(U+'01M6D6FQGY8K5J2S7E14Q9T5PR.jpg'),crop(A+'bag.png'),'Fix: preview key light faced hero back; StageLighting. after heroLuma 0.305 ok'),
  ('4 dashed telegraph ring',crop(U+'01M6D6FRK8W08TYV0AMHA2ZWFE.jpg',(0,0,1300,1080)) ,crop(A+'sword-idle.png',H),'Fix: HeroRune procedural rune decal'),
  ('5 starter outfit read as pyjamas / tiny creator hero',crop(U+'01M6D6FST2EWCRWCG0KYG6P50C.jpg'),crop(A+'creator.png'),'Fix: authored leather t3 starter set dyed worn wool; creator fov 20 tighter framing'),
- ('6 blade gripped instead of hilt',crop(U+'crop_hero2.jpg'),crop(A+'sword-run.png',H),'Hilt now seated at handle (720 checks 0 fails). Rigged fingers+right thumb close round the handle (fitted bare hand, no starter gauntlet); see grip_closeups_v3.jpg. Hand tone still dark w/ orange tips'),
+ ('6 blade gripped instead of hilt',crop(U+'crop_hero2.jpg'),crop(A+'sword-run.png',H),'Hilt now seated at handle (720 checks 0 fails). Rigged fingers+right thumb close round the handle (fitted bare hand, no starter gauntlet); bare hand = face skin albedo x creator skin tint (no orange tips); see grip_closeups_v4.jpg. Left thumb unrigged'),
  ('7 no TestStart gear in bag (only 2 gems)',crop(U+'01M6D6FQGY8K5J2S7E14Q9T5PR.jpg'),crop(A+'bag.png'),'Fix: kit into enlarged paged bag (fresh1 bag 354/390) + old saves granted'),
 ]
 for i,(t,b,a,n) in enumerate(issues):

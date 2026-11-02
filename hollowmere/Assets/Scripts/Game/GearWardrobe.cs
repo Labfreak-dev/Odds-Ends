@@ -329,7 +329,8 @@ namespace Hollowmere
                 if (smr.name != "body_Hand" || smr.GetComponent<HandLit>() != null) continue;
                 smr.gameObject.AddComponent<HandLit>();
                 var m = new Material(smr.sharedMaterial) { name = smr.sharedMaterial.name + "_hand" };
-                foreach (var prop in new[] { "_BaseColor", "_Color" })
+                if (m.HasProperty("_SkinOnly")) m.SetFloat("_SkinOnly", 1f); // skin albedo x creator skin tint (shader)
+                else foreach (var prop in new[] { "_BaseColor", "_Color" })
                     if (m.HasProperty(prop)) { var c = m.GetColor(prop); m.SetColor(prop, new Color(c.r * HandLighten, c.g * HandLighten * 0.95f, c.b * HandLighten * 0.9f, c.a)); }
                 smr.sharedMaterial = m;
             }

@@ -29,6 +29,8 @@ Shader "Hollowmere/Lit"
         _UseNeck ("Use Neck Mask", Float) = 0
         _TintMask ("Tint Mask", 2D) = "black" {}
         _HasTint ("Has Tint", Float) = 0
+        _SkinOnly ("Skin Only (bare hand)", Float) = 0
+        _SkinAlbedo ("Skin Albedo", Color) = (0.61,0.43,0.38,1)
         _TintArmour ("Armour Tint", Color) = (1,1,1,1)
         _TintCloth ("Cloth Tint", Color) = (1,1,1,1)
         _TintHair ("Hair Tint", Color) = (1,1,1,1)
@@ -81,6 +83,8 @@ Shader "Hollowmere/Lit"
                 half _HasMetal;
                 half _GltfPack;
                 half _HasTint;
+                half _SkinOnly;
+                half4 _SkinAlbedo;
                 half _Desat;
                 half _Finish;
                 half _RimPower;
@@ -149,6 +153,15 @@ Shader "Hollowmere/Lit"
                     if (sum > 1.0) acc /= sum;
                     half remain = saturate(1.0 - min(sum, 1.0));
                     albedo = acc + tex * _TintSkin.rgb * remain;
+                }
+                // Bare hand: the body texture paints the hand UVs as dark leather with orange tips. Render it as the
+                // face's skin (median albedo of the untinted skin texels) times the creator skin tint, keeping only a
+                // little of the texture's light/dark detail.
+                if (_SkinOnly > 0.5)
+                {
+                    half3 t = _HasMap > 0.5 ? SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb : half3(0.5, 0.5, 0.5);
+                    half detail = clamp(dot(t, half3(0.299, 0.587, 0.114)) / 0.3, 0.88, 1.08);
+                    albedo = _SkinAlbedo.rgb * _TintSkin.rgb * detail;
                 }
                 // Desaturate the sampled map. A flat colour multiply would erase it.
                 half luma = dot(albedo, half3(0.299, 0.587, 0.114));

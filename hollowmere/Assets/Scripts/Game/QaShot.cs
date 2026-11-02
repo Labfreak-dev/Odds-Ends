@@ -137,6 +137,7 @@ namespace Hollowmere
                 case "geartiers":
                 case "rarity":
                 case "phone":
+                case "grip":
                 case "teststart":
                 case "test-start":
                     return true;
@@ -187,6 +188,11 @@ namespace Hollowmere
             if (scene == "rarity")
             {
                 yield return QaFrames.RunRarity(gm);
+                yield break;
+            }
+            if (scene == "grip")
+            {
+                yield return QaFrames.RunGrip(gm);
                 yield break;
             }
             if (scene == "phone")

@@ -214,12 +214,18 @@ namespace Hollowmere
                 return;
             if (GripResource(hand, "Gear/Weapons/" + model, it.baseId, name, it))
             {
+                var held = hand.Find(name);
+                if (held != null && HandGrip.Seat(hand, held, type)) HandCurl.Ensure(hand, type == "orb");
                 if (main) SeatOffHand(body, it);
                 return;
             }
             string cc0 = Art.Cc0Gear(it.baseId);
-            if (cc0 != null && Grip(hand, cc0, name, main)) return;
-            if (Grip(hand, key, name, main)) return;
+            if ((cc0 != null && Grip(hand, cc0, name, main)) || Grip(hand, key, name, main))
+            {
+                var held = hand.Find(name);
+                if (held != null && HandGrip.Seat(hand, held, type)) HandCurl.Ensure(hand, type == "orb");
+                return;
+            }
             Art.Weapon(hand, it.baseId, Art.Rarity(it.rarity));
         }
 
@@ -1039,6 +1045,8 @@ namespace Hollowmere
             var doomed = new System.Collections.Generic.List<GameObject>();
             foreach (var t in body.GetComponentsInChildren<Transform>(true))
                 if (IsGearDebris(t.name)) doomed.Add(t.gameObject);
+            // Open the hands again; a re-seat adds the curl back for the hand that holds something.
+            foreach (var c in body.GetComponentsInChildren<HandCurl>(true)) Object.DestroyImmediate(c);
             for (int i = 0; i < doomed.Count; i++)
             {
                 if (doomed[i] == null) continue;

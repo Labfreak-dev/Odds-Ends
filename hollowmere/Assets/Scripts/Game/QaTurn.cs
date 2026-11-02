@@ -238,6 +238,7 @@ namespace Hollowmere
                 pick.enabled = true; pick.weight = 1f; pick.speed = 0f; pick.time = pick.length * frac;
                 anim.Sample();
                 foreach (var c in curls) if (c != null) c.Apply();
+                foreach (var ik in actor.GetComponentsInChildren<OffHandIk>(true)) if (ik != null) ik.Apply();
             };
         }
 
@@ -255,6 +256,9 @@ namespace Hollowmere
             gm.EnterTown(false);
             Screen.SetResolution(2340, 1080, FullScreenMode.Windowed);
             yield return new WaitForSecondsRealtime(1.0f);
+            // Weapons are sheathed in town; shoot in floor 1 with the weapon drawn (own layer + backdrop, so the floor never shows).
+            gm.EnterFloor(1);
+            yield return new WaitForSecondsRealtime(2.0f);
             var actor = HeroActor.I;
             string[] weps = { "sword", "axe", "spear" };
             var poses = new (string key, float frac)[] { ("idle", 0.3f), ("run", 0.25f), ("attack", 0.45f) };
@@ -279,9 +283,6 @@ namespace Hollowmere
                     }
                 }
             }
-            gm.EnterFloor(1);
-            yield return new WaitForSecondsRealtime(2.0f);
-            actor = HeroActor.I;
             for (int t = 1; t <= GearTable.TierCount; t++)
             {
                 WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);

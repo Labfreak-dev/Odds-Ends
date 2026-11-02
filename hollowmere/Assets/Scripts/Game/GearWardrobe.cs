@@ -276,6 +276,7 @@ namespace Hollowmere
             BodyRegions.Ensure(body);
             var skin = BodyRegions.Source(body);
             var placed = new List<SkinnedMeshRenderer>();
+            var fittedSlots = new List<EquipSlot>();
             LightenHands(body);
             for (int i = 0; i < GearFit.Visible.Length; i++)
             {
@@ -300,7 +301,7 @@ namespace Hollowmere
                 if (fitted != null)
                 {
                     var fp = Spawn(body, skin, slot, fitted, family, family, it, false, true);
-                    if (fp != null) { placed.Add(fp); Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + " fitted"); }
+                    if (fp != null) { placed.Add(fp); fittedSlots.Add(slot); Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + " fitted"); }
                     continue;
                 }
                 var prefab = Load(meshFamily, slotName, tier, out bool lower);
@@ -318,7 +319,20 @@ namespace Hollowmere
                 placed.Add(piece);
                 Debug.Log("Hollowmere gear " + slotName + " " + family + " t" + tier + (lower ? " cc0" : tier < GearTable.TierCount ? " finish" : " authored"));
             }
-            BodyRegions.Show(body, Coverage(body, placed));
+            var covers = Coverage(body, placed);
+            // A full fitted outfit overlaps at every seam, so the skin under it goes entirely (no poke-through at bends).
+            // Partial outfits keep the distance-based coverage. The face always stays.
+            if (fittedSlots.Count == GearFit.Visible.Length)
+                foreach (var fs in fittedSlots)
+                    for (int r = 0; r < covers.Length; r++)
+                        if (r != (int)GearFit.BodyRegion.Head && GearFit.Hides(fs, r)) covers[r].hideAll = true;
+            // A fitted hood/cap sits on the scalp: it must never take the face with it.
+            if (fittedSlots.Contains(EquipSlot.Head))
+            {
+                int hr = (int)GearFit.BodyRegion.Head;
+                covers[hr].hideAll = false;
+            }
+            BodyRegions.Show(body, covers);
             GearAudit.PoseSeal(body);
         }
 

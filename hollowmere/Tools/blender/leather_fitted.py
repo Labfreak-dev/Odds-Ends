@@ -37,7 +37,8 @@ def R(tier):
         if d in ("Spine", "Spine1", "Spine2", "Shoulder"): return True
         if d == "Neck": return p.z < neckz + 0.02
         if d == "Hips": return p.z > hipz - (0.02 if tier == 1 else 0.10 if tier == 2 else 0.16)
-        if d == "Arm": return along(p, dom[i]) < (0.45 if tier == 1 else 1.1)
+        if d == "Arm": return True
+        if d == "ForeArm": return along(p, dom[i]) < 0.62
         if d == "UpLeg" and tier == 3: return along(p, dom[i]) < 0.18
         return False
     def waist(i):
@@ -57,11 +58,11 @@ def R(tier):
     def hands(i):
         d = side(dom[i])
         if d.startswith("Hand"): return True
-        if d == "ForeArm": return along(co[i], dom[i]) > 0.88
+        if d == "ForeArm": return along(co[i], dom[i]) > 0.74
         return False
     def wrists(i):
         d = side(dom[i])
-        return d == "ForeArm" and along(co[i], dom[i]) > (0.55 if tier == 1 else 0.40 if tier == 2 else 0.25)
+        return d == "ForeArm" and along(co[i], dom[i]) > (0.50 if tier == 1 else 0.40 if tier == 2 else 0.25)
     def shoulders(i):
         d = side(dom[i]); p = co[i]
         if d == "Shoulder": return True
@@ -79,8 +80,8 @@ def R(tier):
     return dict(chest=chest, waist=waist, legs=legs, feet=feet, hands=hands, wrists=wrists, shoulders=shoulders, head=head)
 
 # offsets (m) layered inner -> outer, thickness (m)
-OFF = dict(hands=0.004, legs=0.008, feet=0.014, chest=0.012, wrists=0.018, waist=0.022, shoulders=0.026, head=0.008)
-TH = dict(hands=0.003, legs=0.004, feet=0.006, chest=0.005, wrists=0.006, waist=0.008, shoulders=0.009, head=0.007)
+OFF = dict(hands=0.004, legs=0.008, feet=0.014, chest=0.012, wrists=0.018, waist=0.022, shoulders=0.016, head=0.022)
+TH = dict(hands=0.003, legs=0.004, feet=0.006, chest=0.005, wrists=0.006, waist=0.008, shoulders=0.007, head=0.007)
 # Leather palette shared by the whole set (linear base colours)
 PAL = dict(dark=(0.055, 0.030, 0.018), mid=(0.13, 0.068, 0.035), tan=(0.30, 0.18, 0.09), cloth=(0.17, 0.12, 0.08), strap=(0.035, 0.022, 0.014))
 COL = {1: dict(chest="cloth", legs="cloth", feet="mid", hands="mid", wrists="mid", waist="mid", shoulders="mid", head="cloth"),
@@ -113,17 +114,32 @@ def grain():
     return img
 GRAIN = grain()
 def mat(key):
+    # glTF can't carry a multiply node: bake palette x grain into one texture per palette entry
     name = "leather_" + key
     m = bpy.data.materials.get(name)
     if m: return m
+    N = GRAIN.size[0]; g = list(GRAIN.pixels); c = PAL[key]
+    lin2s = lambda x: (x * 12.92 if x <= 0.0031308 else 1.055 * x ** (1 / 2.4) - 0.055)
+    img = bpy.data.images.new(name, N, N)
+    px = [0.0] * (N * N * 4)
+    for i in range(N * N):
+        v = g[i * 4]
+        px[i*4:i*4+4] = (lin2s(min(1, c[0] * v)), lin2s(min(1, c[1] * v)), lin2s(min(1, c[2] * v)), 1.0)
+    img.pixels = px; img.filepath_raw = OUT + "/" + name + ".png"; img.file_format = 'PNG'; img.save()
     m = bpy.data.materials.new(name); m.use_nodes = True
     bsdf = m.node_tree.nodes["Principled BSDF"]
-    t = m.node_tree.nodes.new("ShaderNodeTexImage"); t.image = GRAIN
-    mix = m.node_tree.nodes.new("ShaderNodeMixRGB"); mix.blend_type = 'MULTIPLY'; mix.inputs[0].default_value = 1.0
-    mix.inputs[2].default_value = (*PAL[key], 1)
-    m.node_tree.links.new(t.outputs[0], mix.inputs[1]); m.node_tree.links.new(mix.outputs[0], bsdf.inputs["Base Color"])
-    bsdf.inputs["Roughness"].default_value = 0.72 if key != "cloth" else 0.9
-    bsdf.inputs["Metallic"].default_value = 0.0
+    t = m.node_tree.nodes.new("ShaderNodeTexImage"); t.image = img
+    m.node_tree.links.new(t.outputs[0], bsdf.inputs["Base Color"])
+    # metallic-roughness map too: the game's glTF path keys its Hollowmere/Lit adoption on it
+    rough = 0.72 if key != "cloth" else 0.9
+    mr = bpy.data.images.get("leather_mr")
+    if mr is None:
+        mr = bpy.data.images.new("leather_mr", 16, 16); mr.colorspace_settings.name = 'Non-Color'
+        mr.pixels = [0.0, 0.75, 0.0, 1.0] * 256
+    tm = m.node_tree.nodes.new("ShaderNodeTexImage"); tm.image = mr
+    sep = m.node_tree.nodes.new("ShaderNodeSeparateColor")
+    m.node_tree.links.new(tm.outputs[0], sep.inputs[0])
+    m.node_tree.links.new(sep.outputs[1], bsdf.inputs["Roughness"]); m.node_tree.links.new(sep.outputs[2], bsdf.inputs["Metallic"])
     return m
 
 def build(slot, tier):
@@ -162,7 +178,7 @@ def build(slot, tier):
     if len(piece.data.vertices) == 0: return None
     bpy.context.view_layer.objects.active = piece
     # relax body detail (abs, nipples, knuckles) out of the shell, then offset + thickness
-    sm = piece.modifiers.new("relax", 'SMOOTH'); sm.iterations = 6 if slot != "hands" else 1; sm.factor = 0.5
+    sm = piece.modifiers.new("relax", 'SMOOTH'); sm.iterations = 40 if slot == "head" else 6 if slot != "hands" else 1; sm.factor = 0.5
     
     disp = piece.modifiers.new("offset", 'DISPLACE'); disp.direction = 'NORMAL'; disp.strength = OFF[slot] + (0.002 * (tier - 1) if slot in ("chest", "shoulders") else 0); disp.mid_level = 0.0
     so = piece.modifiers.new("thick", 'SOLIDIFY'); so.thickness = TH[slot]; so.offset = 1.0; so.use_even_offset = False; so.use_quality_normals = True; so.use_rim = True; so.use_flip_normals = False
@@ -175,7 +191,7 @@ def build(slot, tier):
         if any(g.name == P + s + j for s in ("Left", "Right", "") for j in JOINTS):
             piece.vertex_groups.active_index = g.index
             bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
-            bpy.ops.object.vertex_group_smooth(group_select_mode='ACTIVE', factor=0.5, repeat=3)
+            bpy.ops.object.vertex_group_smooth(group_select_mode='ACTIVE', factor=0.3, repeat=2)
             bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.vertex_group_limit_total(group_select_mode='ALL', limit=4)
     bpy.ops.object.vertex_group_normalize_all(lock_active=False)

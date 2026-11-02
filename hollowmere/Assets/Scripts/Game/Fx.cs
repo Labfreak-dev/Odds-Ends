@@ -26,6 +26,19 @@ namespace Hollowmere
             g.AddComponent<FxLife>().Init(seconds, Vector3.one * 0.2f, new Vector3(radius * 2, 0.02f, radius * 2));
         }
 
+        /// <summary>
+        /// Additive ground ring (thin outline texture, dimmed tint) for melee swings only. The opaque emissive
+        /// cylinder of Ring read as a big white disc over the swing on the phone; every other Ring caller is unchanged.
+        /// </summary>
+        public static void SwingRing(Vector3 at, float radius, Color c, float seconds = 0.35f)
+        {
+            var g = Art.VfxSprite(null, 1f, new Color(c.r * 0.45f, c.g * 0.45f, c.b * 0.45f, 0.5f), "circle_05");
+            var fc = g.GetComponent<FaceCamera>(); if (fc != null) Object.Destroy(fc);
+            g.transform.position = at + Vector3.up * 0.06f;
+            g.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            g.AddComponent<FxLife>().Init(seconds, Vector3.one * 0.2f, Vector3.one * radius * 2f);
+        }
+
         public static void Impact(Vector3 at, Color c, Actor target)
         {
             Flip(at + Vector3.up * 0.8f, c, "explosion_flipbook_3x3", 3, 3, 9, 1.8f);

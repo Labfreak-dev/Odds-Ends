@@ -39,6 +39,7 @@ namespace Hollowmere
                 var off = hero.Equipped(EquipSlot.OffHand);
                 if (!Item.IsNone(off))
                     Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+                AddRest(body, weapon);
                 if (v5)
                     GearWardrobe.Apply(body, hero);
                 else
@@ -67,6 +68,19 @@ namespace Hollowmere
             var off = hero.Equipped(EquipSlot.OffHand);
             if (!Item.IsNone(off))
                 Weapon(body, "drop_" + off.baseId, "gear_offhand", off, false);
+            AddRest(body, weapon);
+        }
+
+        static void AddRest(Transform body, Item weapon)
+        {
+            var w = Find(body, "gear_weapon");
+            if (w == null || Item.IsNone(weapon) || w.parent == null) return;
+            var r = w.GetComponent<WeaponRest>() ?? w.gameObject.AddComponent<WeaponRest>();
+            var hb = w.parent; while (hb != null && !hb.name.EndsWith("Hand")) hb = hb.parent;
+            r.hand = hb; r.body = body; r.type = GearTable.TypeOf(weapon.baseId);
+            r.anim = body.GetComponentInChildren<Animation>();
+            var ik = w.GetComponent<OffHandIk>();
+            if (ik != null && ik.hand != null) HandCurl.Ensure(ik.hand, false); // free hand closes on the haft too
         }
 
         static void DestroyNamed(Transform body, string name)

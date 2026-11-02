@@ -137,6 +137,8 @@ namespace Hollowmere
                 case "geartiers":
                 case "rarity":
                 case "phone":
+                case "turn":
+                case "leather":
                 case "grip":
                 case "freshbag":
                 case "teststart":
@@ -199,6 +201,16 @@ namespace Hollowmere
             if (scene == "grip")
             {
                 yield return QaFrames.RunGrip(gm);
+                yield break;
+            }
+            if (scene == "leather")
+            {
+                yield return QaFrames.RunLeather(gm);
+                yield break;
+            }
+            if (scene == "turn")
+            {
+                yield return QaFrames.RunTurn(gm);
                 yield break;
             }
             if (scene == "phone")

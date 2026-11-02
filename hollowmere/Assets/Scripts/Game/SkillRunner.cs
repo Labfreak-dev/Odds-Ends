@@ -24,7 +24,7 @@ namespace Hollowmere
                     var hits = Actor.InArc(Team.Hero, h.Pos, dir, c.range, Mathf.Min(360, arc));
                     foreach (var a in hits) HitEnemy(h, c, a);
                     OnHits(h, c, hits.Count);
-                    Fx.Ring(h.Pos + dir * 1.2f, c.range * 0.6f, col, 0.18f);
+                    Fx.SwingRing(h.Pos + dir * 1.2f, c.range * 0.6f, col, 0.18f);
                     if (s.generate > 0 && hits.Count > 0) h.Gain(s.generate);
                     break;
                 }
@@ -72,7 +72,7 @@ namespace Hollowmere
                         var hits = Actor.InRadius(Team.Hero, h.Pos, c.radius);
                         foreach (var a in hits) HitEnemy(h, c, a);
                         OnHits(h, c, hits.Count);
-                        Fx.Ring(h.Pos, c.radius, col, 0.35f);
+                        Fx.SwingRing(h.Pos, c.radius, col, 0.35f);
                         if (c.rune?.id == "rn_slam_quake") GroundEffect.Hero(h, c, h.Pos, c.radius * 1.3f, 0.01f, 0.5f, 0.5f);
                     }
                     break;

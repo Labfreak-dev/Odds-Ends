@@ -538,7 +538,7 @@ namespace Hollowmere
             var smr = go.AddComponent<SkinnedMeshRenderer>();
             if (lower) go.AddComponent<LowerTierMark>();
             smr.sharedMesh = mesh;
-            smr.bones = heroSkin.bones;
+            smr.bones = fitted ? VolumeHelpers.Rig(mesh, heroSkin.bones) : heroSkin.bones;
             smr.rootBone = heroSkin.rootBone;
             smr.updateWhenOffscreen = true;
             var mats = src.materials;

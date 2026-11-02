@@ -113,7 +113,7 @@ namespace Hollowmere
         }
 
         /// <summary>Five views of one root on a neutral backdrop with its own key/fill/rim, saved as one wide PNG.</summary>
-        static void TurnRender(Transform root, string tag, bool hero, Action pose = null, Transform focus = null, float focusSize = 0f)
+        static void TurnRender(Transform root, string tag, bool hero, Action pose = null, Transform focus = null, float focusSize = 0f, int views = 5)
         {
             var saved = new Dictionary<GameObject, int>();
             foreach (var t in root.GetComponentsInChildren<Transform>(true))
@@ -146,12 +146,12 @@ namespace Hollowmere
             float hgt = Mathf.Max(b.size.y, b.size.x * PanelH / (float)PanelW * 0.8f, b.size.z * PanelH / (float)PanelW * 0.8f) * 1.12f;
             float dist = hgt * 0.5f / Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
             Debug.Log("Hollowmere turn " + tag + " bounds=" + b.size.ToString("F2"));
-            var outTex = new Texture2D(PanelW * 5, PanelH, TextureFormat.RGB24, false);
+            var outTex = new Texture2D(PanelW * views, PanelH, TextureFormat.RGB24, false);
             float[] yaws = { 0f, 45f, 90f, 180f, 135f };
             var an = root.GetComponentInChildren<Animation>();
             var fwd = Vector3.ProjectOnPlane((an != null ? an.transform : root).forward, Vector3.up).normalized;
             Debug.Log("Hollowmere turn fwd root=" + root.forward.ToString("F2") + " model=" + fwd.ToString("F2"));
-            for (int v = 0; v < 5; v++)
+            for (int v = 0; v < views; v++)
             {
                 var dir = Quaternion.AngleAxis(yaws[v], Vector3.up) * fwd;
                 var look = b.center;
@@ -256,7 +256,7 @@ namespace Hollowmere
             foreach (AnimationState st in anim)
             {
                 string n = st.name.ToLowerInvariant();
-                bool ok = key == "attack" ? (n.Contains("attack") || n.Contains("slash") || n.Contains("chop")) : n.Contains(key);
+                bool ok = key.StartsWith("=") ? st.name == key.Substring(1) : key == "attack" ? (n.Contains("attack") || n.Contains("slash") || n.Contains("chop")) : n.Contains(key);
                 if (ok && (pick == null || n.Length < pick.name.Length)) pick = st;
             }
             if (pick == null) { Debug.Log("Hollowmere leather no clip " + key); return null; }
@@ -300,7 +300,8 @@ namespace Hollowmere
             var parts = new (string name, string bone, float size)[] { ("shoulderR", "RightArm", 0.30f), ("shoulderL", "LeftArm", 0.30f), ("elbowR", "RightForeArm", 0.26f), ("elbowL", "LeftForeArm", 0.26f), ("hips", "Hips", 0.42f), ("kneeR", "RightLeg", 0.28f), ("kneeL", "LeftLeg", 0.28f), ("handR", "RightHand", 0.22f), ("handL", "LeftHand", 0.22f) };
             bool quick = Environment.GetEnvironmentVariable("HM_LQ") == "1";
             int qt = int.TryParse(Environment.GetEnvironmentVariable("HM_LQT"), out var qv) ? qv : 2;
-            for (int t = quick ? qt : 1; t <= (quick ? qt : GearTable.TierCount); t++)
+            bool strip = Environment.GetEnvironmentVariable("HM_LSTRIP") == "1";
+            for (int t = quick ? qt : 1; !strip && t <= (quick ? qt : GearTable.TierCount); t++)
             {
                 WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
                 TurnWeapon(gm, weps[t - 1]);
@@ -312,9 +313,6 @@ namespace Hollowmere
                     yield return null; yield return null;
                     yield return new WaitForEndOfFrame();
                     fr?.Invoke();
-                    foreach (var tt in actor.GetComponentsInChildren<Transform>(true)) if (tt.name.EndsWith("RightHand") || tt.name.EndsWith("RightForeArm")) Debug.Log("Hollowmere leather bone " + ps.key + " " + tt.name + " root=" + tt.root.name + " up=" + (tt.parent ? tt.parent.name : "-") + " d=" + (tt.position - actor.transform.position).ToString("F2"));
-                    foreach (var sm in actor.GetComponentsInChildren<SkinnedMeshRenderer>()) if (sm.name == "body_Hand" || sm.name == "gear_hands") Debug.Log("Hollowmere leather smr " + sm.name + " bone0=" + (sm.bones.Length > 0 && sm.bones[0] ? sm.bones[0].name : "-") + " rightHand=" + System.Array.Find(sm.bones, b => b != null && b.name.EndsWith("RightHand"))?.position.ToString("F2") + " bounds=" + sm.bounds.center.ToString("F2"));
-                    foreach (var rr in actor.GetComponentsInChildren<Renderer>()) if (rr.enabled && !(rr is SkinnedMeshRenderer)) Debug.Log("Hollowmere leather rend " + ps.key + " " + rr.name + " parent=" + (rr.transform.parent ? rr.transform.parent.name : "-") + " d=" + (rr.bounds.center - actor.transform.position).ToString("F2"));
                     TurnRender(actor.transform, "leather-t" + t + "-" + weps[t - 1] + "-" + ps.key, true, fr);
                     if (quick) continue;
                     foreach (var pt in parts)
@@ -325,6 +323,34 @@ namespace Hollowmere
                         TurnRender(actor.transform, "leather-close-t" + t + "-" + ps.key + "-" + pt.name, true, fr, bn, pt.size);
                     }
                 }
+            }
+            if (Environment.GetEnvironmentVariable("HM_LSTRIP") == "1")
+            {
+                // Frame-by-frame attack strips: every 24 fps frame of every ironclad combat clip, front + 3/4.
+                var an = actor.GetComponentInChildren<Animation>();
+                var clips = new List<string>();
+                foreach (AnimationState st in an) { Debug.Log("Hollowmere leather state " + st.name + " len=" + st.length.ToString("F2")); if (st.name.StartsWith("ic_")) clips.Add(st.name); }
+                string only = Environment.GetEnvironmentVariable("HM_LSTRIPCLIP");
+                for (int t = quick ? qt : 1; t <= (quick ? qt : GearTable.TierCount); t++)
+                {
+                    WearFamily(gm, TurnPieces, "leather", t, t == 1 ? Rarity.Common : t == 2 ? Rarity.Rare : Rarity.Legendary);
+                    TurnWeapon(gm, weps[t - 1]);
+                    yield return new WaitForSeconds(0.6f);
+                    foreach (var cn in clips)
+                    {
+                        if (!string.IsNullOrEmpty(only) && !only.Split(',').Contains(cn)) continue;
+                        var st = an[cn]; int n = Mathf.Max(2, Mathf.RoundToInt(st.length * 24f));
+                        for (int f = 0; f < n; f++)
+                        {
+                            var fr = Freeze(actor, "=" + cn, f / (float)(n - 1) * 0.999f);
+                            fr?.Invoke(); yield return null; yield return new WaitForEndOfFrame(); fr?.Invoke();
+                            TurnRender(actor.transform, "leather-strip-t" + t + "-" + cn + "-" + f.ToString("000"), true, fr, null, 0f, 2);
+                        }
+                    }
+                }
+                Debug.Log("Hollowmere QA leather done");
+                Application.Quit();
+                yield break;
             }
             foreach (var ma in actor.GetComponentsInChildren<ModelAnim>(true)) ma.enabled = true;
             for (int t = 1; t <= (quick ? 0 : GearTable.TierCount); t++)

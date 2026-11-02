@@ -66,7 +66,7 @@ LOOK = {
          shoulders=("dark", "tan", "oxblood", "tan", "brass"), head=("charcoal", "oxblood", "charcoal", "dark", "brass")),
 }
 OFF = dict(hands=0.003, legs=0.006, feet=0.012, chest=0.010, wrists=0.016, waist=0.020, shoulders=0.016)
-TH = dict(hands=0.0025, legs=0.004, feet=0.006, chest=0.005, wrists=0.006, waist=0.007, shoulders=0.007, head=0.006)
+TH = dict(hands=0.0025, legs=0.004, feet=0.006, chest=0.005, wrists=0.009, waist=0.007, shoulders=0.011, head=0.006)
 JOINTS = ["Arm", "ForeArm", "UpLeg", "Leg", "Spine", "Spine1", "Spine2", "Hips", "Shoulder"]
 UP = Vector((0, 0, 1))
 
@@ -196,11 +196,12 @@ def ray_cap(c, off, cap_r, cuts, smooth=40, seg=(48, 32)):
     clean_islands(bm, 30)
     return bm
 
-def append(dst, src, layer_val):
+def append(dst, src, layer_val, part=0):
     lay = dst.verts.layers.float.get("layer") or dst.verts.layers.float.new("layer")
+    pl = dst.verts.layers.float.get("part") or dst.verts.layers.float.new("part")
     vm = {}
     for v in src.verts:
-        nv = dst.verts.new(v.co); nv[lay] = layer_val; vm[v] = nv
+        nv = dst.verts.new(v.co); nv[lay] = layer_val; nv[pl] = part; vm[v] = nv
     for f in src.faces:
         try: dst.faces.new([vm[v] for v in f.verts])
         except ValueError: pass
@@ -432,7 +433,7 @@ def finish(obj, slot, t, body_weights=True):
     obj.data.materials.clear(); obj.data.materials.append(leather_mat("proc_%s_t%d" % (slot, t), LOOK[t][slot]))
     size = TEX if slot in ("chest", "legs", "shoulders", "head") else TEX // 2
     bake(obj, "leather_t%d_%s" % (t, slot), size)
-    for a in ("edge", "strap", "buckle", "layer", "ox", "oy", "oz"):
+    for a in ("edge", "strap", "buckle", "layer", "ox", "oy", "oz", "part"):
         if obj.data.attributes.get(a): obj.data.attributes.remove(obj.data.attributes[a])
     so = obj.modifiers.new("thick", 'SOLIDIFY'); so.thickness = TH[slot]; so.offset = 1.0; so.use_even_offset = False; so.use_quality_normals = True; so.use_rim = True
     bpy.ops.object.modifier_apply(modifier="thick")
@@ -470,16 +471,136 @@ def body_groups(obj):
         for g in me.vertices[idx].groups:
             if g.weight > 0: vgs[g.group].add([v.index], g.weight, 'REPLACE')
 
+# ---------------- layered pass: authored parts kept close to the body ----------------
+def bracer(sd, t):
+    """Hard leather bracer: a clean tube around the forearm, cross-section measured from the body plus clearance."""
+    h, tl = bone(sd + "ForeArm"); ax = (tl - h); L = ax.length; ax.normalize()
+    a, b = (0.42, 0.90) if t >= 2 else (0.55, 0.90)
+    side = 1 if h.x > 0 else -1
+    u = ax.cross(UP); u = u.normalized() if u.length > 1e-4 else Vector((0, 1, 0)); w = ax.cross(u).normalized()
+    pts = [co0[i] for i in range(len(co0)) if dom[i] in ("ForeArm", "Hand") and (co0[i].x > 0) == (side > 0)]
+    NR, NA = 10, 28
+    R = [[0.0] * NA for _ in range(NR)]
+    for p in pts:
+        q = p - h; s_ = q.dot(ax) / L
+        if not (a - 0.06 <= s_ <= b + 0.06): continue
+        i = min(NR - 1, max(0, int((s_ - a) / (b - a) * (NR - 1) + 0.5)))
+        r = q - ax * q.dot(ax); j = int((math.atan2(r.dot(w), r.dot(u)) + math.pi) / (2 * math.pi) * NA) % NA
+        R[i][j] = max(R[i][j], r.length)
+    for _ in range(6):   # fill + smooth the radius field so the tube is clean
+        R = [[max(R[i][j], 0.5 * (R[i][(j - 1) % NA] + R[i][(j + 1) % NA]) * 0.98) for j in range(NA)] for i in range(NR)]
+        R = [[(R[max(0, i - 1)][j] + 2 * R[i][j] + R[min(NR - 1, i + 1)][j]) / 4 for j in range(NA)] for i in range(NR)]
+    bm = bmesh.new(); grid = []
+    for i in range(NR):
+        s_ = a + (b - a) * i / (NR - 1); c = h + ax * (L * s_); row = []
+        for j in range(NA):
+            ang = (j + 0.5) / NA * 2 * math.pi - math.pi
+            r = R[i][j] + 0.007 + (0.003 if i in (0, NR - 1) else 0.0)   # flared rims
+            row.append(bm.verts.new(c + (u * math.cos(ang) + w * math.sin(ang)) * r))
+        grid.append(row)
+    for i in range(NR - 1):
+        for j in range(NA):
+            bm.faces.new([grid[i][j], grid[i][(j + 1) % NA], grid[i + 1][(j + 1) % NA], grid[i + 1][j]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+def hem_panel(t, front=True):
+    """Hanging tunic hem: front/back panel from the belt down over the thighs, open at the sides so the legs move."""
+    dg = bpy.context.evaluated_depsgraph_get(); bvh = BVHTree.FromObject(sb, dg)
+    n = FWD if front else -FWD
+    z0, z1 = hipz + 0.02, hipz - (0.17 if t == 2 else 0.24)
+    W = 0.15 if front else 0.17; NU, NV = 14, 12
+    side = Vector((-n.y, n.x, 0)).normalized()
+    bm = bmesh.new(); grid = []; top = []
+    for k in range(NU):
+        x = -W + 2 * W * k / (NU - 1)
+        o = Vector((0, 0, z0)) + side * x + n * 0.5
+        hit = bvh.ray_cast(o, -n, 1.0); top.append((o - n * (hit[3] if hit[0] is not None else 0.4)).dot(n))
+    for jv in range(NV):
+        fv = jv / (NV - 1); z = z0 + (z1 - z0) * fv; row = []
+        for k in range(NU):
+            x = -W + 2 * W * k / (NU - 1)
+            o = Vector((0, 0, z)) + side * x + n * 0.5
+            hit = bvh.ray_cast(o, -n, 1.0)
+            d = (o - n * hit[3]).dot(n) if hit[0] is not None else top[k]
+            d = max(d, top[k] * (1 - fv) + (top[k] - 0.01) * fv)       # hangs straight below the seat/crotch
+            d += 0.016 + 0.022 * fv * fv + 0.004 * math.sin(k * 1.9) * fv  # drape: falls away, soft folds
+            row.append(bm.verts.new(Vector((0, 0, z)) + side * x + n * d))
+        grid.append(row)
+    for jv in range(NV - 1):
+        for k in range(NU - 1):
+            bm.faces.new([grid[jv][k], grid[jv][k + 1], grid[jv + 1][k + 1], grid[jv + 1][k]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for f in bm.faces:
+        if f.normal.dot(n) < 0: f.normal_flip()
+    return bm
+
+def cowl(t):
+    """Draped cloth cowl under the hood: neck/upper-shoulder shell from the smooth body, lifted off with soft folds."""
+    nb = bone("Neck")[0]
+    def csel(f):
+        c = f.calc_center_median(); r = math.hypot(c.x - nb.x, c.y - nb.y)
+        return neckz - 0.11 < c.z < neckz + 0.06 and r < (0.15 if t == 2 else 0.19) and not any(dom[v.index].startswith(("Hand", "ForeArm", "Arm", "Head")) for v in f.verts)
+    bm = shell("chest", t, cuts=[(Vector((0, 0, neckz - (0.075 if t == 2 else 0.10))), -UP, 0), (Vector((0, 0, neckz + 0.05)), UP, 0)], sel=csel)
+    bm.normal_update(); ed = edge_dist(bm)
+    for v in bm.verts:
+        ang = math.atan2(v.co.y - nb.y, v.co.x - nb.x); fall = max(0.0, min(1.0, (neckz + 0.05 - v.co.z) / 0.15))
+        v.co += v.normal * (0.012 + 0.010 * fall + 0.005 * fall * math.sin(ang * 7))
+    pl = bm.verts.layers.float.get("part") or bm.verts.layers.float.new("part")
+    for v in bm.verts: v[pl] = 0.0
+    return bm
+
+def raised_straps(bm):
+    """Authored straps as geometry: faces under the strap field are copied and lifted 3.5 mm."""
+    st = bm.verts.layers.float.get("strap")
+    if st is None: return
+    faces = [f for f in bm.faces if all(v[st] < 0.0125 for v in f.verts)]
+    if not faces: return
+    bm.normal_update()
+    dup = bmesh.ops.duplicate(bm, geom=faces)
+    for v in [g for g in dup["geom"] if isinstance(g, bmesh.types.BMVert)]: v.co += v.normal * 0.0035
+
+def set_rigid(obj, part, weights_for):
+    """Override body weights on one authored part: hard pieces ride rigidly on their bones."""
+    pa = obj.data.attributes.get("part")
+    if pa is None: return
+    groups = {g.name: g for g in obj.vertex_groups}
+    for v in obj.data.vertices:
+        if abs(pa.data[v.index].value - part) > 0.1: continue
+        ws = weights_for(v.co)
+        for g in v.groups[:]: obj.vertex_groups[g.group].remove([v.index])
+        for n, w in ws.items():
+            g = groups.get(P + n) or obj.vertex_groups.new(name=P + n); groups[P + n] = g
+            g.add([v.index], w, 'REPLACE')
+
+def stiff_toes(obj):
+    """Boots: the toe box is stiff leather, so ToeBase only bends the tip a little (was curling into pointed toes)."""
+    for sd in ("Left", "Right"):
+        tg = obj.vertex_groups.get(P + sd + "ToeBase"); fg = obj.vertex_groups.get(P + sd + "Foot")
+        if tg is None or fg is None: continue
+        for v in obj.data.vertices:
+            wt = next((g.weight for g in v.groups if g.group == tg.index), 0.0)
+            if wt <= 0: continue
+            wf = next((g.weight for g in v.groups if g.group == fg.index), 0.0)
+            tg.add([v.index], wt * 0.2, 'REPLACE'); fg.add([v.index], wf + wt * 0.8, 'REPLACE')
+
 def build(slot, t):
     name = "%s_t%d" % (slot, t)
     if slot == "head":
-        bm = head_hood(t); fields(bm, slot, t)
+        hb = head_hood(t)
+        if t >= 2:   # draped cloth cowl under the hood, on body weights
+            bm = cowl(t); append(bm, hb, 0.0, part=4)
+        else:
+            bm = bmesh.new(); append(bm, hb, 0.0, part=4)
+        hb.free(); fields(bm, slot, t)
         obj = to_object(bm, name)
-        hg = obj.vertex_groups.new(name=P + "Head"); ng = obj.vertex_groups.new(name=P + "Neck")
-        for v in obj.data.vertices:
-            w = max(0.0, min(1.0, (v.co.z - (neckz - 0.03)) / max(0.01, headz - (neckz - 0.03))))
-            hg.add([v.index], w, 'REPLACE'); ng.add([v.index], 1 - w, 'REPLACE')
-        finish(obj, slot, t, body_weights=False); return
+        for g in list(obj.vertex_groups): obj.vertex_groups.remove(g)
+        body_groups(obj)
+        def hoodw(co):
+            w = max(0.0, min(1.0, (co.z - (neckz - 0.03)) / max(0.01, headz - (neckz - 0.03))))
+            return {"Head": w, "Neck": 1 - w} if w < 1 else {"Head": 1.0}
+        set_rigid(obj, 4, hoodw)
+        finish(obj, slot, t); return
     if slot == "waist":
         # belt: every torso face in the band (not dominant-bone faces, whose boundary zig-zagged under the hem), the two
         # plane cuts then give clean top/bottom loops; arms hanging beside the hips are excluded by side distance
@@ -492,13 +613,17 @@ def build(slot, t):
     if slot == "shoulders":
         bm.free(); bm = bmesh.new()
         for sd in ("Left", "Right"):
-            p1 = pauldron(sd, t); append(bm, p1, 0.0); p1.free()
-            if t >= 2: p2 = pauldron(sd, t, True); append(bm, p2, 1.0); p2.free()
+            p1 = pauldron(sd, t); append(bm, p1, 0.0, part=1); p1.free()
+            if t >= 2: p2 = pauldron(sd, t, True); append(bm, p2, 1.0, part=1); p2.free()
     elif slot == "legs":
         offset(bm, OFF[slot])
         if t >= 2:
             for sd in ("Left", "Right"):
                 k2 = kneeguard(sd, t); append(bm, k2, 1.0); k2.free()
+    elif slot == "wrists":
+        bm.free(); bm = bmesh.new()
+        for sd in ("Left", "Right"):
+            b2 = bracer(sd, t); append(bm, b2, 0.0, part=2); b2.free()
     else:
         if slot in ("hands", "feet"):
             for _ in range(4): bmesh.ops.smooth_vert(bm, verts=[v for v in bm.verts if not v.is_boundary], factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
@@ -508,10 +633,24 @@ def build(slot, t):
         if slot == "chest" and t == 3:
             lay = bm.verts.layers.float.get("layer") or bm.verts.layers.float.new("layer")
             for v in bm.verts: v[lay] = 1.0 if v.co.z > bone("Spine2")[0].z + 0.04 else 0.0
+    if slot == "chest" and t >= 2:
+        for fr in (True, False):
+            hp = hem_panel(t, fr); append(bm, hp, 1.0, part=3); hp.free()
     fields(bm, slot, t)
+    if slot == "chest" and t >= 2: raised_straps(bm)
     obj = to_object(bm, name)
     for g in list(obj.vertex_groups): obj.vertex_groups.remove(g)
     body_groups(obj)
+    side = lambda co: "Left" if co.x > 0 else "Right"
+    if slot == "shoulders": set_rigid(obj, 1, lambda co: {side(co) + "Shoulder": 0.4, side(co) + "Arm": 0.6})
+    if slot == "wrists": set_rigid(obj, 2, lambda co: {side(co) + "ForeArm": 1.0})
+    if slot == "chest" and t >= 2:
+        def hemw(co):
+            fv = max(0.0, min(1.0, (hipz + 0.02 - co.z) / 0.22)); k = 0.55 * fv
+            l = max(0.0, min(1.0, 0.5 + co.x / 0.30))
+            return {"Hips": 1 - k, "LeftUpLeg": k * l, "RightUpLeg": k * (1 - l)}
+        set_rigid(obj, 3, hemw)
+    if slot == "feet": stiff_toes(obj)
     finish(obj, slot, t)
 
 SLOTS = ["chest", "waist", "legs", "feet", "hands", "wrists", "shoulders", "head"]

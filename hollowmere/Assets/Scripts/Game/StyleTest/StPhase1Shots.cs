@@ -201,8 +201,8 @@ namespace Hollowmere.StyleTest
                     {
                         var o = ms[k]; Texture tex = o && o.HasProperty("_BaseMap") ? o.GetTexture("_BaseMap") : (o ? o.mainTexture : null);
                         Material m;
-                        if (variant == 1) m = StMat.Make("mon1_" + MonIds[i] + k, tex, new Color(1.15f, 1.1f, 1.05f), false);
-                        else m = StMat.Make("mon2_" + MonIds[i] + k, null, MonPal[i], false, 0, MonIds[i].Contains("lava") ? new Color(0.35f, 0.08f, 0.0f) : default);
+                        if (variant == 1) m = StMat.Make("mon1_" + MonIds[i] + k, tex, new Color(1.15f, 1.1f, 1.05f), false, 0, default, MonIds[i].Contains("mutant"));
+                        else m = StMat.Make("mon2_" + MonIds[i] + k, null, MonPal[i], false, 0, MonIds[i].Contains("lava") ? new Color(0.35f, 0.08f, 0.0f) : default, MonIds[i].Contains("mutant"));
                         m.SetFloat("_Ramp", 0.12f); m.SetFloat("_Shade", 0.5f);
                         ms[k] = m;
                     }
@@ -348,17 +348,18 @@ namespace Hollowmere.StyleTest
             var heroes = StLook.Base; int hi = 0;
             foreach (var kv in new[] { "plaza", "blacksmith", "market", "pen", "gate" })
             {
+                Debug.Log("[ST] town hero " + kv + " have=" + StTown.Spots.ContainsKey(kv));
                 var spot = StTown.Spots[kv];
                 var l = heroes[hi++ % 3]; var h = l.Build(spot, kv == "gate" ? 0 : 160); h.Pose(h.idle, 0.3f);
                 var hud = Hud();
-                foreach (var dist in new[] { 19f, 10f })
+                foreach (var dist in new[] { 15f, 9f })
                 {
                     C.fieldOfView = 35;
                     var tgt = spot + new Vector3(0, 1.2f, 1.0f);
                     C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -dist); C.transform.rotation = Quaternion.Euler(52, 0, 0);
-                    if (hud) hud.SetActive(dist > 15);
+                    if (hud) hud.SetActive(dist > 12);
                     Settle(t + hi); yield return null; Settle(t + hi);
-                    R.SavePub(R.RenderPub(C, 2340, 1080), (dist > 15 ? "town/gamecam_" : "town/zoom_") + kv + "_" + l.id + ".png");
+                    R.SavePub(R.RenderPub(C, 2340, 1080), (dist > 12 ? "town/gamecam_" : "town/zoom_") + kv + "_" + l.id + ".png");
                 }
                 if (hud) Object.Destroy(hud);
                 Object.Destroy(h.gameObject); yield return null;

@@ -13,14 +13,15 @@ Credit is not required by CC0; given here as thanks.
 | Quaternius Modular Character Outfits - Fantasy | Standard (free) | https://quaternius.itch.io/modular-character-outfits-fantasy | CC0 1.0 (License_Standard.txt) | Male/Female Peasant + Male/Female Ranger outfits, base-colour textures (Resources/ST/Folk) - town villagers + model-agnostic socket proof |
 | Quaternius Universal Base Characters | Standard (free) | https://quaternius.itch.io/universal-base-characters | CC0 1.0 (License_Standard.txt) | Superhero Male/Female FullBody (head kept at runtime), hair + eyebrow meshes, skin/hair/eye textures (Resources/ST/Folk) |
 | Quaternius Universal Animation Library | Standard (free) | https://quaternius.itch.io/universal-animation-library | CC0 1.0 (License.txt) | UAL1_Standard.fbx clips for villagers (Resources/ST/Folk) |
-| KayKit Medieval Hexagon Pack | 1.0 FREE | https://kaylousberg.itch.io/kaykit-medieval-hexagon | CC0 1.0 (License.txt) | Blue + neutral buildings, decoration props and nature, shared texture hexagons_medieval.png (Resources/ST/Town/Hex) - town houses, tavern, church, smithy, windmill, horizon hills |
+| KayKit Medieval Hexagon Pack | 1.0 FREE | https://kaylousberg.itch.io/kaykit-medieval-hexagon | CC0 1.0 (License.txt) | Blue + neutral buildings, decoration props and nature, shared texture hexagons_medieval.png (Resources/ST/Town/Hex) - town houses, tavern, church, smithy, windmill (hex mountain tiles tried and dropped) |
 | Medieval Village Kit (algumacoisaqq / Daniel Gruginski) | FBX + PNG release | https://algumacoisaqq.itch.io (generator source https://github.com/danielgruginski/MedievalVillageKit) | CC0 1.0 (LICENSE.txt) | 121 VK pieces (market stalls, fountain, forge yard, lamps, signs, banners, fences, trees, bushes, rocks, graves...) + 38 textures + vk_mats.txt (converted from Data/materials.json) (Resources/ST/Town/VK). README states the kit was AI-generated (Blender Python scripts written with Claude Code, human-directed). |
 | Quaternius LowPoly Animated Animals (Farm Animals Animated) | free upload | https://quaternius.itch.io/lowpoly-animated-animals | CC0 1.0 (itch page licence; no licence file in zip) | Cow, Horse, Pig, Pug, Sheep (Resources/ST/Town/Animals) |
 | Quaternius Medieval Village MegaKit | Standard (free) | https://quaternius.itch.io/medieval-village-megakit | CC0 1.0 (License_Standard.txt) | Downloaded and evaluated; not imported yet (glTF-only textured modular houses) |
 | Quaternius Fantasy Props MegaKit | Standard (free) | https://quaternius.itch.io/fantasy-props-megakit | CC0 1.0 | Downloaded and evaluated; not imported yet (VK props cover phase 1) |
 | Quaternius Stylized Nature MegaKit | Standard (free) | https://quaternius.itch.io/stylized-nature-megakit | CC0 1.0 (License_Standard.txt) | Downloaded; reserved for phase 2 biomes |
 
-Repo assets reused (already in Hollowmere, see Assets/Audio/CREDITS.md for CC-BY audio): StGlow overlay shader, KayKit dungeon arch/torches for the town's dungeon gate.
+Repo assets reused (already in Hollowmere; licences per repo_asset_inventory.md / v6_cc0_licences.txt): hm_warwolf, hm_spider, hm_lava_golem, hm_giant_mutant, hm_vampire_bat, hm_rat from Resources/Models (CC0, OpenGameArt v6 set) for the flat-toon recolour test;
+( see Assets/Audio/CREDITS.md for CC-BY audio): StGlow overlay shader, KayKit dungeon arch/torches for the town's dungeon gate.
 
 ## Owned itch.io 2D packs (NOT in git)
 

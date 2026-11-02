@@ -42,7 +42,9 @@ namespace Hollowmere.StyleTest
             // a palm-centred grip: move from the wrist pivot into the fist (fraction of body height)
             handPos = new Vector3(0, -0.045f, 0.012f),
             itemScale = 0.7f,
+            handRot = StWeapons_Env("HM_GENROT", new Vector3(0, 0, 180)) // UAL hand bone axes differ from KayKit handslot: flip so grips point the same way,
         };
+        static Vector3 StWeapons_Env(string k, Vector3 d) { var v = System.Environment.GetEnvironmentVariable(k); if (string.IsNullOrEmpty(v)) return d; var p = v.Split(','); return new Vector3(float.Parse(p[0]), float.Parse(p[1]), float.Parse(p[2])); }
 
         public static RigProfile Detect(Transform root)
         {

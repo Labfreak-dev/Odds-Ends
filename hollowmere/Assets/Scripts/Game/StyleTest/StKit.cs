@@ -141,7 +141,7 @@ namespace Hollowmere.StyleTest
         public void Pose(string clip, float t01)
         {
             anim.Stop();
-            var st = anim[clip]; if (st == null) return;
+            var st = anim[clip]; if (st == null) { var names = new System.Collections.Generic.List<string>(); foreach (AnimationState x in anim) names.Add(x.name); Debug.LogWarning("[ST] noclip " + clip + " on " + name + " have: " + string.Join(",", names)); return; }
             st.enabled = true; st.weight = 1; st.wrapMode = WrapMode.ClampForever;
             st.normalizedTime = t01;
             anim.Sample();

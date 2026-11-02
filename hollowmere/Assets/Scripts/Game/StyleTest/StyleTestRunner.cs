@@ -580,7 +580,7 @@ namespace Hollowmere.StyleTest
             for (int row = 0; row < 2; row++)
                 for (int f = 0; f < N; f++)
                 {
-                    a.transform.rotation = Quaternion.Euler(0, row == 0 ? 215 : 35, 0); a.Pose(clip, f / (float)N);
+                    a.transform.rotation = Quaternion.Euler(0, row == 0 ? 215 : 35, 0); a.Pose(clip, f / (float)N); yield return null; a.Pose(clip, f / (float)N);
                     var tile = Render(cam, W, H); Blit(sheet, tile, f * W, (1 - row) * H); Destroy(tile);
                 }
             sheet.Apply(); Save(sheet, name + ".jpg", true);

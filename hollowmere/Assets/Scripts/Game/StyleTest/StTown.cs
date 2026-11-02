@@ -229,9 +229,9 @@ namespace Hollowmere.StyleTest
             AddFolk(V[0], new Vector3(-15.0f, 0, 9.6f), 120, null, "Interact", 0);                     // smith at the anvil
             AddFolk(V[2], new Vector3(13.6f, 0, 7.6f), 230, null, "Idle_Talking_Loop", 0);                   // jeweller
             AddFolk(V[3], new Vector3(16.6f, 0, -1.2f), 270, null, "Idle_Loop", 0);                         // apothecary
-            AddFolk(V[1], new Vector3(-6, 0, -5), 0, new[] { new Vector3(-6, 0, -5), new Vector3(-8.5f, 0, 6), new Vector3(6, 0, 8), new Vector3(7.5f, 0, -4) }, "Idle_Talking_Loop", 2.2f);
+            AddFolk(V[1], new Vector3(-8.5f, 0, -8), 0, new[] { new Vector3(-8.5f, 0, -8), new Vector3(-8.5f, 0, 6), new Vector3(6, 0, 8), new Vector3(7.5f, 0, -4) }, "Idle_Talking_Loop", 2.2f);
             AddFolk(V[2], new Vector3(2, 0, 14), 180, new[] { new Vector3(2, 0, 14), new Vector3(2, 0, 28), new Vector3(-2, 0, 20) }, "Idle_Loop", 3f);
-            AddFolk(V[0], new Vector3(-12.5f, 0, 19), 140, null, "Sitting_Talking_Loop", 0);               // at the tavern
+            AddFolk(V[0], new Vector3(-12.5f, 0, 19), 140, null, "Idle_Talking_Loop", 0);               // at the tavern (standing: no seat there)
             AddFolk(V[3], new Vector3(16.5f, 0, -19.5f), 180, new[] { new Vector3(16.5f, 0, -19.5f), new Vector3(16.5f, 0, -31.0f) }, "Interact", 2.5f);
             Spots["plaza"] = new Vector3(0, 0, -5.5f);
             Spots["pen"] = new Vector3(17f, 0, -21f);

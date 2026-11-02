@@ -230,10 +230,10 @@ namespace Hollowmere
             if (bagPages > 1)
             {
                 // Test build: the bag holds the whole kit, 30 per page.
-                int top = grid.Y - 44;
-                Ui.Label(Ui.Dp(root, "bagPageLab", grid.X, top, 260, 40), $"Bag {h.inventory.Count}/{capacity} · page {BagPage + 1}/{bagPages}", 22, TextAnchor.MiddleLeft, Ui.Gold).verticalOverflow = VerticalWrapMode.Overflow;
-                Ui.Button(Ui.Dp(root, "bagPrev", grid.X + 270, top, 110, 40), "Prev", () => { if (BagPage > 0) { BagPage--; Show(ui); } }, Ui.ButtonC, 20);
-                Ui.Button(Ui.Dp(root, "bagNext", grid.X + 390, top, 110, 40), "Next", () => { if (BagPage < bagPages - 1) { BagPage++; Show(ui); } }, Ui.ButtonC, 20);
+                int top = grid.Y + DesignTable.BagRows * pitch + 4;
+                Ui.Label(Ui.Dp(root, "bagPageLab", grid.X + 150, top, 120, 40), $"{BagPage + 1}/{bagPages}", 24, TextAnchor.MiddleLeft, Ui.Gold).verticalOverflow = VerticalWrapMode.Overflow;
+                Ui.Button(Ui.Dp(root, "bagPrev", grid.X + 280, top, 100, 40), "Prev", () => { if (BagPage > 0) { BagPage--; Show(ui); } }, Ui.ButtonC, 20);
+                Ui.Button(Ui.Dp(root, "bagNext", grid.X + 385, top, 100, 40), "Next", () => { if (BagPage < bagPages - 1) { BagPage++; Show(ui); } }, Ui.ButtonC, 20);
             }
             var bottom = At("bottom");
             var sortBtn = Ui.Button(bottom, "Sort", () =>

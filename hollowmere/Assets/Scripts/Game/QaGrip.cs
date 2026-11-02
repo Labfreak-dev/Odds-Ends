@@ -25,6 +25,7 @@ namespace Hollowmere
             var s = gm.State; var h = s.hero;
             var actor = HeroActor.I; var cam = Camera.main;
             if (actor == null || cam == null) { Debug.LogError("Hollowmere grip FAIL no hero"); Application.Quit(); yield break; }
+            s.stashCapacity = 2000;
             foreach (var it in h.inventory.Where(i => i.kind == ItemKind.Equipment).ToList()) Town.ToStash(s, it);
             var rig = cam.GetComponent<CameraRig>(); if (rig != null) rig.enabled = false;
             var models = s.stash.Where(i => i.kind == ItemKind.Equipment && i.Base != null && (i.Base.slot == ItemSlot.MainHand || i.Base.slot == ItemSlot.OffHand))

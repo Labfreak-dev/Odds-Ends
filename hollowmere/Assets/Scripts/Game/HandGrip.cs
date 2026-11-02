@@ -137,14 +137,14 @@ namespace Hollowmere
             foreach (var mf in weapon.GetComponentsInChildren<MeshFilter>(true))
             {
                 var m = mf.sharedMesh; if (m == null || !m.isReadable) continue;
-                var v = m.vertices; int step = Mathf.Max(1, v.Length / 1500);
+                var v = m.vertices; int step = Mathf.Max(1, v.Length / 20000);
                 for (int i = 0; i < v.Length; i += step) pts.Add(weapon.InverseTransformPoint(mf.transform.TransformPoint(v[i])));
             }
-            foreach (var sm in weapon.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            foreach (var smr in weapon.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
-                var m = sm.sharedMesh; if (m == null || !m.isReadable) continue;
-                var v = m.vertices; int step = Mathf.Max(1, v.Length / 1500);
-                for (int i = 0; i < v.Length; i += step) pts.Add(weapon.InverseTransformPoint(sm.transform.TransformPoint(v[i])));
+                var m = smr.sharedMesh; if (m == null || !m.isReadable) continue;
+                var v = m.vertices; int step = Mathf.Max(1, v.Length / 20000);
+                for (int i = 0; i < v.Length; i += step) pts.Add(weapon.InverseTransformPoint(smr.transform.TransformPoint(v[i])));
             }
             if (pts.Count < 8) return false;
             var min = pts[0]; var max = pts[0];
@@ -168,42 +168,41 @@ namespace Hollowmere
                 var d = q - (min + max) * 0.5f; d[a] = 0f;
                 ext[bin] = Mathf.Max(ext[bin], d.magnitude);
             }
-            var sorted = (float[])ext.Clone(); System.Array.Sort(sorted);
-            float narrow = sorted[2] * 1.45f + 0.004f;
-            int Run(int start, int dir, out int first)
-            {
-                first = -1; int best = 0;
-                for (int skip = 0; skip <= 3; skip++)
-                {
-                    int i = start + dir * skip, n = 0, f0 = i;
-                    while (i >= 0 && i < N && ext[i] <= narrow) { n++; i += dir; }
-                    if (n > best) { best = n; first = f0; }
-                }
-                return best;
-            }
-            int runLo = Run(0, 1, out int fLo), runHi = Run(N - 1, -1, out int fHi);
-            int widest = System.Array.IndexOf(ext, sorted[N - 1]);
+            // Fill empty bins, then smooth over 3.
+            for (int i = 0; i < N; i++) if (ext[i] <= 0f) { float l = i > 0 ? ext[i - 1] : 0f; int j = i + 1; while (j < N && ext[j] <= 0f) j++; ext[i] = Mathf.Max(l, j < N ? ext[j] : l); }
+            var sm = new float[N];
+            for (int i = 0; i < N; i++) { float t = 0; int c = 0; for (int k = -1; k <= 1; k++) if (i + k >= 0 && i + k < N) { t += ext[i + k]; c++; } sm[i] = t / c; }
+            int widest = 0; for (int i = 1; i < N; i++) if (sm[i] > sm[widest]) widest = i;
+            // Swords and daggers: the guard is the widest slice; the handle is the shorter side of it (handles are
+            // shorter than blades). Everything else: the head is the widest slice; the butt is the far end.
+            bool blade = type == "sword" || type == "dagger";
             bool pole = GripFrac(type) >= 0f;
-            bool handleAtLo = pole ? widest > N / 2 : runLo >= runHi;
-            if (!handleAtLo) ax = -ax;
-            float a0, a1; // handle region, metres from the pommel end
-            if (pole) { float f = GripFrac(type); a0 = len * (f - 0.08f); a1 = len * (f + 0.08f); }
+            bool handleAtLo;
+            float a0, a1;
+            if (blade)
+            {
+                handleAtLo = widest < N / 2;
+                int guardFromPommel = handleAtLo ? widest : N - 1 - widest;
+                float gp = guardFromPommel * len / N;
+                // Handle: from just past the pommel cap to just before the guard.
+                a0 = Mathf.Min(gp * 0.25f, 0.03f); a1 = Mathf.Max(a0 + 0.04f, gp - 0.01f);
+            }
             else
             {
-                int first = handleAtLo ? fLo : fHi, n = handleAtLo ? runLo : runHi;
-                if (n <= 0) { a0 = 0f; a1 = Mathf.Min(0.12f, len * 0.25f); }
-                else
-                {
-                    int b0 = handleAtLo ? first : N - 1 - first;
-                    a0 = b0 * len / N; a1 = (b0 + n) * len / N;
-                }
+                handleAtLo = widest > N / 2;
+                if (type == "bow") { a0 = len * 0.42f; a1 = len * 0.58f; }
+                else if (pole) { float f = GripFrac(type); a0 = len * (f - 0.1f); a1 = len * (f + 0.1f); }
+                else if (type == "fist") { a0 = len * 0.3f; a1 = len * 0.7f; }
+                else { a0 = len * 0.06f; a1 = len * 0.32f; }
             }
+            int runLo = 0, runHi = 0; float narrow = sm[widest];
             HandleFrom = a0 / len; HandleTo = a1 / len;
+            if (!handleAtLo) ax = -ax;
             float along = (a0 + a1) * 0.5f;
             float pommel = handleAtLo ? lo : -hi;
             var centre = (min + max) * 0.5f;
             grip = centre - Vector3.Project(centre, ax) + ax * (pommel + along);
-            GripLog = type + " len=" + len.ToString("F2") + " handle=" + HandleFrom.ToString("F2") + "-" + HandleTo.ToString("F2") + " end=" + (handleAtLo ? "lo" : "hi") + " runs=" + runLo + "/" + runHi;
+            GripLog = type + " len=" + len.ToString("F2") + " handle=" + HandleFrom.ToString("F2") + "-" + HandleTo.ToString("F2") + " end=" + (handleAtLo ? "lo" : "hi") + " runs=" + runLo + "/" + runHi + " narrow=" + narrow.ToString("F3") + " ext=" + string.Join(",", System.Array.ConvertAll(ext, e => (e * 100f).ToString("0")));
             axis = ax; width = wd;
             return true;
         }
@@ -217,7 +216,8 @@ namespace Hollowmere
             if (!p.ok) return false;
             if (type == "orb")
             {
-                weapon.position = FistPoint(p, type);
+                var rb = weapon.GetComponentInChildren<Renderer>();
+                weapon.position += FistPoint(p, type) - (rb != null ? rb.bounds.center : weapon.position);
                 return true;
             }
             if (!MeshAxes(weapon, type, out var axisL, out var widthL, out var gripL)) return false;
@@ -239,6 +239,7 @@ namespace Hollowmere
         public static bool Held(Transform weapon, string type, out Vector3 grip, out Vector3 axis)
         {
             grip = weapon != null ? weapon.position : Vector3.zero; axis = Vector3.forward;
+            if (type == "orb" && weapon != null) { var rb = weapon.GetComponentInChildren<Renderer>(); if (rb != null) grip = rb.bounds.center; return true; }
             if (weapon == null || !MeshAxes(weapon, type, out var a, out _, out var g)) return false;
             grip = weapon.TransformPoint(g); axis = weapon.TransformDirection(a).normalized;
             return true;

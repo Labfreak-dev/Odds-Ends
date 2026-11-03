@@ -23,11 +23,11 @@ namespace Hollowmere.StyleTest
             { "crypt", new List<Entry> {
                 new Entry("skel_warrior", "KK:Skel/Skeleton_Warrior", 0, Surf.Keep),
                 new Entry("skel_mage", "KK:Skel/Skeleton_Mage", 0, Surf.Keep),
-                new Entry("kenney_zombie", "ST/Mon/Kenney_zombie", 2.6f, Surf.Keep),
-                new Entry("kenney_ghost", "ST/Mon/Kenney_ghost", 2.6f, Surf.Keep).E(new Color(0.15f, 0.2f, 0.35f)),
-                new Entry("kenney_vampire", "ST/Mon/Kenney_vampire", 2.8f, Surf.Keep),
+                new Entry("skel_rogue", "KK:Skel/Skeleton_Rogue", 0, Surf.Keep),
+                new Entry("skel_minion", "KK:Skel/Skeleton_Minion", 0, Surf.Keep),
+                new Entry("lp_skeleton", "ST/Mon/LP_Skeleton", 2.6f, Surf.Keep).P(new Color(0.85f, 0.85f, 0.95f)),
                 new Entry("elite_wraith", "Models/hm_wraith", 3.6f, Surf.Flat, 1).P(new Color(0.42f, 0.38f, 0.58f)).E(new Color(0.12f, 0.08f, 0.3f)),
-                new Entry("boss_death", "Models/st_death", 7.0f, Surf.TexToon, 2).P(new Color(1.0f, 0.98f, 1.05f)).E(new Color(0.12f, 0.15f, 0.35f)),
+                new Entry("boss_death", "Models/st_death", 7.0f, Surf.TexToon, 2).P(new Color(0.62f, 0.6f, 0.78f)).E(new Color(0.18f, 0.1f, 0.4f)),
             } },
             { "cave", new List<Entry> {
                 new Entry("spider", "ST/Mon/Easy_Spider", 1.2f, Surf.Keep),
@@ -35,7 +35,7 @@ namespace Hollowmere.StyleTest
                 new Entry("snake", "ST/Mon/Easy_Snake", 1.0f, Surf.Keep),
                 new Entry("slime", "ST/Mon/LP_Slime", 1.3f, Surf.Keep),
                 new Entry("frog", "ST/Mon/Easy_Frog", 1.0f, Surf.Keep),
-                new Entry("elite_warwolf", "Models/hm_warwolf", 4.0f, Surf.Flat, 1).P(new Color(0.42f, 0.5f, 0.6f)).E(new Color(0.05f, 0.18f, 0.3f)),
+                new Entry("elite_warwolf", "Models/hm_warwolf", 4.0f, Surf.Flat, 1).P(new Color(0.38f, 0.33f, 0.42f)).E(new Color(0.05f, 0.18f, 0.3f)),
                 new Entry("boss_dragon", "ST/Mon/LP_Dragon", 6.5f, Surf.Keep, 2).P(new Color(0.8f, 0.5f, 0.85f)).E(new Color(0.08f, 0.04f, 0.12f)),
             } },
             { "sewer", new List<Entry> {
@@ -43,17 +43,17 @@ namespace Hollowmere.StyleTest
                 new Entry("snake_angry", "ST/Mon/Easy_Snake_angry", 1.0f, Surf.Keep),
                 new Entry("wasp", "ST/Mon/Easy_Wasp", 1.3f, Surf.Keep),
                 new Entry("slime_green", "ST/Mon/LP_Slime", 1.2f, Surf.Keep).P(new Color(0.6f, 1.2f, 0.5f)),
-                new Entry("rat_brute", "Models/hm_rat", 1.6f, Surf.Flat).P(new Color(0.55f, 0.5f, 0.45f)),
+                new Entry("rat_brute", "Models/hm_rat", 2.4f, Surf.Flat).P(new Color(0.55f, 0.5f, 0.45f)),
                 new Entry("elite_horror", "Models/hm_horror_ghoul", 3.6f, Surf.Flat, 1).P(new Color(0.55f, 0.62f, 0.45f)).E(new Color(0.08f, 0.2f, 0.05f)),
                 new Entry("boss_mutant", "Models/hm_giant_mutant", 7.0f, Surf.Flat, 2).P(new Color(0.5f, 0.66f, 0.4f)).E(new Color(0.1f, 0.25f, 0.05f)),
             } },
             { "mine", new List<Entry> {
-                new Entry("imp", "STO/Mon/Imp", 1.8f, Surf.Keep).T("T_Imp_BaseColor_1"),
+                new Entry("imp", "STO/Mon/Imp", 2.6f, Surf.Keep).T("T_Imp_BaseColor_1"),
                 new Entry("puglin", "STO/Mon/Puglin", 1.8f, Surf.Keep).T("T_Puglin_BaseColor_1"),
                 new Entry("crawler", "Models/hm_cave_crawler", 1.6f, Surf.Flat).P(new Color(0.6f, 0.45f, 0.35f)),
                 new Entry("spider_rock", "Models/hm_spider", 1.6f, Surf.Flat).P(new Color(0.5f, 0.4f, 0.35f)),
                 new Entry("skel_miner", "KK:Skel/Skeleton_Minion", 0, Surf.Keep),
-                new Entry("elite_imp", "STO/Mon/Imp", 2.6f, Surf.Keep, 1).T("T_Imp_BaseColor_3"),
+                new Entry("elite_imp", "STO/Mon/Imp", 3.2f, Surf.Keep, 1).T("T_Imp_BaseColor_3"),
                 new Entry("boss_lava_golem", "Models/hm_lava_golem", 7.0f, Surf.TexToon, 2).P(new Color(1.9f, 1.7f, 1.6f)).E(new Color(0.5f, 0.15f, 0.02f)),
             } },
         };
@@ -90,7 +90,7 @@ namespace Hollowmere.StyleTest
                 else PickClips(a);
                 var bb = StWorld.Bounds(g); holder.transform.position += Vector3.up * (pos.y - bb.min.y);
             }
-            if (e.tier == 1) { a.transform.localScale *= 1.3f; StGlow.Apply(a, 2); Accent(a, e.emis == default ? new Color(0.25f, 0.2f, 0.05f) : e.emis * 1.6f); }
+                        if (e.tier == 1) { a.transform.localScale *= 1.3f; StGlow.Apply(a, 2); Accent(a, e.emis == default ? new Color(0.25f, 0.2f, 0.05f) : e.emis * 1.6f); }
             if (e.tier == 2)
             {
                 if (e.src.StartsWith("KK:")) a.transform.localScale *= 2.2f;
@@ -98,6 +98,7 @@ namespace Hollowmere.StyleTest
                 var l = new GameObject("boss_light").AddComponent<Light>(); l.type = LightType.Point; l.range = 10; l.intensity = 3;
                 l.color = e.emis.maxColorComponent > 0 ? e.emis / e.emis.maxColorComponent : Color.white; l.transform.SetParent(a.transform, false); l.transform.localPosition = new Vector3(0, 2.5f / Mathf.Max(0.01f, a.transform.localScale.y), 0);
             }
+            if (e.id == "boss_death") { a.idle = "Cast_Windup"; a.run = "Cast_Windup"; a.attack = "Attack_Scythe"; }
             if (a.anim && a.anim.GetClip(a.idle) != null) a.Pose(a.idle, 0.2f);
             return a;
         }
@@ -126,6 +127,25 @@ namespace Hollowmere.StyleTest
                     ms[k] = m;
                 }
                 r.sharedMaterials = ms; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            }
+        }
+
+        /// <summary>Elite/boss read: emissive eyes near the head front + a pair of horn spikes, all on StToon.</summary>
+        static void Adorn(StActor a, Entry e)
+        {
+            var b = a.WorldBounds(); if (b.size.y < 0.2f) return;
+            var ec = e.emis.maxColorComponent > 0 ? e.emis / e.emis.maxColorComponent : new Color(1f, 0.6f, 0.2f);
+            var eye = StMat.Make("adorn_eye_" + e.id, null, ec, false, 0, ec * 2.5f);
+            var horn = StMat.Make("adorn_horn_" + e.id, null, new Color(0.9f, 0.86f, 0.75f), false);
+            var head = a.transform.InverseTransformPoint(new Vector3(b.center.x, b.max.y - b.size.y * 0.12f, b.center.z));
+            float s = Mathf.Clamp(b.size.y * 0.035f, 0.06f, 0.3f) / Mathf.Max(0.01f, a.transform.lossyScale.y);
+            float fwd = b.extents.z * 0.85f / Mathf.Max(0.01f, a.transform.lossyScale.z);
+            for (int i = -1; i <= 1; i += 2)
+            {
+                var g = GameObject.CreatePrimitive(PrimitiveType.Sphere); Object.Destroy(g.GetComponent<Collider>());
+                g.name = "eye"; g.transform.SetParent(a.transform, false); g.transform.localPosition = head + new Vector3(i * s * 1.6f, 0, fwd); g.transform.localScale = Vector3.one * s;
+                g.GetComponent<Renderer>().sharedMaterial = eye;
+
             }
         }
 

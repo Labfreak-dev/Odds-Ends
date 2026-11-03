@@ -35,7 +35,7 @@ namespace Hollowmere.StyleTest
             var ros = StBestiary.Rosters[id]; var made = new List<StActor>(); float x = 0;
             foreach (var e in ros)
             {
-                var a = StBestiary.Spawn(e, Vector3.zero, 180); if (!a) continue;
+                var a = StBestiary.Spawn(e, Vector3.zero, 155); if (!a) continue;
                 var b = a.WorldBounds(); float w = Mathf.Max(1.5f, b.size.x);
                 a.transform.position = new Vector3(x + w * 0.5f - b.center.x + a.transform.position.x, a.transform.position.y, 0); x += w + 1.0f;
                 made.Add(a);
@@ -49,11 +49,18 @@ namespace Hollowmere.StyleTest
             foreach (var a in made) if (a) Object.Destroy(a.gameObject); Object.Destroy(hero.gameObject); yield return null;
             foreach (var e in ros)
             {
-                var a = StBestiary.Spawn(e, Vector3.zero, 180); if (!a) continue;
+                var a = StBestiary.Spawn(e, Vector3.zero, 155); if (!a) continue;
                 yield return R.TurnPub(a, "phase3/" + id + "/turn_" + e.id, a.idle, 0.3f);
                 if (a.anim && a.anim.GetClip(a.attack) != null) yield return R.StripPub(a, "phase3/" + id + "/strip_" + e.id + "_attack", a.attack);
                 Object.Destroy(a.gameObject); yield return null;
             }
+        }
+
+        /// <summary>Boss stands off the hero->camera line so neither hides the other.</summary>
+        public static Vector3 BossPos(string id)
+        {
+            var c = StBiomes.Centre;
+            return c + (id == "mine" ? new Vector3(3.5f, 0, 3.6f) : id == "crypt" ? new Vector3(1.5f, 0, 9.5f) : new Vector3(2.5f, 0, 7.0f));
         }
 
         static IEnumerator Scene(string id)
@@ -68,7 +75,7 @@ namespace Hollowmere.StyleTest
             int si = 0;
             foreach (var e in ros)
             {
-                Vector3 p = e.tier == 2 ? c + (id == "mine" ? new Vector3(3.0f, 0, 3.6f) : new Vector3(0, 0, 7.5f)) : spots[si++ % spots.Count];
+                Vector3 p = e.tier == 2 ? BossPos(id) : spots[si++ % spots.Count];
                 var d = StBiomes.Hero - p; d.y = 0;
                 var a = StBestiary.Spawn(e, p, Quaternion.LookRotation(d.sqrMagnitude > 0.01f ? d : Vector3.back).eulerAngles.y);
                 if (a && a.anim && a.anim.GetClip(a.attack) != null) a.Pose(a.attack, 0.3f + 0.1f * si);
@@ -77,7 +84,7 @@ namespace Hollowmere.StyleTest
             C.fieldOfView = 40; C.transform.position = c + new Vector3(0, 30, -26); C.transform.LookAt(c + new Vector3(0, 0, 1));
             yield return null; R.SavePub(R.RenderPub(C, 2340, 1080), "phase3/" + id + "/fight_overview.png");
             var hud = StPhase1Shots.Hud();
-            foreach (var (tag, focus, dist) in new[] { ("gamecam", StBiomes.Hero + new Vector3(0, 0, 2.5f), 17f), ("gamecam_boss", c + new Vector3(0, 0, 5.5f), 17f) })
+            foreach (var (tag, focus, dist) in new[] { ("gamecam", StBiomes.Hero + new Vector3(0, 0, 2.5f), 17f), ("gamecam_boss", Vector3.Lerp(StBiomes.Hero, BossPos(id), 0.45f), 21f) })
             {
                 C.fieldOfView = 35; var tgt = focus + new Vector3(0, 1.2f, 1.0f);
                 C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -dist); C.transform.rotation = Quaternion.Euler(52, 0, 0);

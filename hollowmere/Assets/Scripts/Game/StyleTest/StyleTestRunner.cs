@@ -448,6 +448,11 @@ namespace Hollowmere.StyleTest
                 yield return StPhase3Shots.Run(this, cam, only);
                 Application.Quit(); yield break;
             }
+            if (only == "phase4" || only.StartsWith("p4_"))
+            {
+                yield return StPhase4Shots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
             if (only == "phase2" || only.StartsWith("p2_"))
             {
                 yield return StPhase2Shots.Run(this, cam, only);

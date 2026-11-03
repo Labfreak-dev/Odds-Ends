@@ -53,3 +53,7 @@ KayKit by Kay Lousberg (www.kaylousberg.com). Quaternius models by @Quaternius (
 | Quaternius Bestiary – Dungeon Monsters (Imp, Puglin + textures) | Owned/Resources/STO/Mon (gitignored, NOT in repo) | Quaternius Bestiary pack | QAL – use in product allowed, asset redistribution forbidden; kept out of git |
 | Death boss (st_death.glb; meshopt/webp decoded + textures resized to 1024 with gltf-transform) | Resources/Models/st_death.glb | Project-owned model from lootdaggers/death3d | Project-owned |
 | UAL animation clips reused on Bestiary rigs | Resources/ST/Folk | Quaternius Universal Animation Library (already logged) | CC0 1.0 |
+
+## Phase 3 cleanup / Phase 4
+- Kenney Graveyard characters dropped from the crypt roster (style mismatch); files stay in repo (CC0), unused by rosters.
+- Phase 4 VFX and telegraphs (StFx.shader, StFx.cs) are procedural, written for this project: no third-party assets.

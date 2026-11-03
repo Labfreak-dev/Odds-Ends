@@ -68,7 +68,7 @@ namespace Hollowmere.StyleTest.Skills
             Vector3? aim = aimAt;
             if (aim == null && s.targeting != Targeting.Self && s.range > 0)
             {
-                var t = Nearest(s.range * 1.6f + 2);
+                var t = Nearest((s.range * 1.6f + 2) * StScale.DU); // skill data is in design units; world is metres
                 if (t != null) { aim = t.transform.position; }
             }
             if (aim != null)
@@ -76,7 +76,7 @@ namespace Hollowmere.StyleTest.Skills
                 var d = aim.Value - hero.transform.position; d.y = 0;
                 if (d.sqrMagnitude > 0.01f) hero.transform.rotation = Quaternion.LookRotation(d);
                 // clamp the aim point to the skill's reach
-                if (d.magnitude > s.range && s.range > 0) aim = hero.transform.position + d.normalized * s.range;
+                if (d.magnitude > s.range * StScale.DU && s.range > 0) aim = hero.transform.position + d.normalized * s.range * StScale.DU;
             }
             mana -= s.cost; if (s.slot == SlotType.Ultimate) ult = 0;
             float cd = s.cooldown; readyAt[id] = Time.time + cd; lastCd[id] = cd;
@@ -125,7 +125,7 @@ namespace Hollowmere.StyleTest.Skills
         {
             var td = s.telegraph; var o = ctx.origin; var f = ctx.fwd;
             if (td == null) return false;
-            var c = td.atAim ? ctx.aim : o; var d = p - c; d.y = 0; float r = d.magnitude;
+            var c = td.atAim ? ctx.aim : o; var d = (p - c) / StScale.DU; d.y = 0; float r = d.magnitude; // test in design units
             switch (td.shape)
             {
                 case StFx.Shape.Circle: return r <= td.size + 0.5f;
@@ -144,7 +144,7 @@ namespace Hollowmere.StyleTest.Skills
             var all = new List<StActor>(); foreach (var f in foes()) if (f && !f.dead) all.Add(f);
             all.Sort((a, b) => (a.transform.position - ctx.aim).sqrMagnitude.CompareTo((b.transform.position - ctx.aim).sqrMagnitude));
             int n = s.id == "m_chain_spark" ? 3 : 1;
-            for (int i = 0; i < all.Count && list.Count < n; i++) if ((all[i].transform.position - ctx.aim).magnitude < 3.5f + i * 2.5f) list.Add(all[i]);
+            for (int i = 0; i < all.Count && list.Count < n; i++) if ((all[i].transform.position - ctx.aim).magnitude < (3.5f + i * 2.5f) * StScale.DU) list.Add(all[i]);
             return list;
         }
 
@@ -152,7 +152,7 @@ namespace Hollowmere.StyleTest.Skills
         {
             switch (e.kind)
             {
-                case EffectKind.Heal: hp = Mathf.Min(maxHp, hp + e.amount * 8); onFloat?.Invoke("+" + Mathf.RoundToInt(e.amount * 8), hero.transform.position + Vector3.up * 3.4f, new Color(0.5f, 1f, 0.5f)); return;
+                case EffectKind.Heal: hp = Mathf.Min(maxHp, hp + e.amount * 8); onFloat?.Invoke("+" + Mathf.RoundToInt(e.amount * 8), hero.transform.position + Vector3.up * 3.4f * StScale.DU, new Color(0.5f, 1f, 0.5f)); return;
                 case EffectKind.Shield: shield = e.amount * 10; shieldUntil = Time.time + e.duration; return;
                 case EffectKind.Buff: dmgBuff = 1 + e.amount; buffUntil = Time.time + e.duration; return;
             }
@@ -163,14 +163,14 @@ namespace Hollowmere.StyleTest.Skills
                     case EffectKind.Damage:
                     {
                         float dmg = e.amount * dmgBuff; f.hp -= dmg; ult += 0.04f * e.amount;
-                        onFloat?.Invoke(Mathf.RoundToInt(dmg * 10).ToString(), f.transform.position + Vector3.up * 3f, Palette.Ldr(PaletteOf(s).primary));
+                        onFloat?.Invoke(Mathf.RoundToInt(dmg * 10).ToString(), f.transform.position + Vector3.up * 3f * StScale.DU, Palette.Ldr(PaletteOf(s).primary));
                         if (f.hp <= 0 && !f.dead) { f.dead = true; f.Once(f.death, 0.05f, true); }
                         else if (!f.dead && f.anim.GetClip(f.hit) != null) f.Once(f.hit, 0.05f);
                         break;
                     }
                     case EffectKind.Knockback:
                     {
-                        var d = f.transform.position - hero.transform.position; d.y = 0; f.transform.position += d.normalized * e.amount; break;
+                        var d = f.transform.position - hero.transform.position; d.y = 0; f.transform.position += d.normalized * e.amount * StScale.DU; break;
                     }
                     case EffectKind.Status: status[f] = (e.status, Time.time + e.duration); break;
                 }

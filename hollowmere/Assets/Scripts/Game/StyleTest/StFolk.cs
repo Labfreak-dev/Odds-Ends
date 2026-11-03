@@ -139,13 +139,15 @@ namespace Hollowmere.StyleTest
             foreach (var rr in g.GetComponentsInChildren<Renderer>()) { rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On; }
 
             var a = holder.AddComponent<StActor>();
-            // real-metre character -> world units (1.6x), same as the town kits; KayKit heroes are normalised to 3.0
-            holder.transform.localScale = Vector3.one * StMat.MetreScale;
+            // 1 u = 1 m: villagers normalised by measured bounds to StScale.Villager (1.75 m); heroes are 1.8 m
+            StScale.NormalizeHeight(holder, StScale.Cat.Villager);
             a.anim = g.GetComponent<Animation>() ?? g.AddComponent<Animation>();
             a.anim.playAutomatically = false; a.anim.cullingType = AnimationCullingType.AlwaysAnimate;
             foreach (var kv in Clips) if (a.anim.GetClip(kv.Key) == null) a.anim.AddClip(kv.Value, kv.Key);
             foreach (AnimationState st in a.anim) st.wrapMode = WrapMode.Loop;
             a.idle = "Idle_Loop"; a.run = "Walk_Loop"; a.attack = "Interact"; a.hit = "Hit_Chest"; a.death = "Death01";
+            // re-measure in the idle pose (the bind pose is taller than the relaxed stance)
+            a.Pose(a.idle, 0.3f); StScale.NormalizeHeight(holder, StScale.Cat.Villager);
             a.sockets = HeroSockets.Resolve(holder, 1.8f * StMat.MetreScale, RigProfile.Generic);
             a.handR = a.sockets[Socket.HandR]; a.handL = a.sockets[Socket.HandL];
             return a;

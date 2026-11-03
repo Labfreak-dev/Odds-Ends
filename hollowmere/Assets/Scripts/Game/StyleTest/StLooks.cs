@@ -96,11 +96,11 @@ namespace Hollowmere.StyleTest
             ring.name = "glow_ring"; ring.layer = 2;
             ring.transform.SetParent(a.transform, false);
             ring.transform.localPosition = new Vector3(0, 0.03f, 0); ring.transform.localRotation = Quaternion.Euler(90, 0, 0);
-            ring.transform.localScale = Vector3.one * 2.0f / Mathf.Max(0.01f, a.transform.localScale.x) * 1.4f;
+            ring.transform.localScale = Vector3.one * 2.0f * StScale.DU / Mathf.Max(0.01f, a.transform.localScale.x) * 1.4f;
             var rr = ring.GetComponent<MeshRenderer>(); rr.sharedMaterial = Mat(c, 1); rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var lg = new GameObject("glow_light").AddComponent<Light>();
             lg.transform.SetParent(a.transform, false); lg.transform.localPosition = new Vector3(0, 0.15f, 0);
-            lg.type = LightType.Point; lg.color = c.linear.maxColorComponent > 0 ? (Color)(c / c.maxColorComponent) : Color.white; lg.intensity = tier >= 3 ? 0.9f : 0.6f; lg.range = 4f; lg.shadows = LightShadows.None;
+            lg.type = LightType.Point; lg.color = c.linear.maxColorComponent > 0 ? (Color)(c / c.maxColorComponent) : Color.white; lg.intensity = (tier >= 3 ? 0.9f : 0.6f) * StScale.DU * StScale.DU; lg.range = 4f * StScale.DU; lg.shadows = LightShadows.None;
         }
 
         static void AddPass(Renderer r, Material m)

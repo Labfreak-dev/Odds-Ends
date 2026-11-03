@@ -25,36 +25,36 @@ namespace Hollowmere.StyleTest
                 new Entry("skel_mage", "KK:Skel/Skeleton_Mage", 0, Surf.Keep),
                 new Entry("skel_rogue", "KK:Skel/Skeleton_Rogue", 0, Surf.Keep),
                 new Entry("skel_minion", "KK:Skel/Skeleton_Minion", 0, Surf.Keep),
-                new Entry("lp_skeleton", "ST/Mon/LP_Skeleton", 2.6f, Surf.Keep).P(new Color(0.85f, 0.85f, 0.95f)),
-                new Entry("elite_wraith", "Models/hm_wraith", 3.6f, Surf.Flat, 1).P(new Color(0.42f, 0.38f, 0.58f)).E(new Color(0.12f, 0.08f, 0.3f)),
-                new Entry("boss_death", "Models/st_death", 7.0f, Surf.TexToon, 2).P(new Color(0.62f, 0.6f, 0.78f)).E(new Color(0.18f, 0.1f, 0.4f)),
+                new Entry("lp_skeleton", "ST/Mon/LP_Skeleton", StScale.Enemy, Surf.Keep).P(new Color(0.85f, 0.85f, 0.95f)),
+                new Entry("elite_wraith", "Models/hm_wraith", StScale.Elite, Surf.Flat, 1).P(new Color(0.42f, 0.38f, 0.58f)).E(new Color(0.12f, 0.08f, 0.3f)),
+                new Entry("boss_death", "Models/st_death", StScale.Boss, Surf.TexToon, 2).P(new Color(0.62f, 0.6f, 0.78f)).E(new Color(0.18f, 0.1f, 0.4f)),
             } },
             { "cave", new List<Entry> {
-                new Entry("spider", "ST/Mon/Easy_Spider", 1.2f, Surf.Keep),
-                new Entry("bat", "ST/Mon/LP_Bat", 1.4f, Surf.Keep),
-                new Entry("snake", "ST/Mon/Easy_Snake", 1.0f, Surf.Keep),
-                new Entry("slime", "ST/Mon/LP_Slime", 1.3f, Surf.Keep),
-                new Entry("frog", "ST/Mon/Easy_Frog", 1.0f, Surf.Keep),
-                new Entry("elite_warwolf", "Models/hm_warwolf", 4.0f, Surf.Flat, 1).P(new Color(0.38f, 0.33f, 0.42f)).E(new Color(0.05f, 0.18f, 0.3f)),
-                new Entry("boss_dragon", "ST/Mon/LP_Dragon", 6.5f, Surf.Keep, 2).P(new Color(0.8f, 0.5f, 0.85f)).E(new Color(0.08f, 0.04f, 0.12f)),
+                new Entry("spider", "ST/Mon/Easy_Spider", 1.0f, Surf.Keep),
+                new Entry("bat", "ST/Mon/LP_Bat", 1.0f, Surf.Keep),
+                new Entry("snake", "ST/Mon/Easy_Snake", 0.8f, Surf.Keep),
+                new Entry("slime", "ST/Mon/LP_Slime", 1.0f, Surf.Keep),
+                new Entry("frog", "ST/Mon/Easy_Frog", 0.8f, Surf.Keep),
+                new Entry("elite_warwolf", "Models/hm_warwolf", StScale.Elite, Surf.Flat, 1).P(new Color(0.38f, 0.33f, 0.42f)).E(new Color(0.05f, 0.18f, 0.3f)),
+                new Entry("boss_dragon", "ST/Mon/LP_Dragon", StScale.Boss, Surf.Keep, 2).P(new Color(0.8f, 0.5f, 0.85f)).E(new Color(0.08f, 0.04f, 0.12f)),
             } },
             { "sewer", new List<Entry> {
-                new Entry("rat", "ST/Mon/Easy_Rat", 1.0f, Surf.Keep),
-                new Entry("snake_angry", "ST/Mon/Easy_Snake_angry", 1.0f, Surf.Keep),
-                new Entry("wasp", "ST/Mon/Easy_Wasp", 1.3f, Surf.Keep),
-                new Entry("slime_green", "ST/Mon/LP_Slime", 1.2f, Surf.Keep).P(new Color(0.6f, 1.2f, 0.5f)),
-                new Entry("rat_brute", "Models/hm_rat", 2.4f, Surf.Flat).P(new Color(0.55f, 0.5f, 0.45f)),
-                new Entry("elite_horror", "Models/hm_horror_ghoul", 3.6f, Surf.Flat, 1).P(new Color(0.55f, 0.62f, 0.45f)).E(new Color(0.08f, 0.2f, 0.05f)),
-                new Entry("boss_mutant", "Models/hm_giant_mutant", 7.0f, Surf.Flat, 2).P(new Color(0.5f, 0.66f, 0.4f)).E(new Color(0.1f, 0.25f, 0.05f)),
+                new Entry("rat", "ST/Mon/Easy_Rat", 0.6f, Surf.Keep),
+                new Entry("snake_angry", "ST/Mon/Easy_Snake_angry", 0.8f, Surf.Keep),
+                new Entry("wasp", "ST/Mon/Easy_Wasp", 1.0f, Surf.Keep),
+                new Entry("slime_green", "ST/Mon/LP_Slime", 1.0f, Surf.Keep).P(new Color(0.6f, 1.2f, 0.5f)),
+                new Entry("rat_brute", "Models/hm_rat", 1.5f, Surf.Flat).P(new Color(0.55f, 0.5f, 0.45f)),
+                new Entry("elite_horror", "Models/hm_horror_ghoul", StScale.Elite, Surf.Flat, 1).P(new Color(0.55f, 0.62f, 0.45f)).E(new Color(0.08f, 0.2f, 0.05f)),
+                new Entry("boss_mutant", "Models/hm_giant_mutant", StScale.Boss, Surf.Flat, 2).P(new Color(0.5f, 0.66f, 0.4f)).E(new Color(0.1f, 0.25f, 0.05f)),
             } },
             { "mine", new List<Entry> {
-                new Entry("imp", "STO/Mon/Imp", 2.6f, Surf.Keep).T("T_Imp_BaseColor_1"),
-                new Entry("puglin", "STO/Mon/Puglin", 1.8f, Surf.Keep).T("T_Puglin_BaseColor_1"),
-                new Entry("crawler", "Models/hm_cave_crawler", 1.6f, Surf.Flat).P(new Color(0.6f, 0.45f, 0.35f)),
-                new Entry("spider_rock", "Models/hm_spider", 1.6f, Surf.Flat).P(new Color(0.5f, 0.4f, 0.35f)),
+                new Entry("imp", "STO/Mon/Imp", 1.7f, Surf.Keep).T("T_Imp_BaseColor_1"),
+                new Entry("puglin", "STO/Mon/Puglin", 1.2f, Surf.Keep).T("T_Puglin_BaseColor_1"),
+                new Entry("crawler", "Models/hm_cave_crawler", 1.0f, Surf.Flat).P(new Color(0.6f, 0.45f, 0.35f)),
+                new Entry("spider_rock", "Models/hm_spider", 1.0f, Surf.Flat).P(new Color(0.5f, 0.4f, 0.35f)),
                 new Entry("skel_miner", "KK:Skel/Skeleton_Minion", 0, Surf.Keep),
-                new Entry("elite_imp", "STO/Mon/Imp", 3.2f, Surf.Keep, 1).T("T_Imp_BaseColor_3"),
-                new Entry("boss_lava_golem", "Models/hm_lava_golem", 7.0f, Surf.TexToon, 2).P(new Color(1.9f, 1.7f, 1.6f)).E(new Color(0.5f, 0.15f, 0.02f)),
+                new Entry("elite_imp", "STO/Mon/Imp", StScale.Elite, Surf.Keep, 1).T("T_Imp_BaseColor_3"),
+                new Entry("boss_lava_golem", "Models/hm_lava_golem", StScale.Boss, Surf.TexToon, 2).P(new Color(1.9f, 1.7f, 1.6f)).E(new Color(0.5f, 0.15f, 0.02f)),
             } },
         };
 
@@ -90,16 +90,20 @@ namespace Hollowmere.StyleTest
                 else PickClips(a);
                 var bb = StWorld.Bounds(g); holder.transform.position += Vector3.up * (pos.y - bb.min.y);
             }
-                        if (e.tier == 1) { a.transform.localScale *= 1.3f; StGlow.Apply(a, 2); Accent(a, e.emis == default ? new Color(0.25f, 0.2f, 0.05f) : e.emis * 1.6f); }
+            // 1 u = 1 m: e.h is the FINAL measured height in metres (StScale). KayKit skeletons come out at hero height (1.8 m)
+            // from StActor.Make, so only they need the tier multiplier.
+            if (e.src.StartsWith("KK:") && e.tier > 0) a.transform.localScale *= e.tier == 1 ? StScale.EliteMul : StScale.BossMul;
+            if (e.tier == 1) { StGlow.Apply(a, 2); Accent(a, e.emis == default ? new Color(0.25f, 0.2f, 0.05f) : e.emis * 1.6f); }
             if (e.tier == 2)
             {
-                if (e.src.StartsWith("KK:")) a.transform.localScale *= 2.2f;
                 StGlow.Apply(a, 3); Accent(a, e.emis * 1.2f);
-                var l = new GameObject("boss_light").AddComponent<Light>(); l.type = LightType.Point; l.range = 10; l.intensity = 3;
-                l.color = e.emis.maxColorComponent > 0 ? e.emis / e.emis.maxColorComponent : Color.white; l.transform.SetParent(a.transform, false); l.transform.localPosition = new Vector3(0, 2.5f / Mathf.Max(0.01f, a.transform.localScale.y), 0);
+                var l = new GameObject("boss_light").AddComponent<Light>(); l.type = LightType.Point; l.range = 10 * StScale.DU; l.intensity = 3 * StScale.DU * StScale.DU;
+                l.color = e.emis.maxColorComponent > 0 ? e.emis / e.emis.maxColorComponent : Color.white; l.transform.SetParent(a.transform, false); l.transform.localPosition = new Vector3(0, 1.5f / Mathf.Max(0.01f, a.transform.localScale.y), 0);
             }
             if (e.id == "boss_death") { a.idle = "Cast_Windup"; a.run = "Cast_Windup"; a.attack = "Attack_Scythe"; }
             if (a.anim && a.anim.GetClip(a.idle) != null) a.Pose(a.idle, 0.2f);
+            // measured in the pose it is seen in (bind poses differ: borrowed UAL clips stretch the Bestiary rigs, bosses crouch)
+            if (!e.src.StartsWith("KK:") && e.h > 0) StScale.NormalizeHeight(a.gameObject, StScale.Cat.Enemy, e.h, pos.y);
             return a;
         }
 

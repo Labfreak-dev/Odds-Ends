@@ -21,7 +21,7 @@ namespace Hollowmere.StyleTest
             { "mine",  new[] { new Vector3(0, 0, -1.0f), new Vector3(-6, 0, 3), new Vector3(6, 0, 3.5f), new Vector3(0, 0, 5) } },
         };
         static bool NearSpot(Vector3 p, float r) { foreach (var s in Spawns) if (Vector3.Distance(new Vector3(p.x, 0, p.z), s) < r) return true; return Vector3.Distance(new Vector3(p.x, 0, p.z), Hero) < r; }
-        const float T = 4f;
+        const float T = 4f * StScale.DungeonKit; // KayKit dungeon grid (4 DU) x the kit fit so its doorways reach 2.2 m
         static System.Random rng;
         static string biome;
         static readonly HashSet<string> logged = new HashSet<string>();
@@ -120,7 +120,7 @@ namespace Hollowmere.StyleTest
         }
 
         static GameObject Kit(string name, Vector3 pos, float yaw, Color tint, bool snap = true)
-        { var g = StKit.Spawn("Dungeon/" + name, Vector3.zero, yaw); Tint(g, tint); return Ground(g, pos, snap); }
+        { var g = StKit.Spawn("Dungeon/" + name, Vector3.zero, yaw); g.transform.localScale *= StScale.DungeonKit; Tint(g, tint); return Ground(g, pos, snap); }
 
         static GameObject Prop(string name, Vector3 pos, float yaw, float h, Color fallback, Color tint, Color emis = default)
         {
@@ -185,7 +185,16 @@ namespace Hollowmere.StyleTest
         /// <summary>World position of cell centre. Row 0 of the mask is the far (north) side.</summary>
         static Vector3 Cell(string[] m, int x, int z) => new Vector3((x - m[0].Length * 0.5f + 0.5f) * T, 0, ((m.Length - 1 - z) - m.Length * 0.5f + 0.5f) * T);
 
+        /// <summary>Builds the biome in design units, then converts it to metres (1 u = 1 m, StScale.DU). Centre/Hero/Spawns are metres.</summary>
         public static void Build(string id)
+        {
+            var scaleSnap = StScale.Snapshot();
+            BuildDU(id);
+            StScale.ShrinkSince(scaleSnap);
+            Centre *= StScale.DU; Hero *= StScale.DU; for (int i = 0; i < Spawns.Count; i++) Spawns[i] *= StScale.DU;
+        }
+
+        static void BuildDU(string id)
         {
             biome = id; rng = new System.Random(id.GetHashCode() & 0xffff);
             Built.Clear(); Spawns.Clear();
@@ -197,7 +206,7 @@ namespace Hollowmere.StyleTest
                 : new[] { "floor_tile_large_rocks", "floor_tile_large" };
             var cells = new List<Vector3>();
             { Vector3 a = Vector3.one * 1e5f, bmax = -Vector3.one * 1e5f; for (int zz = 0; zz < m.Length; zz++) for (int xx = 0; xx < m[zz].Length; xx++) if (At(m, xx, zz)) { var cc = Cell(m, xx, zz); a = Vector3.Min(a, cc); bmax = Vector3.Max(bmax, cc); } Centre = (a + bmax) * 0.5f; }
-            var sp = Spots[id]; Hero = Centre + sp[0]; for (int i = 1; i < sp.Length; i++) Spawns.Add(Centre + sp[i]);
+            var sp = Spots[id]; Hero = Centre + sp[0] * StScale.DungeonKit; for (int i = 1; i < sp.Length; i++) Spawns.Add(Centre + sp[i] * StScale.DungeonKit); // spots spread with the room (kit fit)
             // dark pit floor under the whole room so notches read as drops, not void
             Box(Centre + new Vector3(0, -1.6f, 0), new Vector3(m[0].Length * T + 12, 0.2f, m.Length * T + 12), d.wall * 0.25f);
             for (int z = 0; z < m.Length; z++)
@@ -210,7 +219,7 @@ namespace Hollowmere.StyleTest
                     var f = floors[rng.Next(floors.Length)];
                     if (id == "sewer" && rng.Next(6) == 0) f = "floor_tile_big_grate";
                     if (NearSpot(c, 3.2f)) f = "floor_tile_large"; // flat footing where actors stand
-                    var g = StKit.Spawn("Dungeon/" + f, Vector3.zero, 90 * rng.Next(4)); Tint(g, d.floor);
+                    var g = StKit.Spawn("Dungeon/" + f, Vector3.zero, 90 * rng.Next(4)); g.transform.localScale *= StScale.DungeonKit; Tint(g, d.floor);
                     g.transform.localScale = Vector3.Scale(g.transform.localScale, new Vector3(1.03f, 1f, 1.03f));
                     var b = StWorld.Bounds(g); g.transform.position += new Vector3(c.x - b.center.x, (f.Contains("grate") ? -b.max.y : -b.min.y - 0.15f), c.z - b.center.z); Built.Add(g.transform); // slab top at y=0; rocks/grate rims stand proud
                     if (!logged.Contains(f)) { logged.Add(f); Debug.Log("[ST] floor " + f + " size " + b.size); }
@@ -276,13 +285,13 @@ namespace Hollowmere.StyleTest
                 for (int i = 0; i < n; i++)
                 {
                     float t = (i + 0.5f) / n - 0.5f; var off = alongX ? new Vector3(t * T, 0, 1.0f) : new Vector3(e.x < Centre.x ? -1.0f : 1.0f, 0, t * T);
-                    var r = Prop("Nature/Rock_Medium_" + (1 + rng.Next(3)), e + off, rng.Next(360), 2.8f + (float)rng.NextDouble() * 1.2f, new Color(0.55f, 0.52f, 0.55f), tint);
-                    var rb = StWorld.Bounds(r); float wmax = Mathf.Max(rb.size.x, rb.size.z); if (wmax > 2.6f) { float f = 2.6f / wmax; r.transform.localScale = Vector3.Scale(r.transform.localScale, new Vector3(f, 1, f)); Ground(r, e + off); Built.RemoveAt(Built.Count - 1); }
+                    var r = Prop("Nature/Rock_Medium_" + (1 + rng.Next(3)), e + off, rng.Next(360), (2.8f + (float)rng.NextDouble() * 1.2f) * StScale.DungeonKit, new Color(0.55f, 0.52f, 0.55f), tint);
+                    var rb = StWorld.Bounds(r); float wmax = Mathf.Max(rb.size.x, rb.size.z); if (wmax > 2.6f * StScale.DungeonKit) { float f = 2.6f * StScale.DungeonKit / wmax; r.transform.localScale = Vector3.Scale(r.transform.localScale, new Vector3(f, 1, f)); Ground(r, e + off); Built.RemoveAt(Built.Count - 1); }
                 }
                 return;
             }
             string w = rng.Next(5) == 0 ? "wall_cracked" : rng.Next(6) == 0 ? "wall_arched" : "wall";
-            var g = StKit.Spawn("Dungeon/" + w, Vector3.zero, 0); Tint(g, tint);
+            var g = StKit.Spawn("Dungeon/" + w, Vector3.zero, 0); g.transform.localScale *= StScale.DungeonKit; Tint(g, tint);
             var b = StWorld.Bounds(g); if ((b.size.x >= b.size.z) != alongX) g.transform.rotation = Quaternion.Euler(0, 90, 0);
             b = StWorld.Bounds(g); g.transform.position += new Vector3(e.x - b.center.x, -b.min.y, e.z - b.center.z); Built.Add(g.transform);
         }
@@ -328,8 +337,9 @@ namespace Hollowmere.StyleTest
 
         static void WallTorch(Vector3 p, Color c)
         {
-            var g = StKit.Spawn("Dungeon/torch_mounted", Vector3.zero, 180); Ground(g, p + Vector3.up * 2.2f, false);
-            PointLight(p + new Vector3(0, 2.7f, -0.5f), c, 8f, 12f, true); Flame(p + new Vector3(0, 2.75f, -0.4f), new Color(2.4f, 1.1f, 0.35f), 0.5f);
+            const float k = StScale.DungeonKit;
+            var g = StKit.Spawn("Dungeon/torch_mounted", Vector3.zero, 180); g.transform.localScale *= k; Ground(g, p + Vector3.up * 2.2f * k, false);
+            PointLight(p + new Vector3(0, 2.7f * k, -0.5f), c, 8f, 12f, true); Flame(p + new Vector3(0, 2.75f * k, -0.4f), new Color(2.4f, 1.1f, 0.35f), 0.5f * k);
         }
 
         static void Crypt(string[] m)
@@ -355,8 +365,8 @@ namespace Hollowmere.StyleTest
             Prop("Bookcase_2", NorthWall(m, 2) + new Vector3(1.0f, 0, -0.1f), 0, 3.2f, new Color(0.5f, 0.35f, 0.24f), Color.white);
             Prop("Chest_Wood", NorthWall(m, 5) + new Vector3(0, 0, -0.4f), 180, 1.0f, new Color(0.5f, 0.35f, 0.24f), Color.white);
             Prop("Coin_Pile", NorthWall(m, 5) + new Vector3(1.2f, 0, -0.5f), 0, 0.4f, new Color(0.95f, 0.75f, 0.25f), Color.white);
-            Kit("banner_patternA_red", NorthWall(m, 3) + new Vector3(0, 2.4f, 0.35f), 0, Color.white, false);
-            Kit("banner_shield_red", NorthWall(m, 4) + new Vector3(0, 2.4f, 0.35f), 0, Color.white, false);
+            Kit("banner_patternA_red", NorthWall(m, 3) + new Vector3(0, 2.4f * StScale.DungeonKit, 0.35f), 0, Color.white, false);
+            Kit("banner_shield_red", NorthWall(m, 4) + new Vector3(0, 2.4f * StScale.DungeonKit, 0.35f), 0, Color.white, false);
         }
 
         static void Cave(string[] m)
@@ -389,8 +399,8 @@ namespace Hollowmere.StyleTest
             for (int x = 0; x < m[0].Length; x += 2)
             {
                 var p = NorthWall(m, x) + new Vector3(0, 0, 0.5f);
-                var l = Prop("Lantern_Wall", p + new Vector3(0, 2.4f, 0), 180, 0.9f, new Color(0.4f, 0.4f, 0.42f), Color.white); Ground(l, p + new Vector3(0, 2.6f, -0.1f), false);
-                PointLight(p + new Vector3(0, 2.4f, -0.8f), new Color(0.95f, 1f, 0.6f), 6f, 10f, true); Flame(p + new Vector3(0, 2.5f, -0.35f), new Color(2.0f, 1.8f, 0.6f), 0.35f);
+                var l = Prop("Lantern_Wall", p + new Vector3(0, 2.4f, 0), 180, 0.9f, new Color(0.4f, 0.4f, 0.42f), Color.white); Ground(l, p + new Vector3(0, 2.6f * StScale.DungeonKit, -0.1f), false);
+                PointLight(p + new Vector3(0, 2.4f * StScale.DungeonKit, -0.8f), new Color(0.95f, 1f, 0.6f), 6f, 10f, true); Flame(p + new Vector3(0, 2.5f * StScale.DungeonKit, -0.35f), new Color(2.0f, 1.8f, 0.6f), 0.35f);
             }
             // green bounce off the channel
             for (int x = 1; x < m[0].Length; x += 3) PointLight(Cell(m, x, 1) + Vector3.up * 0.6f, new Color(0.35f, 0.9f, 0.3f), 3.5f, 7f, false);

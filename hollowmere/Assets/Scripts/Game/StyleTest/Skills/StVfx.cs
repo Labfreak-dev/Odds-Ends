@@ -13,7 +13,7 @@ namespace Hollowmere.StyleTest.Skills
         {
             var c = new VfxCtx { hero = h, root = root, cam = cam, skill = s, pal = pal, origin = h.transform.position, fwd = h.transform.forward, right = h.transform.right };
             c.fwd.y = 0; c.fwd.Normalize(); c.right = Vector3.Cross(Vector3.up, c.fwd);
-            c.aim = aim ?? (c.origin + c.fwd * Mathf.Max(0.01f, s.range));
+            c.aim = aim ?? (c.origin + c.fwd * Mathf.Max(0.01f, s.range) * StScale.DU); // metres (skill ranges are design units)
             c.aim.y = c.origin.y; return c;
         }
     }
@@ -28,16 +28,20 @@ namespace Hollowmere.StyleTest.Skills
         static float EaseOut(float u) => 1 - (1 - u) * (1 - u);
         static float Hash(int a, int b) { uint h = (uint)(a * 374761393 + b * 668265263); h = (h ^ (h >> 13)) * 1274126177u; return ((h ^ (h >> 16)) & 0xFFFFFF) / (float)0x1000000; }
 
+        /// <summary>World (metres) -> the design-unit frame recipes are evaluated in (centred on the cast origin).</summary>
+        static Vector3 D(VfxCtx c, Vector3 p) => c.origin + (p - c.origin) / StScale.DU;
+
+        /// <summary>Anchor position in the DESIGN-UNIT frame (Play scales the fx root by StScale.DU about the origin).</summary>
         public static Vector3 Resolve(VfxCtx c, Anchor a, Vector3 off)
         {
-            var o = c.Local(off);
+            var o = c.Local(off); var hp = D(c, c.hero.transform.position);
             switch (a)
             {
-                case Anchor.Chest: return c.hero.transform.position + Vector3.up * 1.6f + o;
-                case Anchor.HandR: return (c.hero.handR ? c.hero.handR.position : c.hero.transform.position + Vector3.up * 1.6f + c.fwd * 0.5f) + o;
-                case Anchor.HandL: return (c.hero.handL ? c.hero.handL.position : c.hero.transform.position + Vector3.up * 1.6f + c.fwd * 0.5f) + o;
+                case Anchor.Chest: return hp + Vector3.up * 1.6f + o;
+                case Anchor.HandR: return (c.hero.handR ? D(c, c.hero.handR.position) : hp + Vector3.up * 1.6f + c.fwd * 0.5f) + o;
+                case Anchor.HandL: return (c.hero.handL ? D(c, c.hero.handL.position) : hp + Vector3.up * 1.6f + c.fwd * 0.5f) + o;
                 case Anchor.WeaponTip:
-                    if (c.hero.weaponR) { var b = StWorld.Bounds(c.hero.weaponR); return new Vector3(b.center.x, b.max.y, b.center.z) + c.fwd * 0.2f + o; }
+                    if (c.hero.weaponR) { var b = StWorld.Bounds(c.hero.weaponR); return D(c, new Vector3(b.center.x, b.max.y, b.center.z)) + c.fwd * 0.2f + o; }
                     return Resolve(c, Anchor.HandR, off);
                 case Anchor.Bow: return Resolve(c, Anchor.HandL, Vector3.zero) + c.fwd * 0.3f + o;
                 case Anchor.Aim: return c.aim + o;
@@ -51,6 +55,16 @@ namespace Hollowmere.StyleTest.Skills
             c.t = t; StFx.Clear(c.root);
             if (c.skill.vfx == null) return;
             SetVisible(c.hero, true);
+            // 1 u = 1 m: recipes are authored in design units (hero 3.0). Build in a DU frame around the origin with the
+            // root at identity, then scale the root by StScale.DU about the origin. c.aim is metres outside Play.
+            var aimM = c.aim; c.aim = D(c, aimM); c.aim.y = c.origin.y;
+            c.root.SetPositionAndRotation(Vector3.zero, Quaternion.identity); c.root.localScale = Vector3.one;
+            try { Steps(c, t); }
+            finally { c.aim = aimM; c.root.position = c.origin * (1 - StScale.DU); c.root.localScale = Vector3.one * StScale.DU; }
+        }
+
+        static void Steps(VfxCtx c, float t)
+        {
             foreach (var s in c.skill.vfx.steps)
             {
                 // movers keep their end state after the window
@@ -262,7 +276,7 @@ namespace Hollowmere.StyleTest.Skills
             float u = U(t, s.t0, s.t1); var dest = c.origin + c.Local(s.off);
             if (s.kind == Vk.Dash)
             {
-                var e = u * u * (3 - 2 * u); var cur = Vector3.Lerp(c.origin, dest, e); c.hero.transform.position = cur;
+                var e = u * u * (3 - 2 * u); var cur = Vector3.Lerp(c.origin, dest, e); c.hero.transform.position = c.origin + (cur - c.origin) * StScale.DU;
                 if (u > 0 && u < 1)
                 {
                     int n = Mathf.Max(1, (int)s.count); var col = c.pal[s.role];
@@ -277,7 +291,7 @@ namespace Hollowmere.StyleTest.Skills
             }
             else
             {
-                bool there = u >= 0.5f; c.hero.transform.position = there ? dest : c.origin;
+                bool there = u >= 0.5f; c.hero.transform.position = there ? c.origin + (dest - c.origin) * StScale.DU : c.origin;
                 SetVisible(c.hero, !(u > 0.38f && u < 0.62f));
                 if (u > 0 && u < 1)
                 {

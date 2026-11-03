@@ -9,18 +9,21 @@ namespace Hollowmere.StyleTest
     /// banners and the notice board when present locally; the public build simply skips it.</summary>
     public static class StTown
     {
-        public const float HexScale = 7.5f;
+        public const float HexScale = 7.5f * StScale.HexKit; // design units; doors reach the 2.2 m standard after the DU shrink
         public static readonly List<Transform> Built = new List<Transform>();
         public static readonly List<StActor> Folk = new List<StActor>();
         public static readonly List<StSmoke> Smokes = new List<StSmoke>();
         public static readonly Dictionary<string, Vector3> Spots = new Dictionary<string, Vector3>();
-        public static Vector3 HeroSpawn = new Vector3(0, 0, -9);
+        public static Vector3 HeroSpawn = new Vector3(0, 0, -9) * StScale.DU;
 
         // ---------- placement helpers ----------
         public static GameObject VK(string piece, Vector3 pos, float yaw, float scale = 1f)
         {
             var g = StKit.Spawn("Town/VK/SM_VK_" + piece, Vector3.zero, yaw);
-            g.transform.localScale = Vector3.one * StMat.MetreScale * scale;
+            // VK is authored in real metres; layouts are in design units and shrunk by StScale.DU after the build,
+            // so pieces spawn at 1/DU to end up at exactly 1 m = 1 u. Pinned pieces (stalls, fountain, lamps) are fitted to the standard.
+            g.transform.localScale = Vector3.one * (1f / StScale.DU) * scale;
+            if (StScale.KitHeight(piece, out var kh)) StScale.NormalizeHeight(g, StScale.Cat.Prop, kh / StScale.DU * scale);
             StMat.ApplyVK(g);
             Ground(g, pos); Built.Add(g.transform); return g;
         }
@@ -103,6 +106,7 @@ namespace Hollowmere.StyleTest
         public static void Build()
         {
             Built.Clear(); Folk.Clear(); Smokes.Clear(); Spots.Clear();
+            var scaleSnap = StScale.Snapshot();
             // ground: grass field, cobbled plaza, dirt roads
             Plane("grass", Vector3.zero, new Vector2(260, 260), StMat.Tiled("ST/Town/VK/Tex/T_VK_Grass_BC", new Color(0.78f, 0.84f, 0.70f), 34), 0, 0f);
             Disc("plaza", Vector3.zero, 12.5f, StMat.Tiled("ST/Town/VK/Tex/T_VK_Cobble_BC", new Color(0.86f, 0.84f, 0.80f), 14), 0.03f);
@@ -188,12 +192,12 @@ namespace Hollowmere.StyleTest
             for (int i = 0; i < 3; i++) { VK("Prop_Fence", penC + new Vector3(-6.3f, 0, -3.4f + i * 3.15f), 90); VK("Prop_Fence", penC + new Vector3(6.3f, 0, -3.4f + i * 3.15f), 90); }
             VK("Prop_Trough", penC + new Vector3(-3.6f, 0, 3.6f), 0); VK("Prop_HayBale", penC + new Vector3(4.2f, 0, 3.4f), 30);
             VK("Prop_ChickenCoop", new Vector3(13.5f, 0, -27.5f), -20); VK("Prop_Chickens", new Vector3(15.0f, 0, -23.0f), 30);
-            Animal("Sheep", penC + new Vector3(-2, 0, -1), 40, 1.9f, null); Animal("Sheep", penC + new Vector3(1.5f, 0, 1.6f), 200, 1.8f, null);
-            Animal("Sheep", penC + new Vector3(3, 0, -2.6f), 110, 1.7f, null); Animal("Pig", penC + new Vector3(-1, 0, 2.8f), -70, 1.5f, null);
+            Animal("Sheep", penC + new Vector3(-2, 0, -1), 40, 1.65f, null); Animal("Sheep", penC + new Vector3(1.5f, 0, 1.6f), 200, 1.6f, null); // heights in DU: sheep ~1.0 m
+            Animal("Sheep", penC + new Vector3(3, 0, -2.6f), 110, 1.55f, null); Animal("Pig", penC + new Vector3(-1, 0, 2.8f), -70, 1.4f, null);
             Animal("Cow", new Vector3(31, 0, -36), 200, 2.9f, new[] { new Vector3(31, 0, -36), new Vector3(36, 0, -31) });
             Animal("Horse", new Vector3(-8.5f, 0, -16.5f), 90, 3.4f, null);
             VK("Prop_HitchRail", new Vector3(-8.5f, 0, -18.6f), 0);
-            Animal("Pug", new Vector3(3.5f, 0, -6.5f), 220, 0.9f, new[] { new Vector3(3.5f, 0, -6.5f), new Vector3(-2.5f, 0, -7.5f), new Vector3(-4f, 0, -2f), new Vector3(2f, 0, -3f) });
+            Animal("Pug", new Vector3(3.5f, 0, -6.5f), 220, 0.7f, new[] { new Vector3(3.5f, 0, -6.5f), new Vector3(-2.5f, 0, -7.5f), new Vector3(-4f, 0, -2f), new Vector3(2f, 0, -3f) });
 
             Debug.Log("[ST] town step: trees, bushes");
             // trees, bushes and rocks frame the hub
@@ -235,6 +239,10 @@ namespace Hollowmere.StyleTest
             AddFolk(V[3], new Vector3(16.5f, 0, -19.5f), 180, new[] { new Vector3(16.5f, 0, -19.5f), new Vector3(16.5f, 0, -31.0f) }, "Interact", 2.5f);
             Spots["plaza"] = new Vector3(0, 0, -5.5f);
             Spots["pen"] = new Vector3(17f, 0, -21f);
+            // design units -> metres (1 u = 1 m): shrink everything built above, convert the public anchors
+            StScale.ShrinkSince(scaleSnap);
+            foreach (var k in new List<string>(Spots.Keys)) Spots[k] *= StScale.DU;
+            HeroSpawn = new Vector3(0, 0, -9) * StScale.DU;
         }
 
         /// <summary>Chimney smoke from the highest point of a building (KayKit hex chimneys sit at the roof top).</summary>
@@ -276,21 +284,22 @@ namespace Hollowmere.StyleTest
 
         static void Gate(Vector3 p)
         {
-            var arch = StKit.Spawn("Dungeon/wall_doorway", Vector3.zero, 0);
+            const float k = StScale.DungeonKit; // the gate is KayKit dungeon kit: fit to the 2.2 m door standard
+            var arch = StKit.Spawn("Dungeon/wall_doorway", Vector3.zero, 0); arch.transform.localScale *= k;
             var b = StWorld.Bounds(arch); arch.transform.position += new Vector3(p.x - b.center.x, -b.min.y, p.z - b.center.z);
             Built.Add(arch.transform);
             for (int s = -1; s <= 1; s += 2)
             {
-                var w = StKit.Spawn("Dungeon/wall", Vector3.zero, 0); var wb = StWorld.Bounds(w);
-                w.transform.position += new Vector3(p.x + s * 4f - wb.center.x, -wb.min.y, p.z - wb.center.z); Built.Add(w.transform);
-                var t = StKit.Spawn("Dungeon/torch_mounted", Vector3.zero, 180); var tb = StWorld.Bounds(t);
-                t.transform.position += new Vector3(p.x + s * 2.4f - tb.center.x, 2.4f - tb.center.y, p.z - 0.6f - tb.center.z);
+                var w = StKit.Spawn("Dungeon/wall", Vector3.zero, 0); w.transform.localScale *= k; var wb = StWorld.Bounds(w);
+                w.transform.position += new Vector3(p.x + s * 4f * k - wb.center.x, -wb.min.y, p.z - wb.center.z); Built.Add(w.transform);
+                var t = StKit.Spawn("Dungeon/torch_mounted", Vector3.zero, 180); t.transform.localScale *= k; var tb = StWorld.Bounds(t);
+                t.transform.position += new Vector3(p.x + s * 2.4f * k - tb.center.x, 2.4f * k - tb.center.y, p.z - 0.6f - tb.center.z);
                 var l = new GameObject("gate_torch").AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(1f, 0.55f, 0.25f); l.intensity = 6; l.range = 9;
-                l.transform.position = new Vector3(p.x + s * 2.4f, 2.9f, p.z - 1.0f); l.gameObject.AddComponent<StFlicker>();
+                l.transform.position = new Vector3(p.x + s * 2.4f * k, 2.9f * k, p.z - 1.0f); l.gameObject.AddComponent<StFlicker>();
             }
             // portal veil: overlay glow inside the arch (shaped, not a plain circle: a tall rune oval)
             var veil = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(veil.GetComponent<Collider>());
-            veil.transform.position = p + new Vector3(0, 1.9f, -0.1f); veil.transform.localScale = new Vector3(2.6f, 3.6f, 1);
+            veil.transform.position = p + new Vector3(0, 1.9f * k, -0.1f); veil.transform.localScale = new Vector3(2.6f, 3.6f, 1) * k;
             veil.GetComponent<MeshRenderer>().sharedMaterial = StGlow.Mat(new Color(0.45f, 0.35f, 1.6f), 2);
             Built.Add(veil.transform);
             var sign = FirstIn("STO/BG", 3);

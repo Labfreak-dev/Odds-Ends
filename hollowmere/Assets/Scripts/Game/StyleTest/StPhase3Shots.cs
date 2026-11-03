@@ -40,7 +40,7 @@ namespace Hollowmere.StyleTest
                 a.transform.position = new Vector3(x + w * 0.5f - b.center.x + a.transform.position.x, a.transform.position.y, 0); x += w + 1.0f;
                 made.Add(a);
             }
-            var hero = StLook.Knight().Build(new Vector3(x + 1, 0, 0), 180); hero.Pose(hero.idle, 0.3f); x += 3;
+            var hero = StLook.Knight().Build(new Vector3(x + 1, 0, 0), 180); hero.Pose(hero.idle, 0.3f); x += 2;
             yield return null;
             var all = new Bounds(new Vector3(x * 0.5f, 2, 0), Vector3.one); foreach (var a in made) all.Encapsulate(a.WorldBounds()); all.Encapsulate(hero.WorldBounds()); all.Expand(new Vector3(1.5f,0.5f,0));
             C.orthographic = true; C.orthographicSize = Mathf.Max(all.size.y * 0.62f, all.size.x * 1300f / 2800f * 0.55f);
@@ -60,7 +60,7 @@ namespace Hollowmere.StyleTest
         public static Vector3 BossPos(string id)
         {
             var c = StBiomes.Centre;
-            return c + (id == "mine" ? new Vector3(3.5f, 0, 3.6f) : id == "crypt" ? new Vector3(1.5f, 0, 9.5f) : new Vector3(2.5f, 0, 7.0f));
+            return c + (id == "mine" ? new Vector3(3.5f, 0, 3.6f) : id == "crypt" ? new Vector3(1.5f, 0, 9.5f) : new Vector3(2.5f, 0, 7.0f)) * StScale.DU * StScale.DungeonKit;
         }
 
         static IEnumerator Scene(string id)
@@ -71,7 +71,7 @@ namespace Hollowmere.StyleTest
             var hero = StLook.Base[hi].Build(StBiomes.Hero, 20); hero.Pose(hero.attack, 0.45f);
             var ros = StBestiary.Rosters[id]; var c = StBiomes.Centre;
             var spots = new List<Vector3>(StBiomes.Spawns);
-            spots.Add(StBiomes.Hero + new Vector3(-3.5f, 0, 2.5f)); spots.Add(StBiomes.Hero + new Vector3(3.5f, 0, 2.2f)); spots.Add(StBiomes.Hero + new Vector3(5.5f, 0, -0.5f));
+            spots.Add(StBiomes.Hero + new Vector3(-3.5f, 0, 2.5f) * StScale.DU); spots.Add(StBiomes.Hero + new Vector3(3.5f, 0, 2.2f) * StScale.DU); spots.Add(StBiomes.Hero + new Vector3(5.5f, 0, -0.5f) * StScale.DU);
             int si = 0;
             foreach (var e in ros)
             {
@@ -81,12 +81,12 @@ namespace Hollowmere.StyleTest
                 if (a && a.anim && a.anim.GetClip(a.attack) != null) a.Pose(a.attack, 0.3f + 0.1f * si);
             }
             yield return null; yield return null;
-            C.fieldOfView = 40; C.transform.position = c + new Vector3(0, 30, -26); C.transform.LookAt(c + new Vector3(0, 0, 1));
+            C.fieldOfView = 40; C.transform.position = c + new Vector3(0, 30, -26) * StScale.DU; C.transform.LookAt(c + new Vector3(0, 0, 1) * StScale.DU);
             yield return null; R.SavePub(R.RenderPub(C, 2340, 1080), "phase3/" + id + "/fight_overview.png");
             var hud = StPhase1Shots.Hud();
-            foreach (var (tag, focus, dist) in new[] { ("gamecam", StBiomes.Hero + new Vector3(0, 0, 2.5f), 17f), ("gamecam_boss", Vector3.Lerp(StBiomes.Hero, BossPos(id), 0.45f), 21f) })
+            foreach (var (tag, focus, dist) in new[] { ("gamecam", StBiomes.Hero + new Vector3(0, 0, 2.5f) * StScale.DU, 17f * StScale.DU), ("gamecam_boss", Vector3.Lerp(StBiomes.Hero, BossPos(id), 0.45f), 21f * StScale.DU) })
             {
-                C.fieldOfView = 35; var tgt = focus + new Vector3(0, 1.2f, 1.0f);
+                C.fieldOfView = 35; var tgt = focus + new Vector3(0, 1.2f, 1.0f) * StScale.DU;
                 C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -dist); C.transform.rotation = Quaternion.Euler(52, 0, 0);
                 yield return null; R.SavePub(R.RenderPub(C, 2340, 1080), "phase3/" + id + "/" + tag + ".png");
             }

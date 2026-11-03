@@ -100,7 +100,7 @@ namespace Hollowmere.StyleTest
             StTown.Lighting(); StTown.Build();
             cam.backgroundColor = new Color(0.62f, 0.66f, 0.74f); cam.fieldOfView = 35; cam.farClipPlane = 160;
             SpawnHero(StTown.HeroSpawn);
-            cam.transform.position = hero.transform.position + new Vector3(0, 1.2f, 1.0f) + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f); cam.transform.rotation = Quaternion.Euler(52, 0, 0);
+            cam.transform.position = hero.transform.position + new Vector3(0, 1.2f, 1.0f) * StScale.DU + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f * StScale.DU); cam.transform.rotation = Quaternion.Euler(52, 0, 0);
         }
 
         void TownTick()
@@ -117,13 +117,13 @@ namespace Hollowmere.StyleTest
                 {
                     hero.transform.rotation = Quaternion.Slerp(hero.transform.rotation, Quaternion.LookRotation(to), Time.deltaTime * 12);
                     var p = hero.transform.position + to.normalized * hero.speed * Time.deltaTime;
-                    p.x = Mathf.Clamp(p.x, -40, 40); p.z = Mathf.Clamp(p.z, -36, 37);
+                    p.x = Mathf.Clamp(p.x, -40 * StScale.DU, 40 * StScale.DU); p.z = Mathf.Clamp(p.z, -36 * StScale.DU, 37 * StScale.DU);
                     hero.transform.position = p; hero.Loop(hero.run);
                 }
                 else { hasTarget = false; hero.Loop(hero.idle); }
             }
             else hero.Loop(hero.idle);
-            if (hero.transform.position.z > 34.5f && Mathf.Abs(hero.transform.position.x) < 2.5f) { inTown = false; StartSlice(creatorPick); return; }
+            if (hero.transform.position.z > 34.5f * StScale.DU && Mathf.Abs(hero.transform.position.x) < 2.5f * StScale.DU) { inTown = false; StartSlice(creatorPick); return; }
             FollowCam();
         }
 
@@ -134,10 +134,10 @@ namespace Hollowmere.StyleTest
             StWorld.DungeonLighting();
             StWorld.BuildRoom();
             cam.backgroundColor = new Color(0.03f, 0.03f, 0.05f); cam.fieldOfView = 35;
-            SpawnHero(new Vector3(0, 0, -4));
+            SpawnHero(new Vector3(0, 0, -4) * StScale.DU);
             wave = 0; SpawnWave();
-            var t0 = hero.transform.position + new Vector3(0, 1.2f, 1.0f);
-            cam.transform.position = t0 + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f); cam.transform.rotation = Quaternion.Euler(52, 0, 0);
+            var t0 = hero.transform.position + new Vector3(0, 1.2f, 1.0f) * StScale.DU;
+            cam.transform.position = t0 + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f * StScale.DU); cam.transform.rotation = Quaternion.Euler(52, 0, 0);
         }
 
         void ClearScene()
@@ -176,11 +176,11 @@ namespace Hollowmere.StyleTest
         {
             wave++;
             bool boss = wave % 3 == 0;
-            if (boss) foes.Add(Skeleton(true, new Vector3(0, 0, 6f)));
+            if (boss) foes.Add(Skeleton(true, new Vector3(0, 0, 6f) * StScale.DU));
             else
             {
                 string[] kinds = { "Skel/Skeleton_Warrior", "Skel/Skeleton_Minion", "Skel/Skeleton_Rogue", "Skel/Skeleton_Mage" };
-                for (int i = 0; i < 4; i++) foes.Add(Skeleton(false, new Vector3(-6f + i * 4f, 0, 5f + (i % 2) * 2f), kinds[i]));
+                for (int i = 0; i < 4; i++) foes.Add(Skeleton(false, new Vector3(-6f + i * 4f, 0, 5f + (i % 2) * 2f) * StScale.DU, kinds[i]));
             }
         }
 
@@ -188,10 +188,10 @@ namespace Hollowmere.StyleTest
         {
             var s = StActor.Make(boss ? "Skel/Skeleton_Warrior" : kind, pos, 180);
             s.idle = "Skeletons_Idle"; s.run = "Skeletons_Walking"; s.death = "Skeletons_Death"; s.hit = "Hit_A";
-            s.attack = "Melee_1H_Attack_Chop"; s.speed = boss ? 2.2f : 2.8f; s.hp = boss ? 12 : 3;
+            s.attack = "Melee_1H_Attack_Chop"; s.speed = (boss ? 2.2f : 2.8f) * StScale.DU; s.hp = boss ? 12 : 3;
             if (boss)
             {
-                s.transform.localScale *= 1.7f; s.attackRange = 4.4f;
+                s.transform.localScale *= StScale.BossMul; s.attackRange = 4.4f * StScale.DU * StScale.BossMul / 1.7f;
                 s.SetWeapons("Skel/Skeleton_Axe", "Skel/Skeleton_Shield_Large_A");
                 StGlow.Apply(s, 3);
                 foreach (var l in s.GetComponentsInChildren<Light>()) l.color = new Color(1f, 0.25f, 0.15f);
@@ -226,7 +226,7 @@ namespace Hollowmere.StyleTest
                 var dist = Flat(target.transform.position - hero.transform.position).magnitude;
                 if (dist > range * 0.9f) { moveTarget = target.transform.position; hasTarget = true; } else hasTarget = false;
             }
-            var lo = StWorld.RoomMin + new Vector3(1, 0, 1); var hi = StWorld.RoomMax - new Vector3(1, 0, 1.5f);
+            var lo = StWorld.RoomMin + new Vector3(1, 0, 1) * StScale.DU; var hi = StWorld.RoomMax - new Vector3(1, 0, 1.5f) * StScale.DU;
             if (hasTarget && !hero.Busy)
             {
                 var to = Flat(moveTarget - hero.transform.position);
@@ -361,8 +361,8 @@ namespace Hollowmere.StyleTest
 
         void FollowCam()
         {
-            var t = hero.transform.position + new Vector3(0, 1.2f, 1.0f);
-            var want = t + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f);
+            var t = hero.transform.position + new Vector3(0, 1.2f, 1.0f) * StScale.DU;
+            var want = t + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -19f * StScale.DU);
             cam.transform.position = Vector3.Lerp(cam.transform.position, want, Mathf.Clamp01(Time.deltaTime * 5));
             cam.transform.rotation = Quaternion.Euler(52, 0, 0);
         }
@@ -454,9 +454,19 @@ namespace Hollowmere.StyleTest
                 yield return StPhase4Shots.Run(this, cam, only);
                 Application.Quit(); yield break;
             }
+            if (only.StartsWith("p5b"))
+            {
+                yield return StPhase5bShots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
             if (only == "phase5" || only.StartsWith("p5_"))
             {
                 yield return StPhase5Shots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
+            if (only == "scale" || only.StartsWith("sc_"))
+            {
+                yield return StScaleShots.Run(this, cam, only);
                 Application.Quit(); yield break;
             }
             if (only == "phase2" || only.StartsWith("p2_"))

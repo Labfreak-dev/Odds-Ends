@@ -12,7 +12,7 @@ namespace Hollowmere.StyleTest
 
         static GameObject Put(string name, Vector3 target, float yaw, bool snapGround = true)
         {
-            var g = StKit.Spawn("Dungeon/" + name, Vector3.zero, yaw);
+            var g = StKit.Spawn("Dungeon/" + name, Vector3.zero, yaw); g.transform.localScale *= StScale.DungeonKit;
             var b = Bounds(g);
             var d = new Vector3(target.x - b.center.x, snapGround ? target.y - b.min.y : target.y - b.center.y, target.z - b.center.z);
             g.transform.position += d;
@@ -29,7 +29,15 @@ namespace Hollowmere.StyleTest
 
         public static void BuildRoom(int nx = 6, int nz = 5)
         {
-            var probe = StKit.Spawn("Dungeon/floor_tile_large", Vector3.zero, 0);
+            var scaleSnap = StScale.Snapshot();
+            BuildRoomDU(nx, nz);
+            // design units -> metres (1 u = 1 m)
+            StScale.ShrinkSince(scaleSnap); RoomMin *= StScale.DU; RoomMax *= StScale.DU;
+        }
+
+        static void BuildRoomDU(int nx, int nz)
+        {
+            var probe = StKit.Spawn("Dungeon/floor_tile_large", Vector3.zero, 0); probe.transform.localScale *= StScale.DungeonKit;
             var pb = Bounds(probe); Tile = Mathf.Max(1f, Mathf.Round(Mathf.Max(pb.size.x, pb.size.z))); Object.Destroy(probe);
             Debug.Log("[ST] dungeon tile " + Tile + " size " + pb.size);
             float half = Tile * 0.5f;
@@ -76,8 +84,8 @@ namespace Hollowmere.StyleTest
             Put("table_medium_broken", new Vector3(x0 + 2.0f, 0, -1.5f), 80);
             Put("candle_triple", new Vector3(-1.4f, 0, -z0 - 1.0f), 0);
             Put("candle_lit", new Vector3(1.9f, 0, -z0 - 0.9f), 0);
-            Put("banner_patternA_red", new Vector3(x0 + half + Tile * 0.5f, 2.3f, -z0 - 0.45f), 0, false);
-            Put("banner_shield_red", new Vector3(-x0 - half - Tile * 0.5f, 2.3f, -z0 - 0.45f), 0, false);
+            Put("banner_patternA_red", new Vector3(x0 + half + Tile * 0.5f, 2.3f * StScale.DungeonKit, -z0 - 0.45f), 0, false);
+            Put("banner_shield_red", new Vector3(-x0 - half - Tile * 0.5f, 2.3f * StScale.DungeonKit, -z0 - 0.45f), 0, false);
             // torches + warm lights
             Torch(new Vector3(-Tile * 0.5f - 0.0f, 2.2f, -z0 - 0.35f), 180);
             Torch(new Vector3(Tile * 0.5f + 0.0f, 2.2f, -z0 - 0.35f), 180);
@@ -91,7 +99,7 @@ namespace Hollowmere.StyleTest
 
         static void Wall(string name, Vector3 edgeCenter, bool alongX)
         {
-            var g = StKit.Spawn("Dungeon/" + name, Vector3.zero, 0);
+            var g = StKit.Spawn("Dungeon/" + name, Vector3.zero, 0); g.transform.localScale *= StScale.DungeonKit;
             var b = Bounds(g);
             bool runsX = b.size.x >= b.size.z;
             if (runsX != alongX) g.transform.rotation = Quaternion.Euler(0, 90, 0);
@@ -102,6 +110,7 @@ namespace Hollowmere.StyleTest
 
         static void Torch(Vector3 pos, float yaw)
         {
+            pos.y *= StScale.DungeonKit; // wall-mounted height follows the kit fit
             var g = Put("torch_mounted", pos, yaw, false);
             var l = new GameObject("torch_light").AddComponent<Light>();
             l.type = LightType.Point; l.color = new Color(1f, 0.58f, 0.26f); l.intensity = 9f; l.range = 12f;

@@ -115,6 +115,8 @@ namespace Hollowmere.StyleTest
             foreach (var p in pts) { var v = cam.WorldToViewportPoint(p); minx = Mathf.Min(minx, v.x); maxx = Mathf.Max(maxx, v.x); miny = Mathf.Min(miny, v.y); maxy = Mathf.Max(maxy, v.y); }
             var ray = cam.ViewportPointToRay(new Vector3((minx + maxx) / 2, (miny + maxy) / 2, 0));
             var shift = (ray.GetPoint(hi) - (cam.transform.position + cam.transform.forward * hi)); cam.transform.position += shift;
+            // framing was solved in design units (skill extents); the scene is metres -> scale the camera about the origin
+            cam.transform.position = origin + (cam.transform.position - origin) * StScale.DU;
         }
 
         static List<StActor> Dummies(SkillDef s, VfxCtx ctx)
@@ -122,7 +124,7 @@ namespace Hollowmere.StyleTest
             var l = new List<StActor>();
             if (s.range <= 0 || s.targeting == Targeting.Self || s.slot == SlotType.Passive) return l;
             var spots = new List<Vector3> { ctx.aim };
-            if (s.id == "m_chain_spark") { spots.Add(ctx.aim + ctx.Local(new Vector3(2.2f, 0, 1.6f))); spots.Add(ctx.aim + ctx.Local(new Vector3(-1.8f, 0, 2.6f))); }
+            if (s.id == "m_chain_spark") { spots.Add(ctx.aim + ctx.Local(new Vector3(2.2f, 0, 1.6f) * StScale.DU)); spots.Add(ctx.aim + ctx.Local(new Vector3(-1.8f, 0, 2.6f) * StScale.DU)); }
             if (s.id == "s_deadeye") { spots.Add(ctx.aim + ctx.Local(new Vector3(-1.6f, 0, -1f))); spots.Add(ctx.aim + ctx.Local(new Vector3(1.8f, 0, 1.2f))); }
             if (s.id == "r_multishot") { spots.Add(ctx.origin + Quaternion.Euler(0, 20, 0) * ctx.fwd * 5.5f); spots.Add(ctx.origin + Quaternion.Euler(0, -18, 0) * ctx.fwd * 6.2f); }
             if (s.id == "k_charge" || s.id == "m_blink") spots[0] = ctx.origin + ctx.fwd * (s.range + 1.6f);
@@ -195,17 +197,16 @@ namespace Hollowmere.StyleTest
                 var fx = new GameObject("fx").transform; var pal = s.palettePin ?? StSkillDb.PaletteFor(s.cls, s.subclass);
                 var ctx = VfxCtx.For(hero, fx, C, s, pal);
                 var ros = StBestiary.Rosters[biome];
-                var spots = new List<Vector3> { new Vector3(-1.5f, 0, 7.5f), new Vector3(1.8f, 0, 6.5f), new Vector3(0.2f, 0, 9.0f), new Vector3(-4f, 0, 4f), new Vector3(3.8f, 0, 3.2f) };
+                var spots = new List<Vector3> { new Vector3(-1.5f, 0, 7.5f), new Vector3(1.8f, 0, 6.5f), new Vector3(0.2f, 0, 9.0f), new Vector3(-4f, 0, 4f), new Vector3(3.8f, 0, 3.2f) }.ConvertAll(v => v * StScale.DU);
                 bool aimed = s.range > 0 && s.targeting != Targeting.Self && s.slot != SlotType.Passive;
-                if (aimed) { spots.RemoveAll(p => (hp + p - ctx.aim).magnitude < 1.8f); spots.Insert(0, ctx.aim - hp); }
-                if (s.id == "m_chain_spark") { spots.Add(ctx.aim - hp + new Vector3(2.2f, 0, 1.6f)); spots.Add(ctx.aim - hp + new Vector3(-1.8f, 0, 2.6f)); }
-                if (s.id == "k_charge" || s.id == "m_blink") spots[0] = ctx.origin + ctx.fwd * (s.range + 1.8f) - hp;
+                if (aimed) { spots.RemoveAll(p => (hp + p - ctx.aim).magnitude < 1.8f * StScale.DU); spots.Insert(0, ctx.aim - hp); }
+                if (s.id == "m_chain_spark") { spots.Add(ctx.aim - hp + new Vector3(2.2f, 0, 1.6f) * StScale.DU); spots.Add(ctx.aim - hp + new Vector3(-1.8f, 0, 2.6f) * StScale.DU); }
+                if (s.id == "k_charge" || s.id == "m_blink") spots[0] = ctx.origin + ctx.fwd * (s.range + 1.8f) * StScale.DU - hp;
                 for (int i = 0; i < spots.Count; i++)
                 {
                     var m = StBestiary.Spawn(ros[i % 5], hp + spots[i], 180); if (m && m.anim && m.anim.GetClip(m.run) != null) m.Pose(m.run, 0.2f * i);
                 }
-                C.fieldOfView = 35; var tgt = hp + new Vector3(0, 1.2f, 3.5f);
-                C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -17f); C.transform.rotation = Quaternion.Euler(52, 0, 0);
+                StScale.GameCam(C, hp);
                 float t = ShotT.TryGetValue(s.id, out var tt) ? tt : 0.6f; var clip = AnimMap.Clip(s.anim);
                 hero.Pose(clip, t); yield return null; hero.Pose(clip, t);
                 StVfx.Play(ctx, t);
@@ -222,7 +223,7 @@ namespace Hollowmere.StyleTest
         {
             StWorld.NeutralLighting(); C.backgroundColor = bg;
             var a = Hero(cls, sub, new Vector3(0, 0, 0), yaw); a.Pose(a.idle, 0.3f);
-            C.fieldOfView = 30; C.transform.position = new Vector3(0, 2.0f, -6.6f); C.transform.LookAt(new Vector3(0, 1.55f, 0));
+            C.fieldOfView = 30; C.transform.position = new Vector3(0, 2.0f, -6.6f) * StScale.DU; C.transform.LookAt(new Vector3(0, 1.55f, 0) * StScale.DU);
             C.aspect = w / (float)h; var t = R.RenderPub(C, w, h); C.ResetAspect(); return t;
         }
 
@@ -251,9 +252,8 @@ namespace Hollowmere.StyleTest
             var hp = StBiomes.Hero; var hero = Hero("mage", "fire_wizard", hp, 0); var s = StSkillDb.Skills["f_flame_wave"];
             var fx = new GameObject("fx").transform; var ctx = VfxCtx.For(hero, fx, C, s, StSkillDb.PaletteFor("mage", "fire_wizard"));
             var ros = StBestiary.Rosters["mine"]; var spots = new[] { new Vector3(-1.5f, 0, 5.5f), new Vector3(1.8f, 0, 4.8f), new Vector3(0.2f, 0, 7.5f), new Vector3(-4f, 0, 4f), new Vector3(3.8f, 0, 3.2f) };
-            for (int i = 0; i < spots.Length; i++) { var m = StBestiary.Spawn(ros[i % 5], hp + spots[i], 180); if (m && m.anim && m.anim.GetClip(m.run) != null) m.Pose(m.run, 0.2f * i); }
-            C.fieldOfView = 35; var tgt = hp + new Vector3(0, 1.2f, 3.5f);
-            C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -17f); C.transform.rotation = Quaternion.Euler(52, 0, 0);
+            for (int i = 0; i < spots.Length; i++) { var m = StBestiary.Spawn(ros[i % 5], hp + spots[i] * StScale.DU, 180); if (m && m.anim && m.anim.GetClip(m.run) != null) m.Pose(m.run, 0.2f * i); }
+            StScale.GameCam(C, hp);
             var clip = AnimMap.Clip(s.anim); hero.Pose(clip, 0.55f); yield return null; hero.Pose(clip, 0.55f); StVfx.Play(ctx, 0.55f);
             var lo = Loadout.Default("mage", "fire_wizard"); var hud = StUi.BuildHud(C, lo, DemoState(lo, "f_flame_wave", 1f));
             yield return null; Canvas.ForceUpdateCanvases();
@@ -271,17 +271,17 @@ namespace Hollowmere.StyleTest
             var lineup = new[] { ("knight", (string)null), ("knight", "paladin"), ("ranger", null), ("ranger", "sharpshooter"), ("mage", null), ("mage", "fire_wizard") };
             for (int i = 0; i < lineup.Length; i++)
             {
-                float x = (i - 2.5f) * 3.0f + (i / 2 - 1) * 1.2f;
+                float x = ((i - 2.5f) * 3.0f + (i / 2 - 1) * 1.2f) * StScale.DU;
                 var a = Hero(lineup[i].Item1, lineup[i].Item2, new Vector3(x, 0, 0), 200); a.Pose(a.idle, 0.3f);
             }
-            C.fieldOfView = 30; C.transform.position = new Vector3(0, 4.6f, -20f); C.transform.LookAt(new Vector3(0, 1.6f, 0));
+            C.fieldOfView = 30; C.transform.position = new Vector3(0, 4.6f, -20f) * StScale.DU; C.transform.LookAt(new Vector3(0, 1.6f, 0) * StScale.DU);
             var cv = StUi.MakeCanvas(C, "p5_skins_ui"); var root = cv.transform;
             StUi.Txt(root, "SUBCLASS OUTFIT SKINS  ·  palette recolours of the KayKit outfits (no new models)", 40, Color.white, new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(2000, 60), TextAnchor.MiddleCenter, FontStyle.Bold);
             var labels = new[] { "Knight", "Paladin", "Ranger", "Sharpshooter", "Mage", "Fire Wizard" };
             yield return null;
             for (int i = 0; i < lineup.Length; i++)
             {
-                float x = (i - 2.5f) * 3.0f + (i / 2 - 1) * 1.2f; var vp = C.WorldToViewportPoint(new Vector3(x, 0, 0));
+                float x = ((i - 2.5f) * 3.0f + (i / 2 - 1) * 1.2f) * StScale.DU; var vp = C.WorldToViewportPoint(new Vector3(x, 0, 0));
                 var t = StUi.Txt(root, labels[i] + (lineup[i].Item2 != null ? "\n(subclass skin)" : "\n(base)"), 34, i % 2 == 1 ? new Color(1f, 0.82f, 0.38f) : Color.white,
                     new Vector2(vp.x, 0), new Vector2(0, 150), new Vector2(380, 100), TextAnchor.MiddleCenter, FontStyle.Bold);
                 if (lineup[i].Item2 != null) StUi.Swatches(root, StSkillDb.Subclasses[lineup[i].Item2].palette, new Vector2(vp.x, 0), new Vector2(0, 70), 40);

@@ -81,8 +81,8 @@ namespace Hollowmere.StyleTest
         public Transform handR, handL;
         public HeroSockets sockets;
         public GameObject weaponR, weaponL;
-        public const float BindHeight = 3.0f;
-        public float hp = 3, speed = 6.5f, attackRange = 2.8f;
+        public const float BindHeight = StScale.Hero; // 1.8 m (was 3.0 design units); normalised from measured bind-pose bounds
+        public float hp = 3, speed = 6.5f * StScale.DU, attackRange = 2.8f * StScale.DU;
         public bool dead;
         public string current;
         float lockUntil;

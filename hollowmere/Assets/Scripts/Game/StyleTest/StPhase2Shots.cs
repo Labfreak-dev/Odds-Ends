@@ -35,26 +35,26 @@ namespace Hollowmere.StyleTest
             foreach (var s in StBiomes.Spawns) { var sk = R.SkeletonPub(s); var d = hero.transform.position - s; d.y = 0; sk.transform.rotation = Quaternion.LookRotation(d); sk.Pose(sk.idle, 0.2f + foes.Count * 0.2f); foes.Add(sk); }
             yield return null; yield return null;
             var c = StBiomes.Centre;
-            C.fieldOfView = 40; C.transform.position = c + new Vector3(0, 30, -26); C.transform.LookAt(c + new Vector3(0, 0, 1));
+            C.fieldOfView = 40; C.transform.position = c + new Vector3(0, 30, -26) * StScale.DU; C.transform.LookAt(c + new Vector3(0, 0, 1) * StScale.DU);
             yield return null;
             R.SavePub(R.RenderPub(C, 2340, 1080), "phase2/" + id + "/overview.png");
             var hud = StPhase1Shots.Hud();
             int n = 0;
             foreach (var focus in new[] { hero.transform.position, StBiomes.Spawns.Count > 2 ? StBiomes.Spawns[2] : c })
             {
-                C.fieldOfView = 35; var tgt = focus + new Vector3(0, 1.2f, 1.0f);
-                C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -15); C.transform.rotation = Quaternion.Euler(52, 0, 0);
+                C.fieldOfView = 35; var tgt = focus + new Vector3(0, 1.2f, 1.0f) * StScale.DU;
+                C.transform.position = tgt + Quaternion.Euler(52, 0, 0) * new Vector3(0, 0, -15 * StScale.DU); C.transform.rotation = Quaternion.Euler(52, 0, 0);
                 yield return null;
                 R.SavePub(R.RenderPub(C, 2340, 1080), "phase2/" + id + "/gamecam_" + (n++) + ".png");
             }
             if (hud) Object.Destroy(hud);
             // attack frame (hero swinging toward the nearest skeleton) at zoom distance
             hero.Pose(hero.attack, 0.45f);
-            C.transform.position = hero.transform.position + new Vector3(0, 1.2f, 1) + Quaternion.Euler(45, 0, 0) * new Vector3(0, 0, -9); C.transform.rotation = Quaternion.Euler(45, 0, 0);
+            C.transform.position = hero.transform.position + new Vector3(0, 1.2f, 1) * StScale.DU + Quaternion.Euler(45, 0, 0) * new Vector3(0, 0, -9 * StScale.DU); C.transform.rotation = Quaternion.Euler(45, 0, 0);
             yield return null;
             R.SavePub(R.RenderPub(C, 2340, 1080), "phase2/" + id + "/zoom_attack.png");
             // low angle to judge walls / props / lighting
-            C.fieldOfView = 50; C.transform.position = c + new Vector3(-6, 4.5f, -9); C.transform.LookAt(c + new Vector3(2, 1.2f, 4));
+            C.fieldOfView = 50; C.transform.position = c + new Vector3(-6, 4.5f, -9) * StScale.DU; C.transform.LookAt(c + new Vector3(2, 1.2f, 4) * StScale.DU);
             yield return null;
             R.SavePub(R.RenderPub(C, 2340, 1080), "phase2/" + id + "/low_angle.png");
         }

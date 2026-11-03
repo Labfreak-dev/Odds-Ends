@@ -26,6 +26,16 @@ namespace Hollowmere.StyleTestEditor
             mi.importCameras = false; mi.importLights = false;
             mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
         }
+
+        /// <summary>Weighted attack clips (Rig_Medium_HMAttacks.fbx, Blender export): keep only bone curves. The exporter bakes the
+        /// armature node's own transform into every take; on a hero that would overwrite the normalised rig/root scale.</summary>
+        void OnPostprocessAnimation(GameObject root, AnimationClip clip)
+        {
+            if (!assetPath.Contains("/StyleTest/") || !assetPath.Contains("HMAttacks")) return;
+            foreach (var b in AnimationUtility.GetCurveBindings(clip))
+                if (b.type == typeof(Transform) && (b.path == "" || b.path == "Rig_Medium" || b.path == "hm_anchor"))
+                    AnimationUtility.SetEditorCurve(clip, b, null);
+        }
     }
 
     /// <summary>Town/Folk textures: VK (algumacoisaqq) base maps are sRGB colour; owned 2D packs keep alpha; pixel art stays crisp.</summary>

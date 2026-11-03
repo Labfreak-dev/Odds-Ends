@@ -95,3 +95,12 @@ Downloaded from https://poly.pizza/m/<id> (licence shown on each page as CC0 1.0
 Without `Owned/` the game falls back to a procedural fish silhouette (icons, sign) and silent SFX; nothing else depends on the owned packs.
 
 Everything else in fishing is procedural/code: pools, rim layout, cattails, lily pads, jetty, sign post, bobber, line ribbon, ripples, splashes, the IK fishing poses and all UI.
+
+## Attack animations + targeting (ANIM pass)
+| Asset | Version / tier | Source | Licence | Used for |
+|---|---|---|---|---|
+| Quaternius Universal Animation Library 2 | Standard (free, $0 tier), v2.2 | https://quaternius.itch.io/universal-animation-library-2 | CC0 1.0 (License.txt in zip) | Retarget source evaluated (sword combos, shield dash); the toolkit retargets UAL rigs onto Rig_Medium. Not shipped as raw clips. |
+| Quaternius Universal Animation Library 1 | Standard (free) | https://quaternius.itch.io/universal-animation-library | CC0 1.0 (already logged above) | Retarget source evaluated (Spell_Simple_*) |
+| KayKit Character Animations | Free 1.1 | https://kaylousberg.itch.io/kaykit-character-animations | CC0 1.0 (already logged above) | Base poses re-timed into the weighted HM_* clips |
+| `Resources/ST/Anim/Rig_Medium_HMAttacks.fbx` | generated | anim/tools/build.py (Blender 4.2) | derivative of CC0 sources above, CC0 | 24 weighted attack clips (anticipation, hit-stop, overshoot, bow draw-to-cheek IK, staff gather IK) |
+Not obtained (would need a sign-in; listed as options only): Kevin Iglesias "Basic Motions FREE", "Free 32 RPG Animations" and other free Unity Asset Store melee packs, Mixamo. Kenney (CC0): not evaluated - kenney.nl returned HTTP 403 to this box; its Animated Characters packs are a further CC0 option.

@@ -30,7 +30,7 @@ namespace Hollowmere.StyleTest.Skills
         }
 
         void Awake() { fx = new GameObject("skill_fx").transform; }
-        void OnDestroy() { if (fx) Destroy(fx.gameObject); }
+        void OnDestroy() { if (fx) Destroy(fx.gameObject); if (marker) Destroy(marker.gameObject); }
 
         public float CooldownLeft(string id) => readyAt.TryGetValue(id, out var t) ? Mathf.Max(0, t - Time.time) : 0;
         public float CooldownFrac(string id)
@@ -50,16 +50,36 @@ namespace Hollowmere.StyleTest.Skills
             return true;
         }
 
-        StActor Nearest(float within)
+        // ---- lock-on (auto, line of sight; there is no drag-to-aim) ----
+        public StActor Target { get; private set; }
+        public StTargetMarker marker; public bool showMarker = true;
+        float nextRetarget; bool occludersBuilt;
+
+        /// <summary>Lock range in metres for a skill (data is design units).</summary>
+        public static float LockRange(SkillDef s) => (s.range * 1.6f + 2) * StScale.DU;
+        float IdleLockRange => loadout != null && !string.IsNullOrEmpty(loadout.basic) && StSkillDb.Skills.TryGetValue(loadout.basic, out var b) ? LockRange(b) : 8f;
+
+        void EnsureOccluders()
         {
-            StActor best = null; float bd = within * within;
-            if (foes != null) foreach (var f in foes())
-            {
-                if (f == null || f.dead) continue; float d = (f.transform.position - hero.transform.position).sqrMagnitude;
-                if (d < bd) { bd = d; best = f; }
-            }
-            return best;
+            if (occludersBuilt) return; occludersBuilt = true;
+            var roots = new List<Transform>(StBiomes.Built); roots.AddRange(StWorld.Built);
+            StTargeting.BuildOccluders(roots);
         }
+
+        /// <summary>Re-evaluates the lock: nearest foe in range whose chest the hero can see (occluded foes are skipped).</summary>
+        public StActor Retarget(float range)
+        {
+            EnsureOccluders();
+            Target = StTargeting.Pick(hero, foes != null ? foes() : null, range);
+            if (showMarker)
+            {
+                if (marker == null) marker = StTargetMarker.Create(loadout != null ? loadout.Palette.primary : Color.white);
+                marker.Set(Target);
+            }
+            return Target;
+        }
+
+        StActor Nearest(float within) => Retarget(within);
 
         public bool Cast(string id, Vector3? aimAt = null)
         {
@@ -84,7 +104,7 @@ namespace Hollowmere.StyleTest.Skills
             ctx = VfxCtx.For(hero, fx, cam, s, PaletteOf(s), aim);
             float lingerMax = 0; if (s.vfx != null) foreach (var st in s.vfx.steps) lingerMax = Mathf.Max(lingerMax, st.t1 + st.linger);
             curDur = s.duration * Mathf.Max(1f, lingerMax);
-            var clip = AnimMap.Clip(s.anim);
+            var clip = AnimMap.ClipFor(hero, s.anim);
             if (hero.anim.GetClip(clip) != null)
             {
                 hero.Once(clip, 0.06f);
@@ -111,6 +131,13 @@ namespace Hollowmere.StyleTest.Skills
         {
             mana = Mathf.Min(maxMana, mana + manaRegen * (loadout != null && loadout.passive == "m_mana_flow" ? 1.5f : 1f) * Time.deltaTime);
             if (Time.time > buffUntil) dmgBuff = 1;
+            // keep the lock fresh: drop dead / out-of-range / newly occluded targets and pick the next visible one
+            if (Time.time >= nextRetarget && hero != null)
+            {
+                nextRetarget = Time.time + 0.2f; float r = IdleLockRange;
+                bool stale = Target == null || Target.dead || (Target.transform.position - hero.transform.position).magnitude > r || !StTargeting.Visible(hero, Target, out _);
+                if (stale || cur == null) Retarget(r);
+            }
             if (loadout != null && cur == null && Time.time > passiveNext && (loadout.passive == "m_mana_flow" && mana < maxMana * 0.6f || loadout.passive == "r_eagle_eye"))
             { passiveNext = Time.time + 12; ProcPassive(); }
             if (cur == null) return;

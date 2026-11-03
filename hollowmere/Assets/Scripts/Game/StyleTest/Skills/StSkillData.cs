@@ -130,8 +130,39 @@ namespace Hollowmere.StyleTest.Skills
             { "Cast", "Ranged_Magic_Spellcasting" }, { "CastLong", "Ranged_Magic_Spellcasting_Long" }, { "Raise", "Ranged_Magic_Raise" },
             { "DodgeBack", "Dodge_Backward" }, { "DodgeFwd", "Dodge_Forward" }, { "Throw", "Throw" }, { "Use", "Use_Item" }, { "Interact", "Interact" },
             { "Idle", "Idle_A" }, { "Hit", "Hit_A" },
+            // Weighted attack clips (Resources/ST/Anim/Rig_Medium_HMAttacks.fbx, built by anim/tools/build.py from KayKit + Quaternius
+            // UAL sources). Each is authored at its skill's duration with anticipation, hit-stop and overshoot; its contact/release
+            // frame sits on the skill's damage/projectile time, so effects and VFX stay in sync.
+            { "W.Slash", "HM_K_Slash" }, { "W.Whirl", "HM_K_Whirlwind" }, { "W.Bash", "HM_K_Bash" }, { "W.Charge", "HM_K_Charge" },
+            { "W.Slam", "HM_K_Slam" }, { "W.Banner", "HM_K_Banner" }, { "W.Consecrate", "HM_P_Consecrate" }, { "W.Smite", "HM_P_Judgement" },
+            { "W.QuickShot", "HM_R_QuickShot" }, { "W.Pierce", "HM_R_Piercing" }, { "W.Volley", "HM_R_Volley" }, { "W.Multi", "HM_R_Multishot" },
+            { "W.Rain", "HM_R_Rain" }, { "W.Snipe", "HM_S_Snipe" }, { "W.Mark", "HM_S_DeathMark" }, { "W.Deadeye", "HM_S_Deadeye" },
+            { "W.Bolt", "HM_M_Bolt" }, { "W.Chain", "HM_M_Chain" }, { "W.Bomb", "HM_F_Bomb" }, { "W.Meteor", "HM_M_Meteor" },
+            { "W.Nova", "HM_M_Nova" }, { "W.FlameWave", "HM_F_FlameWave" }, { "W.Storm", "HM_M_Storm" }, { "W.Inferno", "HM_F_Inferno" },
         };
+
+        /// <summary>Phase-5 clip per weighted key: used when a rig lacks the weighted clip (and by the before/after proof).</summary>
+        public static readonly Dictionary<string, string> Fallback = new Dictionary<string, string>
+        {
+            { "W.Slash", "Slash" }, { "W.Whirl", "Spin" }, { "W.Bash", "Bash" }, { "W.Charge", "Stab" }, { "W.Slam", "JumpChop" }, { "W.Banner", "Slam" },
+            { "W.Consecrate", "Raise" }, { "W.Smite", "Slash" }, { "W.QuickShot", "Shoot" }, { "W.Pierce", "Draw" }, { "W.Volley", "ShootUp" },
+            { "W.Multi", "Shoot" }, { "W.Rain", "ShootUp" }, { "W.Snipe", "Draw" }, { "W.Mark", "Aim" }, { "W.Deadeye", "Draw" }, { "W.Bolt", "Bolt" },
+            { "W.Chain", "Bolt" }, { "W.Bomb", "Bolt" }, { "W.Meteor", "Summon" }, { "W.Nova", "Cast" }, { "W.FlameWave", "Cast" }, { "W.Storm", "CastLong" },
+            { "W.Inferno", "CastLong" },
+        };
+
         public static string Clip(string key) => KayKit.TryGetValue(key, out var c) ? c : key;
+
+        /// <summary>Clip for a key on this actor: the weighted clip if the rig has it, else the phase-5 fallback.</summary>
+        public static string ClipFor(StActor a, string key)
+        {
+            var c = Clip(key);
+            if (a != null && a.anim != null && a.anim.GetClip(c) == null && Fallback.TryGetValue(key, out var fb)) return Clip(fb);
+            return c;
+        }
+
+        /// <summary>The phase-5 clip for a key (before/after proof).</summary>
+        public static string Legacy(string key) => Clip(Fallback.TryGetValue(key, out var fb) ? fb : key);
     }
 
     /// <summary>Basic + 4 actives + ultimate + 1 passive (phase-5 prototype: one passive slot; 2nd stays data-only).</summary>

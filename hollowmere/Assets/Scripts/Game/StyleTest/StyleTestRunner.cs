@@ -464,6 +464,11 @@ namespace Hollowmere.StyleTest
                 yield return StPhase5Shots.Run(this, cam, only);
                 Application.Quit(); yield break;
             }
+            if (only == "anim" || only.StartsWith("an_"))
+            {
+                yield return StAnimShots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
             if (only == "scale" || only.StartsWith("sc_"))
             {
                 yield return StScaleShots.Run(this, cam, only);

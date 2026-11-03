@@ -80,6 +80,23 @@ namespace Hollowmere.StyleTest.Fishing
             foreach (var r in Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
             {
                 if (!r.enabled || r is ParticleSystemRenderer) continue; var rn = r.transform.root.name.ToLowerInvariant() + "/" + r.name.ToLowerInvariant();
+                if (rn.Contains("floor_tile") && rn.Contains("rocks"))
+                {
+                    // rocky floor tiles under the pool: swap for a flat slab in the same material so the water isn't pierced
+                    var fb = r.bounds; float fx = Mathf.Clamp(s.poolCentre.x, fb.min.x, fb.max.x), fz = Mathf.Clamp(s.poolCentre.z, fb.min.z, fb.max.z);
+                    float qx = (fx - s.poolCentre.x) / (s.rx + 0.6f * U), qz = (fz - s.poolCentre.z) / (s.rz + 0.6f * U);
+                    if (qx * qx + qz * qz < 1)
+                    {
+                        // same kit, plain variant (same atlas UVs + tinted material), fitted to the rocky tile's footprint, top at y = 0
+                        var slab = StKit.Spawn("Dungeon/floor_tile_large", Vector3.zero, r.transform.root.eulerAngles.y); slab.name = "floor_slab_fish";
+                        foreach (var sr in slab.GetComponentsInChildren<Renderer>()) sr.sharedMaterial = r.sharedMaterial;
+                        var sb = StWorld.Bounds(slab); if (sb.size.x > 1e-3f) slab.transform.localScale *= fb.size.x / sb.size.x;
+                        sb = StWorld.Bounds(slab); slab.transform.position += new Vector3(fb.center.x - sb.center.x, -sb.max.y, fb.center.z - sb.center.z);
+                        StBiomes.Built.Add(slab.transform); r.enabled = false; n++;
+                        Debug.Log("[ST] p5b spot slab " + rn);
+                    }
+                    continue;
+                }
                 if (rn.Contains("floor") || rn.Contains("grass") || rn.Contains("road") || rn.Contains("plaza") || rn.Contains("water") || rn.Contains("fish_") || rn.Contains("dust") || rn.Contains("fog")) continue;
                 if (r.GetComponentInParent<StActor>() != null) continue;
                 var b = r.bounds; if (b.size.x > 9 * U || b.size.z > 9 * U || b.max.y < 0.12f * U || b.min.y < -2f) continue;

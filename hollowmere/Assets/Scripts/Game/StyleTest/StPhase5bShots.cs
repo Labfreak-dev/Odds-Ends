@@ -126,7 +126,7 @@ namespace Hollowmere.StyleTest
             }
             foreach (var (rg, p, t) in rigs) { rg.PoseStill(p, t); rg.lineOn = false; rg.UpdateLine(); }
             yield return null; foreach (var (rg, p, t) in rigs) rg.PoseStill(p, t);
-            C.fieldOfView = 30; C.transform.position = new Vector3(0, 5.2f, -22f) * U; C.transform.LookAt(new Vector3(0, 2.0f, 0) * U);
+            C.fieldOfView = 30; C.transform.position = new Vector3(0, 4.2f, -17f) * U; C.transform.LookAt(new Vector3(0, 1.9f, 0) * U);
             var cv = StUi.MakeCanvas(C, "p5b_lineup"); var root = cv.transform;
             StUi.Txt(root, "FISHING POSES ON EVERY SKIN  ·  one procedural IK layer, rod on the HandR socket (base + subclass outfits)", 38, Color.white, new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(2200, 60), TextAnchor.MiddleCenter, FontStyle.Bold);
             var labels = new[] { "Knight · cast", "Paladin · idle-hold", "Ranger · bite-jerk", "Sharpshooter · reel", "Mage · reel", "Fire Wizard · hold" };
@@ -179,7 +179,7 @@ namespace Hollowmere.StyleTest
                 R.SavePub(R.RenderPub(C, 2340, 1080), Out + "spots/" + loc + "_approach.png"); Object.Destroy(hud.canvas.gameObject);
                 // 2) fishing: hero on the stand point, line out, bobber floating
                 hero.transform.position = s.stand; hero.transform.rotation = Quaternion.LookRotation(s.facing);
-                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform;
+                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform; StFishing.MarkerOf(s, false);
                 rig.PoseStill(FishPose.Hold, 0.3f); StFishFx.Float(rig, s, 0.3f, fx, C, false); yield return null; rig.PoseStill(FishPose.Hold, 0.3f); StFishFx.Float(rig, s, 0.3f, fx, C, false); rig.UpdateLine();
                 var fh = StFishUi.FishingHud(C, loc, 2, null); yield return null; Canvas.ForceUpdateCanvases();
                 R.SavePub(R.RenderPub(C, 2340, 1080), Out + "spots/" + loc + "_gamecam.png"); Object.Destroy(fh.gameObject);
@@ -196,7 +196,7 @@ namespace Hollowmere.StyleTest
             // reel minigame (cave, ranger reeling a Crystal Puffer)
             {
                 Clear(); yield return null; var s = World("cave"); var hero = StPhase5Shots.Hero("ranger", null, s.stand, Quaternion.LookRotation(s.facing).eulerAngles.y);
-                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform; var c = StFishDb.Catches["v_puffer"];
+                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform; StFishing.MarkerOf(s, false); var c = StFishDb.Catches["v_puffer"];
                 var g = new ReelGame(c, 11);
                 // pick a frame where the marker is in the net and the meter is past half
                 for (int i = 0; i < 3000 && !g.Done && !(g.InZone && g.progress > 0.58f && g.progress < 0.75f); i++) g.Step(1 / 60f, g.AutoHold());
@@ -208,7 +208,7 @@ namespace Hollowmere.StyleTest
             // bite prompt (crypt, knight)
             {
                 Clear(); yield return null; var s = World("crypt"); var hero = StPhase5Shots.Hero("knight", null, s.stand, Quaternion.LookRotation(s.facing).eulerAngles.y);
-                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform;
+                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform; StFishing.MarkerOf(s, false);
                 rig.PoseStill(FishPose.Bite, 0.12f); StFishFx.Bite(rig, s, 0.22f, fx, C); yield return null; rig.PoseStill(FishPose.Bite, 0.12f); rig.UpdateLine();
                 GameCam(s.stand); var cv = StFishUi.BitePrompt(C, C.WorldToViewportPoint(s.hotspot), 0.35f); yield return null; Canvas.ForceUpdateCanvases();
                 R.SavePub(R.RenderPub(C, 2340, 1080), Out + "ui/bite_prompt.png"); Object.Destroy(cv.gameObject);
@@ -217,7 +217,7 @@ namespace Hollowmere.StyleTest
             foreach (var (loc, id, cls, sub) in new[] { ("town", "t_goldkoi", "ranger", (string)null), ("crypt", "c_reliquary", "knight", "paladin"), ("mine", "m_sword", "mage", "fire_wizard"), ("sewer", "s_shark", "mage", null) })
             {
                 Clear(); yield return null; var s = World(loc); var hero = StPhase5Shots.Hero(cls, sub, s.stand, Quaternion.LookRotation(s.facing).eulerAngles.y);
-                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform; var c = StFishDb.Catches[id]; float kg = Mathf.Lerp(c.wMin, c.wMax, 0.62f);
+                var rig = StFishRig.Equip(hero); var fx = new GameObject("fx").transform; StFishing.MarkerOf(s, false); var c = StFishDb.Catches[id]; float kg = Mathf.Lerp(c.wMin, c.wMax, 0.62f);
                 bool escape = loc == "sewer"; Canvas cv;
                 if (escape) { rig.PoseStill(FishPose.Bite, 0.4f); rig.lineOn = false; rig.bobber.gameObject.SetActive(false); rig.UpdateLine(); yield return null; rig.PoseStill(FishPose.Bite, 0.4f); rig.UpdateLine(); }
                 else
@@ -231,7 +231,7 @@ namespace Hollowmere.StyleTest
                 {
                     // close 3/4 on the hero holding up the catch (the game camera sees mostly hat)
                     var hb = new List<Vector3> { s.stand + Vector3.up * 2.4f * U, s.stand - Vector3.up * 0.05f, rig.tip.position + Vector3.up * 0.3f * U, rig.bobberPos - Vector3.up * 1.2f * U, s.stand + s.facing * 1.5f * U };
-                    Fit(hb, 2340f / 1080f, new Vector3(-0.2f, -0.45f, 1f)); yield return null;
+                    var vd = -s.facing + new Vector3(0, -0.55f, 0.6f); Fit(hb, 2340f / 1080f, vd); yield return null; // from in front of the hero
                     R.SavePub(R.RenderPub(C, 2340, 1080), Out + "ui/show_" + id + ".png"); C.ResetAspect(); GameCam(s.stand);
                 }
                 cv = escape ? StFishUi.Escaped(C, c, false, null) : StFishUi.Result(C, c, kg, true, 3, null);

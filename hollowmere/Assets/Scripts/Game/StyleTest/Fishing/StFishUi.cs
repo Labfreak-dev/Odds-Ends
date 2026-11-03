@@ -174,6 +174,8 @@ namespace Hollowmere.StyleTest.Fishing
             return cv;
         }
 
+        static void Fit(Text t) { t.resizeTextForBestFit = true; t.resizeTextMaxSize = t.fontSize; t.resizeTextMinSize = 14; t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Truncate; t.horizontalOverflow = HorizontalWrapMode.Wrap; }
+
         // ------------------------------------------------------------------ catch table sheet
         public static Canvas CatchTable(Camera cam)
         {
@@ -195,8 +197,8 @@ namespace Hollowmere.StyleTest.Fishing
                     var row = Panel(col, "row", new Vector2(0.5f, 1), new Vector2(0, y), new Vector2(colW - 34, 104), new Color(0.17f, 0.18f, 0.23f, 1));
                     var strip = StUi.Rect(row, "rar", new Vector2(0, 0.5f), new Vector2(4, 0), new Vector2(8, 92), new Vector2(0, 0.5f)); StUi.Img(strip, rc);
                     Icon(row, c.icon, new Vector2(-colW / 2 + 74, 0), 88, rc);
-                    StUi.Txt(row, c.name, 25, Color.white, new Vector2(0, 0.5f), new Vector2(130, 22), new Vector2(240, 32), TextAnchor.MiddleLeft, FontStyle.Bold);
-                    StUi.Txt(row, c.rarity + " " + (c.kind == CatchKind.Fish ? "fish" : c.kind.ToString().ToLowerInvariant()), 20, rc, new Vector2(0, 0.5f), new Vector2(130, -6), new Vector2(240, 26), TextAnchor.MiddleLeft);
+                    Fit(StUi.Txt(row, c.name, 25, Color.white, new Vector2(0, 0.5f), new Vector2(130, 22), new Vector2(205, 32), TextAnchor.MiddleLeft, FontStyle.Bold));
+                    Fit(StUi.Txt(row, c.rarity + " " + (c.kind == CatchKind.Fish ? "fish" : c.kind.ToString().ToLowerInvariant()), 20, rc, new Vector2(0, 0.5f), new Vector2(130, -6), new Vector2(205, 26), TextAnchor.MiddleLeft));
                     StUi.Txt(row, (c.wMin == c.wMax ? c.wMin.ToString("0.0#") : c.wMin.ToString("0.#") + "-" + c.wMax.ToString("0.#")) + " kg · " + c.value + "g", 18, Dim, new Vector2(0, 0.5f), new Vector2(130, -32), new Vector2(240, 24), TextAnchor.MiddleLeft);
                     StUi.Txt(row, (StFishDb.Chance(l.id, c.id) * 100).ToString("0.0") + "%", 30, Gold, new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(100, 40), TextAnchor.MiddleRight, FontStyle.Bold);
                 }

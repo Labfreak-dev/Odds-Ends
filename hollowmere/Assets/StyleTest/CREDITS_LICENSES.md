@@ -87,9 +87,9 @@ Downloaded from https://poly.pizza/m/<id> (licence shown on each page as CC0 1.0
 ### Owned itch.io packs ($0 downloads from the user's owned library) - gitignored `Owned/Resources/STO/Fish*`, NOT in git
 | Pack | Author | Used as | Licence / terms |
 |---|---|---|---|
-| 7T4E - Fish, Fishing Hooks, Fishing Lures, Cane Pole, Reel Fishing Poles | DreamingOfLight888 | catch icons (fish_t*, hook_t*, lure_t*), FISH/REEL button art (reel_t2), spot sign | Purchased asset, use in projects; no redistribution of the files |
+| 7T4E - Fish, Fishing Hooks, Fishing Lures, Cane Pole, Reel Fishing Poles | DreamingOfLight888 | catch icons (fish_t*, hook_t*, lure_t*), FISH/REEL button art (reel_t2), spot sign | Owned via the itch library (store terms: use in projects; no redistribution of the files) |
 | 7T4E - Gems, Ingots, Keys, Medallions, Ores, Treasure Bags, Treasure Chests (already owned for phase 1) | DreamingOfLight888 | treasure icons | as above |
-| Cartoon Fishes [Pack] | Wenrexa | fish icons (wx_01..21, 256x150) | Purchased; use in projects, no resale of the assets |
+| Cartoon Fishes [Pack] | Wenrexa | fish icons (wx_01..21, 256x150) | Owned via the itch library; use in projects, no resale of the assets |
 | Fishing Minigame SFX - 120 Game Sounds | candlelightgame | 20 SFX in STO/FishSfx (cast, plunk, nibble, bite alert, hook set, reel, drag, snap, splash, catch/rare/legendary/treasure/boot, escape) | Included LICENSE.txt: commercial use OK, editing OK, no attribution required; no redistribution as a sound pack |
 | Fishing Assets / Tropical Fishing Assets (pixel art) | CaptainSkolot | downloaded, NOT used (pixel style clashes with the painted 7T4E/Wenrexa icons) | CC BY 4.0 tag (see CaptainSkolot row above) |
 Without `Owned/` the game falls back to a procedural fish silhouette (icons, sign) and silent SFX; nothing else depends on the owned packs.

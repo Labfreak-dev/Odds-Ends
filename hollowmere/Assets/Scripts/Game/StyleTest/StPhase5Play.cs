@@ -54,8 +54,13 @@ namespace Hollowmere.StyleTest
             if (fishing != null || spot == null) return;
             moving = false; if (hud != null && hud.canvas) hud.canvas.enabled = false; if (fishBtn) fishBtn.gameObject.SetActive(false);
             fishing = StFishing.Begin(hero, spot, cam, auto, fishSeed++); fishing.shotDir = shotDir;
-            fishing.onCatch = (c, isNew) => Debug.Log("[ST] p5b play catch " + c.id + " " + c.rarity + (isNew ? " NEW" : ""));
-            var stop = StFishUi.FishingHud(null, spot.loc, 0, () => { if (fishing != null) fishing.End(); });
+            System.Action stopAct = () => { if (fishing != null) fishing.End(); };
+            var stop = StFishUi.FishingHud(null, spot.loc, 0, stopAct);
+            fishing.onCatch = (c, isNew) =>
+            {
+                Debug.Log("[ST] p5b play catch " + c.id + " " + c.rarity + (isNew ? " NEW" : ""));
+                Destroy(stop.gameObject); stop = StFishUi.FishingHud(null, spot.loc, fishing.caught, stopAct); // refresh the trip count
+            };
             fishing.onEnd = () => { fishing = null; Destroy(stop.gameObject); if (hud != null && hud.canvas) hud.canvas.enabled = true; if (hero) hero.Loop(hero.idle); };
         }
 

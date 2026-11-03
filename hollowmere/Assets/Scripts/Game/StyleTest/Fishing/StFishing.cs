@@ -104,7 +104,6 @@ namespace Hollowmere.StyleTest.Fishing
             if (item) item.transform.position += pos - b.center;
             rig.bobberPos = pos + Vector3.up * b.size.y * 0.5f;
             if (u < 1) { StFx.Sparks(from, u, 1.5f * U, new Color(0.8f, 0.93f, 1f, 1f), cam, fx, 16, 4); }
-            else StFx.Sparks(pos, Mathf.Repeat(t * 1.5f, 1f), 0.7f * U, new Color(1f, 0.95f, 0.7f, 0.8f), cam, fx, 8, 11);
         }
 
         /// <summary>3D model for a catch, normalised to `length` world units, hung long-axis vertical.</summary>
@@ -147,7 +146,7 @@ namespace Hollowmere.StyleTest.Fishing
             return holder;
         }
 
-        public static float ShowLength(CatchDef c, float kg) => StFishDb.U * (c.kind == CatchKind.Fish ? Mathf.Lerp(0.8f, 1.7f, Mathf.InverseLerp(c.wMin, c.wMax, kg)) * (c.model.Contains("shark") ? 1.5f : 1f) : c.model.Contains("Chest") ? 1.0f : 0.6f);
+        public static float ShowLength(CatchDef c, float kg) => StFishDb.U * (c.kind == CatchKind.Fish ? Mathf.Lerp(1.2f, 2.2f, Mathf.InverseLerp(c.wMin, c.wMax, kg)) * (c.model.Contains("shark") ? 1.5f : 1f) : c.model.Contains("Chest") ? 1.0f : 0.6f);
     }
 
     /// <summary>Realtime fishing session on one hero at one spot (FATE-style): cast -> wait (nibbles) -> bite (tap to hook
@@ -168,9 +167,13 @@ namespace Hollowmere.StyleTest.Fishing
         void Start()
         {
             hero.transform.position = spot.stand; hero.transform.rotation = Quaternion.LookRotation(spot.facing);
-            rig = StFishRig.Equip(hero); rig.live = true; fx = new GameObject("fish_fx").transform; au = gameObject.AddComponent<AudioSource>(); au.spatialBlend = 0;
+            Marker(false); rig = StFishRig.Equip(hero); rig.live = true; fx = new GameObject("fish_fx").transform; au = gameObject.AddComponent<AudioSource>(); au.spatialBlend = 0;
             Cast();
         }
+
+        /// <summary>The floating "fish here" lure + hotspot ripples only show while nobody is fishing.</summary>
+        void Marker(bool on) { if (spot?.root == null) return; foreach (Transform t in spot.root) if (t.name == "fish_float_icon" || t.name == "fish_ripples") t.gameObject.SetActive(on); }
+        public static void MarkerOf(FishSpot s, bool on) { if (s?.root == null) return; foreach (Transform t in s.root) if (t.name == "fish_float_icon" || t.name == "fish_ripples") t.gameObject.SetActive(on); }
 
         void Sfx(string n, float vol = 0.8f) { var c = Resources.Load<AudioClip>("STO/FishSfx/" + n); if (c && au) au.PlayOneShot(c, vol); }
 
@@ -276,7 +279,7 @@ namespace Hollowmere.StyleTest.Fishing
         {
             state = State.Done; if (popup) Destroy(popup.gameObject); if (panel != null && panel.canvas) Destroy(panel.canvas.gameObject); if (held) Destroy(held);
             if (fx) { StFx.Clear(fx); Destroy(fx.gameObject); }
-            rig.Unequip(); onEnd?.Invoke(); Destroy(this);
+            rig.Unequip(); Marker(true); onEnd?.Invoke(); Destroy(this);
         }
     }
 }

@@ -96,6 +96,14 @@ namespace Hollowmere.StyleTest
             return f;
         }
 
+        /// <summary>Skinned bounds only refresh when the mesh is skinned for a rendered frame, so a size measured right
+        /// after Animation.Sample is the PREVIOUS pose. Actors normalised by height get a one-shot settle that re-measures
+        /// one frame later (posed bounds) and re-fits height + floor contact.</summary>
+        public static void SettleNextFrame(GameObject go, float h, float groundY)
+        {
+            var s = go.GetComponent<StScaleSettle>() ?? go.AddComponent<StScaleSettle>(); s.h = h; s.groundY = groundY;
+        }
+
         // ---------------- world conversion ----------------
         public static HashSet<GameObject> Snapshot()
         {
@@ -138,6 +146,17 @@ namespace Hollowmere.StyleTest
             var b = Measure(g);
             var line = string.Format("{0,-34} h={1,5:0.00} m  w={2,5:0.00}  d={3,5:0.00}  {4}", what, b.size.y, b.size.x, b.size.z, note);
             Log.Add(line); Debug.Log("[ST] scale " + line); return b.size.y;
+        }
+    }
+
+    public class StScaleSettle : MonoBehaviour
+    {
+        public float h, groundY; int frames;
+        void Update()
+        {
+            if (++frames < 2) return; // frame 1: the spawn pose gets skinned; frame 2: bounds are the posed ones
+            StScale.NormalizeHeight(gameObject, StScale.Cat.Enemy, h, groundY);
+            Destroy(this);
         }
     }
 }

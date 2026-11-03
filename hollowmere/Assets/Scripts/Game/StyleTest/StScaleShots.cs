@@ -120,15 +120,19 @@ namespace Hollowmere.StyleTest
             Clear(); yield return null;
             StWorld.NeutralLighting(); C.backgroundColor = new Color(0.20f, 0.21f, 0.24f);
             float x = 0; var labels = new List<(string, float, float)>();
-            foreach (var hd in Heroes)
+            var hs = new List<StActor>(); var vs = new List<StActor>();
+            foreach (var hd in Heroes) { var a = StPhase5Shots.Hero(hd.cls, hd.sub, Vector3.zero, 165); a.Pose(a.idle, 0.3f); hs.Add(a); }
+            for (int i = 0; i < StFolk.Villagers.Length; i++) { var v = StFolk.Make(StFolk.Villagers[i], Vector3.zero, 165); v.Pose(v.idle, 0.3f); vs.Add(v); }
+            for (int f = 0; f < 3; f++) yield return null; // skinned bounds = posed bounds only after the pose has been skinned
+            for (int i = 0; i < hs.Count; i++)
             {
-                var a = StPhase5Shots.Hero(hd.cls, hd.sub, Vector3.zero, 165); a.Pose(a.idle, 0.3f);
+                var a = hs[i]; var hd = Heroes[i];
                 LogActor("hero " + hd.label + " (idle)", a, StScale.Hero);
                 Place(a.gameObject, ref x, 0.5f); MeasureActor(a, out var b); labels.Add((hd.label, b.center.x, b.size.y));
             }
-            for (int i = 0; i < StFolk.Villagers.Length; i++)
+            for (int i = 0; i < vs.Count; i++)
             {
-                var v = StFolk.Make(StFolk.Villagers[i], Vector3.zero, 165); if (!v) continue; v.Pose(v.idle, 0.3f);
+                var v = vs[i];
                 LogActor("villager " + StFolk.Villagers[i].id + " (idle)", v, StScale.Villager);
                 Place(v.gameObject, ref x, 0.5f); var b = StScale.Measure(v.gameObject); labels.Add((StFolk.Villagers[i].id.Replace("villager_", "villager "), b.center.x, b.size.y));
             }
@@ -157,16 +161,18 @@ namespace Hollowmere.StyleTest
                 if (log) StScale.Record("kit VK Prop_Fountain", fount, "target top " + StScale.FountainTop + ", rim " + StScale.FountainRim + " (see probes)");
                 var doorsEnd = x;
                 x += 0f; var vill = StFolk.Make(StFolk.Villagers[0], Vector3.zero, 165); vill.Pose(vill.idle, 0.3f); x += 0.4f; Place(vill.gameObject, ref x, 1.1f);
-                labels.Add(("villager", StScale.Measure(vill.gameObject).center.x, StScale.Measure(vill.gameObject).size.y));
+                labels.Add(("villager", StScale.Measure(vill.gameObject).center.x, StScale.Measure(vill.gameObject).size.y)); var actorsAt = new List<(int, StActor)> { (labels.Count - 1, vill) };
                 var hd = Heroes[Mathf.Max(0, hv)];
                 var hero = StPhase5Shots.Hero(hd.cls, hd.sub, Vector3.zero, 165); hero.Pose(hero.idle, 0.3f); Place(hero.gameObject, ref x, 1.1f);
-                MeasureActor(hero, out var hb2); labels.Add(("HERO\n" + hd.label, hb2.center.x, hb2.size.y));
+                MeasureActor(hero, out var hb2); labels.Add(("HERO\n" + hd.label, hb2.center.x, hb2.size.y)); actorsAt.Add((labels.Count - 1, hero));
                 foreach (var (id, lab) in new[] { ("rat", "rat\n(critter)"), ("elite_warwolf", "warwolf\n(elite)"), ("skel_warrior", "skeleton"), ("boss_death", "boss\n(Death)") })
                 {
                     var m = Mon(id, Vector3.zero); if (!m) continue; Place(m.gameObject, ref x, 1.1f);
-                    var mb = StScale.Measure(m.gameObject); labels.Add((lab, mb.center.x, mb.size.y));
+                    var mb = StScale.Measure(m.gameObject); labels.Add((lab, mb.center.x, mb.size.y)); actorsAt.Add((labels.Count - 1, m));
                 }
-                yield return null;
+                for (int f = 0; f < 3; f++) yield return null; // posed bounds + one-frame settle, then re-read the label heights
+                foreach (var (li, ac) in actorsAt) { MeasureActor(ac, out var ab); labels[li] = (labels[li].Item1, ab.center.x, ab.size.y); }
+                MeasureActor(hero, out hb2);
                 if (shots) Shoot(labels, 0, x, 7.0f, hv < 0 ? "lineup.png" : "lineup_" + hd.label.ToLowerInvariant().Replace(" ", "_") + ".png",
                     "SCALE LINEUP  ·  1 unit = 1 m  ·  hero " + hd.label + "  ·  red line = 1.8 m", false, hv < 0);
                 if (shots && hv < 0)
@@ -221,10 +227,10 @@ namespace Hollowmere.StyleTest
 
         static IEnumerator WorldHeights()
         {
-            Clear(); yield return null; StTown.Lighting(); StTown.Build(); yield return null;
+            Clear(); yield return null; StTown.Lighting(); StTown.Build(); for (int f = 0; f < 3; f++) yield return null;
             StScale.Log.Add(""); StScale.Log.Add("## town (as built, after the DU -> m conversion)");
             LogBuilt("town", StTown.Built);
-            foreach (var f in StTown.Folk) if (f) { f.Pose(f.idle, 0.3f); LogActor("town folk " + f.name, f, StScale.Villager); }
+            foreach (var f in StTown.Folk) if (f) LogActor("town folk " + f.name + " (" + f.current + ")", f, StScale.Villager);
             foreach (var id in StBiomes.Ids)
             {
                 Clear(); yield return null; StBiomes.Build(id); yield return null;
@@ -233,8 +239,17 @@ namespace Hollowmere.StyleTest
                 foreach (var e in StBestiary.Rosters[id])
                 {
                     var a = StBestiary.Spawn(e, StBiomes.Centre + Vector3.right * 40, 180); if (!a) continue;
+                    for (int f = 0; f < 3; f++) yield return null; // posed bounds (and the one-frame settle) before measuring
                     float target = e.tier == 2 ? StScale.Boss : e.tier == 1 ? StScale.Elite : e.h > 0 ? e.h : StScale.Enemy;
                     LogActor("monster " + id + " " + e.id + (e.tier == 2 ? " [boss]" : e.tier == 1 ? " [elite]" : ""), a, target);
+                    // floating check: lowest bone vs measured floor (a gap means a renderer extends below the visible feet)
+                    float boneMin = float.MaxValue; foreach (var sk in a.GetComponentsInChildren<SkinnedMeshRenderer>()) foreach (var bn in sk.bones) if (bn) boneMin = Mathf.Min(boneMin, bn.position.y);
+                    var mb = StScale.Measure(a.gameObject);
+                    if (boneMin < float.MaxValue && boneMin - mb.min.y > 0.25f)
+                    {
+                        StScale.Log.Add(string.Format("   ! foot gap {0:0.00} m (lowest bone {1:0.00}, bounds min {2:0.00})", boneMin - mb.min.y, boneMin, mb.min.y));
+                        foreach (var r in a.GetComponentsInChildren<Renderer>()) StScale.Log.Add(string.Format("     renderer {0} {1} y {2:0.00}..{3:0.00} enabled {4}", r.name, r.GetType().Name, r.bounds.min.y, r.bounds.max.y, r.enabled));
+                    }
                     Object.Destroy(a.gameObject);
                 }
             }
@@ -270,6 +285,11 @@ namespace Hollowmere.StyleTest
                 // eye-level check of the same spot (hero vs props/doors)
                 C.fieldOfView = 40; C.transform.position = p + new Vector3(-2.2f, 1.5f, -5.5f); C.transform.LookAt(p + new Vector3(0.6f, 1.1f, 2.5f)); yield return null;
                 R.SavePub(R.RenderPub(C, 2340, 1080), Out + "eye/town_" + spot + ".png");
+                if (spot == "plaza")
+                {   // whole hub from above: the 1.54x hex buildings must not collide with roads/plaza/stalls
+                    C.fieldOfView = 40; C.transform.position = new Vector3(0, 40, -36); C.transform.LookAt(new Vector3(0, 0, 3)); yield return null;
+                    R.SavePub(R.RenderPub(C, 2340, 1080), Out + "eye/town_overview.png");
+                }
             }
             foreach (var id in StBiomes.Ids)
             {

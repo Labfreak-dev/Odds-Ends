@@ -147,7 +147,7 @@ namespace Hollowmere.StyleTest
             foreach (AnimationState st in a.anim) st.wrapMode = WrapMode.Loop;
             a.idle = "Idle_Loop"; a.run = "Walk_Loop"; a.attack = "Interact"; a.hit = "Hit_Chest"; a.death = "Death01";
             // re-measure in the idle pose (the bind pose is taller than the relaxed stance)
-            a.Pose(a.idle, 0.3f); StScale.NormalizeHeight(holder, StScale.Cat.Villager);
+            a.Pose(a.idle, 0.3f); StScale.NormalizeHeight(holder, StScale.Cat.Villager, 0, pos.y); StScale.SettleNextFrame(holder, StScale.Villager, pos.y);
             a.sockets = HeroSockets.Resolve(holder, 1.8f * StMat.MetreScale, RigProfile.Generic);
             a.handR = a.sockets[Socket.HandR]; a.handL = a.sockets[Socket.HandL];
             return a;

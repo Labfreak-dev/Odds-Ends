@@ -103,7 +103,7 @@ namespace Hollowmere.StyleTest
             if (e.id == "boss_death") { a.idle = "Cast_Windup"; a.run = "Cast_Windup"; a.attack = "Attack_Scythe"; }
             if (a.anim && a.anim.GetClip(a.idle) != null) a.Pose(a.idle, 0.2f);
             // measured in the pose it is seen in (bind poses differ: borrowed UAL clips stretch the Bestiary rigs, bosses crouch)
-            if (!e.src.StartsWith("KK:") && e.h > 0) StScale.NormalizeHeight(a.gameObject, StScale.Cat.Enemy, e.h, pos.y);
+            if (!e.src.StartsWith("KK:") && e.h > 0) { StScale.NormalizeHeight(a.gameObject, StScale.Cat.Enemy, e.h, pos.y); StScale.SettleNextFrame(a.gameObject, e.h, pos.y); }
             return a;
         }
 

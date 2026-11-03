@@ -8,6 +8,7 @@ Code config: `Assets/Scripts/Game/StyleTest/StScale.cs` holds the constants, per
 - Height is the **renderer bounds** of the object: max.y − min.y, in world metres.
   - Particles, the ignore-raycast layer (glow rings) and disabled renderers are skipped.
   - For actors, held weapons are excluded.
+- **Posed, not bind-pose:** skinned bounds only refresh after the pose has been skinned for a rendered frame. Bestiary monsters and villagers therefore get a one-shot `StScaleSettle`, which re-fits height and floor contact on their second Update.
 - It is model-agnostic: actors are normalised from their **measured** bounds, never per-model magic numbers.
   - KayKit heroes and skeletons: bind pose → `StActor.BindHeight = StScale.Hero`.
   - Quaternius villagers: `NormalizeHeight(Cat.Villager)`.
@@ -25,7 +26,7 @@ Code config: `Assets/Scripts/Game/StyleTest/StScale.cs` holds the constants, per
 | Boss | 4.50 | ×2–3 hero (3.6–5.4) | Death, dragon, mutant, lava golem; KayKit skeleton boss ×2.5 |
 | Door / gate opening | 2.20 | 2.1–2.3 | clear height under the lintel |
 | Market stall (overall) | 2.60 | 2.4–2.8 | VK stalls are pinned |
-| Fountain | basin rim 1.0–1.2, top 2.75 | spire 2.5–3.0 | VK fountain is pinned to 2.75 overall |
+| Fountain | rim ~1.0, top 3.1 | rim 1.0–1.2, spire 2.5–3.0 | The VK model cannot meet both targets. It is pinned to 3.1 m overall, giving a measured rim of 1.02 m. |
 | Lamp post | 3.2 | | |
 | Bench | 0.9 | | backrest |
 | House storey | ~3.0 | | eaves ~3 m, ridge 5–7 m |
@@ -35,7 +36,7 @@ Code config: `Assets/Scripts/Game/StyleTest/StScale.cs` holds the constants, per
 The first scale lineup measured the kit doors against the ruler. Neither kit met the 2.1–2.3 m door standard:
 - **KayKit Dungeon** (walls, doorways, floors, pillars, torches; also used for the town's dungeon gate): the doorway opening was **1.67 m**. Fix: **× `StScale.DungeonKit` = 1.32** everywhere it is spawned. The biome grid `T` scales with it, so rooms are 32% larger and walls 3.17 m tall.
 - **KayKit Medieval Hexagon** town buildings (houses, tavern, church, smithy, windmill): the door was **1.43 m**. Fix: **× `StScale.HexKit` = 1.54**, so the 1-storey home is about 6.4 m tall to the chimney top.
-- **Medieval Village Kit** (market stalls, fountain, props): real metres, 1:1. Stalls are pinned to 2.6 m and the fountain to 2.75 m (rim measured about 1.05 m).
+- **Medieval Village Kit** (market stalls, fountain, props): real metres, 1:1. Stalls are pinned to 2.6 m and the fountain to 3.1 m (rim measured at 1.02 m).
 
 `scale/tools/measure.py` re-measures door openings and the fountain rim from `doors.png` and `lineup.png` with the pixel mapping that StScaleShots logs. Kit meshes are not CPU-readable at runtime, so a raycast probe is not possible in the player.
 

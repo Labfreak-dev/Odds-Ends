@@ -158,8 +158,8 @@ namespace Hollowmere.StyleTest
             VK("Prop_TavernSign", new Vector3(-14.2f, 0, 17.6f), 140);
             Hex("building_church_blue", new Vector3(21, 0, 25), 210);
             VK("Grave_Cross", new Vector3(28, 0, 19), 20); VK("Grave_A", new Vector3(30, 0, 22), -10); VK("Grave_Obelisk", new Vector3(26.5f, 0, 16.5f), 5);
-            SmokeOn(Hex("building_home_A_blue", new Vector3(-30, 0, -14), 60), 0.8f);
-            SmokeOn(Hex("building_home_B_blue", new Vector3(-20, 0, -22), 20), 0.8f);
+            SmokeOn(Hex("building_home_A_blue", new Vector3(-32, 0, -12), 60), 0.8f); // spaced for the HexKit fit
+            SmokeOn(Hex("building_home_B_blue", new Vector3(-17, 0, -25), 20), 0.8f);
             Hex("building_home_A_blue", new Vector3(35, 0, -10), -60, 1.05f);
             Hex("building_windmill_blue", new Vector3(36, 0, 38), 200, 1.2f);
             VK("Prop_Laundry", new Vector3(-24.5f, 0, -16.5f), 30);

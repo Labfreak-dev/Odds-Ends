@@ -151,6 +151,11 @@ namespace Hollowmere.StyleTest
             g.transform.position = pos + Vector3.up * 0.08f;
         }
 
-        public static void Clear(Transform root) { for (int i = root.childCount - 1; i >= 0; i--) Object.DestroyImmediate(root.GetChild(i).gameObject); }
+        public static void Clear(Transform root)
+        {
+            // runtime meshes (Sector/Rect/ribbons) are unnamed; free them so per-frame redraws don't leak
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true)) if (mf.sharedMesh != null && mf.sharedMesh.name == "") Object.Destroy(mf.sharedMesh);
+            for (int i = root.childCount - 1; i >= 0; i--) Object.DestroyImmediate(root.GetChild(i).gameObject);
+        }
     }
 }

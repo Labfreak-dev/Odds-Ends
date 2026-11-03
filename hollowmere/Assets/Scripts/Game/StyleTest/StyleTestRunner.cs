@@ -46,6 +46,7 @@ namespace Hollowmere.StyleTest
             Debug.Log("[ST] mode " + mode + " out " + outDir);
             if (mode == "shots") StartCoroutine(Shots());
             else if (mode == "clip") StartCoroutine(Clip());
+            else if (mode == "play5") StPhase5Play.Begin(cam, Arg("-stClass", "knight"));
             else ShowCreator();
         }
 
@@ -451,6 +452,11 @@ namespace Hollowmere.StyleTest
             if (only == "phase4" || only.StartsWith("p4_"))
             {
                 yield return StPhase4Shots.Run(this, cam, only);
+                Application.Quit(); yield break;
+            }
+            if (only == "phase5" || only.StartsWith("p5_"))
+            {
+                yield return StPhase5Shots.Run(this, cam, only);
                 Application.Quit(); yield break;
             }
             if (only == "phase2" || only.StartsWith("p2_"))

@@ -26,6 +26,14 @@ namespace Hollowmere
             foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None)) Object.Destroy(cam.gameObject);
             foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) Object.Destroy(l.gameObject);
 
+            if (StyleTest.StyleTestRunner.Requested())
+            {
+                var st = new GameObject("StyleTest");
+                Object.DontDestroyOnLoad(st);
+                st.AddComponent<StyleTest.StyleTestRunner>();
+                return;
+            }
+
             var go = new GameObject("Hollowmere");
             Object.DontDestroyOnLoad(go);
             go.AddComponent<GameManager>();

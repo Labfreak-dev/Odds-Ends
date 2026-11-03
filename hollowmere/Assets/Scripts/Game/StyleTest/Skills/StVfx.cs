@@ -158,7 +158,7 @@ namespace Hollowmere.StyleTest.Skills
                 case Vk.Beam:
                 {
                     var to = Resolve(c, s.to, s.offTo); float w = s.size * (0.5f + 0.5f * k);
-                    Ribbon(c, p, to, w, w, Fade(col, k), Fade(col, k)); Ribbon(c, p, to, w * 0.3f, w * 0.3f, Fade(new Color(1.8f, 1.8f, 1.8f, 1), k), Fade(new Color(1.8f, 1.8f, 1.8f, 1), k)); break;
+                    Ribbon(c, p, to, w, w, Fade(col, 0.5f * k), Fade(col, 0.5f * k)); Ribbon(c, p, to, w * 0.22f, w * 0.22f, Fade(new Color(1.6f, 1.6f, 1.6f, 1), k), Fade(new Color(1.6f, 1.6f, 1.6f, 1), k)); break;
                 }
                 case Vk.Lightning: Lightning(c, s, p, u, k, col); break;
                 case Vk.RuneRing: Rune(c, floor, s.size * (0.75f + 0.25f * EaseOut(u)), c.t * s.angle, Fade(col, k * Mathf.Clamp01(u * 3))); break;

@@ -43,7 +43,7 @@ namespace Hollowmere.StyleTest.Skills
             Add(new SkillDef { id = "k_slash", name = "Slash", cls = "knight", slot = SlotType.Basic, anim = "Slash", icon = 11, Glyph = "slash", cooldown = 0.6f, cost = 0, duration = 0.8f, range = 2.6f,
                 desc = "3-hit combo opener. Fast steel arc in front.",
                 vfx = new VfxDef("slash",
-                    V(Vk.Slash, 0.28f, 0.55f).F(Anchor.Root, L(0, 1.5f, 0.3f)).S(2.4f, 0.8f).A(170).Tl(65).L(0.3f),
+                    V(Vk.Slash, 0.28f, 0.55f).F(Anchor.Root, L(0, 1.5f, 0.3f)).S(2.4f, 0.8f).A(170).Tl(35).L(0.3f),
                     V(Vk.Sparks, 0.5f, 0.85f).F(Anchor.Root, L(0, 0.9f, 2.3f)).S(1.4f).N(14)) })
                 .effects.Add(EffectStep.Dmg(0.45f, 1));
             var ww = Add(new SkillDef { id = "k_whirlwind", name = "Whirlwind", cls = "knight", anim = "Spin", icon = 21, Glyph = "spin", cooldown = 7, cost = 20, duration = 1.2f, range = 3.2f,
@@ -150,7 +150,7 @@ namespace Hollowmere.StyleTest.Skills
                     V(Vk.Telegraph, 0, 0.6f).R(P.Telegraph),
                     V(Vk.Charge, 0, 0.6f).F(Anchor.Bow).S(0.7f).N(10),
                     V(Vk.Arrow, 0.62f, 0.85f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(1, 1),
-                    V(Vk.Beam, 0.62f, 0.85f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.35f).R(P.Glow).L(0.12f),
+                    V(Vk.Beam, 0.62f, 0.85f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.28f).R(P.Glow).L(0.12f),
                     V(Vk.Sparks, 0.85f, 1f).F(Anchor.Aim, L(0, 1.1f, 0)).S(1.3f).N(14)) })
                 .effects.Add(EffectStep.Dmg(0.8f, 2));
             Add(new SkillDef { id = "r_volley", name = "Volley", cls = "ranger", anim = "ShootUp", icon = 24, Glyph = "volley", cooldown = 8, cost = 20, duration = 1.3f, range = 6.2f,
@@ -163,7 +163,7 @@ namespace Hollowmere.StyleTest.Skills
             Add(new SkillDef { id = "r_roll_back", name = "Roll Back", cls = "ranger", anim = "DodgeBack", icon = 2, Glyph = "evade", cooldown = 7, cost = 10, duration = 0.9f, range = 0,
                 desc = "Evade and leap backwards; next shot is quicker.", targeting = Targeting.Self,
                 vfx = new VfxDef("roll_back",
-                    V(Vk.Dash, 0.1f, 0.75f).F(Anchor.Root, L(0, 0, -4.5f)).S(0.9f).N(4).R(P.Primary),
+                    V(Vk.Dash, 0.1f, 0.75f).F(Anchor.Root, L(0, 0, -3.2f)).S(0.9f).N(4).R(P.Primary),
                     V(Vk.Sparks, 0.1f, 0.5f).F(Anchor.Root, L(0, 0.2f, 0)).S(1.6f).N(12, 3).R(P.Dark),
                     V(Vk.Shock, 0.1f, 0.5f).F(Anchor.Root).S(2f).R(P.Secondary),
                     V(Vk.Motes, 0.2f, 1f).F(Anchor.Root, L(0, 0, -2f)).S(2.4f, 2f).N(16, 6)) });
@@ -187,8 +187,8 @@ namespace Hollowmere.StyleTest.Skills
             Add(new SkillDef { id = "r_eagle_eye", name = "Eagle Eye", cls = "ranger", slot = SlotType.Passive, anim = "Aim", icon = 20, Glyph = "eye", cooldown = 0, cost = 0, duration = 1.2f, range = 0, unlockLevel = 5,
                 desc = "Passive: +20% range and +10% crit (a hunter's ring shows the reach).",
                 vfx = new VfxDef("eagle_eye",
-                    V(Vk.RuneRing, 0.05f, 0.4f).F(Anchor.Root).S(5.5f).A(30).R(P.Secondary).L(0.55f),
-                    V(Vk.Reticle, 0.1f, 0.5f).F(Anchor.Root, L(0, 0.1f, 5.5f)).S(0.8f).L(0.5f),
+                    V(Vk.RuneRing, 0.05f, 0.4f).F(Anchor.Root).S(3.4f).A(30).R(P.Secondary).L(0.55f),
+                    V(Vk.Reticle, 0.1f, 0.5f).F(Anchor.Root, L(0, 0.1f, 3.4f)).S(0.7f).L(0.5f),
                     V(Vk.Glow, 0.1f, 0.4f).F(Anchor.Bow).S(0.3f, 0.6f).R(P.Glow).L(0.5f),
                     V(Vk.Motes, 0.1f, 1f).F(Anchor.Root).S(1.4f, 3.2f).N(12, 3)) });
 
@@ -200,7 +200,7 @@ namespace Hollowmere.StyleTest.Skills
                     V(Vk.Charge, 0, 0.65f).F(Anchor.Bow).S(1.2f).N(16, 3).R(P.Glow),
                     V(Vk.Beam, 0.0f, 0.65f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.04f).R(P.Primary),
                     V(Vk.Arrow, 0.66f, 0.8f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(1.2f, 1),
-                    V(Vk.Beam, 0.66f, 0.78f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.6f).R(P.White).L(0.18f),
+                    V(Vk.Beam, 0.66f, 0.78f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.34f).R(P.Glow).L(0.18f),
                     V(Vk.Shock, 0.78f, 1f).F(Anchor.Aim).S(2.4f),
                     V(Vk.Sparks, 0.78f, 1f).F(Anchor.Aim, L(0, 1.1f, 0)).S(2f).N(18, 4).R(P.Glow)) });
             snipe.effects.Add(EffectStep.Dmg(0.75f, 4));
@@ -213,17 +213,17 @@ namespace Hollowmere.StyleTest.Skills
                     V(Vk.Pillar, 0.3f, 0.6f).F(Anchor.Aim).S(0.6f, 4.5f).R(P.Primary).L(0.4f),
                     V(Vk.Stars, 0.4f, 1f).F(Anchor.Aim, L(0, 3.4f, 0)).S(0.2f).N(1)) })
                 .effects.Add(EffectStep.St(0.4f, Status.Mark, 8));
-            var dead = Add(new SkillDef { id = "s_deadeye", name = "Deadeye", cls = "ranger", subclass = "sharpshooter", slot = SlotType.Ultimate, anim = "Draw", icon = 12, Glyph = "deadeye", cooldown = 35, cost = 0, duration = 2.2f, range = 12f, unlockLevel = 40,
-                desc = "Time slows; three perfect shots hit every marked enemy.", telegraph = new TelegraphDef { shape = StFx.Shape.Line, size = 12f, width = 1.2f },
+            var dead = Add(new SkillDef { id = "s_deadeye", name = "Deadeye", cls = "ranger", subclass = "sharpshooter", slot = SlotType.Ultimate, anim = "Draw", icon = 12, Glyph = "deadeye", cooldown = 35, cost = 0, duration = 2.2f, range = 9.5f, unlockLevel = 40,
+                desc = "Time slows; three perfect shots hit every marked enemy.", telegraph = new TelegraphDef { shape = StFx.Shape.Line, size = 9.5f, width = 1.2f },
                 vfx = new VfxDef("deadeye",
                     V(Vk.RuneRing, 0.0f, 0.2f).F(Anchor.Root).S(2.2f).A(120).R(P.Primary).L(0.8f),
                     V(Vk.Charge, 0.0f, 0.3f).F(Anchor.Bow).S(1.0f).N(14, 2).R(P.Glow),
                     V(Vk.Reticle, 0.1f, 0.3f).F(Anchor.Aim, L(-1.6f, 0.08f, -1f)).S(0.8f).L(0.6f),
                     V(Vk.Reticle, 0.12f, 0.32f).F(Anchor.Aim, L(0, 0.08f, 0)).S(0.8f).L(0.6f),
                     V(Vk.Reticle, 0.14f, 0.34f).F(Anchor.Aim, L(1.8f, 0.08f, 1.2f)).S(0.8f).L(0.6f),
-                    V(Vk.Beam, 0.32f, 0.42f).F(Anchor.Bow).T(Anchor.Aim, L(-1.6f, 1.1f, -1f)).S(0.45f).R(P.White).L(0.12f),
-                    V(Vk.Beam, 0.5f, 0.6f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.45f).R(P.White).L(0.12f),
-                    V(Vk.Beam, 0.68f, 0.78f).F(Anchor.Bow).T(Anchor.Aim, L(1.8f, 1.1f, 1.2f)).S(0.45f).R(P.White).L(0.12f),
+                    V(Vk.Beam, 0.32f, 0.42f).F(Anchor.Bow).T(Anchor.Aim, L(-1.6f, 1.1f, -1f)).S(0.26f).R(P.Glow).L(0.12f),
+                    V(Vk.Beam, 0.5f, 0.6f).F(Anchor.Bow).T(Anchor.Aim, L(0, 1.1f, 0)).S(0.26f).R(P.Glow).L(0.12f),
+                    V(Vk.Beam, 0.68f, 0.78f).F(Anchor.Bow).T(Anchor.Aim, L(1.8f, 1.1f, 1.2f)).S(0.26f).R(P.Glow).L(0.12f),
                     V(Vk.Sparks, 0.42f, 0.7f).F(Anchor.Aim, L(-1.6f, 1.1f, -1f)).S(1.5f).N(12, 1).R(P.Glow),
                     V(Vk.Sparks, 0.6f, 0.88f).F(Anchor.Aim, L(0, 1.1f, 0)).S(1.5f).N(12, 2).R(P.Glow),
                     V(Vk.Sparks, 0.78f, 1f).F(Anchor.Aim, L(1.8f, 1.1f, 1.2f)).S(1.5f).N(12, 3).R(P.Glow)) });

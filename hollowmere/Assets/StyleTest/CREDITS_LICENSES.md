@@ -57,3 +57,10 @@ KayKit by Kay Lousberg (www.kaylousberg.com). Quaternius models by @Quaternius (
 ## Phase 3 cleanup / Phase 4
 - Kenney Graveyard characters dropped from the crypt roster (style mismatch); files stay in repo (CC0), unused by rosters.
 - Phase 4 VFX and telegraphs (StFx.shader, StFx.cs) are procedural, written for this project: no third-party assets.
+
+## Phase 5 (skills, HUD, subclass skins) - no new third-party assets
+- Arrows: `Weapons/arrow_bow.fbx` from **KayKit Adventurers (CC0)**, already imported above; it replaces the phase-4 cube arrows (StVfx.Arrow).
+- All skill VFX are procedural (StFx/StVfx meshes on the existing StFx shader). The banner, Judgement hammer, crystals, flames, bubble, beams and lightning are built in code.
+- Subclass outfit skins are runtime palette recolours of the existing KayKit Knight/Ranger/Mage atlases (StSkins). There are no new models or textures in git.
+- Skill icons: the owned itch icon set in the gitignored `Owned/` folder (sk4_*), gradient-mapped per subclass palette at runtime. A procedural glyph fallback is used when Owned/ is absent, so the public repo builds without it.
+- UI font: Unity's built-in LegacyRuntime.ttf.

@@ -13,9 +13,9 @@ namespace Hollowmere.StyleTest
 
         static readonly Dictionary<string, float> ShotT = new Dictionary<string, float>
         {
-            { "k_slash", 0.45f }, { "k_whirlwind", 0.62f }, { "k_shield_bash", 0.52f }, { "k_charge", 0.62f }, { "k_slam", 0.64f }, { "k_banner", 0.6f }, { "k_iron_skin", 0.32f },
+            { "k_slash", 0.48f }, { "k_whirlwind", 0.62f }, { "k_shield_bash", 0.52f }, { "k_charge", 0.62f }, { "k_slam", 0.64f }, { "k_banner", 0.6f }, { "k_iron_skin", 0.32f },
             { "p_consecrate", 0.6f }, { "p_judgement", 0.64f }, { "p_divine_shield", 0.5f },
-            { "r_quick_shot", 0.5f }, { "r_piercing", 0.76f }, { "r_volley", 0.74f }, { "r_roll_back", 0.45f }, { "r_multishot", 0.52f }, { "r_rain", 0.62f }, { "r_eagle_eye", 0.45f },
+            { "r_quick_shot", 0.5f }, { "r_piercing", 0.76f }, { "r_volley", 0.66f }, { "r_roll_back", 0.45f }, { "r_multishot", 0.52f }, { "r_rain", 0.62f }, { "r_eagle_eye", 0.45f },
             { "s_snipe", 0.7f }, { "s_death_mark", 0.6f }, { "s_deadeye", 0.55f },
             { "m_bolt", 0.6f }, { "m_meteor", 0.7f }, { "m_frost_nova", 0.72f }, { "m_blink", 0.66f }, { "m_chain_spark", 0.62f }, { "m_storm", 0.6f }, { "m_mana_flow", 0.5f },
             { "f_flame_wave", 0.6f }, { "f_living_bomb", 0.6f }, { "f_inferno", 0.62f },
@@ -191,7 +191,7 @@ namespace Hollowmere.StyleTest
             {
                 Clear(); yield return null;
                 var biome = Biome[s.subclass ?? s.cls]; StBiomes.Build(biome); C.backgroundColor = RenderSettings.fogColor;
-                var hp = StBiomes.Hero; var hero = Hero(s.cls, s.subclass, hp, 0);
+                var hp = StBiomes.Hero; var hero = Hero(s.cls, s.subclass, hp, biome == "crypt" ? 30 : 0);
                 var fx = new GameObject("fx").transform; var pal = s.palettePin ?? StSkillDb.PaletteFor(s.cls, s.subclass);
                 var ctx = VfxCtx.For(hero, fx, C, s, pal);
                 var ros = StBestiary.Rosters[biome];
@@ -199,7 +199,7 @@ namespace Hollowmere.StyleTest
                 bool aimed = s.range > 0 && s.targeting != Targeting.Self && s.slot != SlotType.Passive;
                 if (aimed) { spots.RemoveAll(p => (hp + p - ctx.aim).magnitude < 1.8f); spots.Insert(0, ctx.aim - hp); }
                 if (s.id == "m_chain_spark") { spots.Add(ctx.aim - hp + new Vector3(2.2f, 0, 1.6f)); spots.Add(ctx.aim - hp + new Vector3(-1.8f, 0, 2.6f)); }
-                if (s.id == "k_charge" || s.id == "m_blink") spots[0] = new Vector3(0.3f, 0, s.range + 1.8f);
+                if (s.id == "k_charge" || s.id == "m_blink") spots[0] = ctx.origin + ctx.fwd * (s.range + 1.8f) - hp;
                 for (int i = 0; i < spots.Count; i++)
                 {
                     var m = StBestiary.Spawn(ros[i % 5], hp + spots[i], 180); if (m && m.anim && m.anim.GetClip(m.run) != null) m.Pose(m.run, 0.2f * i);

@@ -26,17 +26,9 @@ namespace Hollowmere.StyleTest
         }
         static Vector3 Hand(Ctx c, bool right) { var h = right ? c.hero.handR : c.hero.handL; return h ? h.position : c.pos + Vector3.up * 1.6f + c.fwd * 0.5f; }
 
+        // phase 5: the cube arrow is replaced by the KayKit arrow mesh (StVfx.Arrow) with a palette trail
         static void Arrow(Ctx c, Vector3 tail, Vector3 head, Color trail)
-        {
-            var d = head - tail; if (d.sqrMagnitude < 1e-4f) return;
-            var g = GameObject.CreatePrimitive(PrimitiveType.Cube); Object.Destroy(g.GetComponent<Collider>()); g.name = "arrow";
-            g.transform.SetParent(c.root, false); g.transform.position = head - d.normalized * 0.45f; g.transform.rotation = Quaternion.LookRotation(d);
-            g.transform.localScale = new Vector3(0.07f, 0.07f, 0.9f); g.GetComponent<Renderer>().sharedMaterial = StMat.Make("fx_arrow", null, new Color(0.55f, 0.4f, 0.25f), false);
-            var tip = GameObject.CreatePrimitive(PrimitiveType.Cube); Object.Destroy(tip.GetComponent<Collider>()); tip.transform.SetParent(g.transform, false);
-            tip.transform.localPosition = new Vector3(0, 0, 0.55f); tip.transform.localScale = new Vector3(2.4f, 2.4f, 0.15f); tip.transform.localRotation = Quaternion.Euler(0, 0, 45);
-            tip.GetComponent<Renderer>().sharedMaterial = StMat.Make("fx_arrowtip", null, new Color(0.75f, 0.78f, 0.82f), false);
-            StFx.Trail(head - d.normalized * Mathf.Min(3.5f, d.magnitude), head - d.normalized * 0.4f, 0.28f, trail, c.cam, c.root);
-        }
+            => Skills.StVfx.Arrow(new Skills.VfxCtx { root = c.root, cam = c.cam }, tail, head, trail);
 
         static void Orb(Ctx c, Vector3 p, float r, Color col, Vector3 from)
         {

@@ -64,3 +64,34 @@ KayKit by Kay Lousberg (www.kaylousberg.com). Quaternius models by @Quaternius (
 - Subclass outfit skins are runtime palette recolours of the existing KayKit Knight/Ranger/Mage atlases (StSkins). There are no new models or textures in git.
 - Skill icons: the owned itch icon set in the gitignored `Owned/` folder (sk4_*), gradient-mapped per subclass palette at runtime. A procedural glyph fallback is used when Owned/ is absent, so the public repo builds without it.
 - UI font: Unity's built-in LegacyRuntime.ttf.
+
+## Phase 5b (fishing)
+### CC0, committed (`Resources/ST/Fish/`, converted GLB -> FBX in Blender 4.2: meshes joined, normalised to 1 u, rod butt at origin / tip +Z)
+| File | Source model (poly.pizza id) | Author | Licence |
+|---|---|---|---|
+| q_rod.fbx | Fishing Rod (0YAR0Lg58p) | Quaternius | CC0 1.0 |
+| q_clownfish.fbx, q_salmon.fbx, q_tang.fbx | Fish (BEcU9rjiAq, XWl86YFtpF, Ymu8ftrmuT) | Quaternius | CC0 1.0 |
+| q_bigeye.fbx | Clownfish (769fHo3eEB) | Quaternius | CC0 1.0 |
+| q_fishbone.fbx | Fish Bone (bU5RLZnq6v) | Quaternius | CC0 1.0 |
+| q_shark.fbx | Shark (YYsK3gRCBZ) | Quaternius | CC0 1.0 |
+| q_angler.fbx | Anglerfish (MRjSlwCjHM) | Quaternius | CC0 1.0 |
+| q_puffer.fbx | Puffer (UKHtgpxTOk) | Quaternius | CC0 1.0 |
+| q_lionfish.fbx | Lionfish (czsz9Baw86) | Quaternius | CC0 1.0 |
+| q_swordfish.fbx | Swordfish (7hMOlBjln0) | Quaternius | CC0 1.0 |
+| q_butterfly.fbx | Butterfly Fish (s2MkBeSzGy) | Quaternius | CC0 1.0 |
+| q_koi.fbx | Koi (qyGtRmhgzl) | Quaternius | CC0 1.0 |
+| q_bluegold.fbx, q_goldfish.fbx | Blue Goldfish (imxZBHZ1yS), Goldfish (qS6CgsWFAh) | Quaternius | CC0 1.0 |
+| q_lure.fbx | Lure (JknXyvHxtD) | Quaternius | CC0 1.0 |
+Downloaded from https://poly.pizza/m/<id> (licence shown on each page as CC0 1.0). Treasure models reuse already-logged assets: KayKit `Props/Bag`, `Props/Chest_Wood` (CC0) and the repo gem meshes (`Models/gem_*`); ingots/medallions/keys are procedural boxes.
+
+### Owned itch.io packs ($0 downloads from the user's owned library) - gitignored `Owned/Resources/STO/Fish*`, NOT in git
+| Pack | Author | Used as | Licence / terms |
+|---|---|---|---|
+| 7T4E - Fish, Fishing Hooks, Fishing Lures, Cane Pole, Reel Fishing Poles | DreamingOfLight888 | catch icons (fish_t*, hook_t*, lure_t*), FISH/REEL button art (reel_t2), spot sign | Purchased asset, use in projects; no redistribution of the files |
+| 7T4E - Gems, Ingots, Keys, Medallions, Ores, Treasure Bags, Treasure Chests (already owned for phase 1) | DreamingOfLight888 | treasure icons | as above |
+| Cartoon Fishes [Pack] | Wenrexa | fish icons (wx_01..21, 256x150) | Purchased; use in projects, no resale of the assets |
+| Fishing Minigame SFX - 120 Game Sounds | candlelightgame | 20 SFX in STO/FishSfx (cast, plunk, nibble, bite alert, hook set, reel, drag, snap, splash, catch/rare/legendary/treasure/boot, escape) | Included LICENSE.txt: commercial use OK, editing OK, no attribution required; no redistribution as a sound pack |
+| Fishing Assets / Tropical Fishing Assets (pixel art) | CaptainSkolot | downloaded, NOT used (pixel style clashes with the painted 7T4E/Wenrexa icons) | CC BY 4.0 tag (see CaptainSkolot row above) |
+Without `Owned/` the game falls back to a procedural fish silhouette (icons, sign) and silent SFX; nothing else depends on the owned packs.
+
+Everything else in fishing is procedural/code: pools, rim layout, cattails, lily pads, jetty, sign post, bobber, line ribbon, ripples, splashes, the IK fishing poses and all UI.

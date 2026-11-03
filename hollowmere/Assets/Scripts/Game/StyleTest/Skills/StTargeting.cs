@@ -71,6 +71,7 @@ namespace Hollowmere.StyleTest.Skills
 
         public static bool Visible(StActor from, StActor to, out RaycastHit hit)
         {
+            if (!StFlags.On("losTargeting")) { hit = default; return true; } // flag off: plain nearest-in-range
             var a = Chest(from); var b = Chest(to);
             return !Physics.Linecast(a, b, out hit, Mask, QueryTriggerInteraction.Ignore);
         }

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Hollowmere.StyleTest
 {
     /// <summary>Free stylized style test (KayKit CC0). Boots instead of the game when started with -styleTest
-    /// or when Resources/ST/st_autoboot exists (style-test APK). Modes: -stMode play (default) | shots | clip.</summary>
+    /// or when Resources/ST/st_autoboot exists (style-test APK). Modes: -stMode game (default: phase-6 game flow) | smoke (phase-6 automated smoke) | play (phase-1 slice) | play5 | shots | clip.</summary>
     public class StyleTestRunner : MonoBehaviour
     {
         public static bool Requested()
@@ -36,7 +36,7 @@ namespace Hollowmere.StyleTest
 
         void Start()
         {
-            mode = Arg("-stMode", "play");
+            mode = Arg("-stMode", "game"); // phase 6: the game flow is the default (APK autoboot); "play" = phase-1 creator slice
             outDir = Arg("-stOut", Directory.GetCurrentDirectory());
             Directory.CreateDirectory(outDir);
             var cg = new GameObject("StCamera"); cg.tag = "MainCamera";
@@ -47,6 +47,8 @@ namespace Hollowmere.StyleTest
             if (mode == "shots") StartCoroutine(Shots());
             else if (mode == "clip") StartCoroutine(Clip());
             else if (mode == "play5") StPhase5Play.Begin(cam, Arg("-stClass", "knight"));
+            else if (mode == "game") StGame.Begin(cam);
+            else if (mode == "smoke") StSmokeTest.Begin(cam, outDir);
             else ShowCreator();
         }
 

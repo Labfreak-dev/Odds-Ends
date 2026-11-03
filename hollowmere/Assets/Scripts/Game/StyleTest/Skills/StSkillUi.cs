@@ -248,7 +248,7 @@ namespace Hollowmere.StyleTest.Skills
         // ------------------------------------------------------------------ loadout screen
         public class LoadoutScreen { public Canvas canvas; public Loadout l; public string selected; public System.Action rebuild; }
 
-        public static LoadoutScreen BuildLoadout(Camera cam, Loadout l, int level, Texture portrait, string selected, System.Action<LoadoutScreen> onChange = null, System.Action onDone = null, System.Action onLevel = null)
+        public static LoadoutScreen BuildLoadout(Camera cam, Loadout l, int level, Texture portrait, string selected, System.Action<LoadoutScreen> onChange = null, System.Action onDone = null, System.Action onLevel = null, string doneLabel = "Enter dungeon")
         {
             var ls = new LoadoutScreen { canvas = MakeCanvas(cam, "p5_loadout"), l = l, selected = selected }; var root = ls.canvas.transform; var pal = l.Palette;
             var bg = Stretch(root, "bg"); Img(bg, new Color(0.07f, 0.07f, 0.09f, 0.97f));
@@ -318,13 +318,13 @@ namespace Hollowmere.StyleTest.Skills
             }
             // bottom bar
             var presets = new[] { "Preset 1", "Preset 2" };
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < (StFlags.On("presets") ? 2 : 0); i++)
             {
                 var pb = Rect(root, "preset" + i, new Vector2(0.5f, 0), new Vector2(-380 + i * 260, 40), new Vector2(240, 72)); var pi2 = Img(pb, i == 0 ? A(Palette.Ldr(pal.primary), 0.9f) : new Color(0.2f, 0.2f, 0.24f), RoundRect); pi2.type = Image.Type.Sliced;
                 Txt(pb, presets[i], 28, i == 0 ? Color.black : Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(240, 72), TextAnchor.MiddleCenter, FontStyle.Bold);
             }
-            var done = Rect(root, "done", new Vector2(0.5f, 0), new Vector2(200, 40), new Vector2(300, 72)); Img(done, new Color(0.25f, 0.6f, 0.3f), RoundRect).type = Image.Type.Sliced;
-            Txt(done, "Enter dungeon", 30, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 72), TextAnchor.MiddleCenter, FontStyle.Bold); Btn(done, onDone);
+            var done = Rect(root, "done", new Vector2(0.5f, 0), new Vector2(StFlags.On("presets") ? 200 : 0, 40), new Vector2(300, 72)); Img(done, new Color(0.25f, 0.6f, 0.3f), RoundRect).type = Image.Type.Sliced;
+            Txt(done, doneLabel, 30, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 72), TextAnchor.MiddleCenter, FontStyle.Bold); Btn(done, onDone);
             return ls;
         }
 
@@ -346,7 +346,7 @@ namespace Hollowmere.StyleTest.Skills
             var cv = MakeCanvas(cam, "p5_pick"); var root = cv.transform;
             var bg = Stretch(root, "bg"); Img(bg, new Color(0.06f, 0.06f, 0.08f, 0.97f));
             Txt(root, "CHOOSE YOUR PATH", 60, Color.white, new Vector2(0.5f, 1), new Vector2(0, -30), new Vector2(1400, 80), TextAnchor.MiddleCenter, FontStyle.Bold);
-            Txt(root, "Subclasses unlock at level 20 · respec in town for gold · 3 playable in this prototype", 28, Dim, new Vector2(0.5f, 1), new Vector2(0, -98), new Vector2(1600, 40));
+            Txt(root, "Subclasses unlock at level 20 · 3 playable in this prototype (one per class)", 28, Dim, new Vector2(0.5f, 1), new Vector2(0, -98), new Vector2(1600, 40));
             LevelButton(root, level, onLevel, new Vector2(-30, -30));
             var classes = new[] { "knight", "ranger", "mage" };
             for (int row = 0; row < 3; row++)

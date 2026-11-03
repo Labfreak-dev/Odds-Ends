@@ -194,11 +194,30 @@ namespace Hollowmere.StyleTest
             Centre *= StScale.DU; Hero *= StScale.DU; for (int i = 0; i < Spawns.Count; i++) Spawns[i] *= StScale.DU;
         }
 
+        static string[] curMask;
+        /// <summary>Phase 6: true when a world point (metres) is on a floor cell of the current biome (the sewer channel row is
+        /// water, not floor). <paramref name="inset"/> keeps actors that far from a cell edge that has no neighbouring floor.</summary>
+        public static bool Walkable(Vector3 p, float inset = 0.45f)
+        {
+            if (curMask == null) return true;
+            var m = curMask; float t = T * StScale.DU; // cell size in metres
+            float fx = p.x / t + m[0].Length * 0.5f - 0.5f, fz = p.z / t + m.Length * 0.5f - 0.5f;
+            int x = Mathf.RoundToInt(fx), zr = Mathf.RoundToInt(fz), z = m.Length - 1 - zr;
+            bool Floor(int xx, int zz) => At(m, xx, zz) && !(biome == "sewer" && zz == 1);
+            if (!Floor(x, z)) return false;
+            float ox = (fx - x) * t, oz = (fz - zr) * t, edge = t * 0.5f - inset; // offset from cell centre (metres)
+            if (ox > edge && !Floor(x + 1, z)) return false;
+            if (ox < -edge && !Floor(x - 1, z)) return false;
+            if (oz > edge && !Floor(x, z - 1)) return false; // +z world = previous mask row (north)
+            if (oz < -edge && !Floor(x, z + 1)) return false;
+            return true;
+        }
+
         static void BuildDU(string id)
         {
             biome = id; rng = new System.Random(id.GetHashCode() & 0xffff);
             Built.Clear(); Spawns.Clear();
-            var d = Get(id); var m = d.mask;
+            var d = Get(id); var m = d.mask; curMask = m;
             bool rocky = id == "cave" || id == "mine";
             string[] floors = id == "cave" ? new[] { "floor_tile_large" }
                 : id == "sewer" ? new[] { "floor_tile_large", "floor_tile_large", "floor_tile_large_rocks" }

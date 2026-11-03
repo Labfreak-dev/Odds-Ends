@@ -18,6 +18,8 @@ namespace Hollowmere.StyleTest.Skills
         Transform fx; SkillDef cur; VfxCtx ctx; float start, curDur; readonly HashSet<int> applied = new HashSet<int>();
         float passiveNext; public readonly Dictionary<StActor, (Status s, float until)> status = new Dictionary<StActor, (Status, float)>();
         public System.Action<string, Vector3, Color> onFloat; // floating combat text hook (HUD)
+        public System.Action<StActor> onKill; public System.Action<StActor, float> onHit; // phase 6: xp/loot + boss engage
+        public float power = 1; // phase 6: level scaling of skill damage
 
         public bool Casting => cur != null;
         public SkillDef Current => cur;
@@ -71,7 +73,7 @@ namespace Hollowmere.StyleTest.Skills
         {
             EnsureOccluders();
             Target = StTargeting.Pick(hero, foes != null ? foes() : null, range);
-            if (showMarker)
+            if (showMarker && StFlags.On("targetMarker"))
             {
                 if (marker == null) marker = StTargetMarker.Create(loadout != null ? loadout.Palette.primary : Color.white);
                 marker.Set(Target);
@@ -122,6 +124,7 @@ namespace Hollowmere.StyleTest.Skills
 
         public void TakeDamage(float d)
         {
+            if (StFlags.On("godMode")) return;
             if (shield > 0 && Time.time < shieldUntil) { float a = Mathf.Min(shield, d); shield -= a; d -= a; }
             if (loadout != null && loadout.passive == "k_iron_skin" && hp < maxHp * 0.5f) { d *= 0.75f; if (Time.time > passiveNext) { passiveNext = Time.time + 6; ProcPassive(); } }
             hp = Mathf.Max(0, hp - d); ult += d * 0.01f;
@@ -189,9 +192,9 @@ namespace Hollowmere.StyleTest.Skills
                 {
                     case EffectKind.Damage:
                     {
-                        float dmg = e.amount * dmgBuff; f.hp -= dmg; ult += 0.04f * e.amount;
+                        float dmg = e.amount * dmgBuff * power * (StFlags.On("oneShot") ? 20 : 1); f.hp -= dmg; onHit?.Invoke(f, dmg); ult += 0.04f * e.amount;
                         onFloat?.Invoke(Mathf.RoundToInt(dmg * 10).ToString(), f.transform.position + Vector3.up * 3f * StScale.DU, Palette.Ldr(PaletteOf(s).primary));
-                        if (f.hp <= 0 && !f.dead) { f.dead = true; f.Once(f.death, 0.05f, true); }
+                        if (f.hp <= 0 && !f.dead) { f.dead = true; f.Once(f.death, 0.05f, true); onKill?.Invoke(f); }
                         else if (!f.dead && f.anim.GetClip(f.hit) != null) f.Once(f.hit, 0.05f);
                         break;
                     }

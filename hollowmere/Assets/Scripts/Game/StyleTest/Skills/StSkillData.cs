@@ -157,6 +157,7 @@ namespace Hollowmere.StyleTest.Skills
         public static string ClipFor(StActor a, string key)
         {
             var c = Clip(key);
+            if (!StFlags.On("weightedAnims") && Fallback.ContainsKey(key)) return Legacy(key); // flag off: phase-5 clips
             if (a != null && a.anim != null && a.anim.GetClip(c) == null && Fallback.TryGetValue(key, out var fb)) return Clip(fb);
             return c;
         }

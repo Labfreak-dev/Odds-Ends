@@ -104,3 +104,6 @@ Everything else in fishing is procedural/code: pools, rim layout, cattails, lily
 | KayKit Character Animations | Free 1.1 | https://kaylousberg.itch.io/kaykit-character-animations | CC0 1.0 (already logged above) | Base poses re-timed into the weighted HM_* clips |
 | `Resources/ST/Anim/Rig_Medium_HMAttacks.fbx` | generated | anim/tools/build.py (Blender 4.2) | derivative of CC0 sources above, CC0 | 24 weighted attack clips (anticipation, hit-stop, overshoot, bow draw-to-cheek IK, staff gather IK) |
 Not obtained (would need a sign-in; listed as options only): Kevin Iglesias "Basic Motions FREE", "Free 32 RPG Animations" and other free Unity Asset Store melee packs, Mixamo. Kenney (CC0): not evaluated - kenney.nl returned HTTP 403 to this box; its Animated Characters packs are a further CC0 option.
+
+## Phase 6 (game flow, 2026-11-03)
+No new third-party assets. Title, character creation, town, dungeons, joystick, portal and UI reuse the assets logged above; all new visuals (joystick rings, portal ring/pillar, buttons, floating text) are procedural (built-in LegacyRuntime font, StGlow/StUi sprites). The boss-loot chest is the already-logged KayKit Dungeon `chest_gold` (CC0).
